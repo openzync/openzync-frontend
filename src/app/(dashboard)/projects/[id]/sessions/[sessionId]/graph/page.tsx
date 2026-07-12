@@ -53,32 +53,18 @@ export default function SessionGraphPage() {
         return;
       }
 
-      // Step 2: fetch edges for each node in batches of 5
-      const allEdges: GraphEdgeData[] = [];
-      const seen = new Set<string>();
-
-      for (let i = 0; i < items.length; i += 5) {
-        const batch = items.slice(i, i + 5);
-        const batchResults = await Promise.allSettled(
-          batch.map((node) =>
-            get<EdgesResponse>(
-              `/v1/projects/${projectId}/graph/edges?subject_id=${node.id}&limit=50`,
-            ).then((d) => d.data?.items ?? []),
-          ),
-        );
-
-        for (const result of batchResults) {
-          if (result.status === "fulfilled") {
-            for (const edge of result.value) {
-              if (edge.source_id === edge.target_id) continue;
-              const key = [edge.source_id, edge.target_id].sort().join("::");
-              if (seen.has(key)) continue;
-              seen.add(key);
-              allEdges.push(edge);
-            }
-          }
-        }
-      }
+      // Step 2: fetch edges for ALL nodes in one batch call
+      const nodeIdList = items.map((n) => n.id).join(",");
+      const edgesData = await get<EdgesResponse>(
+        `/v1/projects/${projectId}/graph/edges?subject_ids=${nodeIdList}&limit=50`,
+      );
+      const nodeIdSet = new Set(items.map((n) => n.id));
+      const allEdges: GraphEdgeData[] = (edgesData.data?.items ?? []).filter(
+        (e) =>
+          e.source_id !== e.target_id &&
+          nodeIdSet.has(e.source_id) &&
+          nodeIdSet.has(e.target_id),
+      );
 
       setGraphData({ nodes: items, edges: allEdges });
     } catch (err) {
