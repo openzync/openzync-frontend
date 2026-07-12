@@ -44,12 +44,13 @@ export interface ApiConfig {
 // ║ Internal Types                                                              ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-/** D3 node — extends GraphNodeData with simulation position/velocity fields. */
+/** D3 node — extends GraphNodeData with simulation position/velocity fields and computed radius. */
 interface D3Node extends GraphNodeData {
   x?: number;
   y?: number;
   fx?: number | null;
   fy?: number | null;
+  r: number;
 }
 
 /** D3 link — source/target are string IDs until resolved by forceLink. */
@@ -353,8 +354,19 @@ export function ForceGraph({
 
     svg.call(zoom);
 
+    // ── Degree: count edges per node for proportional sizing ──────────
+    const degreeMap = new Map<string, number>();
+    for (const edge of filteredData.edges) {
+      degreeMap.set(edge.source_id, (degreeMap.get(edge.source_id) ?? 0) + 1);
+      degreeMap.set(edge.target_id, (degreeMap.get(edge.target_id) ?? 0) + 1);
+    }
+    const radiusFromDegree = (deg: number) => 5 + Math.sqrt(deg) * 4;
+
     // ── Data conversion ────────────────────────────────────────────────
-    const nodes: D3Node[] = filteredData.nodes.map((n) => ({ ...n }));
+    const nodes: D3Node[] = filteredData.nodes.map((n) => ({
+      ...n,
+      r: radiusFromDegree(degreeMap.get(n.id) ?? 0),
+    }));
     const links: D3Link[] = filteredData.edges.map((l) => ({
       id: l.id,
       source: l.source_id,
@@ -374,7 +386,7 @@ export function ForceGraph({
       )
       .force("charge", d3.forceManyBody().strength(-250))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide(32));
+      .force("collide", d3.forceCollide().radius((d) => d.r + 8));
 
     simulationRef.current = simulation;
 
@@ -415,7 +427,7 @@ export function ForceGraph({
     // Circle
     node
       .append("circle")
-      .attr("r", 8)
+      .attr("r", (d) => d.r)
       .attr("fill", (d) => getColor(d.type))
       .attr("stroke", "rgba(255,255,255,0.08)")
       .attr("stroke-width", 1.5)
