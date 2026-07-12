@@ -1,0 +1,26 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# OpenZync — Frontend Deployment
+# ──────────────────────────────────────────────────────────────────────────────
+# Standalone — does not reference any backend services or external networks.
+# Frontend reaches the API through the VPS nginx reverse proxy.
+#
+# Usage:
+#   docker compose -f deploy/docker-compose.yml up -d
+#   docker compose -f deploy/docker-compose.yml pull frontend
+# ──────────────────────────────────────────────────────────────────────────────
+
+networks:
+  default:
+    name: openzync_network
+
+services:
+  # ── Next.js frontend ─────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/rohnsha0/openzync/frontend:latest
+    ports:
+      - "3000:3000"
+    env_file: .env
+    restart: unless-stopped

@@ -1,0 +1,103 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# OpenZync Frontend — CI/CD Pipeline
+# ──────────────────────────────────────────────────────────────────────────────
+# Stages:
+#   build-and-deploy → Build Docker image, push to ghcr.io, deploy on VPS
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'Dockerfile'
+      - 'next.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'src/**'
+      - 'public/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push Docker image
+        run: |
+          TAG="${GITHUB_SHA}"
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=https://app.openzync.tech \
+            -t ghcr.io/rohnsha0/openzync/frontend:$TAG \
+            -f Dockerfile .
+          docker tag ghcr.io/rohnsha0/openzync/frontend:$TAG ghcr.io/rohnsha0/openzync/frontend:latest
+          docker push --all-tags ghcr.io/rohnsha0/openzync/frontend
+
+      - name: Upload deployment files to VPS
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          HOST="${{ secrets.VPS_HOST }}"
+          USER="${{ secrets.VPS_USER }}"
+          TARGET="/home/deploy/openzync"
+
+          ssh -i ~/.ssh/id_ed25519 \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            "${USER}@${HOST}" "mkdir -p ${TARGET}"
+
+          tar czf /tmp/deploy-files.tar.gz \
+            deploy/docker-compose.yml
+
+          scp -i ~/.ssh/id_ed25519 \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            /tmp/deploy-files.tar.gz \
+            "${USER}@${HOST}:${TARGET}/"
+
+      - name: Extract and deploy frontend container
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: GHCR_PAT
+          script: |
+            cd /home/deploy/openzync
+            tar xzf deploy-files.tar.gz
+            rm deploy-files.tar.gz
+
+            # ── Authenticate to ghcr.io ────────────────────────────
+            echo "$GHCR_PAT" | docker login ghcr.io -u rohnsha0 --password-stdin
+
+            # ── Write NEXT_PUBLIC_API_URL into .env ────────────────
+            # The backend deploy writes the full .env; we only need
+            # to ensure this single frontend-specific var exists.
+            grep -q '^NEXT_PUBLIC_API_URL=' .env 2>/dev/null \
+              && sed -i 's|^NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=https://app.openzync.tech|' .env \
+              || echo 'NEXT_PUBLIC_API_URL=https://app.openzync.tech' >> .env
+
+            # ── Pull latest image and restart ──────────────────────
+            docker compose -f deploy/docker-compose.yml pull frontend
+            docker compose -f deploy/docker-compose.yml up -d frontend
+
+            # ── Reload nginx so it resolves the new container IP ───
+            docker exec infra-nginx-1 nginx -s reload || true
