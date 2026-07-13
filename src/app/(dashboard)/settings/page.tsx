@@ -192,8 +192,8 @@ export default function SettingsPage() {
 
     setUpdatingPassword(true);
     try {
-      const res = await fetch(`${API_BASE}/v1/admin/password`, {
-        method: "POST",
+      const res = await fetch(`${API_BASE}/v1/auth/me`, {
+        method: "PATCH",
         headers: authHeaders(),
         body: JSON.stringify({
           current_password: currentPassword,

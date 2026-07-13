@@ -56,9 +56,7 @@ export default function SignupPage() {
         throw new Error(data?.detail ?? "Signup failed. Please try again.");
       }
       const data = await res.json();
-      sessionStorage.setItem("mg_access_token", data.access_token);
-      sessionStorage.setItem("mg_refresh_token", data.refresh_token);
-      router.replace("/onboarding");
+      router.replace(`/verify-email?email=${encodeURIComponent(data.email ?? email)}`);
     } catch (err: any) {
       setError(err.message ?? "Connection error. Please try again.");
     } finally {
