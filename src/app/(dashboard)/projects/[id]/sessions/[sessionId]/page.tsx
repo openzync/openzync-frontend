@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Database,
   Hash,
+  RefreshCw,
   User as UserIcon,
   ExternalLink,
 } from "lucide-react";
@@ -31,6 +32,7 @@ interface SessionDetail {
   is_active: boolean;
   message_count: number;
   fact_count: number;
+  pending_enrichment_count: number;
   created_at: string;
   closed_at?: string | null;
 }
@@ -274,6 +276,12 @@ export default function SessionDetailPage() {
               <MetadataRow icon={<Database size={16} />} label="Facts">
                 <span className="font-semibold">
                   {session.fact_count.toLocaleString()}
+                </span>
+              </MetadataRow>
+
+              <MetadataRow icon={<RefreshCw size={16} />} label="Pending Enrichment">
+                <span className="font-semibold">
+                  {session.pending_enrichment_count.toLocaleString()}
                 </span>
               </MetadataRow>
             </div>
