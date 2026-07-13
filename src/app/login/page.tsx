@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, Loader2, LogIn } from "lucide-react";
+import { Eye, EyeOff, Loader2, LogIn, Mail } from "lucide-react";
 import { API_BASE, safeJsonParse } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 
@@ -188,11 +188,19 @@ export default function LoginPage() {
                 <div className="w-full border-t border-surface-800" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-surface-900 px-2 text-surface-500">or continue with</span>
+                <span className="bg-surface-900 px-2 text-surface-500">or</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <Link
+              href="/login/otp"
+              className="flex items-center justify-center gap-2 rounded-lg border border-surface-700 px-4 py-2.5 text-sm font-medium text-surface-300 transition-all duration-150 hover:border-accent-300/30 hover:text-accent-300 hover:shadow-[0_0_12px_rgba(143,175,217,0.06)]"
+            >
+              <Mail size={16} />
+              Sign in with a magic code
+            </Link>
+
+            <div className="mt-3 grid grid-cols-2 gap-3">
               <Button variant="secondary" size="sm" className="w-full" disabled>
                 GitHub
               </Button>
