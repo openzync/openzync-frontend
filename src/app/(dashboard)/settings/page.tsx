@@ -5,7 +5,6 @@ import {
   Save,
   Lock,
   User,
-  Mail,
   Shield,
   CheckCircle,
   AlertCircle,
@@ -16,6 +15,8 @@ import {
 import { cn } from "@/lib/utils";
 import { API_BASE, safeJsonParse } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogCloseButton } from "@/components/ui/dialog";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ interface ProfileResponse {
   name: string | null;
   email: string | null;
   role: string;
+  mfa_enabled?: boolean;
 }
 
 interface ToastState {
@@ -95,6 +97,15 @@ export default function SettingsPage() {
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
+  // ── MFA dialog state ──────────────────────────────────────────────────────
+  const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
+  const [localMfaEnabled, setLocalMfaEnabled] = useState(false);
+  const [mfaIntent, setMfaIntent] = useState<"enable" | "disable">("enable");
+  const [dialogPassword, setDialogPassword] = useState("");
+  const [dialogOtp, setDialogOtp] = useState("");
+  const [dialogSubmitting, setDialogSubmitting] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
+
   // ── Toast state ────────────────────────────────────────────────────────────
   const [toast, setToast] = useState<ToastState>({ visible: false, message: "", type: "success" });
 
@@ -114,7 +125,7 @@ export default function SettingsPage() {
       // Use the current user endpoint — if there's a specific profile endpoint, use that.
       // Fallback: GET /v1/users/me or similar. Since we don't have explicit docs,
       // try a generic profile endpoint.
-      const res = await fetch(`${API_BASE}/v1/admin/me`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/v1/auth/me`, { headers: authHeaders() });
       if (!res.ok) {
         throw new Error("Failed to load profile");
       } else {
@@ -133,10 +144,12 @@ export default function SettingsPage() {
       name: (data.name as string) ?? null,
       email: (data.email as string) ?? null,
       role: (data.role as string) ?? "admin",
+      mfa_enabled: (data.mfa_enabled as boolean) ?? false,
     };
     setProfile(p);
     setName(p.name ?? "");
     setEmail(p.email ?? "");
+    setLocalMfaEnabled(p.mfa_enabled ?? false);
     setProfileLoading(false);
   };
 
@@ -153,7 +166,7 @@ export default function SettingsPage() {
       if (name.trim()) payload.name = name.trim();
       if (email.trim()) payload.email = email.trim();
 
-      const res = await fetch(`${API_BASE}/v1/admin/profile`, {
+      const res = await fetch(`${API_BASE}/v1/auth/me`, {
         method: "PATCH",
         headers: authHeaders(),
         body: JSON.stringify(payload),
@@ -213,6 +226,91 @@ export default function SettingsPage() {
       setPasswordError(err instanceof Error ? err.message : "Failed to update password");
     } finally {
       setUpdatingPassword(false);
+    }
+  };
+
+  // ── MFA ───────────────────────────────────────────────────────────────────
+
+  const handleToggleMfa = (checked: boolean) => {
+    const intent = checked ? "enable" : "disable";
+    setLocalMfaEnabled(checked);  // optimistic — revert on cancel
+    setMfaIntent(intent);
+    setDialogPassword("");
+    setDialogOtp("");
+    setDialogError(null);
+    setMfaDialogOpen(true);
+  };
+
+  const handleCancelMfa = () => {
+    setLocalMfaEnabled(profile?.mfa_enabled ?? false);  // revert
+    setMfaDialogOpen(false);
+  };
+
+  const confirmEnableMfa = async () => {
+    setDialogError(null);
+    if (!dialogPassword) {
+      setDialogError("Current password is required");
+      return;
+    }
+
+    setDialogSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/v1/auth/mfa/enable`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ password: dialogPassword }),
+      });
+
+      if (!res.ok) {
+        const body = (await safeJsonParse(res)) as { detail?: string } | null;
+        throw new Error(body?.detail ?? "Failed to enable MFA");
+      }
+
+      setMfaDialogOpen(false);
+      showToast("MFA has been enabled", "success");
+      fetchProfile();
+    } catch (err) {
+      setDialogError(
+        err instanceof Error ? err.message : "Connection error. Please try again.",
+      );
+    } finally {
+      setDialogSubmitting(false);
+    }
+  };
+
+  const confirmDisableMfa = async () => {
+    setDialogError(null);
+    if (!dialogPassword) {
+      setDialogError("Current password is required");
+      return;
+    }
+    if (!dialogOtp || dialogOtp.length !== 6) {
+      setDialogError("A valid 6-digit MFA code is required");
+      return;
+    }
+
+    setDialogSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/v1/auth/mfa/disable`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ password: dialogPassword, otp: dialogOtp }),
+      });
+
+      if (!res.ok) {
+        const body = (await safeJsonParse(res)) as { detail?: string } | null;
+        throw new Error(body?.detail ?? "Failed to disable MFA");
+      }
+
+      setMfaDialogOpen(false);
+      showToast("MFA has been disabled", "success");
+      fetchProfile();
+    } catch (err) {
+      setDialogError(
+        err instanceof Error ? err.message : "Connection error. Please try again.",
+      );
+    } finally {
+      setDialogSubmitting(false);
     }
   };
 
@@ -384,6 +482,114 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* ── MFA Card ──────────────────────────────────────────────────────────── */}
+      {!profileLoading && (
+        <div className="card-base p-6">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
+              profile?.mfa_enabled ? "bg-success/10" : "bg-info/10",
+            )}>
+              <Shield size={20} className={profile?.mfa_enabled ? "text-success" : "text-info"} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3">
+                <h2 className="text-base font-semibold">Multi-Factor Authentication</h2>
+          {mfaIntent === "disable" && (
+                  <span className="text-xs font-medium text-success bg-success/10 px-2 py-0.5 rounded-full border border-success/30 shrink-0">
+                    Enabled
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-surface-400">
+                {profile?.mfa_enabled
+                  ? "Your account is protected with email-based MFA"
+                  : "Add an extra layer of security to your account"
+                }
+              </p>
+            </div>
+            <Switch
+              checked={localMfaEnabled}
+              onCheckedChange={handleToggleMfa}
+              disabled={profileLoading}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── MFA confirmation dialog ────────────────────────────────────────── */}
+      <Dialog
+        open={mfaDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) handleCancelMfa();
+        }}
+        title={mfaIntent === "disable" ? "Disable MFA" : "Enable MFA"}
+        description={
+          mfaIntent === "disable"
+            ? "Enter your password and the MFA code from your email to disable."
+            : "Enter your password to enable email-based MFA."
+        }
+        footer={
+          <>
+            <DialogCloseButton disabled={dialogSubmitting} />
+            <Button
+              variant={mfaIntent === "disable" ? "secondary" : "primary"}
+              loading={dialogSubmitting}
+              onClick={mfaIntent === "disable" ? confirmDisableMfa : confirmEnableMfa}
+              className={mfaIntent === "disable" ? "border-error/40 text-error hover:bg-error/10 hover:border-error/60" : ""}
+            >
+              {profile?.mfa_enabled ? "Disable MFA" : "Enable MFA"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-1">
+              Current Password
+            </label>
+            <input
+              className="input-base w-full"
+              type="password"
+              placeholder="Enter your current password"
+              value={dialogPassword}
+              onChange={(e) => {
+                setDialogPassword(e.target.value);
+                if (dialogError) setDialogError(null);
+              }}
+            />
+          </div>
+
+          {profile?.mfa_enabled && (
+            <div>
+              <label className="block text-sm font-medium text-surface-300 mb-1">
+                MFA Code
+              </label>
+              <input
+                className="input-base w-full text-center text-lg tracking-[0.3em] font-mono"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="000000"
+                value={dialogOtp}
+                onChange={(e) => {
+                  setDialogOtp(e.target.value.replace(/\D/g, ""));
+                  if (dialogError) setDialogError(null);
+                }}
+              />
+
+            </div>
+          )}
+
+          {dialogError && (
+            <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
+              <AlertCircle size={14} />
+              {dialogError}
+            </div>
+          )}
+        </div>
+      </Dialog>
 
       {/* ── Toast ─────────────────────────────────────────────────────────────── */}
       <Toast toast={toast} onDismiss={dismissToast} />

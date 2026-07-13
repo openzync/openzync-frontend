@@ -54,6 +54,12 @@ export default function LoginPage() {
         throw new Error(data?.detail ?? "Invalid email or password.");
       }
       const data = await res.json();
+      if (data.requires_mfa) {
+        router.replace(
+          `/login/mfa?email=${encodeURIComponent(email)}&session=${encodeURIComponent(data.mfa_session_token)}`
+        );
+        return;
+      }
       // Store tokens
       sessionStorage.setItem("mg_access_token", data.access_token);
       sessionStorage.setItem("mg_refresh_token", data.refresh_token);
