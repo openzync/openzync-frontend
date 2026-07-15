@@ -61,6 +61,14 @@ interface D3Link {
   type: string;
 }
 
+/** Community grouping for convex hull visualization. */
+interface CommunityHullData {
+  id: string;
+  name: string;
+  color: string;
+  memberIds: string[];
+}
+
 interface NodeDetailResponse {
   data: {
     node: GraphNodeData & { metadata?: Record<string, unknown> };
@@ -78,6 +86,7 @@ const NODE_COLORS: Record<string, string> = {
   location: "#8FAFD9",
   event: "#1747A6",
   concept: "#6A8DB8",
+  community: "#7C3AED",
 };
 const DEFAULT_NODE_COLOR = "#4A6D96";
 
@@ -87,6 +96,7 @@ const ENTITY_TYPE_LEGEND = [
   { type: "location", label: "Location", color: NODE_COLORS.location },
   { type: "event", label: "Event", color: NODE_COLORS.event },
   { type: "concept", label: "Concept", color: NODE_COLORS.concept },
+  { type: "community", label: "Community", color: NODE_COLORS.community },
 ];
 
 function getColor(type: string | undefined): string {
@@ -344,6 +354,9 @@ export function ForceGraph({
     // ── Main group for zoom/pan ───────────────────────────────────────────
     const g = svg.append("g");
 
+    // ── Community hull layer (beneath edges and nodes) ──────────────
+    const hullGroup = g.append("g").attr("class", "community-hulls");
+
     // ── Zoom behaviour ──────────────────────────────────────────────────
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
@@ -362,12 +375,38 @@ export function ForceGraph({
     }
     const radiusFromDegree = (deg: number) => 5 + Math.sqrt(deg) * 4;
 
+    // ── Community hull data ──────────────────────────────────────────
+    const visibleNodes = filteredData.nodes.filter((n) => n.type !== "community");
+    const visibleEdges = filteredData.edges.filter((e) => e.type !== "member_of");
+
+    const communityNodeMap = new Map(
+      filteredData.nodes
+        .filter((n) => n.type === "community")
+        .map((n) => [n.id, n]),
+    );
+    const communityHulls: CommunityHullData[] = [];
+    for (const edge of filteredData.edges) {
+      if (edge.type !== "member_of") continue;
+      const community = communityNodeMap.get(edge.target_id);
+      if (!community) continue;
+      let hull = communityHulls.find((h) => h.id === community.id);
+      if (!hull) {
+        hull = { id: community.id, name: community.name, color: getColor("community"), memberIds: [] };
+        communityHulls.push(hull);
+      }
+      hull.memberIds.push(edge.source_id);
+    }
+    // Only keep communities with at least 3 visible members
+    const viableHulls = communityHulls.filter(
+      (h) => h.memberIds.filter((mid) => visibleNodes.some((n) => n.id === mid)).length >= 3,
+    );
+
     // ── Data conversion ────────────────────────────────────────────────
-    const nodes: D3Node[] = filteredData.nodes.map((n) => ({
+    const nodes: D3Node[] = visibleNodes.map((n) => ({
       ...n,
       r: radiusFromDegree(degreeMap.get(n.id) ?? 0),
     }));
-    const links: D3Link[] = filteredData.edges.map((l) => ({
+    const links: D3Link[] = visibleEdges.map((l) => ({
       id: l.id,
       source: l.source_id,
       target: l.target_id,
@@ -389,6 +428,41 @@ export function ForceGraph({
       .force("collide", d3.forceCollide().radius((d) => d.r + 8));
 
     simulationRef.current = simulation;
+
+    // ── Hull paths ──────────────────────────────────────────────────
+    const hullPath = hullGroup
+      .selectAll<SVGPathElement, CommunityHullData>("path")
+      .data(viableHulls, (d) => d.id)
+      .join("path")
+      .attr("fill", (d) => d.color)
+      .attr("fill-opacity", 0.12)
+      .attr("stroke", (d) => d.color)
+      .attr("stroke-opacity", 0.35)
+      .attr("stroke-width", 1.5)
+      .attr("stroke-dasharray", "4 2");
+
+    // ── Hull hover: highlight member nodes ──────────────────────────
+    hullPath
+      .attr("pointer-events", "visible")
+      .on("mouseenter", (_event: MouseEvent, d: CommunityHullData) => {
+        const memberSet = new Set(d.memberIds);
+        node.attr("opacity", (n) => (memberSet.has(n.id) ? 1 : 0.15));
+        link.attr("stroke", (l) => {
+          const sourceObj = l.source as unknown as D3Node;
+          const targetObj = l.target as unknown as D3Node;
+          const sid = typeof l.source === "object" ? sourceObj.id : l.source;
+          const tid = typeof l.target === "object" ? targetObj.id : l.target;
+          return memberSet.has(sid) || memberSet.has(tid)
+            ? "rgba(143,175,217,0.6)"
+            : "rgba(143,175,217,0.04)";
+        });
+        hullPath.attr("fill-opacity", (hd) => (hd.id === d.id ? 0.22 : 0.06));
+      })
+      .on("mouseleave", () => {
+        node.attr("opacity", 1);
+        link.attr("stroke", "rgba(143,175,217,0.25)");
+        hullPath.attr("fill-opacity", 0.12);
+      });
 
     // ── Edge layer ────────────────────────────────────────────────────
     const linkGroup = g.append("g").attr("class", "links");
@@ -532,6 +606,30 @@ export function ForceGraph({
         .attr("y", (d) => ((d.source as unknown as D3Node).y! + (d.target as unknown as D3Node).y!) / 2);
 
       node.attr("transform", (d) => `translate(${d.x},${d.y})`);
+
+      // ── Update community hulls ──────────────────────────────────────
+      hullPath.attr("d", (d: CommunityHullData) => {
+        const points: [number, number][] = [];
+        for (const mid of d.memberIds) {
+          const dn = nodes.find((n) => n.id === mid);
+          if (dn?.x != null && dn?.y != null) {
+            points.push([dn.x, dn.y]);
+          }
+        }
+        if (points.length < 3) return "";
+        const hull = d3.polygonHull(points);
+        if (!hull) return "";
+        // Expand hull by 12px padding for visual breathing room
+        const cx = hull.reduce((s, p) => s + p[0], 0) / hull.length;
+        const cy = hull.reduce((s, p) => s + p[1], 0) / hull.length;
+        const expanded = hull.map((p) => {
+          const dx = p[0] - cx;
+          const dy = p[1] - cy;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          return [p[0] + (dx / dist) * 12, p[1] + (dy / dist) * 12] as [number, number];
+        });
+        return "M" + expanded.map((p) => `${p[0]},${p[1]}`).join(" L") + " Z";
+      });
     });
 
     // ── Zoom-to-fit on first render ──────────────────────────────────
