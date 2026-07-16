@@ -39,13 +39,13 @@ jobs:
 
       - name: Build & push Docker image
         run: |
-          TAG="${GITHUB_SHA}"
-          docker build \
-            --build-arg NEXT_PUBLIC_API_URL=https://app.openzync.tech \
-            -t ghcr.io/rohnsha0/openzync/frontend:$TAG \
-            -f Dockerfile .
-          docker tag ghcr.io/rohnsha0/openzync/frontend:$TAG ghcr.io/rohnsha0/openzync/frontend:latest
-          docker push --all-tags ghcr.io/rohnsha0/openzync/frontend
+            TAG="${GITHUB_SHA}"
+            docker build \
+              --build-arg NEXT_PUBLIC_API_URL=https://app.openzync.tech \
+              -t ghcr.io/openzync/frontend:$TAG \
+              -f Dockerfile .
+            docker tag ghcr.io/openzync/frontend:$TAG ghcr.io/openzync/frontend:latest
+            docker push --all-tags ghcr.io/openzync/frontend
 
       - name: Upload deployment files to VPS
         shell: bash

@@ -19,7 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/rohnsha0/openzync/frontend:latest
+    image: ghcr.io/openzync/frontend:latest
     ports:
       - "127.0.0.1:3000:3000"
     env_file: .env
