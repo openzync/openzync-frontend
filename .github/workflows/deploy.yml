@@ -14,9 +14,10 @@ on:
       - 'Dockerfile'
       - 'next.config.ts'
       - 'package.json'
-      - 'pnpm-lock.yaml'
+      - 'package-lock.json'
       - 'src/**'
       - 'public/**'
+      - 'deploy/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -99,5 +100,4 @@ jobs:
             docker compose -f deploy/docker-compose.yml pull frontend
             docker compose -f deploy/docker-compose.yml up -d frontend
 
-            # ── Reload nginx so it resolves the new container IP ───
-            docker exec infra-nginx-1 nginx -s reload || true
+
