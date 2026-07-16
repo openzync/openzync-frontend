@@ -89,12 +89,10 @@ jobs:
             # ── Authenticate to ghcr.io ────────────────────────────
             echo "$GHCR_PAT" | docker login ghcr.io -u rohnsha0 --password-stdin
 
-            # ── Write NEXT_PUBLIC_API_URL into .env ────────────────
-            # The backend deploy writes the full .env; we only need
-            # to ensure this single frontend-specific var exists.
-            grep -q '^NEXT_PUBLIC_API_URL=' .env 2>/dev/null \
-              && sed -i 's|^NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=https://app.openzync.tech|' .env \
-              || echo 'NEXT_PUBLIC_API_URL=https://app.openzync.tech' >> .env
+            # ── Write NEXT_PUBLIC_API_URL into deploy/.env ──────────────
+            # docker-compose.yml resolves env_file relative to its own
+            # directory (deploy/), not the working directory.
+            echo 'NEXT_PUBLIC_API_URL=https://app.openzync.tech' > deploy/.env
 
             # ── Pull latest image and restart ──────────────────────
             docker compose -f deploy/docker-compose.yml pull frontend
