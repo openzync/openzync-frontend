@@ -7,6 +7,11 @@ import {
   MessageSquare,
   MessageCircle,
   Key,
+  FolderKanban,
+  BarChart3,
+  Shield,
+  BrainCircuit,
+  type LucideIcon,
 } from "lucide-react";
 
 import { get } from "@/lib/api-client";
@@ -35,6 +40,27 @@ interface AuditEntry {
   status_code: number | null;
 }
 
+interface QuickActionItem {
+  label: string;
+  href: string;
+  icon: string;
+  description?: string;
+}
+
+interface QuickActionsResponse {
+  actions: QuickActionItem[];
+}
+
+// ─── Icon Map for Quick Actions ────────────────────────────────────────────────
+
+const QUICK_ACTION_ICONS: Record<string, LucideIcon> = {
+  "folder-kanban": FolderKanban,
+  "bar-chart-3": BarChart3,
+  shield: Shield,
+  users: Users,
+  "brain-circuit": BrainCircuit,
+};
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function actorLabel(entry: AuditEntry): string {
@@ -58,22 +84,33 @@ export default function OverviewPage() {
   const router = useRouter();
   const [stats, setStats] = useState<OrgStats | null>(null);
   const [activities, setActivities] = useState<AuditEntry[]>([]);
+  const [quickActions, setQuickActions] = useState<QuickActionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [statsRes, auditRes] = await Promise.all([
-          get<OrgStats>("/v1/admin/stats/org"),
-          get<{ items: AuditEntry[] }>("/v1/admin/audit-logs?limit=5"),
-        ]);
+        const statsRes = await get<OrgStats>("/v1/admin/stats/org");
         setStats(statsRes);
+      } catch {
+        // Non-critical — overview shows null stats gracefully
+      }
+
+      try {
+        const auditRes = await get<{ items: AuditEntry[] }>("/v1/admin/audit-logs?limit=5");
         setActivities(auditRes.items ?? []);
       } catch {
-        // Silently fail on overview — non-critical data
-      } finally {
-        setLoading(false);
+        // Non-critical — overview shows empty activity
       }
+
+      try {
+        const qaRes = await get<QuickActionsResponse>("/v1/admin/quick-actions");
+        setQuickActions(qaRes.actions);
+      } catch {
+        // Non-critical — overview shows empty quick actions
+      }
+
+      setLoading(false);
     }
     fetchData();
   }, []);
@@ -103,35 +140,36 @@ export default function OverviewPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="card-base p-4">
           <h3 className="text-sm font-medium mb-2">Quick Actions</h3>
-          <div className="space-y-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => router.push("/memory")}
-              className="w-full justify-start"
-            >
-              <MessageCircle size={14} className="mr-2" />
-              Ingest Memory
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => router.push("/users")}
-              className="w-full justify-start"
-            >
-              <Users size={14} className="mr-2" />
-              Create User
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => router.push("/sessions")}
-              className="w-full justify-start"
-            >
-              <MessageSquare size={14} className="mr-2" />
-              New Session
-            </Button>
-          </div>
+          {loading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-9 rounded bg-surface-800 animate-pulse" />
+              ))}
+            </div>
+          ) : quickActions.length === 0 ? (
+            <div className="text-sm text-surface-500 py-4 text-center">
+              No actions available
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {quickActions.map((action) => {
+                const Icon = QUICK_ACTION_ICONS[action.icon] ?? FolderKanban;
+                return (
+                  <Button
+                    key={action.label + action.href}
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => router.push(action.href)}
+                    className="w-full justify-start"
+                    title={action.description}
+                  >
+                    <Icon size={14} className="mr-2" />
+                    {action.label}
+                  </Button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="card-base p-4 md:col-span-2">
