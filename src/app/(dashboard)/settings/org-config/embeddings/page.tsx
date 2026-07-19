@@ -13,7 +13,7 @@ interface OrgConfigResponse {
   stored: Record<string, unknown>;
 }
 
-type EmbeddingBackend = "openai" | "ollama" | "huggingface" | "sentence_transformers";
+type EmbeddingBackend = "openai" | "ollama" | "openrouter" | "huggingface" | "sentence_transformers";
 
 interface FormState {
   embedding_backend: EmbeddingBackend;
@@ -36,6 +36,7 @@ const FIELDS: (keyof FormState)[] = [
 const BACKEND_OPTIONS: { value: EmbeddingBackend; label: string }[] = [
   { value: "openai", label: "OpenAI" },
   { value: "ollama", label: "Ollama" },
+  { value: "openrouter", label: "OpenRouter" },
   { value: "huggingface", label: "Hugging Face" },
   { value: "sentence_transformers", label: "Sentence Transformers" },
 ];
