@@ -116,3 +116,34 @@ export function formatNumber(n: number | null | undefined): string {
   if (n === null || n === undefined) return "—";
   return n.toLocaleString();
 }
+
+// ─── File helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Format a file size in bytes to a human-readable string.
+ *
+ * @param bytes - Size in bytes.
+ * @param decimals - Number of decimal places (default 1).
+ * @returns Formatted string like "2.4 KB" or "1.3 MB".
+ */
+export function formatFileSize(bytes: number, decimals: number = 1): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const clamped = Math.min(i, sizes.length - 1);
+  return `${parseFloat((bytes / Math.pow(k, clamped)).toFixed(decimals))} ${sizes[clamped]}`;
+}
+
+/**
+ * Map a MIME type to a Lucide icon name for file type display.
+ */
+export function mimeToIcon(mimeType: string): string {
+  if (mimeType.startsWith("image/")) return "FileImage";
+  if (mimeType === "application/pdf") return "FilePdf";
+  if (mimeType.startsWith("text/")) return "FileText";
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) return "FileSpreadsheet";
+  if (mimeType.includes("presentation") || mimeType.includes("powerpoint")) return "FilePresentation";
+  if (mimeType.includes("zip") || mimeType.includes("tar") || mimeType.includes("gzip")) return "FileArchive";
+  return "File";
+}

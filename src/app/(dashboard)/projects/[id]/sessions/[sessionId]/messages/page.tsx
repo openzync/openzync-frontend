@@ -20,6 +20,7 @@ import SessionTabs from "../tabs";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
+import { BlobCard, type BlobCardData } from "@/components/shared/blob-card";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ interface Message {
   content: string;
   created_at?: string;
   token_count?: number;
+  blobs?: BlobCardData[];
   [key: string]: unknown;
 }
 
@@ -270,6 +272,14 @@ export default function MessagesPage() {
                           <span title="Tokens">{msg.token_count} tok</span>
                         </>
                       )}
+                      {/* Attached files */}
+                      {msg.blobs && msg.blobs.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {msg.blobs.map((blob) => (
+                            <BlobCard key={blob.id} blob={blob} />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -297,6 +307,15 @@ export default function MessagesPage() {
                         </span>
                       )}
                     </div>
+
+                      {/* Attached files */}
+                      {msg.blobs && msg.blobs.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {msg.blobs.map((blob) => (
+                            <BlobCard key={blob.id} blob={blob} />
+                          ))}
+                        </div>
+                      )}
 
                     <div
                       className={cn(

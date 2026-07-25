@@ -237,6 +237,69 @@ export function del<T = void>(path: string): Promise<T> {
   return request<T>(path, { method: "DELETE" });
 }
 
+// ── File Upload ─────────────────────────────────────────────────────────
+
+/**
+ * Upload a JSON payload with binary file attachments via multipart/form-data.
+ *
+ * Used by the memory ingestion endpoint which accepts both structured
+ * message data and file blobs in a single request.
+ *
+ * @param path - API path (e.g. `/v1/projects/${id}/memory`).
+ * @param payload - JSON-serializable object (the IngestMemoryRequest).
+ * @param files - Array of File objects to attach as blobs.
+ * @returns Parsed response body.
+ */
+async function uploadWithBlobs<T>(
+  path: string,
+  payload: Record<string, unknown>,
+  files: File[],
+): Promise<T> {
+  const formData = new FormData();
+  formData.append("data", JSON.stringify(payload));
+
+  for (const file of files) {
+    formData.append("blobs", file);
+  }
+
+  const url = `${API_BASE}${path}`;
+  const headers = getAuthHeaders();
+
+  // No Content-Type header — let the browser set the multipart boundary.
+  let res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  // 401 → refresh & retry
+  if (res.status === 401 && !_refreshing) {
+    _refreshing = true;
+    try {
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        headers["Authorization"] = `Bearer ${newToken}`;
+        res = await fetch(url, { method: "POST", headers, body: formData });
+      } else {
+        clearTokens();
+        window.location.href = "/login?reason=not-signed-in";
+        throw new ApiError("Unauthorized", 401, null);
+      }
+    } finally {
+      _refreshing = false;
+    }
+  }
+
+  if (res.status === 204) return {} as T;
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const message =
+      body?.detail ?? body?.title ?? `Request failed with status ${res.status}`;
+    throw new ApiError(message, res.status, body);
+  }
+  return body as T;
+}
+
 // ─── Pagination helpers ───────────────────────────────────────────────────────
 
 export interface CursorPageParams {
@@ -260,4 +323,4 @@ export function extractList<T>(response: unknown): T[] {
 
 // ─── Re-export base URL for edge cases ───────────────────────────────────────
 
-export { API_BASE, getAccessToken, clearTokens };
+export { API_BASE, getAccessToken, clearTokens, uploadWithBlobs };

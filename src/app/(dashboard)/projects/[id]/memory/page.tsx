@@ -7,9 +7,12 @@ import {
   FileText,
   AlertCircle,
   CheckCircle2,
+  X,
+  FileWarning,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { get, post } from "@/lib/api-client";
+import { cn, formatFileSize } from "@/lib/utils";
+import { get, post, uploadWithBlobs } from "@/lib/api-client";
+import { BlobCard, type BlobCardData } from "@/components/shared/blob-card";
 import { useProject } from "@/stores/project-context";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -20,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 interface IngestResponse {
   job_id?: string;
   episode_count?: number;
+  blob_count?: number;
   status?: string;
   message?: string;
 }
@@ -62,12 +66,14 @@ function IngestTab({ projectId }: { projectId: string }) {
   const [messagesText, setMessagesText] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("user");
   const [ingesting, setIngesting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [result, setResult] = useState<IngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleIngest = useCallback(async () => {
     if (!messagesText.trim()) { setError("Please enter at least one message"); return; }
-    setIngesting(true); setError(null); setResult(null);
+    setIngesting(true); setUploading(true); setError(null); setResult(null);
 
     const lines = messagesText.trim().split("\n").filter(Boolean);
     const messages = lines.map((line) => {
@@ -78,12 +84,24 @@ function IngestTab({ projectId }: { projectId: string }) {
     try {
       const body: Record<string, unknown> = { messages };
       if (sessionId.trim()) body.session_id = sessionId.trim();
-      const data = await post<IngestResponse>(`/v1/projects/${projectId}/memory`, body);
+
+      const data = selectedFiles.length > 0
+        ? await uploadWithBlobs<IngestResponse>(
+            `/v1/projects/${projectId}/memory`,
+            body,
+            selectedFiles,
+          )
+        : await post<IngestResponse>(
+            `/v1/projects/${projectId}/memory`,
+            body,
+          );
+
       setResult(data);
+      setSelectedFiles([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ingest failed");
-    } finally { setIngesting(false); }
-  }, [projectId, messagesText, selectedRole, sessionId]);
+    } finally { setIngesting(false); setUploading(false); }
+  }, [projectId, messagesText, selectedRole, sessionId, selectedFiles]);
 
   return (
     <div className="card-base p-5 space-y-5">
@@ -100,6 +118,73 @@ function IngestTab({ projectId }: { projectId: string }) {
           placeholder="user: What is the capital of France?&#10;assistant: The capital of France is Paris."
           rows={6} className="input-base min-h-[120px] py-2 resize-y leading-relaxed" style={{ height: "auto" }} />
       </div>
+      {/* ── File Attachments ───────────────────────────────────── */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-surface-300">
+          Attachments <span className="text-surface-500">(optional)</span>
+        </label>
+
+        {/* Drop zone */}
+        <label
+          className={cn(
+            "flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed",
+            "border-surface-600 bg-surface-800/30 p-6 cursor-pointer",
+            "hover:border-brand-500/50 hover:bg-surface-800/50 transition-colors",
+          )}
+        >
+          <Upload className="size-8 text-surface-400" />
+          <p className="text-sm text-surface-400">
+            <span className="text-brand-400 font-medium">Click to upload</span>{" "}
+            or drag and drop
+          </p>
+          <p className="text-xs text-surface-500">
+            Images, PDFs, documents — up to 50 MB each
+          </p>
+          <input
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? []);
+              setSelectedFiles((prev) => [...prev, ...files]);
+              // Reset so re-selecting the same file works
+              e.target.value = "";
+            }}
+          />
+        </label>
+
+        {/* File list */}
+        {selectedFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {selectedFiles.map((file, idx) => (
+              <div
+                key={`${file.name}-${idx}`}
+                className="flex items-center gap-2 rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 max-w-[240px] group"
+              >
+                <FileWarning className="size-5 shrink-0 text-surface-400" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-surface-200 truncate">
+                    {file.name}
+                  </p>
+                  <p className="text-xs text-surface-500">
+                    {formatFileSize(file.size)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedFiles((prev) => prev.filter((_, i) => i !== idx))
+                  }
+                  className="shrink-0 p-0.5 rounded text-surface-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="flex items-end gap-4">
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-surface-400">Default Role</label>
@@ -122,6 +207,7 @@ function IngestTab({ projectId }: { projectId: string }) {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {result.job_id && <div><div className="text-xs text-surface-500">Job ID</div><div className="text-sm font-mono text-surface-200 truncate" title={result.job_id}>{result.job_id}</div></div>}
             {result.episode_count !== undefined && <div><div className="text-xs text-surface-500">Episodes</div><div className="text-sm font-semibold text-surface-200">{result.episode_count}</div></div>}
+            {result.blob_count !== undefined && result.blob_count > 0 && <div><div className="text-xs text-surface-500">Files</div><div className="text-sm font-semibold text-surface-200">{result.blob_count}</div></div>}
             {result.status && <div><div className="text-xs text-surface-500">Status</div><div className="text-sm font-medium text-success">{result.status}</div></div>}
           </div>
         </div>

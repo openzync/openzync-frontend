@@ -9,6 +9,7 @@ const TABS = [
   { label: "Embeddings", href: "/settings/org-config/embeddings", id: "embeddings" },
   { label: "Graph", href: "/settings/org-config/graph", id: "graph" },
   { label: "Behaviour", href: "/settings/org-config/behaviour", id: "behaviour" },
+  { label: "Blob Storage", href: "/settings/org-config/blob-storage", id: "blob-storage" },
 ];
 
 export default function OrgConfigLayout({ children }: { children: React.ReactNode }) {
