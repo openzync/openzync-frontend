@@ -9,14 +9,44 @@ import SessionTabs from "../tabs";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { Badge } from "@/components/ui/badge";
-import { TableSkeleton } from "@/components/shared/skeleton";
+import { Skeleton } from "@/components/shared/skeleton";
 
 interface Classification {
   id: string;
-  intent: string;
-  emotion: string;
+  episode_id: string;
+  intent: string | null;
+  emotion: string | null;
+  valence: string | null;
+  arousal: string | null;
   confidence: number;
+  message: string;
+  role: string;
   created_at: string;
+}
+
+/** Map role string to Badge variant. */
+const roleVariant = (
+  role: string,
+): "default" | "success" | "brand" | "warning" => {
+  switch (role) {
+    case "user":
+      return "brand";
+    case "assistant":
+      return "success";
+    case "tool":
+      return "warning";
+    default:
+      return "default";
+  }
+};
+
+/** Render a nullable value — shows the value or an em-dash in surface-500. */
+function NullableValue({ value }: { value: string | null }) {
+  return value != null ? (
+    <span className="text-surface-200">{value}</span>
+  ) : (
+    <span className="text-surface-500">&mdash;</span>
+  );
 }
 
 export default function SessionClassificationsPage() {
@@ -40,7 +70,11 @@ export default function SessionClassificationsPage() {
         );
         setData(json.data ?? []);
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : "Failed to load classifications");
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "Failed to load classifications",
+        );
       } finally {
         setLoading(false);
       }
@@ -52,7 +86,24 @@ export default function SessionClassificationsPage() {
     <div>
       <SessionTabs sessionId={sessionId} activeTab="classifications" />
       {loading ? (
-        <TableSkeleton rows={3} cols={4} colWidths={["w-32", "w-24", "w-16", "w-24"]} />
+        <div className="divide-y divide-surface-800">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="px-4 py-4 space-y-3">
+              <Skeleton className="h-16 w-full" />
+              <div className="flex flex-wrap gap-4">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : error ? (
         <ErrorState message={error} onRetry={() => window.location.reload()} />
       ) : data.length === 0 ? (
@@ -62,31 +113,44 @@ export default function SessionClassificationsPage() {
           description="Classification data will appear here once processed."
         />
       ) : (
-        <div className="card-base overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-surface-800 text-surface-400 text-xs uppercase tracking-wider">
-              <tr>
-                <th className="px-4 py-3 text-left">Intent</th>
-                <th className="px-4 py-3 text-left">Emotion</th>
-                <th className="px-4 py-3 text-center">Confidence</th>
-                <th className="px-4 py-3 text-right">Created</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {data.map((c) => (
-                <tr key={c.id} className="even:bg-surface-950/50">
-                  <td className="px-4 py-3 text-sm">{c.intent}</td>
-                  <td className="px-4 py-3 text-sm text-surface-400">{c.emotion}</td>
-                  <td className="px-4 py-3 text-center">
-                    <Badge variant="brand">{(c.confidence * 100).toFixed(0)}%</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm text-surface-400">
-                    {new Date(c.created_at).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="divide-y divide-surface-800">
+          {data.map((c) => (
+            <div key={c.id} className="px-4 py-4 space-y-3">
+              {/* Message text */}
+              <div className="text-sm leading-relaxed text-surface-200">
+                {c.message}
+              </div>
+
+              {/* Metadata: Role + Intent + Emotion + Valence + Arousal */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-surface-400">
+                <Badge variant={roleVariant(c.role)} size="sm">
+                  {c.role}
+                </Badge>
+                <span>
+                  Intent: <NullableValue value={c.intent} />
+                </span>
+                <span>
+                  Emotion: <NullableValue value={c.emotion} />
+                </span>
+                <span>
+                  Valence: <NullableValue value={c.valence} />
+                </span>
+                <span>
+                  Arousal: <NullableValue value={c.arousal} />
+                </span>
+              </div>
+
+              {/* Confidence + Date */}
+              <div className="flex items-center justify-between">
+                <Badge variant="brand">
+                  {(c.confidence * 100).toFixed(0)}%
+                </Badge>
+                <span className="text-xs text-surface-400">
+                  {new Date(c.created_at).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
