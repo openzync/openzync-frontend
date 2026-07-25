@@ -6,10 +6,12 @@ import { FileText } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { useProject } from "@/stores/project-context";
+import { toast } from "sonner";
 import SessionTabs from "../tabs";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { TableSkeleton } from "@/components/shared/skeleton";
 
 interface FactRow {
@@ -20,6 +22,12 @@ interface FactRow {
   object: string | null;
   confidence: number;
   created_at: string;
+}
+
+interface FactsResponse {
+  data: FactRow[];
+  next_cursor: string | null;
+  has_more: boolean;
 }
 
 function confidenceVariant(score: number): "success" | "warning" | "error" {
@@ -37,6 +45,9 @@ export default function SessionFactsPage() {
   const [facts, setFacts] = useState<FactRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     if (!projectId) return;
@@ -44,18 +55,38 @@ export default function SessionFactsPage() {
       setLoading(true);
       setError("");
       try {
-        const json = await get<{ data: FactRow[] }>(
+        const json = await get<FactsResponse>(
           `/v1/projects/${projectId}/sessions/${sessionId}/facts?limit=50`,
         );
         setFacts(json.data ?? []);
+        setCursor(json.next_cursor ?? null);
+        setHasMore(json.has_more ?? false);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Failed to load facts");
+        setFacts([]);
       } finally {
         setLoading(false);
       }
     }
     fetchFacts();
   }, [projectId, sessionId]);
+
+  async function loadMore() {
+    if (!projectId || !cursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const json = await get<FactsResponse>(
+        `/v1/projects/${projectId}/sessions/${sessionId}/facts?limit=50&cursor=${encodeURIComponent(cursor)}`,
+      );
+      setFacts((prev) => [...prev, ...(json.data ?? [])]);
+      setCursor(json.next_cursor ?? null);
+      setHasMore(json.has_more ?? false);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to load more facts");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   return (
     <div>
@@ -99,6 +130,13 @@ export default function SessionFactsPage() {
               ))}
             </tbody>
           </table>
+          {hasMore && (
+            <div className="flex justify-center py-4 border-t border-surface-800">
+              <Button variant="secondary" size="sm" onClick={loadMore} loading={loadingMore}>
+                Load More
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
