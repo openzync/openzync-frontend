@@ -14,7 +14,9 @@ import { Skeleton } from "@/components/shared/skeleton";
 interface Observation {
   id: string;
   subject_entity_id: string;
+  subject_entity_name: string | null;
   related_entity_id: string | null;
+  related_entity_name: string | null;
   observation_type: string;
   content: string;
   confidence: number;
@@ -118,12 +120,14 @@ export default function SessionObservationsPage() {
                   {o.content}
                 </p>
 
-                {/* Footer: date + related entity */}
+                {/* Footer: date + entity names */}
                 <div className="flex items-center justify-between text-xs text-surface-400">
                   <span>{new Date(o.created_at).toLocaleDateString()}</span>
-                  {o.related_entity_id && (
+                  {o.subject_entity_name && (
                     <span className="text-surface-500">
-                      Related entity: {o.related_entity_id.slice(0, 8)}&hellip;
+                      {o.related_entity_name
+                        ? `${o.subject_entity_name} ↔ ${o.related_entity_name}`
+                        : o.subject_entity_name}
                     </span>
                   )}
                 </div>

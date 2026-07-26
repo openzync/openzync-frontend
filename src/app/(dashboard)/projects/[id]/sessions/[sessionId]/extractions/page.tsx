@@ -54,11 +54,11 @@ export default function SessionExtractionsPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={() => window.location.reload()} />
       ) : data.length === 0 ? (
-        <EmptyState
-          icon={Database}
-          title="No structured extractions available yet"
-          description="Extractions will appear here once data is processed."
-        />
+          <EmptyState
+            icon={Database}
+            title="No structured extractions found"
+            description={"Configure a JSON Schema in Settings > Extraction Schemas.\nDefine one, then process new messages through the enrichment pipeline."}
+          />
       ) : (
         <div className="space-y-3">
           {data.map((ext) => (

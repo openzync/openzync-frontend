@@ -15,8 +15,6 @@ import {
   Shield,
   Key,
   FileJson,
-  Tags,
-  Database,
   Settings,
   Search,
   Sun,
@@ -291,12 +289,10 @@ function Sidebar({
               {[
                 { label: "Users", href: "/users", icon: <Users size={18} /> },
                 { label: "Extraction Schemas", href: "/settings/schemas", icon: <FileJson size={18} /> },
-                { label: "Classifications", href: "/settings/classifications", icon: <Tags size={18} /> },
-                { label: "Extractions", href: "/settings/extractions", icon: <Database size={18} /> },
                 { label: "Webhooks", href: "/settings/webhooks", icon: <Webhook size={18} /> },
                 { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: <FileText size={18} /> },
-                { label: "Prompts", href: "/settings/prompts", icon: <FileCode size={18} /> },
-                { label: "Org Config", href: "/settings/org-config", icon: <SlidersHorizontal size={18} /> },
+                { label: "Prompt Templates", href: "/settings/prompts", icon: <FileCode size={18} /> },
+                { label: "Configuration", href: "/settings/org-config", icon: <SlidersHorizontal size={18} /> },
               ].map((item) => {
                 const active = isActive(item.href);
                 return (
@@ -335,7 +331,7 @@ function Sidebar({
             <div className="space-y-0.5">
               {[
                 { label: "Audit Log", href: "/audit", icon: <Shield size={18} /> },
-                { label: "Settings", href: "/settings", icon: <Settings size={18} /> },
+                { label: "Account Settings", href: "/settings", icon: <Settings size={18} /> },
               ].map((item) => {
                 const active = isActive(item.href);
                 return (
@@ -532,9 +528,9 @@ export default function DashboardLayout({
       if (pathname.includes("/extractions")) return [{ label: "Administration" }, { label: "Extractions" }];
       if (pathname.includes("/webhooks")) return [{ label: "Administration" }, { label: "Webhooks" }];
       if (pathname.includes("/extraction-instructions")) return [{ label: "Administration" }, { label: "Extraction Instructions" }];
-      if (pathname.includes("/prompts")) return [{ label: "Administration" }, { label: "Prompts" }];
-      if (pathname.includes("/org-config")) return [{ label: "Administration" }, { label: "Org Config" }];
-      return [{ label: "System" }, { label: "Settings" }];
+      if (pathname.includes("/prompts")) return [{ label: "Administration" }, { label: "Prompt Templates" }];
+      if (pathname.includes("/org-config")) return [{ label: "Administration" }, { label: "Configuration" }];
+      return [{ label: "System" }, { label: "Account Settings" }];
     }
     return [];
   })();
@@ -570,9 +566,9 @@ export default function DashboardLayout({
       if (pathname.includes("/extractions")) return "Extractions";
       if (pathname.includes("/webhooks")) return "Webhooks";
       if (pathname.includes("/extraction-instructions")) return "Extraction Instructions";
-      if (pathname.includes("/prompts")) return "Prompts";
-      if (pathname.includes("/org-config")) return "Org Config";
-      return "Settings";
+      if (pathname.includes("/prompts")) return "Prompt Templates";
+      if (pathname.includes("/org-config")) return "Configuration";
+      return "Account Settings";
     }
     return "Dashboard";
   })();
