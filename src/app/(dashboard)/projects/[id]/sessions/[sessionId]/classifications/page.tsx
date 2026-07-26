@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Tags } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
@@ -58,6 +58,7 @@ export default function SessionClassificationsPage() {
   const [data, setData] = useState<Classification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!projectId) return;
@@ -81,6 +82,10 @@ export default function SessionClassificationsPage() {
     }
     loadData();
   }, [projectId, sessionId]);
+
+  const toggleExpand = useCallback((id: string) => {
+    setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+  }, []);
 
   return (
     <div>
@@ -116,9 +121,18 @@ export default function SessionClassificationsPage() {
         <div className="divide-y divide-surface-800">
           {data.map((c) => (
             <div key={c.id} className="px-4 py-4 space-y-3">
-              {/* Message text */}
-              <div className="text-sm leading-relaxed text-surface-200">
-                {c.message}
+              <div className="text-sm leading-relaxed text-surface-200 whitespace-pre-wrap break-words">
+                {expanded[c.id] || c.message.length <= 200
+                  ? c.message
+                  : c.message.slice(0, 200)}
+                {c.message.length > 200 && (
+                  <button
+                    onClick={() => toggleExpand(c.id)}
+                    className="text-brand-400 hover:text-brand-300 text-xs ml-1"
+                  >
+                    {expanded[c.id] ? "Show less" : "... Read more"}
+                  </button>
+                )}
               </div>
 
               {/* Metadata: Role + Intent + Emotion + Valence + Arousal */}
