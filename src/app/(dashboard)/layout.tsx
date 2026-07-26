@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import {
   LayoutDashboard,
-  BarChart3,
   Activity,
   Users,
   MessageSquare,
@@ -119,7 +118,6 @@ function Sidebar({
             <div className="space-y-0.5">
               {[
                 { label: "Overview", href: "/overview", icon: <LayoutDashboard size={18} /> },
-                { label: "Analytics", href: "/analytics", icon: <BarChart3 size={18} /> },
                 { label: "Monitoring", href: "/monitoring", icon: <Activity size={18} /> },
               ].map((item) => {
                 const active = isActive(item.href);
@@ -517,7 +515,6 @@ export default function DashboardLayout({
     // Non-project pages
     if (pathname === "/projects") return [{ label: "Projects" }];
     if (pathname === "/overview") return [{ label: "Insights" }, { label: "Overview" }];
-    if (pathname === "/analytics") return [{ label: "Insights" }, { label: "Analytics" }];
     if (pathname.startsWith("/monitoring")) return [{ label: "Insights" }, { label: "Monitoring" }];
     if (pathname.startsWith("/users")) return [{ label: "Administration" }, { label: "Users" }];
     if (pathname.startsWith("/audit")) return [{ label: "System" }, { label: "Audit Log" }];
@@ -555,7 +552,6 @@ export default function DashboardLayout({
     }
     if (pathname === "/projects") return "Projects";
     if (pathname === "/overview") return "Overview";
-    if (pathname === "/analytics") return "Analytics";
     if (pathname.startsWith("/monitoring")) return "Monitoring";
     if (pathname.startsWith("/users")) return "Users";
     if (pathname.startsWith("/audit")) return "Audit Log";
