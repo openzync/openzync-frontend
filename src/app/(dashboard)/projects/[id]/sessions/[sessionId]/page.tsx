@@ -13,6 +13,7 @@ import {
   Database,
   Hash,
   RefreshCw,
+  Eye,
   User as UserIcon,
   ExternalLink,
 } from "lucide-react";
@@ -33,6 +34,7 @@ interface SessionDetail {
   message_count: number;
   fact_count: number;
   pending_enrichment_count: number;
+  observation_count: number;
   created_at: string;
   closed_at?: string | null;
 }
@@ -50,6 +52,7 @@ const TABS: Tab[] = [
   { label: "Graph", path: "graph" },
   { label: "Classifications", path: "classifications" },
   { label: "Extractions", path: "extractions" },
+  { label: "Observations", path: "observations" },
 ];
 
 // ─── Copy Button ───────────────────────────────────────────────────────────────
@@ -284,6 +287,12 @@ export default function SessionDetailPage() {
                   {session.pending_enrichment_count.toLocaleString()}
                 </span>
               </MetadataRow>
+
+              <MetadataRow icon={<Eye size={16} />} label="Observations">
+                <span className="font-semibold">
+                  {session.observation_count.toLocaleString()}
+                </span>
+              </MetadataRow>
             </div>
           </>
         ) : null}
@@ -319,7 +328,7 @@ export default function SessionDetailPage() {
           <ExternalLink size={32} className="mb-3 text-surface-600" />
           <p className="text-sm">Select a tab above to view session data.</p>
           <p className="text-xs mt-1">
-            Messages, facts, graph, classifications, and extractions.
+            Messages, facts, graph, classifications, extractions, and observations.
           </p>
         </div>
       )}

@@ -6,7 +6,7 @@ import { useProject } from "@/stores/project-context";
 
 interface SessionTabsProps {
   sessionId: string;
-  activeTab: "messages" | "facts" | "graph" | "classifications" | "extractions";
+  activeTab: "messages" | "facts" | "graph" | "classifications" | "extractions" | "observations";
 }
 
 const TABS = [
@@ -15,6 +15,7 @@ const TABS = [
   { id: "graph", label: "Graph", href: "graph" },
   { id: "classifications", label: "Classifications", href: "classifications" },
   { id: "extractions", label: "Extractions", href: "extractions" },
+  { id: "observations", label: "Observations", href: "observations" },
 ] as const;
 
 export default function SessionTabs({ sessionId, activeTab }: SessionTabsProps) {
