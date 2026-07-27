@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useTheme } from "next-themes";
+
 import {
   LayoutDashboard,
   Activity,
@@ -16,8 +16,7 @@ import {
   FileJson,
   Settings,
   Search,
-  Sun,
-  Moon,
+
   LogOut,
   Menu,
   ChevronLeft,
@@ -77,14 +76,11 @@ function Sidebar({
   const projectId = extractProjectId(pathname);
   const { pinned } = usePinnedProjects();
 
-  const [mounted, setMounted] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [currentUserLabel, setCurrentUserLabel] = useState("User");
-  const { theme, setTheme } = useTheme();
 
   // Fetch user info on mount
   useEffect(() => {
-    setMounted(true);
     const token = sessionStorage.getItem("mg_access_token");
     if (!token) return;
     try {
@@ -447,24 +443,6 @@ function Sidebar({
         >
           <Search size={18} />
           <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>Search</span>
-        </button>
-
-        {/* Theme toggle */}
-        <button
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
-          title={collapsed ? (theme === "dark" ? "Light mode" : "Dark mode") : undefined}
-        >
-          {!mounted ? (
-            <div className="h-[18px] w-[18px]" />
-          ) : theme === "dark" ? (
-            <Sun size={18} />
-          ) : (
-            <Moon size={18} />
-          )}
-          <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>
-            {!mounted ? "Theme" : theme === "dark" ? "Light mode" : "Dark mode"}
-          </span>
         </button>
 
         {/* User avatar + dropdown */}
