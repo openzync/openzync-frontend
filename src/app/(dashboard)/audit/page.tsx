@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { get, ApiError } from "@/lib/api-client";
 import { smartTimestamp } from "@/lib/utils";
+import { PageGuide, GuideSecurity } from "@/components/guides";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -134,6 +135,10 @@ export default function AuditLogPage() {
         title="Audit Log"
         description="Immutable record of all system actions"
       />
+
+      <PageGuide title="Audit log" illustration={<GuideSecurity />}>
+        <p>View an immutable record of all system actions — session creation, message processing, configuration changes, and more. Filter by action type, resource, or actor to investigate activity.</p>
+      </PageGuide>
 
       {/* Filter bar */}
       <div className="card-base p-3">

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { ForceGraph, type GraphNodeData, type GraphEdgeData } from "@/components/force-graph";
+import { PageGuide, GuideGraph } from "@/components/guides";
 import { get, API_BASE, getAccessToken, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
 import SessionTabs from "../tabs";
@@ -92,6 +93,9 @@ export default function SessionGraphPage() {
   return (
     <div>
       <SessionTabs sessionId={sessionId} activeTab="graph" />
+      <PageGuide title="Session graph" illustration={<GuideGraph />}>
+        <p>Visualize the knowledge graph extracted from this specific session. Nodes represent entities mentioned in the conversation, and edges show how they relate to each other.</p>
+      </PageGuide>
       <ForceGraph
         nodes={graphData?.nodes ?? []}
         edges={graphData?.edges ?? []}

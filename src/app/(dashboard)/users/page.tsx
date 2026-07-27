@@ -10,6 +10,7 @@ import { get, post, patch as apiPatch, del as apiDel, ApiError } from "@/lib/api
 import { formatDate, timeAgo, copyToClipboard } from "@/lib/utils";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageGuide, GuideSecurity } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -217,6 +218,10 @@ export default function UsersPage() {
           </Button>
         }
       />
+
+      <PageGuide title="User management" illustration={<GuideSecurity />}>
+        <p>View and manage organization users. Monitor user activity, assign roles, and control access to organization resources.</p>
+      </PageGuide>
 
       {error && <ErrorState message={error} onRetry={loadUsers} />}
 

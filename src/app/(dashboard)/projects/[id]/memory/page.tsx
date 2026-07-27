@@ -15,6 +15,7 @@ import { get, post, uploadWithBlobs } from "@/lib/api-client";
 import { BlobCard, type BlobCardData } from "@/components/shared/blob-card";
 import { useProject } from "@/stores/project-context";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageGuide, GuideMemory } from "@/components/guides";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -393,6 +394,10 @@ export default function MemoryPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Memory" description={`Ingest messages, query context, and search across memory${project ? ` · ${project.name}` : ""}`} />
+
+      <PageGuide title="Knowledge memory" illustration={<GuideMemory />}>
+        <p>Memory stores accumulated knowledge across all sessions — entities, facts, and relationships extracted from conversations. This persistent knowledge graph enables your AI to recall context from past interactions.</p>
+      </PageGuide>
 
       <div className="flex gap-1 rounded-lg bg-surface-950 p-1 border border-surface-800 w-fit">
         {TABS.map((tab) => (

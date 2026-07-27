@@ -5,6 +5,7 @@ import { Shield, Users as UsersIcon } from "lucide-react";
 import { get, ApiError, extractList } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageGuide, GuideGraph } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 
@@ -45,6 +46,10 @@ export default function CommunitiesPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Communities" description={`Community clusters from Label Propagation${project ? ` · ${project.name}` : ""}`} />
+
+      <PageGuide title="Communities" illustration={<GuideGraph />}>
+        <p>Communities are clusters of related entities discovered through graph analysis. They reveal groups of entities that are densely connected, helping you identify natural groupings in your data.</p>
+      </PageGuide>
 
       {error && <ErrorState message={error} />}
 

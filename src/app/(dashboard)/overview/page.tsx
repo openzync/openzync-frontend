@@ -22,6 +22,7 @@ import { timeAgo, actionLabel, formatNumber } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { Button } from "@/components/ui/button";
+import { PageGuide, GuideDashboard } from "@/components/guides";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -291,6 +292,10 @@ export default function OverviewPage() {
         title="Overview"
         description="Organization dashboard — stats, activity, and usage trends"
       />
+
+      <PageGuide title="Your organization at a glance" illustration={<GuideDashboard />}>
+        <p>Monitor your organization&rsquo;s key metrics — messages, sessions, facts, users, episodes, and API keys. View recent activity and track daily usage trends with the interactive chart.</p>
+      </PageGuide>
 
       {/* Stat cards — all 6 in a single row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">

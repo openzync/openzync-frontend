@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { get } from "@/lib/api-client";
 import { timeAgo } from "@/lib/utils";
+import { PageGuide, GuideDashboard } from "@/components/guides";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { ErrorState } from "@/components/shared/error-state";
@@ -167,6 +168,10 @@ export default function MonitoringPage() {
           </div>
         }
       />
+
+      <PageGuide title="Platform monitoring" illustration={<GuideDashboard />}>
+        <p>Monitor your platform health and performance in real time. Track enrichment progress, error rates, API latency percentiles, queue depth, and Prometheus scrape targets.</p>
+      </PageGuide>
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

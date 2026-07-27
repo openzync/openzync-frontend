@@ -15,6 +15,7 @@ import { formatDate } from "@/lib/utils";
 import { useProject } from "@/stores/project-context";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageGuide, GuideConversation } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -170,6 +171,10 @@ export default function ProjectSessionsPage() {
           </Button>
         }
       />
+
+      <PageGuide title="Managing sessions" illustration={<GuideConversation />}>
+        <p>Sessions are conversation threads between users and AI agents. Each session captures the full dialog, extracted facts, classifications, and structured data — building persistent memory for your applications.</p>
+      </PageGuide>
 
       {/* Sessions table */}
       <div className="card-base overflow-hidden">

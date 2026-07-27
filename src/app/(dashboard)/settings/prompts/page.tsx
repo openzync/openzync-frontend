@@ -30,6 +30,7 @@ import {
 import { timeAgo, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageGuide, GuideSettings } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -662,6 +663,10 @@ export default function PromptsPage() {
           </div>
         }
       />
+
+      <PageGuide title="Prompt templates" illustration={<GuideSettings />}>
+        <p>Manage Jinja2 prompt templates used by extraction workers. Browse system-provided templates, create custom versions, track version history, and roll back changes when needed.</p>
+      </PageGuide>
 
       {/* Table */}
       <div className="card-base overflow-hidden">

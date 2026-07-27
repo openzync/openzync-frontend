@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { RotateCcw } from "lucide-react";
 import { ForceGraph, type GraphNodeData, type GraphEdgeData } from "@/components/force-graph";
+import { PageGuide, GuideGraph } from "@/components/guides";
 import { get, API_BASE, getAccessToken } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
 import { PageHeader } from "@/components/shared/page-header";
@@ -82,6 +83,10 @@ export default function GraphExplorerPage() {
             </Button>
           }
         />
+
+        <PageGuide title="Graph explorer" illustration={<GuideGraph />}>
+          <p>Explore the knowledge graph visually. Nodes represent entities — people, places, concepts — and edges represent relationships between them. Search, filter, and navigate to understand your data&rsquo;s structure.</p>
+        </PageGuide>
 
         <ForceGraph
           nodes={graphData?.nodes ?? []}

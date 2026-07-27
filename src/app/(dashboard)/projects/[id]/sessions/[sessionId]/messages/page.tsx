@@ -17,6 +17,7 @@ import { cn, smartTimestamp } from "@/lib/utils";
 import { get, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
 import SessionTabs from "../tabs";
+import { PageGuide, GuideConversation } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
@@ -171,6 +172,9 @@ export default function MessagesPage() {
   return (
     <div className="space-y-4">
       <SessionTabs sessionId={sessionId} activeTab="messages" />
+      <PageGuide title="Conversation messages" illustration={<GuideConversation />}>
+        <p>Browse all messages in this session in chronological order. Messages are the raw input that the enrichment pipeline processes to extract entities, facts, classifications, and structured data.</p>
+      </PageGuide>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

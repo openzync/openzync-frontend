@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { get, put, ApiError } from "@/lib/api-client";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageGuide, GuideSettings } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -140,6 +141,10 @@ export default function ExtractionInstructionsPage() {
           </Button>
         }
       />
+
+      <PageGuide title="Extraction instructions" illustration={<GuideSettings />}>
+        <p>Create custom instruction strings that guide extraction behaviour. These instructions are injected into extraction prompts to tailor how the system processes and extracts data from conversations.</p>
+      </PageGuide>
 
       {/* Error */}
       {error && <ErrorState message={error} onRetry={fetchInstructions} />}

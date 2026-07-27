@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { PageGuide, GuideSettings } from "@/components/guides";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -24,6 +25,10 @@ export default function OrgConfigLayout({ children }: { children: React.ReactNod
           Manage settings for LLM, embeddings, graph, and behaviour
         </p>
       </div>
+
+      <PageGuide title="Organization configuration" illustration={<GuideSettings />}>
+        <p>Configure your organization LLM backend, embedding models, graph database, behaviour settings, and blob storage. These settings control how the system processes, enriches, and stores data across all projects.</p>
+      </PageGuide>
 
       {/* Tab bar */}
       <div className="flex gap-1 p-1 card-base w-fit">

@@ -21,6 +21,7 @@ import { get, ApiError } from "@/lib/api-client";
 import { smartTimestamp, truncateId, copyToClipboard } from "@/lib/utils";
 import { useProject } from "@/stores/project-context";
 import { ErrorState } from "@/components/shared/error-state";
+import { PageGuide, GuideConversation } from "@/components/guides";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -205,6 +206,10 @@ export default function SessionDetailPage() {
 
       {/* Breadcrumb */}
       {projectId && <Breadcrumb />}
+
+      <PageGuide title="Session details" illustration={<GuideConversation />}>
+        <p>View all data for a single session: messages, extracted facts, graph relationships, classifications, and structured extractions. Each tab shows a different aspect of the processed conversation.</p>
+      </PageGuide>
 
       {/* Metadata card */}
       <div className="card-base p-6">

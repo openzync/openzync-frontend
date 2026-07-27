@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { API_BASE, safeJsonParse } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
+import { PageGuide, GuideSettings } from "@/components/guides";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogCloseButton } from "@/components/ui/dialog";
 
@@ -323,6 +324,10 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-sm text-surface-400 mt-1">Manage your profile and organization</p>
       </div>
+
+      <PageGuide title="Account settings" illustration={<GuideSettings />}>
+        <p>Manage your personal account settings — update your profile name and email, change your password, and configure multi-factor authentication for enhanced security.</p>
+      </PageGuide>
 
       {/* ── Profile Card ────────────────────────────────────────────────────── */}
       <div className="card-base p-6">

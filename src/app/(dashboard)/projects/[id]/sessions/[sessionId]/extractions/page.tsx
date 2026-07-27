@@ -6,6 +6,7 @@ import { Database } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
 import SessionTabs from "../tabs";
+import { PageGuide, GuideData } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { TableSkeleton } from "@/components/shared/skeleton";
@@ -49,6 +50,9 @@ export default function SessionExtractionsPage() {
   return (
     <div>
       <SessionTabs sessionId={sessionId} activeTab="extractions" />
+      <PageGuide title="Structured extractions" illustration={<GuideData />}>
+        <p>Structured extractions pull formatted data from conversations based on JSON schemas you define. Each extraction matches a schema and provides clean, validated data ready for downstream use.</p>
+      </PageGuide>
       {loading ? (
         <TableSkeleton rows={2} cols={1} colWidths={["w-full"]} />
       ) : error ? (

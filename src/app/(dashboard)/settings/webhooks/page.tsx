@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { get, post, del, ApiError } from "@/lib/api-client";
 import { timeAgo, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageGuide, GuideSettings } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -420,6 +421,10 @@ export default function WebhooksPage() {
           </Button>
         }
       />
+
+      <PageGuide title="Webhook endpoints" illustration={<GuideSettings />}>
+        <p>Configure HTTP endpoints to receive real-time events from OpenZync. Subscribe to session, message, graph, fact, classification, extraction, and user events to integrate with external systems.</p>
+      </PageGuide>
 
       {/* Error */}
       {error && <ErrorState message={error} onRetry={fetchEndpoints} />}

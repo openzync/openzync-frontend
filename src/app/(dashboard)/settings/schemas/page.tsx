@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { get, post, del, ApiError } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageGuide, GuideData } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -150,6 +151,10 @@ export default function SchemasPage() {
           </Button>
         }
       />
+
+      <PageGuide title="Extraction schemas" illustration={<GuideData />}>
+        <p>Define JSON Schemas that control how structured data and classifications are extracted from conversations. Each schema defines the shape of extracted data and can optionally be paired with a custom prompt template.</p>
+      </PageGuide>
 
       {/* Error */}
       {error && <ErrorState message={error} onRetry={fetchSchemas} />}
