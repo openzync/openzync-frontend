@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Save, X, HardDrive } from "lucide-react";
+import { X, HardDrive } from "lucide-react";
 import { toast } from "sonner";
 import { get, patch, ApiError } from "@/lib/api-client";
 import { SecretInput } from "@/components/ui/secret-input";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
+import { StickySaveBar } from "@/components/shared/sticky-save-bar";
+import { useConfigDirty } from "@/contexts/config-dirty";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -36,9 +38,23 @@ const FIELDS: (keyof FormState)[] = [
   "image_extraction",
 ];
 
+// ─── Reset field titles ────────────────────────────────────────────────────────
+
+const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
+  blob_storage_backend: "Reset storage backend to default",
+  s3_endpoint_url: "Reset S3 endpoint URL to default",
+  s3_region: "Reset S3 region to default",
+  s3_access_key_id: "Reset S3 access key to default",
+  s3_secret_access_key: "Reset S3 secret key to default",
+  s3_bucket_name: "Reset S3 bucket name to default",
+  max_blob_size_mb: "Reset max blob size to default",
+  image_extraction: "Reset image extraction to default",
+};
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function BlobStorageConfigPage() {
+  const { setDirty } = useConfigDirty();
   const [form, setForm] = useState<FormState>({
     blob_storage_backend: "s3",
     s3_endpoint_url: "",
@@ -55,6 +71,7 @@ export default function BlobStorageConfigPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [visibleSecrets, setVisibleSecrets] = useState<Set<string>>(new Set());
+  const [justSaved, setJustSaved] = useState(false);
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
@@ -101,6 +118,7 @@ export default function BlobStorageConfigPage() {
         image_extraction: val("image_extraction", "none") as string,
       });
       setStored(data.stored ?? {});
+      setDirty(false);
       setError(null);
     } catch (err) {
       setError(
@@ -109,11 +127,24 @@ export default function BlobStorageConfigPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setDirty]);
 
   useEffect(() => {
     fetchConfig();
   }, [fetchConfig]);
+
+  // ── beforeunload protection ───────────────────────────────────────────────
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (hasChanged()) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  });
 
   // ── Field helpers ─────────────────────────────────────────────────────────
 
@@ -130,6 +161,7 @@ export default function BlobStorageConfigPage() {
     value: FormState[K],
   ) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setDirty(value !== initialForm[field] || FIELDS.some((f) => f !== field && form[f] !== initialForm[f]));
   }
 
   function toggleSecret(field: string) {
@@ -173,6 +205,9 @@ export default function BlobStorageConfigPage() {
       await patch("/admin/org/config", changed);
       toast.success("Blob storage configuration saved successfully");
       await fetchConfig();
+      setDirty(false);
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to save configuration";
@@ -233,7 +268,7 @@ export default function BlobStorageConfigPage() {
                     <Button
                       onClick={() => handleResetField("blob_storage_backend")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
+                      title={RESET_TITLES.blob_storage_backend}
                     >
                       <X size={14} />
                     </Button>
@@ -244,222 +279,208 @@ export default function BlobStorageConfigPage() {
                 </p>
               </div>
 
-              {/* s3_endpoint_url */}
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  S3 Endpoint URL
-                </label>
-                <div className="flex gap-2 items-start">
-                  <input
-                    className="input-base flex-1"
-                    type="text"
-                    placeholder="http://minio:9000"
-                    value={form.s3_endpoint_url}
-                    onChange={(e) =>
-                      updateField("s3_endpoint_url", e.target.value)
-                    }
-                  />
-                  {isFieldSet("s3_endpoint_url") && (
-                    <Button
-                      onClick={() => handleResetField("s3_endpoint_url")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
-                    >
-                      <X size={14} />
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-surface-500 mt-1">
-                  Endpoint URL for your S3-compatible object store (e.g. MinIO, AWS S3, GCS).
-                </p>
-              </div>
-
-              {/* s3_region */}
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  S3 Region
-                </label>
-                <div className="flex gap-2 items-start">
-                  <input
-                    className="input-base flex-1"
-                    type="text"
-                    placeholder="auto"
-                    value={form.s3_region}
-                    onChange={(e) =>
-                      updateField("s3_region", e.target.value)
-                    }
-                  />
-                  {isFieldSet("s3_region") && (
-                    <Button
-                      onClick={() => handleResetField("s3_region")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
-                    >
-                      <X size={14} />
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-surface-500 mt-1">
-                  AWS region (use "auto" for MinIO).
-                </p>
-              </div>
-
-              {/* s3_bucket_name */}
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Bucket Name
-                </label>
-                <div className="flex gap-2 items-start">
-                  <input
-                    className="input-base flex-1"
-                    type="text"
-                    placeholder="openzync-blobs"
-                    value={form.s3_bucket_name}
-                    onChange={(e) =>
-                      updateField("s3_bucket_name", e.target.value)
-                    }
-                  />
-                  {isFieldSet("s3_bucket_name") && (
-                    <Button
-                      onClick={() => handleResetField("s3_bucket_name")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
-                    >
-                      <X size={14} />
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-surface-500 mt-1">
-                  S3 bucket where blobs are stored.
-                </p>
-              </div>
-
-              {/* s3_access_key_id — secret */}
-              <SecretInput
-                label="S3 Access Key ID"
-                value={form.s3_access_key_id}
-                onChange={(v) => updateField("s3_access_key_id", v)}
-                placeholder="AKIAIOSFODNN7EXAMPLE"
-                visible={visibleSecrets.has("s3_access_key_id")}
-                onToggleVisibility={() => toggleSecret("s3_access_key_id")}
-              />
-
-              {/* s3_secret_access_key — secret */}
-              <SecretInput
-                label="S3 Secret Access Key"
-                value={form.s3_secret_access_key}
-                onChange={(v) => updateField("s3_secret_access_key", v)}
-                placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-                visible={visibleSecrets.has("s3_secret_access_key")}
-                onToggleVisibility={() => toggleSecret("s3_secret_access_key")}
-              />
-
-              {/* max_blob_size_mb */}
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Max Blob Size (MB)
-                </label>
-                <div className="flex gap-2 items-start">
-                  <input
-                    className="input-base flex-1 max-w-[160px]"
-                    type="number"
-                    min={1}
-                    max={500}
-                    value={form.max_blob_size_mb}
-                    onChange={(e) =>
-                      updateField(
-                        "max_blob_size_mb",
-                        parseInt(e.target.value) || 50,
-                      )
-                    }
-                  />
-                  {isFieldSet("max_blob_size_mb") && (
-                    <Button
-                      onClick={() => handleResetField("max_blob_size_mb")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
-                    >
-                      <X size={14} />
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-surface-500 mt-1">
-                  Maximum file size allowed per upload (1–500 MB).
-                </p>
-              </div>
-
-              {/* image_extraction — select */}
-              <div className="pt-2 border-t border-surface-700">
-                <div className="flex items-center gap-3 mb-3">
+              {/* S3 configuration fields — only when a backend is configured */}
+              {form.blob_storage_backend && form.blob_storage_backend !== "none" && (
+                <>
+                  {/* s3_endpoint_url */}
                   <div>
-                    <h3 className="text-sm font-medium text-surface-200">Image Text Extraction</h3>
-                    <p className="text-xs text-surface-500 mt-0.5">
-                      Extract text from images using OCR or vision LLM
+                    <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                      S3 Endpoint URL
+                    </label>
+                    <div className="flex gap-2 items-start">
+                      <input
+                        className="input-base flex-1"
+                        type="text"
+                        placeholder="http://minio:9000"
+                        value={form.s3_endpoint_url}
+                        onChange={(e) =>
+                          updateField("s3_endpoint_url", e.target.value)
+                        }
+                      />
+                      {isFieldSet("s3_endpoint_url") && (
+                        <Button
+                          onClick={() => handleResetField("s3_endpoint_url")}
+                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                          title={RESET_TITLES.s3_endpoint_url}
+                        >
+                          <X size={14} />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-surface-500 mt-1">
+                      Endpoint URL for your S3-compatible object store (e.g. MinIO, AWS S3, GCS).
                     </p>
                   </div>
-                </div>
-                <div className="flex gap-2 items-start">
-                  <select
-                    className="input-base flex-1 max-w-[240px]"
-                    value={form.image_extraction}
-                    onChange={(e) =>
-                      updateField("image_extraction", e.target.value)
-                    }
-                  >
-                    <option value="none">Disabled (store only)</option>
-                    <option value="ocr">OCR (Tesseract)</option>
-                    <option value="vision">Vision API (LLM)</option>
-                  </select>
-                  {isFieldSet("image_extraction") && (
-                    <Button
-                      onClick={() => handleResetField("image_extraction")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
-                    >
-                      <X size={14} />
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-surface-500 mt-2">
-                  <strong>OCR</strong> uses Tesseract locally (free).{" "}
-                  <strong>Vision API</strong> uses your configured LLM provider
-                  for higher accuracy on complex images. Requires Tesseract to be
-                  installed on workers.
-                </p>
-              </div>
+
+                  {/* s3_region */}
+                  <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                      S3 Region
+                    </label>
+                    <div className="flex gap-2 items-start">
+                      <input
+                        className="input-base flex-1"
+                        type="text"
+                        placeholder="auto"
+                        value={form.s3_region}
+                        onChange={(e) =>
+                          updateField("s3_region", e.target.value)
+                        }
+                      />
+                      {isFieldSet("s3_region") && (
+                        <Button
+                          onClick={() => handleResetField("s3_region")}
+                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                          title={RESET_TITLES.s3_region}
+                        >
+                          <X size={14} />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-surface-500 mt-1">
+                      AWS region (use "auto" for MinIO).
+                    </p>
+                  </div>
+
+                  {/* s3_bucket_name */}
+                  <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                      Bucket Name
+                    </label>
+                    <div className="flex gap-2 items-start">
+                      <input
+                        className="input-base flex-1"
+                        type="text"
+                        placeholder="openzync-blobs"
+                        value={form.s3_bucket_name}
+                        onChange={(e) =>
+                          updateField("s3_bucket_name", e.target.value)
+                        }
+                      />
+                      {isFieldSet("s3_bucket_name") && (
+                        <Button
+                          onClick={() => handleResetField("s3_bucket_name")}
+                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                          title={RESET_TITLES.s3_bucket_name}
+                        >
+                          <X size={14} />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-surface-500 mt-1">
+                      S3 bucket where blobs are stored.
+                    </p>
+                  </div>
+
+                  {/* s3_access_key_id — secret */}
+                  <SecretInput
+                    label="S3 Access Key ID"
+                    value={form.s3_access_key_id}
+                    onChange={(v) => updateField("s3_access_key_id", v)}
+                    placeholder="AKIAIOSFODNN7EXAMPLE"
+                    visible={visibleSecrets.has("s3_access_key_id")}
+                    onToggleVisibility={() => toggleSecret("s3_access_key_id")}
+                  />
+
+                  {/* s3_secret_access_key — secret */}
+                  <SecretInput
+                    label="S3 Secret Access Key"
+                    value={form.s3_secret_access_key}
+                    onChange={(v) => updateField("s3_secret_access_key", v)}
+                    placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+                    visible={visibleSecrets.has("s3_secret_access_key")}
+                    onToggleVisibility={() => toggleSecret("s3_secret_access_key")}
+                  />
+
+                  {/* max_blob_size_mb */}
+                  <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                      Max Blob Size (MB)
+                    </label>
+                    <div className="flex gap-2 items-start">
+                      <input
+                        className="input-base flex-1 max-w-[160px]"
+                        type="number"
+                        min={1}
+                        max={500}
+                        value={form.max_blob_size_mb}
+                        onChange={(e) =>
+                          updateField(
+                            "max_blob_size_mb",
+                            parseInt(e.target.value) || 50,
+                          )
+                        }
+                      />
+                      {isFieldSet("max_blob_size_mb") && (
+                        <Button
+                          onClick={() => handleResetField("max_blob_size_mb")}
+                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                          title={RESET_TITLES.max_blob_size_mb}
+                        >
+                          <X size={14} />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-surface-500 mt-1">
+                      Maximum file size allowed per upload (1–500 MB).
+                    </p>
+                  </div>
+
+                  {/* image_extraction — select */}
+                  <div className="pt-2 border-t border-surface-700">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div>
+                        <h3 className="text-sm font-medium text-surface-200">Image Text Extraction</h3>
+                        <p className="text-xs text-surface-500 mt-0.5">
+                          Extract text from images using OCR or vision LLM
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <select
+                        className="input-base flex-1 max-w-[240px]"
+                        value={form.image_extraction}
+                        onChange={(e) =>
+                          updateField("image_extraction", e.target.value)
+                        }
+                      >
+                        <option value="none">Disabled (store only)</option>
+                        <option value="ocr">OCR (Tesseract)</option>
+                        <option value="vision">Vision API (LLM)</option>
+                      </select>
+                      {isFieldSet("image_extraction") && (
+                        <Button
+                          onClick={() => handleResetField("image_extraction")}
+                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                          title={RESET_TITLES.image_extraction}
+                        >
+                          <X size={14} />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-surface-500 mt-2">
+                      <strong>OCR</strong> uses Tesseract locally (free).{" "}
+                      <strong>Vision API</strong> uses your configured LLM provider
+                      for higher accuracy on complex images. Requires Tesseract to be
+                      installed on workers.
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </>
         )}
       </div>
 
-      {/* ── Save / Discard Buttons ────────────────────────────────────────────── */}
+      {/* ── Sticky Save Bar ──────────────────────────────────────────────────── */}
       {!loading && (
-        <div className="flex items-center gap-3">
-          <Button
-            variant="primary"
-            size="sm"
-            icon={<Save size={14} />}
-            loading={saving}
-            disabled={saving || !hasChanged()}
-            onClick={handleSave}
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
-          {!hasChanged() && (
-            <span className="text-xs text-surface-500">
-              No changes to save
-            </span>
-          )}
-          {hasChanged() && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setForm({ ...initialForm })}
-            >
-              Discard Changes
-            </Button>
-          )}
-        </div>
+        <StickySaveBar
+          saving={saving}
+          hasChanges={hasChanged()}
+          hasSaved={justSaved}
+          onSave={handleSave}
+          onDiscard={() => { setForm({ ...initialForm }); setDirty(false); }}
+        />
       )}
     </div>
   );

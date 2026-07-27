@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Save, Eye, EyeOff, AudioWaveform, X } from "lucide-react";
+import { Eye, EyeOff, AudioWaveform, X } from "lucide-react";
 import { get, patch, ApiError } from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
+import { StickySaveBar } from "@/components/shared/sticky-save-bar";
+import { useConfigDirty } from "@/contexts/config-dirty";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -41,9 +43,20 @@ const BACKEND_OPTIONS: { value: EmbeddingBackend; label: string }[] = [
   { value: "sentence_transformers", label: "Sentence Transformers" },
 ];
 
+// ─── Reset field titles ────────────────────────────────────────────────────────
+
+const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
+  embedding_backend: "Reset embedding backend to default",
+  embedding_model: "Reset embedding model to default",
+  embedding_dim: "Reset embedding dimensions to default",
+  embedding_api_key: "Reset API key to default",
+  embedding_provider: "Reset provider to default",
+};
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function EmbeddingsConfigPage() {
+  const { setDirty } = useConfigDirty();
   const [form, setForm] = useState<FormState>({
     embedding_backend: "openai",
     embedding_model: "",
@@ -57,6 +70,7 @@ export default function EmbeddingsConfigPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
@@ -95,17 +109,31 @@ export default function EmbeddingsConfigPage() {
         embedding_provider: val("embedding_provider", "") as string,
       });
       setStored(data.stored ?? {});
+      setDirty(false);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load configuration");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setDirty]);
 
   useEffect(() => {
     fetchConfig();
   }, [fetchConfig]);
+
+  // ── beforeunload protection ───────────────────────────────────────────────
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (hasChanged()) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  });
 
   // ── Field helpers ─────────────────────────────────────────────────────────
 
@@ -119,6 +147,7 @@ export default function EmbeddingsConfigPage() {
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setDirty(value !== initialForm[field] || FIELDS.some((f) => f !== field && form[f] !== initialForm[f]));
   }
 
   // ── Reset field to default ────────────────────────────────────────────────
@@ -152,6 +181,9 @@ export default function EmbeddingsConfigPage() {
       await patch("/admin/org/config", changed);
       toast.success("Embedding configuration saved successfully");
       await fetchConfig();
+      setDirty(false);
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to save configuration";
       setError(message);
@@ -192,7 +224,6 @@ export default function EmbeddingsConfigPage() {
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1">
                   Backend Provider
-                  
                 </label>
                 <div className="flex gap-2 items-start">
                   <select
@@ -208,7 +239,7 @@ export default function EmbeddingsConfigPage() {
                     <Button
                       onClick={() => handleResetField("embedding_backend")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
+                      title={RESET_TITLES.embedding_backend}
                     >
                       <X size={14} />
                     </Button>
@@ -220,7 +251,6 @@ export default function EmbeddingsConfigPage() {
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1">
                   Model
-                  
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
@@ -233,7 +263,7 @@ export default function EmbeddingsConfigPage() {
                     <Button
                       onClick={() => handleResetField("embedding_model")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
+                      title={RESET_TITLES.embedding_model}
                     >
                       <X size={14} />
                     </Button>
@@ -245,7 +275,6 @@ export default function EmbeddingsConfigPage() {
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1">
                   Embedding Dimensions
-                  
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
@@ -260,7 +289,7 @@ export default function EmbeddingsConfigPage() {
                     <Button
                       onClick={() => handleResetField("embedding_dim")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
+                      title={RESET_TITLES.embedding_dim}
                     >
                       <X size={14} />
                     </Button>
@@ -268,96 +297,81 @@ export default function EmbeddingsConfigPage() {
                 </div>
               </div>
 
-              {/* embedding_provider */}
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Provider Name
-                  
-                </label>
-                <div className="flex gap-2 items-start">
-                  <input
-                    className="input-base flex-1"
-                    placeholder="openai, azure, ..."
-                    value={form.embedding_provider}
-                    onChange={(e) => updateField("embedding_provider", e.target.value)}
-                  />
-                  {isFieldSet("embedding_provider") && (
-                    <Button
-                      onClick={() => handleResetField("embedding_provider")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
-                    >
-                      <X size={14} />
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* embedding_api_key */}
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
-                  API Key
-                  
-                </label>
-                <div className="flex gap-2 items-start">
-                  <div className="relative flex-1">
+              {/* embedding_provider — only for OpenRouter */}
+              {form.embedding_backend === "openrouter" && (
+                <div>
+                  <label className="block text-sm font-medium text-surface-300 mb-1">
+                    Provider Name
+                  </label>
+                  <div className="flex gap-2 items-start">
                     <input
-                      className="input-base pr-10 w-full"
-                      type={showApiKey ? "text" : "password"}
-                      placeholder="Embedding provider API key"
-                      value={form.embedding_api_key}
-                      onChange={(e) => updateField("embedding_api_key", e.target.value)}
+                      className="input-base flex-1"
+                      placeholder="openai, azure, ..."
+                      value={form.embedding_provider}
+                      onChange={(e) => updateField("embedding_provider", e.target.value)}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowApiKey((prev) => !prev)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300"
-                    >
-                      {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
+                    {isFieldSet("embedding_provider") && (
+                      <Button
+                        onClick={() => handleResetField("embedding_provider")}
+                        variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                        title={RESET_TITLES.embedding_provider}
+                      >
+                        <X size={14} />
+                      </Button>
+                    )}
                   </div>
-                  {isFieldSet("embedding_api_key") && (
-                    <Button
-                      onClick={() => handleResetField("embedding_api_key")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
-                    >
-                      <X size={14} />
-                    </Button>
-                  )}
                 </div>
-              </div>
+              )}
+
+              {/* embedding_api_key — only for backends that need it */}
+              {(form.embedding_backend === "openai" || form.embedding_backend === "openrouter" || form.embedding_backend === "ollama") && (
+                <div>
+                  <label className="block text-sm font-medium text-surface-300 mb-1">
+                    API Key
+                  </label>
+                  <div className="flex gap-2 items-start">
+                    <div className="relative flex-1">
+                      <input
+                        className="input-base pr-10 w-full"
+                        type={showApiKey ? "text" : "password"}
+                        placeholder="Embedding provider API key"
+                        value={form.embedding_api_key}
+                        onChange={(e) => updateField("embedding_api_key", e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowApiKey((prev) => !prev)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300"
+                      >
+                        {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    {isFieldSet("embedding_api_key") && (
+                      <Button
+                        onClick={() => handleResetField("embedding_api_key")}
+                        variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                        title={RESET_TITLES.embedding_api_key}
+                      >
+                        <X size={14} />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}
       </div>
 
-      {/* ── Save Button ───────────────────────────────────────────────────────── */}
+      {/* ── Sticky Save Bar ──────────────────────────────────────────────────── */}
       {!loading && (
-        <div className="flex items-center gap-3">
-          <Button
-            variant="primary"
-            size="sm"
-            icon={<Save size={14} />}
-            loading={saving}
-            disabled={saving || !hasChanged()}
-            onClick={handleSave}
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
-          {!hasChanged() && (
-            <span className="text-xs text-surface-500">No changes to save</span>
-          )}
-          {hasChanged() && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setForm({ ...initialForm })}
-            >
-              Discard Changes
-            </Button>
-          )}
-        </div>
+        <StickySaveBar
+          saving={saving}
+          hasChanges={hasChanged()}
+          hasSaved={justSaved}
+          onSave={handleSave}
+          onDiscard={() => { setForm({ ...initialForm }); setDirty(false); }}
+        />
       )}
     </div>
   );

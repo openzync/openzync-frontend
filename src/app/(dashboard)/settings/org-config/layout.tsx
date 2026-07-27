@@ -1,9 +1,9 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { PageGuide, GuideSettings } from "@/components/guides";
 import { cn } from "@/lib/utils";
+import { ConfigDirtyProvider, useConfigDirty } from "@/contexts/config-dirty";
 
 const TABS = [
   { label: "LLM", href: "/settings/org-config/llm", id: "llm" },
@@ -14,7 +14,22 @@ const TABS = [
 ];
 
 export default function OrgConfigLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ConfigDirtyProvider>
+      <OrgConfigLayoutInner>{children}</OrgConfigLayoutInner>
+    </ConfigDirtyProvider>
+  );
+}
+
+function OrgConfigLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { isDirty } = useConfigDirty();
+
+  function handleTabClick(href: string) {
+    if (isDirty && !confirm("You have unsaved changes. Discard them and leave?")) return;
+    router.push(href);
+  }
 
   return (
     <div className="space-y-6">
@@ -35,9 +50,9 @@ export default function OrgConfigLayout({ children }: { children: React.ReactNod
         {TABS.map((tab) => {
           const isActive = pathname === tab.href;
           return (
-            <Link
+            <button
               key={tab.id}
-              href={tab.href}
+              onClick={() => handleTabClick(tab.href)}
               className={cn(
                 "px-3 py-1.5 text-sm rounded-md transition-colors",
                 isActive
@@ -46,7 +61,7 @@ export default function OrgConfigLayout({ children }: { children: React.ReactNod
               )}
             >
               {tab.label}
-            </Link>
+            </button>
           );
         })}
       </div>

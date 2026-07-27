@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Save, X, GitBranch } from "lucide-react";
+import { X, GitBranch } from "lucide-react";
 import { toast } from "sonner";
 import { get, patch, ApiError } from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { SecretInput } from "@/components/ui/secret-input";
+import { StickySaveBar } from "@/components/shared/sticky-save-bar";
+import { useConfigDirty } from "@/contexts/config-dirty";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -53,9 +55,23 @@ const SEARCH_TYPE_OPTIONS: { value: GraphSearchType; label: string }[] = [
   { value: "vector", label: "Vector" },
 ];
 
+// ─── Reset field titles ────────────────────────────────────────────────────────
+
+const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
+  graph_backend: "Reset graph backend to default",
+  graph_search_type: "Reset search type to default",
+  graph_max_traversal_depth: "Reset max traversal depth to default",
+  surrealdb_url: "Reset SurrealDB URL to default",
+  surrealdb_user: "Reset SurrealDB username to default",
+  surrealdb_pass: "Reset SurrealDB password to default",
+  surrealdb_namespace: "Reset SurrealDB namespace to default",
+  surrealdb_database: "Reset SurrealDB database to default",
+};
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function GraphConfigPage() {
+  const { setDirty } = useConfigDirty();
   const [form, setForm] = useState<FormState>({
     graph_backend: "postgres",
     graph_search_type: "hybrid",
@@ -72,6 +88,7 @@ export default function GraphConfigPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSurrealDbPass, setShowSurrealDbPass] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
@@ -111,6 +128,7 @@ export default function GraphConfigPage() {
       setForm(current);
       setInitialForm(current);
       setStored(data.stored ?? {});
+      setDirty(false);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -122,12 +140,25 @@ export default function GraphConfigPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setDirty]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchConfig();
   }, [fetchConfig]);
+
+  // ── beforeunload protection ───────────────────────────────────────────────
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (hasChanged()) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  });
 
   // ── Field helpers ─────────────────────────────────────────────────────────
 
@@ -141,6 +172,7 @@ export default function GraphConfigPage() {
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setDirty(value !== initialForm[field] || FIELDS.some((f) => f !== field && form[f] !== initialForm[f]));
   }
 
   // ── Reset field to default ────────────────────────────────────────────────
@@ -179,6 +211,9 @@ export default function GraphConfigPage() {
       await patch("/admin/org/config", changed);
       toast.success("Graph configuration saved successfully");
       await fetchConfig();
+      setDirty(false);
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -238,7 +273,7 @@ export default function GraphConfigPage() {
                     <Button
                       onClick={() => handleResetField("graph_backend")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
+                      title={RESET_TITLES.graph_backend}
                     >
                       <X size={14} />
                     </Button>
@@ -246,32 +281,64 @@ export default function GraphConfigPage() {
                 </div>
               </div>
 
-              {/* graph_search_type */}
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Search Type
-                </label>
-                <div className="flex gap-2 items-start">
-                  <select
-                    className="input-base flex-1"
-                    value={form.graph_search_type}
-                    onChange={(e) => updateField("graph_search_type", e.target.value as GraphSearchType)}
-                  >
-                    {SEARCH_TYPE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                  {isFieldSet("graph_search_type") && (
-                    <Button
-                      onClick={() => handleResetField("graph_search_type")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
-                    >
-                      <X size={14} />
-                    </Button>
-                  )}
-                </div>
-              </div>
+              {/* search type + traversal depth — hidden when backend is "none" */}
+              {form.graph_backend !== "none" && (
+                <>
+                  {/* graph_search_type */}
+                  <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                      Search Type
+                    </label>
+                    <div className="flex gap-2 items-start">
+                      <select
+                        className="input-base flex-1"
+                        value={form.graph_search_type}
+                        onChange={(e) => updateField("graph_search_type", e.target.value as GraphSearchType)}
+                      >
+                        {SEARCH_TYPE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      {isFieldSet("graph_search_type") && (
+                        <Button
+                          onClick={() => handleResetField("graph_search_type")}
+                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                          title={RESET_TITLES.graph_search_type}
+                        >
+                          <X size={14} />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* graph_max_traversal_depth */}
+                  <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                      Max Traversal Depth
+                    </label>
+                    <div className="flex gap-2 items-start">
+                      <input
+                        className="input-base flex-1"
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={form.graph_max_traversal_depth}
+                        onChange={(e) => updateField("graph_max_traversal_depth", parseInt(e.target.value) || 1)}
+                      />
+                      {isFieldSet("graph_max_traversal_depth") && (
+                        <Button
+                          onClick={() => handleResetField("graph_max_traversal_depth")}
+                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                          title={RESET_TITLES.graph_max_traversal_depth}
+                        >
+                          <X size={14} />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-surface-500 mt-1">How many hops the graph traversal will follow (1&ndash;10)</p>
+                  </div>
+                </>
+              )}
 
               {/* SurrealDB connection fields — conditionally shown */}
               {form.graph_backend === "surrealdb" && (
@@ -292,7 +359,7 @@ export default function GraphConfigPage() {
                         <Button
                           onClick={() => handleResetField("surrealdb_url")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title="Reset to default"
+                          title={RESET_TITLES.surrealdb_url}
                         >
                           <X size={14} />
                         </Button>
@@ -318,7 +385,7 @@ export default function GraphConfigPage() {
                         <Button
                           onClick={() => handleResetField("surrealdb_user")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title="Reset to default"
+                          title={RESET_TITLES.surrealdb_user}
                         >
                           <X size={14} />
                         </Button>
@@ -353,7 +420,7 @@ export default function GraphConfigPage() {
                         <Button
                           onClick={() => handleResetField("surrealdb_namespace")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title="Reset to default"
+                          title={RESET_TITLES.surrealdb_namespace}
                         >
                           <X size={14} />
                         </Button>
@@ -378,7 +445,7 @@ export default function GraphConfigPage() {
                         <Button
                           onClick={() => handleResetField("surrealdb_database")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title="Reset to default"
+                          title={RESET_TITLES.surrealdb_database}
                         >
                           <X size={14} />
                         </Button>
@@ -387,53 +454,20 @@ export default function GraphConfigPage() {
                   </div>
                 </div>
               )}
-
-              {/* graph_max_traversal_depth */}
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Max Traversal Depth
-                </label>
-                <div className="flex gap-2 items-start">
-                  <input
-                    className="input-base flex-1"
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={form.graph_max_traversal_depth}
-                    onChange={(e) => updateField("graph_max_traversal_depth", parseInt(e.target.value) || 1)}
-                  />
-                  {isFieldSet("graph_max_traversal_depth") && (
-                    <Button
-                      onClick={() => handleResetField("graph_max_traversal_depth")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset to default"
-                    >
-                      <X size={14} />
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-surface-500 mt-1">How many hops the graph traversal will follow (1&ndash;10)</p>
-              </div>
             </div>
           </>
         )}
       </div>
 
-      {/* ── Save Button ───────────────────────────────────────────────────────── */}
+      {/* ── Sticky Save Bar ──────────────────────────────────────────────────── */}
       {!loading && (
-        <div className="flex items-center gap-3">
-          <Button variant="primary" size="sm" icon={<Save size={14} />} loading={saving} disabled={saving || !hasChanged()} onClick={handleSave}>
-            Save Changes
-          </Button>
-          {!hasChanged() && (
-            <span className="text-xs text-surface-500">No changes to save</span>
-          )}
-          {hasChanged() && (
-            <Button variant="secondary" size="sm" onClick={() => setForm({ ...initialForm })}>
-              Discard Changes
-            </Button>
-          )}
-        </div>
+        <StickySaveBar
+          saving={saving}
+          hasChanges={hasChanged()}
+          hasSaved={justSaved}
+          onSave={handleSave}
+          onDiscard={() => { setForm({ ...initialForm }); setDirty(false); }}
+        />
       )}
     </div>
   );

@@ -18,6 +18,9 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "OpenZync Dashboard",
   description: "OpenZync — Agent Memory Infrastructure",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

@@ -89,17 +89,22 @@ function Sidebar({
       {/* Logo */}
       <div className="flex h-14 items-center justify-between px-4 border-b border-surface-800">
         {collapsed ? (
-          <Link href="/overview" className="text-brand-500 font-bold text-xl mx-auto">
-            O
-          </Link>
+          <button onClick={onToggle} className="flex items-center justify-center w-full group" title="Expand sidebar">
+            <svg viewBox="0 0 28 28" width="24" height="24" className="group-hover:hidden" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="1" width="26" height="26" rx="13" fill="#040507"/>
+              <path d="M5.5 8.5h17l-8.5 6.5 8.5 6.5h-17l8.5-6.5z" fill="#78a8f1"/>
+            </svg>
+            <ChevronRight size={20} className="hidden group-hover:block text-brand-300" />
+          </button>
         ) : (
-          <Link href="/overview" className="flex items-center gap-2">
-            <span className="text-brand-500 font-bold text-xl">O</span>
-            <div>
-              <div className="text-sm font-semibold text-text-primary leading-tight">OpenZync</div>
-              <div className="text-[10px] text-surface-400 leading-tight">Memory Infrastructure</div>
-            </div>
-          </Link>
+          <>
+            <Link href="/overview" className="flex flex-1">
+              <img src="/openzync-logo.svg" alt="OpenZync" className="h-12 w-auto" />
+            </Link>
+            <button onClick={onToggle} className="p-1.5 rounded-md text-surface-400 hover:text-surface-200 hover:bg-surface-800" title="Collapse sidebar">
+              <ChevronLeft size={18} />
+            </button>
+          </>
         )}
       </div>
 
@@ -108,13 +113,15 @@ function Sidebar({
         {/* ── Insights (hidden inside project pages) ── */}
         {!inProject && (
           <div>
-            {!collapsed && (
-              <div className="px-2 mb-1.5">
+            <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
+              {collapsed ? (
+                <div className="h-px bg-surface-700" />
+              ) : (
                 <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
                   Insights
                 </h2>
-              </div>
-            )}
+              )}
+            </div>
             <div className="space-y-0.5">
               {[
                 { label: "Overview", href: "/overview", icon: <LayoutDashboard size={18} /> },
@@ -127,7 +134,6 @@ function Sidebar({
                     onClick={() => { router.push(item.href); onClose?.(); }}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                      collapsed && "justify-center px-0",
                       active
                         ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
                         : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
@@ -136,7 +142,7 @@ function Sidebar({
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
                       {item.icon}
                     </span>
-                    {!collapsed && <span className="truncate">{item.label}</span>}
+                    <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
                   </button>
                 );
               })}
@@ -146,13 +152,15 @@ function Sidebar({
 
         {/* ── Projects / Pinned projects / View all ── */}
         <div>
-          {!collapsed && (
-            <div className="px-2 mb-1.5">
+          <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
+            {collapsed ? (
+              <div className="h-px bg-surface-700" />
+            ) : (
               <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
                 Projects
               </h2>
-            </div>
-          )}
+            )}
+          </div>
           <div className="space-y-0.5">
             {/* Pinned projects (always visible when any are pinned) */}
             {(inProject ? pinned.filter((p) => p.id !== projectId) : pinned).map((p) => {
@@ -172,7 +180,7 @@ function Sidebar({
                   <span className={cn("shrink-0", isActiveProject ? "text-brand-300" : "text-surface-400")}>
                     <MapPin size={18} />
                   </span>
-                  {!collapsed && <span className="truncate">{p.name}</span>}
+                  <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{p.name}</span>
                 </button>
               );
             })}
@@ -192,16 +200,14 @@ function Sidebar({
                 <span className="shrink-0 text-surface-400">
                   <FolderKanban size={18} />
                 </span>
-                {!collapsed && <span className="truncate">View all projects</span>}
+                <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>View all projects</span>
               </button>
             )}
 
             {/* Project-scoped nav items (only inside a project) */}
             {inProject && (
               <>
-                {!collapsed && (
-                  <div className="my-1 border-t border-surface-800" />
-                )}
+                <div className={cn("my-1", collapsed ? "border-t border-surface-700" : "border-t border-surface-800")} />
                 {[
                   { label: "Sessions", href: `/projects/${projectId}/sessions`, icon: <MessageSquare size={18} /> },
                   { label: "Memory", href: `/projects/${projectId}/memory`, icon: <BrainCircuit size={18} /> },
@@ -236,13 +242,15 @@ function Sidebar({
         {/* ── Project Settings (only visible inside a project) ── */}
         {inProject && (
           <div>
-            {!collapsed && (
-              <div className="px-2 mb-1.5">
+            <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
+              {collapsed ? (
+                <div className="h-px bg-surface-700" />
+              ) : (
                 <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
                   Project Settings
                 </h2>
-              </div>
-            )}
+              )}
+            </div>
             <div className="space-y-0.5">
               {[
                 { label: "Members", href: `/projects/${projectId}/members`, icon: <Users size={18} /> },
@@ -256,7 +264,6 @@ function Sidebar({
                     onClick={() => { router.push(item.href); onClose?.(); }}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                      collapsed && "justify-center px-0",
                       active
                         ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
                         : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
@@ -265,7 +272,7 @@ function Sidebar({
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
                       {item.icon}
                     </span>
-                    {!collapsed && <span className="truncate">{item.label}</span>}
+                    <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
                   </button>
                 );
               })}
@@ -276,13 +283,15 @@ function Sidebar({
         {/* ── Administration (hidden inside project pages) ── */}
         {!inProject && (
           <div>
-            {!collapsed && (
-              <div className="px-2 mb-1.5">
+            <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
+              {collapsed ? (
+                <div className="h-px bg-surface-700" />
+              ) : (
                 <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
                   Administration
                 </h2>
-              </div>
-            )}
+              )}
+            </div>
             <div className="space-y-0.5">
               {[
                 { label: "Users", href: "/users", icon: <Users size={18} /> },
@@ -299,7 +308,6 @@ function Sidebar({
                     onClick={() => { router.push(item.href); onClose?.(); }}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                      collapsed && "justify-center px-0",
                       active
                         ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
                         : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
@@ -308,7 +316,7 @@ function Sidebar({
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
                       {item.icon}
                     </span>
-                    {!collapsed && <span className="truncate">{item.label}</span>}
+                    <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
                   </button>
                 );
               })}
@@ -319,13 +327,15 @@ function Sidebar({
         {/* ── System (hidden inside project pages) ── */}
         {!inProject && (
           <div>
-            {!collapsed && (
-              <div className="px-2 mb-1.5">
+            <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
+              {collapsed ? (
+                <div className="h-px bg-surface-700" />
+              ) : (
                 <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
                   System
                 </h2>
-              </div>
-            )}
+              )}
+            </div>
             <div className="space-y-0.5">
               {[
                 { label: "Audit Log", href: "/audit", icon: <Shield size={18} /> },
@@ -338,7 +348,6 @@ function Sidebar({
                     onClick={() => { router.push(item.href); onClose?.(); }}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                      collapsed && "justify-center px-0",
                       active
                         ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
                         : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
@@ -347,7 +356,7 @@ function Sidebar({
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
                       {item.icon}
                     </span>
-                    {!collapsed && <span className="truncate">{item.label}</span>}
+                    <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
                   </button>
                 );
               })}
@@ -360,42 +369,16 @@ function Sidebar({
       <div className="border-t border-surface-800 p-2 space-y-1">
         {/* View all projects — bottom section when inside a project */}
         {inProject && (
-          collapsed ? (
-            <button
-              onClick={() => { router.push("/projects"); onClose?.(); }}
-              className="flex w-full items-center justify-center rounded-md p-2 text-surface-400 hover:bg-surface-800 hover:text-text-primary"
-              title="View all projects"
-            >
-              <FolderKanban size={18} />
-            </button>
-          ) : (
-            <button
-              onClick={() => { router.push("/projects"); onClose?.(); }}
-              className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
-            >
-              <FolderKanban size={18} />
-              <span className="truncate">View all projects</span>
-            </button>
-          )
+          <button
+            onClick={() => { router.push("/projects"); onClose?.(); }}
+            className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
+            title={collapsed ? "View all projects" : undefined}
+          >
+            <FolderKanban size={18} />
+            <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>View all projects</span>
+          </button>
         )}
 
-        {/* Collapse toggle */}
-        {collapsed ? (
-          <button
-            onClick={onToggle}
-            className="flex w-full items-center justify-center rounded-md p-2 text-surface-400 hover:bg-surface-800 hover:text-text-primary"
-          >
-            <ChevronRight size={16} />
-          </button>
-        ) : (
-          <button
-            onClick={onToggle}
-            className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
-          >
-            <ChevronLeft size={16} />
-            <span>Collapse</span>
-          </button>
-        )}
       </div>
     </aside>
   );
@@ -575,7 +558,7 @@ export default function DashboardLayout({
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 sm:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -583,7 +566,7 @@ export default function DashboardLayout({
       {/* Mobile sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-56 transition-transform duration-300 lg:hidden",
+          "fixed inset-y-0 left-0 z-50 w-56 transition-transform duration-300 sm:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -591,7 +574,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:block">
+      <div className="hidden sm:block">
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}

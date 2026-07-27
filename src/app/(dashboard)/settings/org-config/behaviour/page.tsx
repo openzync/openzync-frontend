@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Save, X, Settings2 } from "lucide-react";
+import { X, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { get, patch, ApiError } from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
+import { StickySaveBar } from "@/components/shared/sticky-save-bar";
+import { useConfigDirty } from "@/contexts/config-dirty";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -23,9 +25,17 @@ const FIELDS: (keyof FormState)[] = [
   "audit_log_response_body",
 ];
 
+// ─── Reset field titles ────────────────────────────────────────────────────────
+
+const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
+  context_cache_ttl: "Reset cache TTL to default",
+  audit_log_response_body: "Reset audit logging to default",
+};
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function BehaviourConfigPage() {
+  const { setDirty } = useConfigDirty();
   const [form, setForm] = useState<FormState>({
     context_cache_ttl: 1800,
     audit_log_response_body: true,
@@ -35,6 +45,7 @@ export default function BehaviourConfigPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
@@ -77,6 +88,7 @@ export default function BehaviourConfigPage() {
         ) as boolean,
       });
       setStored(data.stored ?? {});
+      setDirty(false);
       setError(null);
     } catch (err) {
       setError(
@@ -85,11 +97,24 @@ export default function BehaviourConfigPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setDirty]);
 
   useEffect(() => {
     fetchConfig();
   }, [fetchConfig]);
+
+  // ── beforeunload protection ───────────────────────────────────────────────
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (hasChanged()) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  });
 
   // ── Field helpers ─────────────────────────────────────────────────────────
 
@@ -106,6 +131,7 @@ export default function BehaviourConfigPage() {
     value: FormState[K],
   ) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setDirty(value !== initialForm[field] || FIELDS.some((f) => f !== field && form[f] !== initialForm[f]));
   }
 
   // ── Reset field to default ────────────────────────────────────────────────
@@ -143,6 +169,9 @@ export default function BehaviourConfigPage() {
 
       toast.success("Behaviour configuration saved successfully");
       await fetchConfig();
+      setDirty(false);
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to save configuration";
@@ -211,7 +240,7 @@ export default function BehaviourConfigPage() {
                           handleResetField("context_cache_ttl")
                         }
                         variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                        title="Reset to default"
+                        title={RESET_TITLES.context_cache_ttl}
                       >
                         <X size={14} />
                       </Button>
@@ -259,7 +288,7 @@ export default function BehaviourConfigPage() {
                             handleResetField("audit_log_response_body")
                           }
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300"
-                          title="Reset to default"
+                          title={RESET_TITLES.audit_log_response_body}
                         >
                           <X size={14} />
                         </Button>
@@ -272,34 +301,15 @@ export default function BehaviourConfigPage() {
           )}
         </div>
 
-        {/* ── Save / Discard Buttons ────────────────────────────────────────────── */}
+        {/* ── Sticky Save Bar ──────────────────────────────────────────────────── */}
         {!loading && (
-          <div className="flex items-center gap-3">
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<Save size={14} />}
-              loading={saving}
-              disabled={saving || !hasChanged()}
-              onClick={handleSave}
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </Button>
-            {!hasChanged() && (
-              <span className="text-xs text-surface-500">
-                No changes to save
-              </span>
-            )}
-            {hasChanged() && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setForm({ ...initialForm })}
-              >
-                Discard Changes
-              </Button>
-            )}
-          </div>
+          <StickySaveBar
+            saving={saving}
+            hasChanges={hasChanged()}
+            hasSaved={justSaved}
+            onSave={handleSave}
+            onDiscard={() => { setForm({ ...initialForm }); setDirty(false); }}
+          />
         )}
       </div>
   );
