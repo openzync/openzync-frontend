@@ -36,6 +36,7 @@ import { RequireAuth } from "./require-auth";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { usePinnedProjects } from "@/hooks/use-pinned-projects";
 import { CommandPalette } from "@/components/shared/command-palette";
+import { AppVersion } from "@/components/shared/app-version";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -496,6 +497,7 @@ function Sidebar({
             </>
           )}
         </div>
+        <AppVersion />
       </div>
     </aside>
   );

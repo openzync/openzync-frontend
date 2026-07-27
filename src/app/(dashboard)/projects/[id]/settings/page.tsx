@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Settings, Save, Archive, AlertTriangle } from "lucide-react";
-import { put, del, ApiError } from "@/lib/api-client";
+import { patch, del, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
@@ -34,7 +34,7 @@ export default function ProjectSettingsPage() {
     setSaving(true);
     setSaveError("");
     try {
-      await put(`/v1/projects/${project.id}`, {
+      await patch(`/v1/projects/${project.id}`, {
         name: name.trim(),
         description: description.trim() || null,
       });

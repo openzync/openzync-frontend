@@ -158,7 +158,7 @@ export default function OverviewPage() {
       } catch { /* non-critical */ }
 
       try {
-        const auditRes = await get<{ items: AuditEntry[] }>("/v1/admin/audit-logs?limit=10");
+        const auditRes = await get<{ items: AuditEntry[] }>("/v1/admin/audit-logs?limit=5");
         setActivities(auditRes.items ?? []);
       } catch { /* non-critical */ }
 

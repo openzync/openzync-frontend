@@ -85,7 +85,7 @@ export default function LoginPage() {
           </p>
           <div className="mt-8 flex gap-6 justify-center">
             {[
-              { value: "10+", label: "Graph Backends" },
+              { value: "3", label: "Graph Backends" },
               { value: "5", label: "LLM Providers" },
               { value: "∞", label: "Scale" },
             ].map((stat) => (

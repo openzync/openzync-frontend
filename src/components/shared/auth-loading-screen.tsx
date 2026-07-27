@@ -19,9 +19,7 @@ export function AuthLoadingScreen() {
 
       {/* Logo */}
       <div className="relative mb-6">
-        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500/20 to-brand-600/10 ring-1 ring-brand-500/20">
-          <span className="text-4xl font-bold text-brand-500">O</span>
-        </div>
+        <img src="/favicon.svg" alt="OpenZync" className="h-16 w-16" />
       </div>
 
       {/* Brand name */}
