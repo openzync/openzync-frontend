@@ -48,6 +48,7 @@ interface AuditEntry {
   actor_type: string | null;
   created_at: string;
   status_code: number | null;
+  display_name: string | null;
 }
 
 interface QuickActionItem {
@@ -88,9 +89,17 @@ const STAT_CARDS = [
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function actorLabel(entry: AuditEntry): string {
-  if (entry.actor_type === "api_key") return "API";
-  if (entry.actor_id) return entry.actor_id.slice(0, 8);
-  return "System";
+  switch (entry.actor_type) {
+    case "api_key":
+      return "API";
+    case "system":
+      return "System";
+    case "user":
+      if (entry.actor_id) return entry.actor_id.slice(0, 8);
+      return "User";
+    default:
+      return "Anonymous";
+  }
 }
 
 function abbrevDate(dateStr: string): string {
@@ -149,7 +158,7 @@ export default function OverviewPage() {
       } catch { /* non-critical */ }
 
       try {
-        const auditRes = await get<{ items: AuditEntry[] }>("/v1/admin/audit-logs?limit=5");
+        const auditRes = await get<{ items: AuditEntry[] }>("/v1/admin/audit-logs?limit=10");
         setActivities(auditRes.items ?? []);
       } catch { /* non-critical */ }
 
@@ -374,7 +383,7 @@ export default function OverviewPage() {
               {activities.map((entry) => (
                 <div key={entry.id} className="flex items-center gap-3 text-sm">
                   <div className="h-2 w-2 rounded-full bg-accent-300/50 shrink-0" />
-                  <span className="text-surface-300 flex-1">{actionLabel(entry.action)}</span>
+                  <span className="text-surface-300 flex-1">{entry.display_name || actionLabel(entry.action)}</span>
                   <span className="text-surface-500 text-xs">{actorLabel(entry)}</span>
                   <span className="text-surface-600 text-xs">{timeAgo(entry.created_at)}</span>
                 </div>

@@ -29,12 +29,14 @@ import {
   SlidersHorizontal,
   FolderKanban,
   MapPin,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { API_BASE } from "@/lib/api-client";
 import { RequireAuth } from "./require-auth";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { usePinnedProjects } from "@/hooks/use-pinned-projects";
+import { CommandPalette } from "@/components/shared/command-palette";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -60,10 +62,12 @@ function Sidebar({
   collapsed,
   onToggle,
   onClose,
+  onSearchOpen,
 }: {
   collapsed: boolean;
   onToggle: () => void;
   onClose?: () => void;
+  onSearchOpen?: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -72,6 +76,54 @@ function Sidebar({
   const onProjectList = isOnProjectList(pathname);
   const projectId = extractProjectId(pathname);
   const { pinned } = usePinnedProjects();
+
+  const [mounted, setMounted] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [currentUserLabel, setCurrentUserLabel] = useState("User");
+  const { theme, setTheme } = useTheme();
+
+  // Fetch user info on mount
+  useEffect(() => {
+    setMounted(true);
+    const token = sessionStorage.getItem("mg_access_token");
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const userId = payload.sub;
+      if (userId) {
+        fetch(`${API_BASE}/v1/users/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((user) => {
+            if (user?.email) setCurrentUserLabel(user.email);
+            else setCurrentUserLabel(user?.name || userId.slice(0, 8));
+          })
+          .catch((err) => {
+            console.error("Failed to fetch user profile", err);
+            setCurrentUserLabel(userId.slice(0, 8));
+          });
+      }
+    } catch {
+      setCurrentUserLabel("User");
+    }
+  }, []);
+
+  // Close user menu on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setUserMenuOpen(false);
+      }
+    };
+    if (userMenuOpen) {
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [userMenuOpen]);
 
   const isActive = (href: string) => {
     if (href === "/overview") return pathname === "/overview";
@@ -101,7 +153,15 @@ function Sidebar({
             <Link href="/overview" className="flex flex-1">
               <img src="/openzync-logo.svg" alt="OpenZync" className="h-12 w-auto" />
             </Link>
-            <button onClick={onToggle} className="p-1.5 rounded-md text-surface-400 hover:text-surface-200 hover:bg-surface-800" title="Collapse sidebar">
+            {/* Close button — mobile only */}
+            <button
+              onClick={onClose}
+              className="sm:hidden rounded-md p-1.5 text-surface-400 hover:bg-surface-800"
+              aria-label="Close sidebar"
+            >
+              <X size={18} />
+            </button>
+            <button onClick={onToggle} className="hidden sm:flex p-1.5 rounded-md text-surface-400 hover:text-surface-200 hover:bg-surface-800" title="Collapse sidebar">
               <ChevronLeft size={18} />
             </button>
           </>
@@ -366,7 +426,7 @@ function Sidebar({
       </nav>
 
       {/* Bottom section */}
-      <div className="border-t border-surface-800 p-2 space-y-1">
+      <div className="mt-auto border-t border-surface-800 p-2 space-y-1">
         {/* View all projects — bottom section when inside a project */}
         {inProject && (
           <button
@@ -379,6 +439,85 @@ function Sidebar({
           </button>
         )}
 
+        {/* Search — opens command palette */}
+        <button
+          onClick={() => onSearchOpen?.()}
+          className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
+          title={collapsed ? "Search" : undefined}
+        >
+          <Search size={18} />
+          <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>Search</span>
+        </button>
+
+        {/* Theme toggle */}
+        <button
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
+          title={collapsed ? (theme === "dark" ? "Light mode" : "Dark mode") : undefined}
+        >
+          {!mounted ? (
+            <div className="h-[18px] w-[18px]" />
+          ) : theme === "dark" ? (
+            <Sun size={18} />
+          ) : (
+            <Moon size={18} />
+          )}
+          <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>
+            {!mounted ? "Theme" : theme === "dark" ? "Light mode" : "Dark mode"}
+          </span>
+        </button>
+
+        {/* User avatar + dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
+            title={collapsed ? currentUserLabel : undefined}
+          >
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white">
+              {(currentUserLabel?.[0] || "U").toUpperCase()}
+            </span>
+            <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{currentUserLabel}</span>
+          </button>
+
+          {userMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
+              <div className="absolute bottom-full left-0 mb-2 z-20 w-56 rounded-lg border border-surface-800 bg-surface-900 p-1 shadow-lg shadow-black/30 animate-slide-up">
+                <div className="px-2 py-1.5 text-sm text-surface-400 border-b border-surface-800 mb-1">
+                  {currentUserLabel}
+                </div>
+                <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-surface-200 hover:bg-surface-800">
+                  <UserIcon size={14} />
+                  Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    router.push("/settings");
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-surface-200 hover:bg-surface-800"
+                >
+                  <Settings size={14} />
+                  Settings
+                </button>
+                <hr className="my-1 border-surface-800" />
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    sessionStorage.removeItem("mg_access_token");
+                    sessionStorage.removeItem("mg_refresh_token");
+                    router.push("/login");
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-error hover:bg-surface-800"
+                >
+                  <LogOut size={14} />
+                  Sign Out
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </aside>
   );
@@ -393,12 +532,9 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [currentUserLabel, setCurrentUserLabel] = useState("User");
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const inProject = isInProject(pathname);
   const projectId = extractProjectId(pathname);
@@ -426,48 +562,17 @@ export default function DashboardLayout({
     }
   }, [projectId]);
 
-  useEffect(() => {
-    setMounted(true);
-    // Fetch the current user's email from the API
-    const token = sessionStorage.getItem("mg_access_token");
-    if (!token) return;
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const userId = payload.sub;
-      if (userId) {
-        fetch(`${API_BASE}/v1/users/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        })
-          .then((r) => (r.ok ? r.json() : null))
-          .then((user) => {
-            if (user?.email) setCurrentUserLabel(user.email);
-            else setCurrentUserLabel(user?.name || userId.slice(0, 8));
-          })
-          .catch((err) => {
-            console.error("Failed to fetch user profile", err);
-            setCurrentUserLabel(userId.slice(0, 8));  // fallback label visible in UI
-          });
-      }
-    } catch {
-      setCurrentUserLabel("User");
-    }
-  }, []);
-
-  // Close user menu on Escape key press
+  // Open command palette on Cmd+K / Ctrl+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setUserMenuOpen(false);
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
       }
     };
-    if (userMenuOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-    }
+    document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [userMenuOpen]);
+  }, []);
 
   // Build breadcrumb items from the current pathname
   const breadcrumbItems = (() => {
@@ -515,46 +620,20 @@ export default function DashboardLayout({
     return [];
   })();
 
-  // Dynamic page title
-  const pageTitle = (() => {
-    // Project pages
-    if (pathname.startsWith("/projects/")) {
-      if (pathname.endsWith("/sessions")) return "Sessions";
-      if (pathname.endsWith("/memory")) return "Memory";
-      if (pathname.includes("/graph/communities")) return "Communities";
-      if (pathname.endsWith("/graph")) return "Graph Explorer";
-      if (pathname.endsWith("/members")) return "Members";
-      if (pathname.endsWith("/settings")) return "Project Settings";
-      if (pathname.includes("/settings/api-keys")) return "API Keys";
-      if (pathname.match(/\/sessions\/[^/]+$/)) return "Session";
-      if (pathname.includes("/messages")) return "Messages";
-      if (pathname.includes("/facts")) return "Facts";
-      if (pathname.includes("/classifications")) return "Classifications";
-      if (pathname.includes("/extractions")) return "Extractions";
-      return "Project";
-    }
-    if (pathname === "/projects") return "Projects";
-    if (pathname === "/overview") return "Overview";
-    if (pathname.startsWith("/monitoring")) return "Monitoring";
-    if (pathname.startsWith("/users")) return "Users";
-    if (pathname.startsWith("/audit")) return "Audit Log";
-    if (pathname.startsWith("/settings")) {
-      if (pathname.includes("/api-keys")) return "API Keys";
-      if (pathname.includes("/schemas")) return "Extraction Schemas";
-      if (pathname.includes("/classifications")) return "Classifications";
-      if (pathname.includes("/extractions")) return "Extractions";
-      if (pathname.includes("/webhooks")) return "Webhooks";
-      if (pathname.includes("/extraction-instructions")) return "Extraction Instructions";
-      if (pathname.includes("/prompts")) return "Prompt Templates";
-      if (pathname.includes("/org-config")) return "Configuration";
-      return "Account Settings";
-    }
-    return "Dashboard";
-  })();
-
   return (
     <RequireAuth>
     <div className="flex h-screen overflow-hidden bg-surface-950">
+      {/* Floating mobile hamburger */}
+      {!mobileOpen && (
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="fixed top-3 left-3 z-30 sm:hidden rounded-md p-2 bg-surface-900 border border-surface-800 text-surface-400 shadow-lg hover:bg-surface-800"
+          aria-label="Open sidebar"
+        >
+          <Menu size={20} />
+        </button>
+      )}
+
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div
@@ -570,7 +649,7 @@ export default function DashboardLayout({
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <Sidebar collapsed={false} onToggle={() => {}} onClose={() => setMobileOpen(false)} />
+        <Sidebar collapsed={false} onToggle={() => {}} onClose={() => setMobileOpen(false)} onSearchOpen={() => setSearchOpen(true)} />
       </div>
 
       {/* Desktop sidebar */}
@@ -578,111 +657,24 @@ export default function DashboardLayout({
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onSearchOpen={() => setSearchOpen(true)}
         />
       </div>
 
-      {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top bar */}
-        <header className="flex h-14 items-center gap-4 border-b border-surface-800 bg-surface-950/80 px-4 backdrop-blur-md">
-          {/* Mobile menu toggle */}
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="lg:hidden rounded-md p-1.5 text-surface-400 hover:bg-surface-800 hover:text-text-primary"
-          >
-            <Menu size={20} />
-          </button>
-
-          {/* Page title */}
-          <div className="hidden sm:flex items-center gap-2 text-sm">
-            <span className="text-text-primary font-medium">{pageTitle}</span>
-          </div>
-
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Search */}
-          <button className="rounded-md p-1.5 text-surface-400 hover:bg-surface-800 hover:text-text-primary">
-            <Search size={18} />
-          </button>
-
-          {/* Theme toggle */}
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="rounded-md p-1.5 text-surface-400 hover:bg-surface-800 hover:text-text-primary"
-          >
-            {!mounted ? (
-              <div className="h-[18px] w-[18px]" />
-            ) : theme === "dark" ? (
-              <Sun size={18} />
-            ) : (
-              <Moon size={18} />
-            )}
-          </button>
-
-          {/* User avatar */}
-          <div className="relative">
-            <button
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500 text-xs font-bold text-white"
-            >
-              U
-            </button>
-            {userMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 z-20 w-48 rounded-lg border border-surface-800 bg-surface-900 p-1 shadow-lg shadow-black/30 animate-slide-up">
-                  <div className="px-2 py-1.5 text-sm text-surface-400 border-b border-surface-800 mb-1">
-                    {currentUserLabel}
-                  </div>
-                  <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-surface-200 hover:bg-surface-800">
-                    <UserIcon size={14} />
-                    Profile
-                  </button>
-                  <button
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      router.push("/settings");
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-surface-200 hover:bg-surface-800"
-                  >
-                    <Settings size={14} />
-                    Settings
-                  </button>
-                  <hr className="my-1 border-surface-800" />
-                  <button
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      sessionStorage.removeItem("mg_access_token");
-                      sessionStorage.removeItem("mg_refresh_token");
-                      router.push("/login");
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-error hover:bg-surface-800"
-                  >
-                    <LogOut size={14} />
-                    Sign Out
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </header>
-
-        {/* Breadcrumb */}
-        {breadcrumbItems.length > 0 && (
-          <div className="flex items-center px-6 py-2 border-b border-surface-800 bg-surface-950/40">
-            <Breadcrumb items={breadcrumbItems} />
+      {/* Page content */}
+      <main id="main-content" className="flex-1 overflow-y-auto">
+        {/* Breadcrumb — only shown for deep navigation context (project sub-pages etc.) */}
+        {breadcrumbItems.length >= 3 && (
+          <div className="px-6 pt-3 pb-0">
+            <Breadcrumb items={breadcrumbItems} className="text-xs text-surface-500" />
           </div>
         )}
-
-        {/* Page content */}
-        <main id="main-content" className="flex-1 overflow-y-auto p-6">
-          <div className="mx-auto max-w-7xl animate-fade-in">
-            {children}
-          </div>
-        </main>
-      </div>
+        <div className={cn("mx-auto max-w-7xl animate-fade-in", breadcrumbItems.length >= 3 ? "p-6 pt-3" : "p-6")}>
+          {children}
+        </div>
+      </main>
     </div>
+      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
     </RequireAuth>
   );
 }

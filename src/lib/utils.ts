@@ -93,20 +93,30 @@ export async function copyToClipboard(text: string): Promise<boolean> {
  */
 export function actionLabel(action: string): string {
   const map: Record<string, string> = {
+    "auth.signup": "User signed up",
+    "auth.login": "User logged in",
+    "auth.refresh": "Session refreshed",
+    "auth.profile.update": "Profile updated",
+    "organization.create": "Organization created",
+    "schema.create": "Extraction schema created",
+    "schema.update": "Extraction schema updated",
+    "schema.delete": "Extraction schema deleted",
+    "api_key.create": "API key generated",
+    "api_key.revoke": "API key revoked",
+    "user.create": "User added",
+    "user.update": "User updated",
+    "user.delete": "User removed",
     "session.create": "Session created",
     "session.delete": "Session deleted",
-    "user.create": "User created",
-    "user.delete": "User deleted",
-    "memory.ingest": "Memory ingested",
-    "api_key.create": "API key created",
-    "api_key.revoke": "API key revoked",
+    "memory.ingest": "Message ingested",
+    "memory.wipe": "Memory wiped",
+    "fact.create": "Fact extracted",
+    "graph.node.delete": "Graph entity removed",
+    "entity.merge": "Entities merged",
   };
-  return (
-    map[action] ??
-    action
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase())
-  );
+  return map[action] ?? action
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 // ─── Number helpers ───────────────────────────────────────────────────────────
