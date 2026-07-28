@@ -295,7 +295,7 @@ export default function SessionDetailPage() {
 
               <MetadataRow icon={<Eye size={16} />} label="Observations">
                 <span className="font-semibold">
-                  {session.observation_count.toLocaleString()}
+                  {(session.observation_count ?? 0).toLocaleString()}
                 </span>
               </MetadataRow>
             </div>
