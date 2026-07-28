@@ -462,6 +462,10 @@ export function ForceGraph({
         node.attr("opacity", 1);
         link.attr("stroke", "rgba(143,175,217,0.25)");
         hullPath.attr("fill-opacity", 0.12);
+      })
+      .on("click", (_event: MouseEvent, d: CommunityHullData) => {
+        const communityNode = communityNodeMap.get(d.id);
+        if (communityNode) setSelectedNode(communityNode);
       });
 
     // ── Edge layer ────────────────────────────────────────────────────
