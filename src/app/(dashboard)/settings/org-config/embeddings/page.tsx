@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Eye, EyeOff, AudioWaveform, X } from "lucide-react";
+import { Eye, EyeOff, AudioWaveform, RotateCcw } from "lucide-react";
 import { get, patch, ApiError } from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
 import { useConfigDirty } from "@/contexts/config-dirty";
+import { useConfigReset } from "@/hooks/use-config-reset";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,18 @@ export default function EmbeddingsConfigPage() {
   const [error, setError] = useState<string | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+
+  const {
+    pendingResets,
+    stageReset,
+    hasPendingResets,
+    getSavePayload,
+    clearResets,
+  } = useConfigReset(
+    FIELDS as unknown as readonly string[],
+    initialForm as unknown as Record<string, unknown>,
+    setForm as unknown as React.Dispatch<React.SetStateAction<Record<string, unknown>>>,
+  );
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
@@ -142,7 +155,7 @@ export default function EmbeddingsConfigPage() {
   }
 
   function hasChanged(): boolean {
-    return FIELDS.some((f) => form[f] !== initialForm[f]);
+    return FIELDS.some((f) => form[f] !== initialForm[f]) || hasPendingResets;
   }
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
@@ -150,17 +163,14 @@ export default function EmbeddingsConfigPage() {
     setDirty(value !== initialForm[field] || FIELDS.some((f) => f !== field && form[f] !== initialForm[f]));
   }
 
-  // ── Reset field to default ────────────────────────────────────────────────
+  // ── Stage field reset (applied on save) ──────────────────────────────────
 
-  async function handleResetField(field: keyof FormState) {
-    try {
-      await patch("/admin/org/config", { [field]: null });
-      toast.success(`"${field}" reset to default`);
-      await fetchConfig();
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to reset field";
-      toast.error(message);
-    }
+  function handleStageReset(field: keyof FormState) {
+    const defaults: Partial<Record<keyof FormState, unknown>> = {
+      embedding_backend: "openai",
+      embedding_dim: 1536,
+    };
+    stageReset(field, defaults[field] ?? "");
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
@@ -171,15 +181,11 @@ export default function EmbeddingsConfigPage() {
     setError(null);
 
     try {
-      const changed: Record<string, unknown> = {};
-      for (const field of FIELDS) {
-        if (form[field] !== initialForm[field]) {
-          changed[field] = form[field];
-        }
-      }
+      const changed = getSavePayload(form as unknown as Record<string, unknown>);
 
       await patch("/admin/org/config", changed);
       toast.success("Embedding configuration saved successfully");
+      clearResets();
       await fetchConfig();
       setDirty(false);
       setJustSaved(true);
@@ -237,14 +243,17 @@ export default function EmbeddingsConfigPage() {
                   </select>
                   {isFieldSet("embedding_backend") && (
                     <Button
-                      onClick={() => handleResetField("embedding_backend")}
+                      onClick={() => handleStageReset("embedding_backend")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
                       title={RESET_TITLES.embedding_backend}
                     >
-                      <X size={14} />
+                      <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
+                {pendingResets.has("embedding_backend") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
               </div>
 
               {/* embedding_model */}
@@ -261,14 +270,17 @@ export default function EmbeddingsConfigPage() {
                   />
                   {isFieldSet("embedding_model") && (
                     <Button
-                      onClick={() => handleResetField("embedding_model")}
+                      onClick={() => handleStageReset("embedding_model")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
                       title={RESET_TITLES.embedding_model}
                     >
-                      <X size={14} />
+                      <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
+                {pendingResets.has("embedding_model") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
               </div>
 
               {/* embedding_dim */}
@@ -287,14 +299,17 @@ export default function EmbeddingsConfigPage() {
                   />
                   {isFieldSet("embedding_dim") && (
                     <Button
-                      onClick={() => handleResetField("embedding_dim")}
+                      onClick={() => handleStageReset("embedding_dim")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
                       title={RESET_TITLES.embedding_dim}
                     >
-                      <X size={14} />
+                      <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
+                {pendingResets.has("embedding_dim") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
               </div>
 
               {/* embedding_provider — only for OpenRouter */}
@@ -312,14 +327,17 @@ export default function EmbeddingsConfigPage() {
                     />
                     {isFieldSet("embedding_provider") && (
                       <Button
-                        onClick={() => handleResetField("embedding_provider")}
+                        onClick={() => handleStageReset("embedding_provider")}
                         variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
                         title={RESET_TITLES.embedding_provider}
                       >
-                        <X size={14} />
+                        <RotateCcw size={14} />
                       </Button>
                     )}
                   </div>
+                  {pendingResets.has("embedding_provider") && (
+                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  )}
                 </div>
               )}
 
@@ -348,14 +366,17 @@ export default function EmbeddingsConfigPage() {
                     </div>
                     {isFieldSet("embedding_api_key") && (
                       <Button
-                        onClick={() => handleResetField("embedding_api_key")}
+                        onClick={() => handleStageReset("embedding_api_key")}
                         variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
                         title={RESET_TITLES.embedding_api_key}
                       >
-                        <X size={14} />
+                        <RotateCcw size={14} />
                       </Button>
                     )}
                   </div>
+                  {pendingResets.has("embedding_api_key") && (
+                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  )}
                 </div>
               )}
             </div>
@@ -370,7 +391,7 @@ export default function EmbeddingsConfigPage() {
           hasChanges={hasChanged()}
           hasSaved={justSaved}
           onSave={handleSave}
-          onDiscard={() => { setForm({ ...initialForm }); setDirty(false); }}
+          onDiscard={() => { setForm({ ...initialForm }); setDirty(false); clearResets(); }}
         />
       )}
     </div>

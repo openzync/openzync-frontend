@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { X, GitBranch } from "lucide-react";
+import { GitBranch, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { get, patch, ApiError } from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { SecretInput } from "@/components/ui/secret-input";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
 import { useConfigDirty } from "@/contexts/config-dirty";
+import { useConfigReset } from "@/hooks/use-config-reset";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,18 @@ export default function GraphConfigPage() {
   const [showSurrealDbPass, setShowSurrealDbPass] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
 
+  const {
+    pendingResets,
+    stageReset,
+    hasPendingResets,
+    getSavePayload,
+    clearResets,
+  } = useConfigReset(
+    FIELDS as unknown as readonly string[],
+    initialForm as unknown as Record<string, unknown>,
+    setForm as unknown as React.Dispatch<React.SetStateAction<Record<string, unknown>>>,
+  );
+
   // ── Fetch config ──────────────────────────────────────────────────────────
 
   const fetchConfig = useCallback(async () => {
@@ -176,7 +189,7 @@ export default function GraphConfigPage() {
   }
 
   function hasChanged(): boolean {
-    return FIELDS.some((f) => form[f] !== initialForm[f]);
+    return hasPendingResets || FIELDS.some((f) => form[f] !== initialForm[f]);
   }
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
@@ -184,22 +197,12 @@ export default function GraphConfigPage() {
     setDirty(value !== initialForm[field] || FIELDS.some((f) => f !== field && form[f] !== initialForm[f]));
   }
 
-  // ── Reset field to default ────────────────────────────────────────────────
+  // ── Stage reset (applied on next save) ─────────────────────────────────────
 
-  async function handleResetField(field: keyof FormState) {
-    try {
-      await patch("/admin/org/config", { [field]: null });
-      toast.success(`"${field}" reset to default`);
-      await fetchConfig();
-    } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Failed to reset field";
-      toast.error(message);
-    }
+  function handleStageReset(field: keyof FormState) {
+    const defaultVal = typeof initialForm[field] === "number" ? (0 as FormState[keyof FormState]) : ("" as FormState[keyof FormState]);
+    stageReset(field as string, defaultVal);
+    setDirty(true);
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
@@ -210,17 +213,14 @@ export default function GraphConfigPage() {
     setError(null);
 
     try {
-      const changed: Record<string, unknown> = {};
-      for (const field of FIELDS) {
-        if (form[field] !== initialForm[field]) {
-          changed[field] = form[field];
-        }
-      }
+      const payload = getSavePayload(form as unknown as Record<string, unknown>);
+      if (Object.keys(payload).length === 0) return;
 
-      await patch("/admin/org/config", changed);
+      await patch("/admin/org/config", payload);
       toast.success("Graph configuration saved successfully");
       await fetchConfig();
       setDirty(false);
+      clearResets();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
@@ -278,17 +278,20 @@ export default function GraphConfigPage() {
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
-                  {isFieldSet("graph_backend") && (
-                    <Button
-                      onClick={() => handleResetField("graph_backend")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title={RESET_TITLES.graph_backend}
-                    >
-                      <X size={14} />
-                    </Button>
-                  )}
+                      {isFieldSet("graph_backend") && (
+                        <Button
+                          onClick={() => handleStageReset("graph_backend")}
+                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                          title="Remove stored value — default will apply on save"
+                        >
+                          <RotateCcw size={14} />
+                        </Button>
+                      )}
                 </div>
               </div>
+              {pendingResets.has("graph_backend") && (
+                <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+              )}
 
               {/* search type + traversal depth — hidden when backend is "none" */}
               {form.graph_backend !== "none" && (
@@ -310,15 +313,18 @@ export default function GraphConfigPage() {
                       </select>
                       {isFieldSet("graph_search_type") && (
                         <Button
-                          onClick={() => handleResetField("graph_search_type")}
+                          onClick={() => handleStageReset("graph_search_type")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title={RESET_TITLES.graph_search_type}
+                          title="Remove stored value — default will apply on save"
                         >
-                          <X size={14} />
+                          <RotateCcw size={14} />
                         </Button>
                       )}
                     </div>
                   </div>
+                  {pendingResets.has("graph_search_type") && (
+                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  )}
 
                   {/* graph_max_traversal_depth */}
                   <div>
@@ -336,16 +342,19 @@ export default function GraphConfigPage() {
                       />
                       {isFieldSet("graph_max_traversal_depth") && (
                         <Button
-                          onClick={() => handleResetField("graph_max_traversal_depth")}
+                          onClick={() => handleStageReset("graph_max_traversal_depth")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title={RESET_TITLES.graph_max_traversal_depth}
+                          title="Remove stored value — default will apply on save"
                         >
-                          <X size={14} />
+                          <RotateCcw size={14} />
                         </Button>
                       )}
                     </div>
                     <p className="text-xs text-surface-500 mt-1">How many hops the graph traversal will follow (1&ndash;10)</p>
                   </div>
+                  {pendingResets.has("graph_max_traversal_depth") && (
+                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  )}
                 </>
               )}
 
@@ -366,16 +375,19 @@ export default function GraphConfigPage() {
                       />
                       {isFieldSet("surrealdb_url") && (
                         <Button
-                          onClick={() => handleResetField("surrealdb_url")}
+                          onClick={() => handleStageReset("surrealdb_url")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title={RESET_TITLES.surrealdb_url}
+                          title="Remove stored value — default will apply on save"
                         >
-                          <X size={14} />
+                          <RotateCcw size={14} />
                         </Button>
                       )}
                     </div>
                     <p className="text-xs text-surface-500 mt-1">Required when using SurrealDB backend</p>
                   </div>
+                  {pendingResets.has("surrealdb_url") && (
+                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  )}
 
                   {/* surrealdb_user */}
                   <div>
@@ -392,15 +404,18 @@ export default function GraphConfigPage() {
                       />
                       {isFieldSet("surrealdb_user") && (
                         <Button
-                          onClick={() => handleResetField("surrealdb_user")}
+                          onClick={() => handleStageReset("surrealdb_user")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title={RESET_TITLES.surrealdb_user}
+                          title="Remove stored value — default will apply on save"
                         >
-                          <X size={14} />
+                          <RotateCcw size={14} />
                         </Button>
                       )}
                     </div>
                   </div>
+                  {pendingResets.has("surrealdb_user") && (
+                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  )}
 
                   {/* surrealdb_pass */}
                   <SecretInput
@@ -427,15 +442,18 @@ export default function GraphConfigPage() {
                       />
                       {isFieldSet("surrealdb_namespace") && (
                         <Button
-                          onClick={() => handleResetField("surrealdb_namespace")}
+                          onClick={() => handleStageReset("surrealdb_namespace")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title={RESET_TITLES.surrealdb_namespace}
+                          title="Remove stored value — default will apply on save"
                         >
-                          <X size={14} />
+                          <RotateCcw size={14} />
                         </Button>
                       )}
                     </div>
                   </div>
+                  {pendingResets.has("surrealdb_namespace") && (
+                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  )}
 
                   {/* surrealdb_database */}
                   <div>
@@ -452,15 +470,18 @@ export default function GraphConfigPage() {
                       />
                       {isFieldSet("surrealdb_database") && (
                         <Button
-                          onClick={() => handleResetField("surrealdb_database")}
+                          onClick={() => handleStageReset("surrealdb_database")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title={RESET_TITLES.surrealdb_database}
+                          title="Remove stored value — default will apply on save"
                         >
-                          <X size={14} />
+                          <RotateCcw size={14} />
                         </Button>
                       )}
                     </div>
                   </div>
+                  {pendingResets.has("surrealdb_database") && (
+                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  )}
                 </div>
               )}
 
@@ -491,16 +512,19 @@ export default function GraphConfigPage() {
                       />
                       {isFieldSet("falkordb_url") && (
                         <Button
-                          onClick={() => handleResetField("falkordb_url")}
+                          onClick={() => handleStageReset("falkordb_url")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title={RESET_TITLES.falkordb_url}
+                          title="Remove stored value — default will apply on save"
                         >
-                          <X size={14} />
+                          <RotateCcw size={14} />
                         </Button>
                       )}
                     </div>
                     <p className="text-xs text-surface-500 mt-1">Required when using FalkorDB backend and no system-level config exists</p>
                   </div>
+                  {pendingResets.has("falkordb_url") && (
+                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  )}
                 </div>
               )}
 
@@ -525,7 +549,7 @@ export default function GraphConfigPage() {
           hasChanges={hasChanged()}
           hasSaved={justSaved}
           onSave={handleSave}
-          onDiscard={() => { setForm({ ...initialForm }); setDirty(false); }}
+          onDiscard={() => { setForm({ ...initialForm }); clearResets(); setDirty(false); }}
         />
       )}
     </div>

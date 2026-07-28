@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { X, HardDrive } from "lucide-react";
+import { RotateCcw, HardDrive } from "lucide-react";
 import { toast } from "sonner";
 import { get, patch, ApiError } from "@/lib/api-client";
 import { SecretInput } from "@/components/ui/secret-input";
@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
 import { useConfigDirty } from "@/contexts/config-dirty";
+import { useConfigReset } from "@/hooks/use-config-reset";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,17 +39,17 @@ const FIELDS: (keyof FormState)[] = [
   "image_extraction",
 ];
 
-// ─── Reset field titles ────────────────────────────────────────────────────────
+// ─── Field defaults for staged resets ──────────────────────────────────────────
 
-const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
-  blob_storage_backend: "Reset storage backend to default",
-  s3_endpoint_url: "Reset S3 endpoint URL to default",
-  s3_region: "Reset S3 region to default",
-  s3_access_key_id: "Reset S3 access key to default",
-  s3_secret_access_key: "Reset S3 secret key to default",
-  s3_bucket_name: "Reset S3 bucket name to default",
-  max_blob_size_mb: "Reset max blob size to default",
-  image_extraction: "Reset image extraction to default",
+const FIELD_DEFAULTS: Record<string, unknown> = {
+  blob_storage_backend: "s3",
+  s3_endpoint_url: "",
+  s3_region: "auto",
+  s3_access_key_id: "",
+  s3_secret_access_key: "",
+  s3_bucket_name: "",
+  max_blob_size_mb: 50,
+  image_extraction: "none",
 };
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -72,6 +73,12 @@ export default function BlobStorageConfigPage() {
   const [error, setError] = useState<string | null>(null);
   const [visibleSecrets, setVisibleSecrets] = useState<Set<string>>(new Set());
   const [justSaved, setJustSaved] = useState(false);
+
+  const reset = useConfigReset(
+    FIELDS as unknown as readonly string[],
+    initialForm as unknown as Record<string, unknown>,
+    setForm as unknown as React.Dispatch<React.SetStateAction<Record<string, unknown>>>,
+  );
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
@@ -117,6 +124,7 @@ export default function BlobStorageConfigPage() {
         max_blob_size_mb: val("max_blob_size_mb", 50) as number,
         image_extraction: val("image_extraction", "none") as string,
       });
+      reset.clearResets();
       setStored(data.stored ?? {});
       setDirty(false);
       setError(null);
@@ -127,7 +135,7 @@ export default function BlobStorageConfigPage() {
     } finally {
       setLoading(false);
     }
-  }, [setDirty]);
+  }, [setDirty, reset]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchConfig();
@@ -153,7 +161,9 @@ export default function BlobStorageConfigPage() {
   }
 
   function hasChanged(): boolean {
-    return FIELDS.some((f) => form[f] !== initialForm[f]);
+    return (
+      FIELDS.some((f) => form[f] !== initialForm[f]) || reset.hasPendingResets
+    );
   }
 
   function updateField<K extends keyof FormState>(
@@ -161,7 +171,13 @@ export default function BlobStorageConfigPage() {
     value: FormState[K],
   ) {
     setForm((prev) => ({ ...prev, [field]: value }));
-    setDirty(value !== initialForm[field] || FIELDS.some((f) => f !== field && form[f] !== initialForm[f]));
+    setDirty(
+      value !== initialForm[field] ||
+        FIELDS.some((f) => f !== field && form[f] !== initialForm[f]),
+    );
+    if (reset.pendingResets.has(field)) {
+      reset.unstageReset(field);
+    }
   }
 
   function toggleSecret(field: string) {
@@ -173,18 +189,10 @@ export default function BlobStorageConfigPage() {
     });
   }
 
-  // ── Reset field to default ────────────────────────────────────────────────
+  // ── Stage reset (queued, not sent until save) ─────────────────────────────
 
-  async function handleResetField(field: keyof FormState) {
-    try {
-      await patch("/admin/org/config", { [field]: null });
-      toast.success(`"${field}" reset to default`);
-      await fetchConfig();
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError ? err.message : "Failed to reset field",
-      );
-    }
+  function handleStageReset(field: keyof FormState) {
+    reset.stageReset(field, FIELD_DEFAULTS[field] ?? "");
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
@@ -195,15 +203,12 @@ export default function BlobStorageConfigPage() {
     setError(null);
 
     try {
-      const changed: Record<string, unknown> = {};
-      for (const field of FIELDS) {
-        if (form[field] !== initialForm[field]) {
-          changed[field] = form[field];
-        }
-      }
-
-      await patch("/admin/org/config", changed);
+      const payload = reset.getSavePayload(
+        form as unknown as Record<string, unknown>,
+      );
+      await patch("/admin/org/config", payload);
       toast.success("Blob storage configuration saved successfully");
+      reset.clearResets();
       await fetchConfig();
       setDirty(false);
       setJustSaved(true);
@@ -266,14 +271,19 @@ export default function BlobStorageConfigPage() {
                   </select>
                   {isFieldSet("blob_storage_backend") && (
                     <Button
-                      onClick={() => handleResetField("blob_storage_backend")}
+                      onClick={() => handleStageReset("blob_storage_backend")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title={RESET_TITLES.blob_storage_backend}
+                      title="Reset storage backend to default"
                     >
-                      <X size={14} />
+                      <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
+                {reset.pendingResets.has("blob_storage_backend") && (
+                  <p className="text-xs text-amber-400 mt-1">
+                    Reset queued — will be applied on save
+                  </p>
+                )}
                 <p className="text-xs text-surface-500 mt-1">
                   Backend used for storing file attachments. "none" disables file uploads.
                 </p>
@@ -299,14 +309,19 @@ export default function BlobStorageConfigPage() {
                       />
                       {isFieldSet("s3_endpoint_url") && (
                         <Button
-                          onClick={() => handleResetField("s3_endpoint_url")}
+                          onClick={() => handleStageReset("s3_endpoint_url")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title={RESET_TITLES.s3_endpoint_url}
+                          title="Reset S3 endpoint URL to default"
                         >
-                          <X size={14} />
+                          <RotateCcw size={14} />
                         </Button>
                       )}
                     </div>
+                    {reset.pendingResets.has("s3_endpoint_url") && (
+                      <p className="text-xs text-amber-400 mt-1">
+                        Reset queued — will be applied on save
+                      </p>
+                    )}
                     <p className="text-xs text-surface-500 mt-1">
                       Endpoint URL for your S3-compatible object store (e.g. MinIO, AWS S3, GCS).
                     </p>
@@ -329,14 +344,19 @@ export default function BlobStorageConfigPage() {
                       />
                       {isFieldSet("s3_region") && (
                         <Button
-                          onClick={() => handleResetField("s3_region")}
+                          onClick={() => handleStageReset("s3_region")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title={RESET_TITLES.s3_region}
+                          title="Reset S3 region to default"
                         >
-                          <X size={14} />
+                          <RotateCcw size={14} />
                         </Button>
                       )}
                     </div>
+                    {reset.pendingResets.has("s3_region") && (
+                      <p className="text-xs text-amber-400 mt-1">
+                        Reset queued — will be applied on save
+                      </p>
+                    )}
                     <p className="text-xs text-surface-500 mt-1">
                       AWS region (use "auto" for MinIO).
                     </p>
@@ -359,38 +379,57 @@ export default function BlobStorageConfigPage() {
                       />
                       {isFieldSet("s3_bucket_name") && (
                         <Button
-                          onClick={() => handleResetField("s3_bucket_name")}
+                          onClick={() => handleStageReset("s3_bucket_name")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title={RESET_TITLES.s3_bucket_name}
+                          title="Reset S3 bucket name to default"
                         >
-                          <X size={14} />
+                          <RotateCcw size={14} />
                         </Button>
                       )}
                     </div>
+                    {reset.pendingResets.has("s3_bucket_name") && (
+                      <p className="text-xs text-amber-400 mt-1">
+                        Reset queued — will be applied on save
+                      </p>
+                    )}
                     <p className="text-xs text-surface-500 mt-1">
                       S3 bucket where blobs are stored.
                     </p>
                   </div>
 
                   {/* s3_access_key_id — secret */}
-                  <SecretInput
-                    label="S3 Access Key ID"
-                    value={form.s3_access_key_id}
-                    onChange={(v) => updateField("s3_access_key_id", v)}
-                    placeholder="AKIAIOSFODNN7EXAMPLE"
-                    visible={visibleSecrets.has("s3_access_key_id")}
-                    onToggleVisibility={() => toggleSecret("s3_access_key_id")}
-                  />
+                  <div>
+                    <SecretInput
+                      label="S3 Access Key ID"
+                      value={form.s3_access_key_id}
+                      onChange={(v) => updateField("s3_access_key_id", v)}
+                      placeholder="AKIAIOSFODNN7EXAMPLE"
+                      visible={visibleSecrets.has("s3_access_key_id")}
+                      onToggleVisibility={() => toggleSecret("s3_access_key_id")}
+                    />
+                    {reset.pendingResets.has("s3_access_key_id") && (
+                      <p className="text-xs text-amber-400 mt-1">
+                        Reset queued — will be applied on save
+                      </p>
+                    )}
+                  </div>
 
                   {/* s3_secret_access_key — secret */}
-                  <SecretInput
-                    label="S3 Secret Access Key"
-                    value={form.s3_secret_access_key}
-                    onChange={(v) => updateField("s3_secret_access_key", v)}
-                    placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-                    visible={visibleSecrets.has("s3_secret_access_key")}
-                    onToggleVisibility={() => toggleSecret("s3_secret_access_key")}
-                  />
+                  <div>
+                    <SecretInput
+                      label="S3 Secret Access Key"
+                      value={form.s3_secret_access_key}
+                      onChange={(v) => updateField("s3_secret_access_key", v)}
+                      placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+                      visible={visibleSecrets.has("s3_secret_access_key")}
+                      onToggleVisibility={() => toggleSecret("s3_secret_access_key")}
+                    />
+                    {reset.pendingResets.has("s3_secret_access_key") && (
+                      <p className="text-xs text-amber-400 mt-1">
+                        Reset queued — will be applied on save
+                      </p>
+                    )}
+                  </div>
 
                   {/* max_blob_size_mb */}
                   <div>
@@ -413,14 +452,19 @@ export default function BlobStorageConfigPage() {
                       />
                       {isFieldSet("max_blob_size_mb") && (
                         <Button
-                          onClick={() => handleResetField("max_blob_size_mb")}
+                          onClick={() => handleStageReset("max_blob_size_mb")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title={RESET_TITLES.max_blob_size_mb}
+                          title="Reset max blob size to default"
                         >
-                          <X size={14} />
+                          <RotateCcw size={14} />
                         </Button>
                       )}
                     </div>
+                    {reset.pendingResets.has("max_blob_size_mb") && (
+                      <p className="text-xs text-amber-400 mt-1">
+                        Reset queued — will be applied on save
+                      </p>
+                    )}
                     <p className="text-xs text-surface-500 mt-1">
                       Maximum file size allowed per upload (1–500 MB).
                     </p>
@@ -450,14 +494,19 @@ export default function BlobStorageConfigPage() {
                       </select>
                       {isFieldSet("image_extraction") && (
                         <Button
-                          onClick={() => handleResetField("image_extraction")}
+                          onClick={() => handleStageReset("image_extraction")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title={RESET_TITLES.image_extraction}
+                          title="Reset image extraction to default"
                         >
-                          <X size={14} />
+                          <RotateCcw size={14} />
                         </Button>
                       )}
                     </div>
+                    {reset.pendingResets.has("image_extraction") && (
+                      <p className="text-xs text-amber-400 mt-1">
+                        Reset queued — will be applied on save
+                      </p>
+                    )}
                     <p className="text-xs text-surface-500 mt-2">
                       <strong>OCR</strong> uses Tesseract locally (free).{" "}
                       <strong>Vision API</strong> uses your configured LLM provider
@@ -479,7 +528,7 @@ export default function BlobStorageConfigPage() {
           hasChanges={hasChanged()}
           hasSaved={justSaved}
           onSave={handleSave}
-          onDiscard={() => { setForm({ ...initialForm }); setDirty(false); }}
+          onDiscard={() => { setForm({ ...initialForm }); reset.clearResets(); setDirty(false); }}
         />
       )}
     </div>

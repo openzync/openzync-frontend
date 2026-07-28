@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Brain, X, Eye, EyeOff } from "lucide-react";
+import { Brain, RotateCcw, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { get, patch, ApiError } from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
+import { useConfigReset } from "@/hooks/use-config-reset";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -86,6 +87,18 @@ export default function LlmConfigPage() {
   const [justSaved, setJustSaved] = useState(false);
 
   const { setDirty } = useConfigDirty();
+
+  const {
+    pendingResets,
+    stageReset,
+    hasPendingResets,
+    getSavePayload,
+    clearResets,
+  } = useConfigReset(
+    LLM_FIELDS as unknown as readonly string[],
+    initialForm as unknown as Record<string, unknown>,
+    setForm as unknown as React.Dispatch<React.SetStateAction<Record<string, unknown>>>,
+  );
 
   // Password visibility toggles
   const [showOpenAiKey, setShowOpenAiKey] = useState(false);
@@ -173,7 +186,7 @@ export default function LlmConfigPage() {
   }
 
   function hasChanged(): boolean {
-    return LLM_FIELDS.some((f) => form[f] !== initialForm[f]);
+    return hasPendingResets || LLM_FIELDS.some((f) => form[f] !== initialForm[f]);
   }
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
@@ -183,39 +196,28 @@ export default function LlmConfigPage() {
     setDirty(dirty);
   }
 
-  // ── Reset field to default ────────────────────────────────────────────────
+  // ── Stage reset field (applied on save) ────────────────────────────────────
 
-  async function handleResetField(field: keyof FormState) {
-    try {
-      await patch("/admin/org/config", { [field]: null });
-      toast.success(`"${field}" reset to default`);
-      await fetchConfig();
-      setDirty(false);
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to reset field";
-      toast.error(msg);
-    }
+  function handleStageReset(field: keyof FormState) {
+    const defaultVal = typeof initialForm[field] === "number" ? (0 as FormState[keyof FormState]) : ("" as FormState[keyof FormState]);
+    stageReset(field as string, defaultVal);
+    setDirty(true);
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
 
   async function handleSave() {
-    if (!hasChanged()) return;
+    const payload = getSavePayload(form as unknown as Record<string, unknown>);
+    if (Object.keys(payload).length === 0) return;
     setSaving(true);
     setError(null);
 
     try {
-      const changed: Record<string, unknown> = {};
-      for (const field of LLM_FIELDS) {
-        if (form[field] !== initialForm[field]) {
-          changed[field] = form[field];
-        }
-      }
-
-      await patch("/admin/org/config", changed);
+      await patch("/admin/org/config", payload);
       toast.success("LLM configuration saved successfully");
       await fetchConfig();
       setDirty(false);
+      clearResets();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
@@ -231,6 +233,7 @@ export default function LlmConfigPage() {
 
   function handleDiscard() {
     setForm({ ...initialForm });
+    clearResets();
     setDirty(false);
   }
 
@@ -282,14 +285,17 @@ export default function LlmConfigPage() {
                   </select>
                   {isFieldSet("llm_backend") && (
                     <Button
-                      onClick={() => handleResetField("llm_backend")}
+                      onClick={() => handleStageReset("llm_backend")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset backend provider to default"
+                      title="Remove stored value — default will apply on save"
                     >
-                      <X size={14} />
+                      <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
+                {pendingResets.has("llm_backend") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
               </div>
 
               {/* llm_model */}
@@ -306,14 +312,17 @@ export default function LlmConfigPage() {
                   />
                   {isFieldSet("llm_model") && (
                     <Button
-                      onClick={() => handleResetField("llm_model")}
+                      onClick={() => handleStageReset("llm_model")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset model to default"
+                      title="Remove stored value — default will apply on save"
                     >
-                      <X size={14} />
+                      <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
+                {pendingResets.has("llm_model") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
               </div>
 
               {/* llm_temperature */}
@@ -333,14 +342,17 @@ export default function LlmConfigPage() {
                   />
                   {isFieldSet("llm_temperature") && (
                     <Button
-                      onClick={() => handleResetField("llm_temperature")}
+                      onClick={() => handleStageReset("llm_temperature")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset temperature to default"
+                      title="Remove stored value — default will apply on save"
                     >
-                      <X size={14} />
+                      <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
+                {pendingResets.has("llm_temperature") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
               </div>
 
               {/* llm_max_tokens */}
@@ -358,14 +370,17 @@ export default function LlmConfigPage() {
                   />
                   {isFieldSet("llm_max_tokens") && (
                     <Button
-                      onClick={() => handleResetField("llm_max_tokens")}
+                      onClick={() => handleStageReset("llm_max_tokens")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset max tokens to default"
+                      title="Remove stored value — default will apply on save"
                     >
-                      <X size={14} />
+                      <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
+                {pendingResets.has("llm_max_tokens") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
               </div>
             </div>
           </>
@@ -411,14 +426,17 @@ export default function LlmConfigPage() {
                   </div>
                   {isFieldSet("openai_api_key") && (
                     <Button
-                      onClick={() => handleResetField("openai_api_key")}
+                      onClick={() => handleStageReset("openai_api_key")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset OpenAI API key to default"
+                      title="Remove stored value — default will apply on save"
                     >
-                      <X size={14} />
+                      <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
+                {pendingResets.has("openai_api_key") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
               </div>
             )}
 
@@ -447,14 +465,17 @@ export default function LlmConfigPage() {
                   </div>
                   {isFieldSet("anthropic_api_key") && (
                     <Button
-                      onClick={() => handleResetField("anthropic_api_key")}
+                      onClick={() => handleStageReset("anthropic_api_key")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset Anthropic API key to default"
+                      title="Remove stored value — default will apply on save"
                     >
-                      <X size={14} />
+                      <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
+                {pendingResets.has("anthropic_api_key") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
               </div>
             )}
 
@@ -483,14 +504,17 @@ export default function LlmConfigPage() {
                   </div>
                   {isFieldSet("openrouter_api_key") && (
                     <Button
-                      onClick={() => handleResetField("openrouter_api_key")}
+                      onClick={() => handleStageReset("openrouter_api_key")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset OpenRouter API key to default"
+                      title="Remove stored value — default will apply on save"
                     >
-                      <X size={14} />
+                      <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
+                {pendingResets.has("openrouter_api_key") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
               </div>
             )}
 
@@ -510,14 +534,17 @@ export default function LlmConfigPage() {
                   />
                   {isFieldSet("ollama_base_url") && (
                     <Button
-                      onClick={() => handleResetField("ollama_base_url")}
+                      onClick={() => handleStageReset("ollama_base_url")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Reset Ollama base URL to default"
+                      title="Remove stored value — default will apply on save"
                     >
-                      <X size={14} />
+                      <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
+                {pendingResets.has("ollama_base_url") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
               </div>
             )}
 
@@ -536,17 +563,20 @@ export default function LlmConfigPage() {
                       value={form.azure_openai_endpoint}
                       onChange={(e) => updateField("azure_openai_endpoint", e.target.value)}
                     />
-                    {isFieldSet("azure_openai_endpoint") && (
-                      <Button
-                        onClick={() => handleResetField("azure_openai_endpoint")}
-                        variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                        title="Reset Azure endpoint to default"
-                      >
-                        <X size={14} />
-                      </Button>
-                    )}
-                  </div>
+                  {isFieldSet("azure_openai_endpoint") && (
+                    <Button
+                      onClick={() => handleStageReset("azure_openai_endpoint")}
+                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                      title="Remove stored value — default will apply on save"
+                    >
+                      <RotateCcw size={14} />
+                    </Button>
+                  )}
                 </div>
+                {pendingResets.has("azure_openai_endpoint") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
+              </div>
 
                 <div>
                   <label className="block text-sm font-medium text-surface-300 mb-1">
@@ -569,19 +599,22 @@ export default function LlmConfigPage() {
                         {showAzureKey ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
-                    {isFieldSet("azure_openai_key") && (
-                      <Button
-                        onClick={() => handleResetField("azure_openai_key")}
-                        variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                        title="Reset Azure API key to default"
-                      >
-                        <X size={14} />
-                      </Button>
-                    )}
-                  </div>
+                  {isFieldSet("azure_openai_key") && (
+                    <Button
+                      onClick={() => handleStageReset("azure_openai_key")}
+                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                      title="Remove stored value — default will apply on save"
+                    >
+                      <RotateCcw size={14} />
+                    </Button>
+                  )}
                 </div>
-              </>
-            )}
+                {pendingResets.has("azure_openai_key") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
+              </div>
+                </>
+              )}
           </div>
         </div>
       )}
