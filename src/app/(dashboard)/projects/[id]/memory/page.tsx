@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Upload,
   Search,
@@ -64,6 +64,8 @@ const ROLES = ["user", "assistant", "system", "tool"] as const;
 
 function IngestTab({ projectId }: { projectId: string }) {
   const [sessionId, setSessionId] = useState("");
+  const [sessions, setSessions] = useState<{ id: string; external_id: string }[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
   const [messagesText, setMessagesText] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("user");
   const [ingesting, setIngesting] = useState(false);
@@ -71,6 +73,17 @@ function IngestTab({ projectId }: { projectId: string }) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [result, setResult] = useState<IngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!projectId) return;
+    setSessionsLoading(true);
+    get<{ data: { id: string; external_id: string }[] }>(
+      `/v1/projects/${projectId}/sessions?limit=200&include_closed=true`
+    )
+      .then((res) => setSessions(res.data ?? []))
+      .catch(() => { /* silent — dropdown just shows empty state */ })
+      .finally(() => setSessionsLoading(false));
+  }, [projectId]);
 
   const handleIngest = useCallback(async () => {
     if (!messagesText.trim()) { setError("Please enter at least one message"); return; }
@@ -109,8 +122,15 @@ function IngestTab({ projectId }: { projectId: string }) {
       <h2 className="text-sm font-semibold flex items-center gap-2"><Upload size={16} className="text-brand-300" />Ingest Messages</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-surface-400">Session ID (optional)</label>
-          <input type="text" value={sessionId} onChange={(e) => setSessionId(e.target.value)} placeholder="uuid or leave empty for default" className="input-base" />
+          <label className="text-xs font-medium text-surface-400">Session</label>
+          <select value={sessionId} onChange={(e) => setSessionId(e.target.value)} className="input-base">
+            <option value="">Default session (auto)</option>
+            {sessionsLoading && <option disabled>Loading sessions...</option>}
+            {!sessionsLoading && sessions.length === 0 && <option disabled>No sessions found</option>}
+            {sessions.map((s) => (
+              <option key={s.id} value={s.id}>{s.external_id || s.id.slice(0, 8)}</option>
+            ))}
+          </select>
         </div>
       </div>
       <div className="space-y-1.5">

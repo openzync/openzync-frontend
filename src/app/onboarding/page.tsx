@@ -34,6 +34,7 @@ interface UpdateOrgConfigRequest {
   surrealdb_pass?: string | null;
   surrealdb_namespace?: string | null;
   surrealdb_database?: string | null;
+  falkordb_url?: string | null;
   context_cache_ttl?: number | null;
   audit_log_response_body?: boolean | null;
 }
@@ -46,7 +47,7 @@ interface ToastState {
 
 type LlmBackend = "openai" | "anthropic" | "ollama" | "openai_like" | "openrouter" | "azure";
 type EmbeddingBackend = "openai" | "ollama" | "huggingface" | "sentence_transformers";
-type GraphBackend = "postgres" | "surrealdb" | "none";
+type GraphBackend = "postgres" | "surrealdb" | "falkordb" | "none";
 type GraphSearchType = "hybrid" | "bm25" | "vector";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ const EMBEDDING_BACKEND_OPTIONS: { value: EmbeddingBackend; label: string }[] = 
 const GRAPH_BACKEND_OPTIONS: { value: GraphBackend; label: string }[] = [
   { value: "postgres", label: "PostgreSQL (pgvector)" },
   { value: "surrealdb", label: "SurrealDB" },
+  { value: "falkordb", label: "FalkorDB" },
   { value: "none", label: "No graph backend" },
 ];
 
@@ -583,6 +585,26 @@ export default function OnboardingPage() {
                     onChange={(e) => updateField("surrealdb_database", e.target.value)}
                   />
                 </div>
+              </div>
+            )}
+
+            {/* FalkorDB URL — shown only when FalkorDB is selected */}
+            {form.graph_backend === "falkordb" && (
+              <div>
+                <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                  FalkorDB URL
+                </label>
+                <input
+                  className="input-base w-full"
+                  type="url"
+                  placeholder="redis://falkordb:6379"
+                  value={form.falkordb_url ?? ""}
+                  onChange={(e) => updateField("falkordb_url", e.target.value)}
+                />
+                <p className="text-xs text-surface-500 mt-1">
+                  Required when using FalkorDB backend and no system-level config exists.
+                  If FalkorDB is configured at the system level, this field is ignored.
+                </p>
               </div>
             )}
 

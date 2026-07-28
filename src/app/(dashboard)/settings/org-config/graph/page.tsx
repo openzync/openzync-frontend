@@ -14,9 +14,10 @@ import { useConfigDirty } from "@/contexts/config-dirty";
 
 interface OrgConfigResponse {
   stored: Record<string, unknown>;
+  system_managed_fields?: string[];
 }
 
-type GraphBackend = "postgres" | "surrealdb" | "none";
+type GraphBackend = "postgres" | "surrealdb" | "falkordb" | "none";
 type GraphSearchType = "hybrid" | "bm25" | "vector";
 
 interface FormState {
@@ -28,6 +29,7 @@ interface FormState {
   surrealdb_pass: string;
   surrealdb_namespace: string;
   surrealdb_database: string;
+  falkordb_url: string;
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -41,11 +43,13 @@ const FIELDS: (keyof FormState)[] = [
   "surrealdb_pass",
   "surrealdb_namespace",
   "surrealdb_database",
+  "falkordb_url",
 ];
 
 const GRAPH_BACKEND_OPTIONS: { value: GraphBackend; label: string }[] = [
   { value: "postgres", label: "PostgreSQL (pgvector)" },
   { value: "surrealdb", label: "SurrealDB" },
+  { value: "falkordb", label: "FalkorDB" },
   { value: "none", label: "No graph backend" },
 ];
 
@@ -66,6 +70,7 @@ const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
   surrealdb_pass: "Reset SurrealDB password to default",
   surrealdb_namespace: "Reset SurrealDB namespace to default",
   surrealdb_database: "Reset SurrealDB database to default",
+  falkordb_url: "Reset FalkorDB URL to default",
 };
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -81,12 +86,14 @@ export default function GraphConfigPage() {
     surrealdb_pass: "",
     surrealdb_namespace: "",
     surrealdb_database: "",
+    falkordb_url: "",
   });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
   const [stored, setStored] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [systemManaged, setSystemManaged] = useState<string[]>([]);
   const [showSurrealDbPass, setShowSurrealDbPass] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
 
@@ -124,10 +131,12 @@ export default function GraphConfigPage() {
         surrealdb_pass: val("surrealdb_pass", "") as string,
         surrealdb_namespace: val("surrealdb_namespace", "") as string,
         surrealdb_database: val("surrealdb_database", "") as string,
+        falkordb_url: val("falkordb_url", "") as string,
       };
       setForm(current);
       setInitialForm(current);
       setStored(data.stored ?? {});
+      setSystemManaged(data.system_managed_fields ?? []);
       setDirty(false);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -341,7 +350,7 @@ export default function GraphConfigPage() {
               )}
 
               {/* SurrealDB connection fields — conditionally shown */}
-              {form.graph_backend === "surrealdb" && (
+              {form.graph_backend === "surrealdb" && !systemManaged.includes("surrealdb_url") && (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
@@ -452,6 +461,56 @@ export default function GraphConfigPage() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* SurrealDB system-managed badge */}
+              {form.graph_backend === "surrealdb" && systemManaged.includes("surrealdb_url") && (
+                <div className="rounded-lg border border-surface-700 bg-surface-800/50 px-4 py-3">
+                  <p className="text-sm font-medium text-surface-300">SurrealDB</p>
+                  <p className="text-xs text-surface-500 mt-0.5">
+                    Configured at the system level. Connection details are managed by your administrator.
+                  </p>
+                </div>
+              )}
+
+              {/* FalkorDB connection field — conditionally shown */}
+              {form.graph_backend === "falkordb" && !systemManaged.includes("falkordb_url") && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                      FalkorDB URL
+                    </label>
+                    <div className="flex gap-2 items-start">
+                      <input
+                        className="input-base flex-1"
+                        type="url"
+                        placeholder="redis://falkordb:6379"
+                        value={form.falkordb_url}
+                        onChange={(e) => updateField("falkordb_url", e.target.value)}
+                      />
+                      {isFieldSet("falkordb_url") && (
+                        <Button
+                          onClick={() => handleResetField("falkordb_url")}
+                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                          title={RESET_TITLES.falkordb_url}
+                        >
+                          <X size={14} />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-surface-500 mt-1">Required when using FalkorDB backend and no system-level config exists</p>
+                  </div>
+                </div>
+              )}
+
+              {/* FalkorDB system-managed badge */}
+              {form.graph_backend === "falkordb" && systemManaged.includes("falkordb_url") && (
+                <div className="rounded-lg border border-surface-700 bg-surface-800/50 px-4 py-3">
+                  <p className="text-sm font-medium text-surface-300">FalkorDB</p>
+                  <p className="text-xs text-surface-500 mt-0.5">
+                    Configured at the system level. Connection details are managed by your administrator.
+                  </p>
                 </div>
               )}
             </div>
