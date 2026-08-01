@@ -315,6 +315,7 @@ export interface OffsetPageParams {
 /** Normalise API responses that might use `data`, `items`, or be a bare array. */
 export function extractList<T>(response: unknown): T[] {
   if (Array.isArray(response)) return response as T[];
+  if (!response || typeof response !== "object") return [];
   const obj = response as Record<string, unknown>;
   if (Array.isArray(obj.data)) return obj.data as T[];
   if (Array.isArray(obj.items)) return obj.items as T[];
