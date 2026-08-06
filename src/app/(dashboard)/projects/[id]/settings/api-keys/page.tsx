@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Plus,
   Key,
-  X,
   Copy,
   CheckCircle,
   AlertCircle,
@@ -20,6 +19,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
 
@@ -262,77 +262,73 @@ export default function ProjectApiKeysPage() {
       )}
 
       {/* ── Create Dialog ──────────────────────────────────────────────────────── */}
-      {showCreate && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/50" onClick={closeCreate} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-surface-800 bg-surface-900 p-6 shadow-xl shadow-black/40 animate-slide-up">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-text-primary">
-                {createdKey ? "Key Created" : "Create API Key"}
-              </h3>
-              <button onClick={closeCreate} className="text-surface-400 hover:text-white">
-                <X size={18} />
+      <Dialog
+        open={showCreate}
+        onOpenChange={(open) => {
+          if (!open) closeCreate();
+        }}
+        title={createdKey ? "Key Created" : "Create API Key"}
+        persistent={creating}
+        footer={
+          createdKey ? (
+            <Button variant="primary" size="sm" onClick={closeCreate}>Done</Button>
+          ) : (
+            <>
+              <Button variant="secondary" size="sm" onClick={closeCreate}>Cancel</Button>
+              <Button variant="primary" size="sm" onClick={handleCreate} loading={creating} disabled={!newName.trim()}>
+                Create
+              </Button>
+            </>
+          )
+        }
+      >
+        {!createdKey ? (
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">Key Name</label>
+            <input
+              className="input-base w-full"
+              placeholder="e.g. Production CI"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              autoFocus
+            />
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-surface-400">
+              {createdKey.message}
+            </p>
+            <div className="rounded-lg border border-surface-700 bg-surface-950 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-surface-500 font-medium uppercase tracking-wider">Your API Key</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopy}
+                  className="text-surface-400 hover:text-white"
+                  title="Copy to clipboard"
+                >
+                  {copied ? <CheckCircle size={14} className="text-success" /> : <Copy size={14} />}
+                </Button>
+              </div>
+              <code className="block text-sm font-mono text-accent-300 break-all select-all">
+                {showRawKey ? createdKey.raw_key : createdKey.raw_key.slice(0, 20) + "••••"}
+              </code>
+              <button
+                onClick={() => setShowRawKey(!showRawKey)}
+                className="text-xs text-accent-300 hover:text-accent-200 mt-2"
+              >
+                {showRawKey ? "Hide" : "Show full key"}
               </button>
             </div>
-
-            {!createdKey ? (
-              <>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">Key Name</label>
-                <input
-                  className="input-base"
-                  placeholder="e.g. Production CI"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-                  autoFocus
-                />
-                <div className="flex justify-end gap-3 mt-6">
-                  <Button variant="secondary" size="sm" onClick={closeCreate}>Cancel</Button>
-                  <Button variant="primary" size="sm" onClick={handleCreate} loading={creating} disabled={!newName.trim()}>
-                    Create
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-surface-400 mb-4">
-                  {createdKey.message}
-                </p>
-                <div className="rounded-lg border border-surface-700 bg-surface-950 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-surface-500 font-medium uppercase tracking-wider">Your API Key</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCopy}
-                      className="text-surface-400 hover:text-white"
-                      title="Copy to clipboard"
-                    >
-                      {copied ? <CheckCircle size={14} className="text-success" /> : <Copy size={14} />}
-                    </Button>
-                  </div>
-                  <code className="block text-sm font-mono text-accent-300 break-all select-all">
-                    {showRawKey ? createdKey.raw_key : createdKey.raw_key.slice(0, 20) + "••••"}
-                  </code>
-                  <button
-                    onClick={() => setShowRawKey(!showRawKey)}
-                    className="text-xs text-accent-300 hover:text-accent-200 mt-2"
-                  >
-                    {showRawKey ? "Hide" : "Show full key"}
-                  </button>
-                </div>
-                <p className="text-xs text-warning mt-3 flex items-center gap-1.5">
-                  <AlertCircle size={12} />
-                  This key will not be shown again. Copy it now.
-                </p>
-                <div className="flex justify-end mt-4">
-                  <Button variant="primary" size="sm" onClick={closeCreate}>Done</Button>
-                </div>
-              </>
-            )}
+            <p className="text-xs text-warning flex items-center gap-1.5">
+              <AlertCircle size={12} />
+              This key will not be shown again. Copy it now.
+            </p>
           </div>
-        </>
-      )}
+        )}
+      </Dialog>
 
       {/* ── Revoke Confirm Dialog ──────────────────────────────────────────────── */}
       <ConfirmDialog

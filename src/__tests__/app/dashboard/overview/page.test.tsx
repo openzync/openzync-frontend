@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import OverviewPage from "@/app/(dashboard)/overview/page";
+import { get } from "@/lib/api-client";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────────
 
@@ -166,5 +167,28 @@ describe("OverviewPage", () => {
     expect(
       await screen.findByText("Your organization at a glance"),
     ).toBeInTheDocument();
+  });
+
+  it("renders the quickstart panel for a fresh org with zero messages", async () => {
+    const defaultImpl = vi.mocked(get).getMockImplementation() as (path: string) => Promise<unknown>;
+    vi.mocked(get).mockImplementationOnce((path: string) => {
+      if (path === "/v1/admin/stats/org") {
+        return Promise.resolve({
+          total_users: 0,
+          total_sessions: 0,
+          total_messages: 0,
+          total_api_keys: 0,
+          total_episodes: 0,
+          total_facts: 0,
+        });
+      }
+      return defaultImpl(path);
+    });
+
+    render(<OverviewPage />);
+    expect(await screen.findByText("Get started in 3 steps")).toBeInTheDocument();
+    expect(await screen.findByText("Create your first project")).toBeInTheDocument();
+    expect(await screen.findByText("Ingest a conversation")).toBeInTheDocument();
+    expect(await screen.findByText("Explore the knowledge graph")).toBeInTheDocument();
   });
 });

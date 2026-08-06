@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Plus,
   Webhook,
-  X,
   Copy,
   Trash2,
   CheckCircle,
@@ -21,6 +20,7 @@ import { PageGuide, GuideSettings } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
@@ -164,56 +164,53 @@ function CreateDialog({
   // ── Secret display ─────────────────────────────────────────────────────────
   if (createdEndpoint) {
     return (
-      <>
-        <div className="fixed inset-0 z-50 bg-black/50 animate-fade-in" onClick={onClose} />
-        <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg border border-surface-800 bg-surface-900 p-6 shadow-xl shadow-black/40 animate-slide-up">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-text-primary">Endpoint Created</h2>
-            <button onClick={onClose} className="text-surface-400 hover:text-white p-1">
-              <X size={18} />
+      <Dialog
+        open
+        onOpenChange={(o) => {
+          if (!o) onClose();
+        }}
+        title="Endpoint Created"
+        footer={
+          <Button variant="primary" size="sm" onClick={onClose}>Done</Button>
+        }
+      >
+        <p className="text-sm text-surface-400 mb-4">
+          Copy the signing secret now. You won&apos;t be able to see it again.
+        </p>
+        <div className="text-sm text-surface-300 mb-4 space-y-1">
+          <p><span className="text-surface-500">Name:</span> {createdEndpoint.name}</p>
+          <p className="truncate"><span className="text-surface-500">URL:</span> {createdEndpoint.url}</p>
+        </div>
+        <div className="bg-surface-950 border border-surface-700 font-mono text-sm p-4 rounded relative">
+          <code className="text-accent-300 break-all text-xs">
+            {showSecret ? createdEndpoint.secret : "••••••••••••••••••••••••••••••••••••••••"}
+          </code>
+          <div className="absolute top-2 right-2 flex gap-1">
+            <button
+              onClick={() => setShowSecret((p) => !p)}
+              className="text-surface-400 hover:text-white p-1.5 rounded text-xs"
+              title={showSecret ? "Hide secret" : "Show secret"}
+            >
+              {showSecret ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(createdEndpoint.secret);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                } catch {}
+              }}
+              className={cn("text-xs p-1.5 rounded", copied ? "text-success" : "text-surface-400 hover:text-white")}
+            >
+              {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
             </button>
           </div>
-          <p className="text-sm text-surface-400 mb-4">
-            Copy the signing secret now. You won&apos;t be able to see it again.
-          </p>
-          <div className="text-sm text-surface-300 mb-4 space-y-1">
-            <p><span className="text-surface-500">Name:</span> {createdEndpoint.name}</p>
-            <p className="truncate"><span className="text-surface-500">URL:</span> {createdEndpoint.url}</p>
-          </div>
-          <div className="bg-surface-950 border border-surface-700 font-mono text-sm p-4 rounded relative">
-            <code className="text-accent-300 break-all text-xs">
-              {showSecret ? createdEndpoint.secret : "••••••••••••••••••••••••••••••••••••••••"}
-            </code>
-            <div className="absolute top-2 right-2 flex gap-1">
-              <button
-                onClick={() => setShowSecret((p) => !p)}
-                className="text-surface-400 hover:text-white p-1.5 rounded text-xs"
-                title={showSecret ? "Hide secret" : "Show secret"}
-              >
-                {showSecret ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(createdEndpoint.secret);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  } catch {}
-                }}
-                className={cn("text-xs p-1.5 rounded", copied ? "text-success" : "text-surface-400 hover:text-white")}
-              >
-                {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
-              </button>
-            </div>
-          </div>
-          <p className="text-xs text-surface-500 mt-3">
-            Secret format: <span className="font-mono text-surface-300">whsec_...</span>
-          </p>
-          <div className="flex justify-end mt-4">
-            <Button variant="primary" size="sm" onClick={onClose}>Done</Button>
-          </div>
         </div>
-      </>
+        <p className="text-xs text-surface-500 mt-3">
+          Secret format: <span className="font-mono text-surface-300">whsec_...</span>
+        </p>
+      </Dialog>
     );
   }
 
@@ -221,112 +218,113 @@ function CreateDialog({
   const categories = Object.entries(eventCategories);
 
   return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/50 animate-fade-in" onClick={onClose} />
-      <div
-        className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-lg border border-surface-800 bg-surface-900 p-6 shadow-xl shadow-black/40 animate-slide-up max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-text-primary">Create Webhook Endpoint</h2>
-          <button onClick={onClose} className="text-surface-400 hover:text-white p-1">
-            <X size={18} />
-          </button>
+    <Dialog
+      open
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+      title="Create Webhook Endpoint"
+      size="lg"
+      footer={
+        <>
+          <Button variant="secondary" size="sm" onClick={onClose} disabled={creating}>Cancel</Button>
+          <Button
+            variant="primary"
+            size="sm"
+            type="submit"
+            form="webhook-create-form"
+            loading={creating}
+          >
+            Create Endpoint
+          </Button>
+        </>
+      }
+    >
+      <form id="webhook-create-form" onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-surface-300 mb-1">
+            Endpoint Name <span className="text-error">*</span>
+          </label>
+          <input
+            className="input-base"
+            placeholder="e.g. Production Slack Notifier"
+            value={name}
+            onChange={(e) => { setName(e.target.value); if (error) setError(null); }}
+            autoFocus
+            disabled={creating}
+          />
+          <p className="text-xs text-surface-500 mt-1">A human-readable label for this webhook endpoint.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">
-              Endpoint Name <span className="text-error">*</span>
-            </label>
-            <input
-              className="input-base"
-              placeholder="e.g. Production Slack Notifier"
-              value={name}
-              onChange={(e) => { setName(e.target.value); if (error) setError(null); }}
-              autoFocus
-              disabled={creating}
-            />
-            <p className="text-xs text-surface-500 mt-1">A human-readable label for this webhook endpoint.</p>
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-surface-300 mb-1">
+            Endpoint URL <span className="text-error">*</span>
+          </label>
+          <input
+            className="input-base font-mono text-sm"
+            type="url"
+            placeholder="https://hooks.example.com/webhooks/openzync"
+            value={url}
+            onChange={(e) => { setUrl(e.target.value); if (error) setError(null); }}
+            disabled={creating}
+          />
+          <p className="text-xs text-surface-500 mt-1">HTTPS URL that receives POST requests with webhook payloads.</p>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">
-              Endpoint URL <span className="text-error">*</span>
-            </label>
-            <input
-              className="input-base font-mono text-sm"
-              type="url"
-              placeholder="https://hooks.example.com/webhooks/openzync"
-              value={url}
-              onChange={(e) => { setUrl(e.target.value); if (error) setError(null); }}
-              disabled={creating}
-            />
-            <p className="text-xs text-surface-500 mt-1">HTTPS URL that receives POST requests with webhook payloads.</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-2">Subscribed Events</label>
-            <p className="text-xs text-surface-500 mb-3">
-              All events are selected by default. Uncheck events you don&apos;t want to receive.
-            </p>
-            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-              {categories.map(([category, events]) => {
-                const allSelected = events.every((e) => selectedEvents.has(e.type));
-                return (
-                  <div key={category} className="border border-surface-800 rounded-md p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
+        <div>
+          <label className="block text-sm font-medium text-surface-300 mb-2">Subscribed Events</label>
+          <p className="text-xs text-surface-500 mb-3">
+            All events are selected by default. Uncheck events you don&apos;t want to receive.
+          </p>
+          <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+            {categories.map(([category, events]) => {
+              const allSelected = events.every((e) => selectedEvents.has(e.type));
+              return (
+                <div key={category} className="border border-surface-800 rounded-md p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={() => toggleCategory(category, events)}
+                        className="rounded border-surface-600 bg-surface-800 text-brand-500 focus:ring-brand-500/30"
+                      />
+                      <span className="text-sm font-medium text-surface-200">{category}</span>
+                    </label>
+                    <span className="text-[10px] text-surface-500 font-mono">
+                      {events.filter((e) => selectedEvents.has(e.type)).length}/{events.length}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 ml-5">
+                    {events.map((evt) => (
+                      <label key={evt.type} className="flex items-center gap-2 cursor-pointer py-0.5">
                         <input
                           type="checkbox"
-                          checked={allSelected}
-                          onChange={() => toggleCategory(category, events)}
-                          className="rounded border-surface-600 bg-surface-800 text-brand-500 focus:ring-brand-500/30"
+                          checked={selectedEvents.has(evt.type)}
+                          onChange={() => toggleEvent(evt.type)}
+                          className="rounded border-surface-600 bg-surface-800 text-brand-500 focus:ring-brand-500/30 shrink-0"
                         />
-                        <span className="text-sm font-medium text-surface-200">{category}</span>
+                        <div className="min-w-0">
+                          <span className="text-xs text-surface-300 block truncate">{evt.label}</span>
+                          <span className="text-[10px] text-surface-500 block font-mono truncate">{evt.type}</span>
+                        </div>
                       </label>
-                      <span className="text-[10px] text-surface-500 font-mono">
-                        {events.filter((e) => selectedEvents.has(e.type)).length}/{events.length}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 ml-5">
-                      {events.map((evt) => (
-                        <label key={evt.type} className="flex items-center gap-2 cursor-pointer py-0.5">
-                          <input
-                            type="checkbox"
-                            checked={selectedEvents.has(evt.type)}
-                            onChange={() => toggleEvent(evt.type)}
-                            className="rounded border-surface-600 bg-surface-800 text-brand-500 focus:ring-brand-500/30 shrink-0"
-                          />
-                          <div className="min-w-0">
-                            <span className="text-xs text-surface-300 block truncate">{evt.label}</span>
-                            <span className="text-[10px] text-surface-500 block font-mono truncate">{evt.type}</span>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
+        </div>
 
-          {error && (
-            <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
-              <AlertCircle size={14} />
-              {error}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-2 border-t border-surface-800">
-            <Button variant="secondary" size="sm" onClick={onClose} disabled={creating}>Cancel</Button>
-            <Button variant="primary" size="sm" type="submit" loading={creating}>
-              Create Endpoint
-            </Button>
+        {error && (
+          <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
+            <AlertCircle size={14} />
+            {error}
           </div>
-        </form>
-      </div>
-    </>
+        )}
+      </form>
+    </Dialog>
   );
 }
 

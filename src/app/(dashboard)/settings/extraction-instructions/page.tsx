@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Plus,
   FileText,
-  X,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -16,6 +15,7 @@ import { PageGuide, GuideSettings } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TableSkeleton } from "@/components/shared/skeleton";
 
@@ -219,50 +219,51 @@ export default function ExtractionInstructionsPage() {
       </div>
 
       {/* ── Create / Edit Dialog ───────────────────────────────────────────────── */}
-      {showDialog && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setShowDialog(false)} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg border border-surface-800 bg-surface-900 p-6 shadow-xl shadow-black/40 animate-slide-up">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-text-primary">
-                {editingIndex !== null ? "Edit Instruction" : "Add Instruction"}
-              </h3>
-              <button onClick={() => setShowDialog(false)} className="text-surface-400 hover:text-white">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">Name</label>
-                <input
-                  className="input-base"
-                  placeholder="e.g. financial_data"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">Instruction Text</label>
-                <textarea
-                  className="input-base min-h-[120px] pt-2 text-sm"
-                  placeholder="Describe what to extract and how..."
-                  value={formText}
-                  onChange={(e) => setFormText(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <Button variant="secondary" size="sm" onClick={() => setShowDialog(false)}>Cancel</Button>
-              <Button variant="primary" size="sm" onClick={handleSave} loading={saving} disabled={!formName.trim() || !formText.trim()}>
-                {editingIndex !== null ? "Save Changes" : "Add"}
-              </Button>
-            </div>
+      <Dialog
+        open={showDialog}
+        onOpenChange={(o) => {
+          if (!o) setShowDialog(false);
+        }}
+        title={editingIndex !== null ? "Edit Instruction" : "Add Instruction"}
+        size="lg"
+        persistent={saving}
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setShowDialog(false)}>Cancel</Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSave}
+              loading={saving}
+              disabled={!formName.trim() || !formText.trim()}
+            >
+              {editingIndex !== null ? "Save Changes" : "Add"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">Name</label>
+            <input
+              className="input-base"
+              placeholder="e.g. financial_data"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              autoFocus
+            />
           </div>
-        </>
-      )}
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">Instruction Text</label>
+            <textarea
+              className="input-base min-h-[120px] pt-2 text-sm"
+              placeholder="Describe what to extract and how..."
+              value={formText}
+              onChange={(e) => setFormText(e.target.value)}
+            />
+          </div>
+        </div>
+      </Dialog>
 
       {/* ── Delete Confirm Dialog ──────────────────────────────────────────────── */}
       <ConfirmDialog

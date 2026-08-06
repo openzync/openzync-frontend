@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Users,
   Plus,
-  X,
   Trash2,
   AlertTriangle,
   User as UserIcon,
@@ -21,6 +20,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -280,80 +280,69 @@ export default function ProjectMembersPage() {
         )}
 
         {/* ── Add Member Dialog ──────────────────────────────────────────── */}
-        {showAdd && (
-          <>
-            <div
-              className="fixed inset-0 z-50 bg-black/60"
-              onClick={() => !adding && setShowAdd(false)}
-            />
-            <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 card-base animate-slide-up">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-surface-800">
-                <h2 className="text-base font-semibold text-text-primary">
-                  Add Member
-                </h2>
-                <button
-                  onClick={() => !adding && setShowAdd(false)}
-                  className="text-surface-400 hover:text-surface-200"
-                  disabled={adding}
+        <Dialog
+          open={showAdd}
+          onOpenChange={(open) => {
+            if (!open && !adding) setShowAdd(false);
+          }}
+          title="Add Member"
+          persistent={adding}
+          footer={
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowAdd(false)}
+                disabled={adding}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleAddMember}
+                loading={adding}
+                disabled={!selectedUserId}
+              >
+                Add Member
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                User
+              </label>
+              {usersLoading ? (
+                <div className="h-9 rounded-md bg-surface-800 animate-pulse" />
+              ) : (
+                <select
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  className="input-base appearance-none cursor-pointer w-full"
+                  disabled={adding || users.length === 0}
                 >
-                  <X size={18} />
-                </button>
-              </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    User
-                  </label>
-                  {usersLoading ? (
-                    <div className="h-9 rounded-md bg-surface-800 animate-pulse" />
-                  ) : (
-                    <select
-                      value={selectedUserId}
-                      onChange={(e) => setSelectedUserId(e.target.value)}
-                      className="input-base appearance-none cursor-pointer w-full"
-                      disabled={adding || users.length === 0}
-                    >
-                      <option value="">
-                        {users.length === 0
-                          ? "No users available"
-                          : "Select a user..."}
-                      </option>
-                      {users.map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {getUserLabel(user)}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                {addError && (
-                  <div className="rounded-md border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">
-                    {addError}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-surface-800">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowAdd(false)}
-                  disabled={adding}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleAddMember}
-                  loading={adding}
-                  disabled={!selectedUserId}
-                >
-                  Add Member
-                </Button>
-              </div>
+                  <option value="">
+                    {users.length === 0
+                      ? "No users available"
+                      : "Select a user..."}
+                  </option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {getUserLabel(user)}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
-          </>
-        )}
+            {addError && (
+              <div className="rounded-md border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">
+                {addError}
+              </div>
+            )}
+          </div>
+        </Dialog>
 
         {/* ── Remove Confirm ────────────────────────────────────────────── */}
         <ConfirmDialog

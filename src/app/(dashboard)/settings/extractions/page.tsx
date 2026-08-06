@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Database, Eye, X } from "lucide-react";
+import { Database, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get, ApiError } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
@@ -28,50 +29,50 @@ interface Schema {
 
 function ViewDialog({ schema, onClose }: { schema: Schema; onClose: () => void }) {
   return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/50 animate-fade-in" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-lg border border-surface-800 bg-surface-900 p-6 shadow-xl shadow-black/40 animate-slide-up max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-text-primary">{schema.name}</h2>
-          <button onClick={onClose} className="text-surface-400 hover:text-white p-1"><X size={18} /></button>
+    <Dialog
+      open
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+      title={schema.name}
+      size="lg"
+      footer={
+        <Button variant="primary" size="sm" onClick={onClose}>Close</Button>
+      }
+    >
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <span className="text-xs text-surface-500 block">Type</span>
+          <span className="text-sm text-surface-200 capitalize">{schema.type}</span>
         </div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <span className="text-xs text-surface-500 block">Type</span>
-            <span className="text-sm text-surface-200 capitalize">{schema.type}</span>
-          </div>
-          <div>
-            <span className="text-xs text-surface-500 block">Created</span>
-            <span className="text-sm text-surface-200">{formatDate(schema.created_at)}</span>
-          </div>
-          <div>
-            <span className="text-xs text-surface-500 block">Status</span>
-            <Badge variant={schema.is_active ? "success" : "default"} size="sm">{schema.is_active ? "Active" : "Inactive"}</Badge>
-          </div>
-          <div>
-            <span className="text-xs text-surface-500 block">ID</span>
-            <span className="font-mono text-xs text-surface-400">{schema.id}</span>
-          </div>
+        <div>
+          <span className="text-xs text-surface-500 block">Created</span>
+          <span className="text-sm text-surface-200">{formatDate(schema.created_at)}</span>
         </div>
-        <div className="mb-4">
-          <span className="text-xs font-medium text-surface-400 block mb-1.5">JSON Schema</span>
-          <div className="bg-surface-950 border border-surface-700 font-mono text-xs p-4 rounded overflow-x-auto max-h-64 overflow-y-auto">
-            <pre className="text-surface-200 whitespace-pre">{JSON.stringify(schema.json_schema, null, 2)}</pre>
-          </div>
+        <div>
+          <span className="text-xs text-surface-500 block">Status</span>
+          <Badge variant={schema.is_active ? "success" : "default"} size="sm">{schema.is_active ? "Active" : "Inactive"}</Badge>
         </div>
-        {schema.prompt_template && (
-          <div>
-            <span className="text-xs font-medium text-surface-400 block mb-1.5">Prompt Template</span>
-            <div className="bg-surface-950 border border-surface-700 font-mono text-xs p-4 rounded overflow-x-auto max-h-40 overflow-y-auto">
-              <pre className="text-surface-200 whitespace-pre-wrap">{schema.prompt_template}</pre>
-            </div>
-          </div>
-        )}
-        <div className="flex justify-end mt-4">
-          <Button variant="primary" size="sm" onClick={onClose}>Close</Button>
+        <div>
+          <span className="text-xs text-surface-500 block">ID</span>
+          <span className="font-mono text-xs text-surface-400">{schema.id}</span>
         </div>
       </div>
-    </>
+      <div className="mb-4">
+        <span className="text-xs font-medium text-surface-400 block mb-1.5">JSON Schema</span>
+        <div className="bg-surface-950 border border-surface-700 font-mono text-xs p-4 rounded overflow-x-auto max-h-64 overflow-y-auto">
+          <pre className="text-surface-200 whitespace-pre">{JSON.stringify(schema.json_schema, null, 2)}</pre>
+        </div>
+      </div>
+      {schema.prompt_template && (
+        <div>
+          <span className="text-xs font-medium text-surface-400 block mb-1.5">Prompt Template</span>
+          <div className="bg-surface-950 border border-surface-700 font-mono text-xs p-4 rounded overflow-x-auto max-h-40 overflow-y-auto">
+            <pre className="text-surface-200 whitespace-pre-wrap">{schema.prompt_template}</pre>
+          </div>
+        </div>
+      )}
+    </Dialog>
   );
 }
 

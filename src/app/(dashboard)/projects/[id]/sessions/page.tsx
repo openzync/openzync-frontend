@@ -6,7 +6,6 @@ import {
   Plus,
   Eye,
   Trash2,
-  X,
   AlertTriangle,
   MessageSquare,
 } from "lucide-react";
@@ -19,6 +18,7 @@ import { PageGuide, GuideConversation } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
 
@@ -253,34 +253,32 @@ export default function ProjectSessionsPage() {
       </div>
 
       {/* ── Create Session Dialog ─────────────────────────────────────────────── */}
-      {showCreateDialog && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/60" onClick={() => !creating && setShowCreateDialog(false)} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 card-base animate-slide-up">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-surface-800">
-              <h2 className="text-base font-semibold text-text-primary">Create Session</h2>
-              <button onClick={() => !creating && setShowCreateDialog(false)} className="text-surface-400 hover:text-surface-200" disabled={creating}>
-                <X size={18} />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">External ID <span className="text-error">*</span></label>
-                <input type="text" value={newExternalId} onChange={(e) => setNewExternalId(e.target.value)}
-                  placeholder="e.g., conversation-123" className="input-base" autoFocus disabled={creating} />
-                <p className="text-xs text-surface-500 mt-1">A unique identifier for this session within the project.</p>
-              </div>
-              {createError && (
-                <div className="rounded-md border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">{createError}</div>
-              )}
-            </div>
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-surface-800">
-              <Button variant="secondary" size="sm" onClick={() => setShowCreateDialog(false)} disabled={creating}>Cancel</Button>
-              <Button variant="primary" size="sm" onClick={handleCreateSession} loading={creating} disabled={!newExternalId.trim()}>Create</Button>
-            </div>
+      <Dialog
+        open={showCreateDialog}
+        onOpenChange={(open) => {
+          if (!open && !creating) setShowCreateDialog(false);
+        }}
+        title="Create Session"
+        persistent={creating}
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setShowCreateDialog(false)} disabled={creating}>Cancel</Button>
+            <Button variant="primary" size="sm" onClick={handleCreateSession} loading={creating} disabled={!newExternalId.trim()}>Create</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">External ID <span className="text-error">*</span></label>
+            <input type="text" value={newExternalId} onChange={(e) => setNewExternalId(e.target.value)}
+              placeholder="e.g., conversation-123" className="input-base w-full" autoFocus disabled={creating} />
+            <p className="text-xs text-surface-500 mt-1">A unique identifier for this session within the project.</p>
           </div>
-        </>
-      )}
+          {createError && (
+            <div className="rounded-md border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">{createError}</div>
+          )}
+        </div>
+      </Dialog>
 
       {/* ── Delete Confirm Dialog ─────────────────────────────────────────────── */}
       <ConfirmDialog

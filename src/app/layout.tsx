@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
@@ -53,6 +54,7 @@ export default function RootLayout({
         >
           {children}
         </ThemeProvider>
+        <Toaster theme="dark" />
       </body>
     </html>
   );

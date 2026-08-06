@@ -135,6 +135,41 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Build a human-readable message from an API error body (FastAPI/RFC 7807).
+ * FastAPI 422 `detail` is an array of { loc, msg, type } — flatten it into
+ * `messages.0.content: Field required` style text instead of rendering
+ * `[object Object]`.
+ */
+function apiErrorMessage(body: unknown, status: number): string {
+  if (!body || typeof body !== "object") return `Request failed with status ${status}`;
+  const b = body as Record<string, unknown>;
+  if (typeof b.message === "string") return b.message;
+  if (typeof b.detail === "string") return b.detail;
+  if (Array.isArray(b.detail)) {
+    const parts = b.detail.slice(0, 3).map((item) => {
+      if (!item || typeof item !== "object") return String(item);
+      const e = item as Record<string, unknown>;
+      // Keep numeric array indices so the loc path reads "messages.0.content",
+      // not the lossy "messages.content".
+      const loc = Array.isArray(e.loc)
+        ? e.loc
+            .filter(
+              (p): p is string | number =>
+                typeof p === "string" || typeof p === "number",
+            )
+            .slice(1)
+            .join(".")
+        : "";
+      const msg = typeof e.msg === "string" ? e.msg : "";
+      return loc ? `${loc}: ${msg}` : msg;
+    }).filter(Boolean);
+    if (parts.length) return parts.join("; ");
+  }
+  if (typeof b.title === "string") return b.title;
+  return `Request failed with status ${status}`;
+}
+
 // ─── Core request helper ──────────────────────────────────────────────────────
 
 async function request<T>(
@@ -191,11 +226,7 @@ async function request<T>(
   }
 
   if (!res.ok) {
-    const message =
-      (body as { message?: string })?.message ??
-      (body as { detail?: string })?.detail ??
-      `Request failed with status ${res.status}`;
-    throw new ApiError(message, res.status, body);
+    throw new ApiError(apiErrorMessage(body, res.status), res.status, body);
   }
 
   return body as T;
@@ -264,8 +295,8 @@ async function uploadWithBlobs<T>(
 
   const url = `${API_BASE}${path}`;
   const headers = getAuthHeaders();
-
   // No Content-Type header — let the browser set the multipart boundary.
+  delete headers["Content-Type"];
   let res = await fetch(url, {
     method: "POST",
     headers,
@@ -293,9 +324,7 @@ async function uploadWithBlobs<T>(
   if (res.status === 204) return {} as T;
   const body = await res.json().catch(() => null);
   if (!res.ok) {
-    const message =
-      body?.detail ?? body?.title ?? `Request failed with status ${res.status}`;
-    throw new ApiError(message, res.status, body);
+    throw new ApiError(apiErrorMessage(body, res.status), res.status, body);
   }
   return body as T;
 }

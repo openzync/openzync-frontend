@@ -11,6 +11,7 @@ import {
   getAccessToken,
   clearTokens,
   API_BASE,
+  uploadWithBlobs,
 } from "@/lib/api-client";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────────
@@ -283,6 +284,60 @@ describe("request error handling", () => {
   });
 });
 
+// ─── apiErrorMessage (via request helpers) ─────────────────────────────────────
+
+describe("apiErrorMessage via request helpers", () => {
+  it("flattens a FastAPI 422 validation array into a readable field message", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          detail: [
+            {
+              loc: ["body", "messages", 0, "content"],
+              msg: "Field required",
+              type: "missing",
+            },
+          ],
+        }),
+        {
+          status: 422,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+    const promise = post("/v1/projects/p/memory", { messages: [] });
+    await expect(promise).rejects.toThrow(ApiError);
+    await expect(promise).rejects.toThrow("messages.0.content: Field required");
+  });
+
+  it("uses string detail as message", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ detail: "boom" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    await expect(get("/v1/test")).rejects.toThrow("boom");
+  });
+
+  it("uses RFC 7807 title as message", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ title: "Rate limited" }), {
+        status: 429,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    await expect(get("/v1/test")).rejects.toThrow("Rate limited");
+  });
+
+  it("falls back to status text for non-JSON error bodies", async () => {
+    mockFetch.mockResolvedValueOnce(new Response("bad gateway", { status: 502 }));
+    await expect(get("/v1/test")).rejects.toThrow(
+      "Request failed with status 502",
+    );
+  });
+});
+
 // ─── 401 token refresh ──────────────────────────────────────────────────────────
 
 describe("401 token refresh", () => {
@@ -374,6 +429,90 @@ describe("401 token refresh", () => {
     await expect(get("/v1/test")).rejects.toThrow(ApiError);
     // Should only have made 2 requests (original + refresh), not infinite
     expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ─── uploadWithBlobs ──────────────────────────────────────────────────────────────
+
+describe("uploadWithBlobs", () => {
+  const payload = { messages: [{ role: "user", content: "hi" }] };
+
+  it("sends multipart FormData without a Content-Type header", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const result = await uploadWithBlobs<{ ok: boolean }>(
+      "/v1/x/memory",
+      payload,
+      [],
+    );
+    expect(result).toEqual({ ok: true });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    const [url, opts] = mockFetch.mock.calls[0];
+    expect(url).toBe(`${API_BASE}/v1/x/memory`);
+    expect(opts.method).toBe("POST");
+
+    // No content-type header (case-insensitive) — the browser must set the
+    // multipart/form-data boundary, otherwise FastAPI refuses the form (422).
+    const headerNames = Object.keys(opts.headers).map((h) => h.toLowerCase());
+    expect(headerNames).not.toContain("content-type");
+
+    expect(opts.body).toBeInstanceOf(FormData);
+    expect((opts.body as FormData).get("data")).toBe(JSON.stringify(payload));
+  });
+
+  it("appends each file as a separate blob entry", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    const file = new File(["bytes"], "doc.pdf", { type: "application/pdf" });
+
+    await uploadWithBlobs("/v1/x/memory", payload, [file]);
+
+    const body = mockFetch.mock.calls[0][1].body as FormData;
+    const blobs = body.getAll("blobs");
+    expect(blobs).toHaveLength(1);
+    expect(blobs[0]).toBe(file);
+  });
+
+  it("keeps Authorization but omits Content-Type on 401 refresh retry", async () => {
+    sessionStorage.setItem("mg_access_token", "expired-token");
+    sessionStorage.setItem("mg_refresh_token", "valid-refresh");
+    mockFetch
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ access_token: "new-access", refresh_token: "new-refresh" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    const result = await uploadWithBlobs<{ ok: boolean }>(
+      "/v1/x/memory",
+      payload,
+      [],
+    );
+    expect(result).toEqual({ ok: true });
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+
+    const retryHeaders = mockFetch.mock.calls[2][1].headers;
+    expect(retryHeaders["Authorization"]).toBe("Bearer new-access");
+    const retryHeaderNames = Object.keys(retryHeaders).map((h) => h.toLowerCase());
+    expect(retryHeaderNames).not.toContain("content-type");
   });
 });
 

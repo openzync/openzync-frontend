@@ -5,7 +5,6 @@ import {
   Plus,
   Eye,
   Trash2,
-  X,
   FileJson,
   AlertCircle,
 } from "lucide-react";
@@ -18,6 +17,7 @@ import { PageGuide, GuideData } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
@@ -245,139 +245,135 @@ export default function SchemasPage() {
       </div>
 
       {/* ── Create Dialog ──────────────────────────────────────────────────────── */}
-      {showCreate && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/50" onClick={() => { setShowCreate(false); resetCreateForm(); }} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg border border-surface-800 bg-surface-900 p-6 shadow-xl shadow-black/40 animate-slide-up max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-text-primary">Create Schema</h3>
-              <button onClick={() => { setShowCreate(false); resetCreateForm(); }} className="text-surface-400 hover:text-white">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">Name</label>
-                <input
-                  className="input-base"
-                  placeholder="e.g. invoice_data"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  autoFocus
-                />
-              </div>
-
-              {/* Type */}
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">Type</label>
-                <select
-                  className="input-base"
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value as "structured" | "classification")}
-                >
-                  <option value="structured">Structured</option>
-                  <option value="classification">Classification</option>
-                </select>
-              </div>
-
-              {/* JSON Schema */}
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">JSON Schema</label>
-                <textarea
-                  className="input-base min-h-[120px] pt-2 font-mono text-xs"
-                  placeholder='{"type": "object", "properties": {...}}'
-                  value={newSchema}
-                  onChange={(e) => setNewSchema(e.target.value)}
-                />
-                {schemaError && (
-                  <p className="text-xs text-error mt-1 flex items-center gap-1">
-                    <AlertCircle size={10} />
-                    {schemaError}
-                  </p>
-                )}
-              </div>
-
-              {/* Prompt Template (optional) */}
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Prompt Template <span className="text-surface-500 font-normal">(optional)</span>
-                </label>
-                <textarea
-                  className="input-base min-h-[80px] pt-2 font-mono text-xs"
-                  placeholder="Extract the following fields from the text..."
-                  value={newPrompt}
-                  onChange={(e) => setNewPrompt(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <Button variant="secondary" size="sm" onClick={() => { setShowCreate(false); resetCreateForm(); }}>Cancel</Button>
-              <Button variant="primary" size="sm" onClick={handleCreate} loading={creating} disabled={!newName.trim()}>
-                Create
-              </Button>
-            </div>
+      <Dialog
+        open={showCreate}
+        onOpenChange={(o) => {
+          if (!o) {
+            setShowCreate(false);
+            resetCreateForm();
+          }
+        }}
+        title="Create Schema"
+        size="lg"
+        persistent={creating}
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => { setShowCreate(false); resetCreateForm(); }}>
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" onClick={handleCreate} loading={creating} disabled={!newName.trim()}>
+              Create
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">Name</label>
+            <input
+              className="input-base"
+              placeholder="e.g. invoice_data"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              autoFocus
+            />
           </div>
-        </>
-      )}
+
+          {/* Type */}
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">Type</label>
+            <select
+              className="input-base"
+              value={newType}
+              onChange={(e) => setNewType(e.target.value as "structured" | "classification")}
+            >
+              <option value="structured">Structured</option>
+              <option value="classification">Classification</option>
+            </select>
+          </div>
+
+          {/* JSON Schema */}
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">JSON Schema</label>
+            <textarea
+              className="input-base min-h-[120px] pt-2 font-mono text-xs"
+              placeholder='{"type": "object", "properties": {...}}'
+              value={newSchema}
+              onChange={(e) => setNewSchema(e.target.value)}
+            />
+            {schemaError && (
+              <p className="text-xs text-error mt-1 flex items-center gap-1">
+                <AlertCircle size={10} />
+                {schemaError}
+              </p>
+            )}
+          </div>
+
+          {/* Prompt Template (optional) */}
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">
+              Prompt Template <span className="text-surface-500 font-normal">(optional)</span>
+            </label>
+            <textarea
+              className="input-base min-h-[80px] pt-2 font-mono text-xs"
+              placeholder="Extract the following fields from the text..."
+              value={newPrompt}
+              onChange={(e) => setNewPrompt(e.target.value)}
+            />
+          </div>
+        </div>
+      </Dialog>
 
       {/* ── View Dialog ────────────────────────────────────────────────────────── */}
-      {viewTarget && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setViewTarget(null)} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg border border-surface-800 bg-surface-900 p-6 shadow-xl shadow-black/40 animate-slide-up max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-text-primary">{viewTarget.name}</h3>
-              <button onClick={() => setViewTarget(null)} className="text-surface-400 hover:text-white">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-surface-400">Type</span>
-                <Badge variant={viewTarget.type === "classification" ? "info" : "brand"} size="sm">{viewTarget.type}</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-surface-400">Status</span>
-                <Badge variant={viewTarget.is_active ? "success" : "default"} size="sm">
-                  {viewTarget.is_active ? "Active" : "Inactive"}
-                </Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-surface-400">Created</span>
-                <span className="text-surface-200">{formatDate(viewTarget.created_at)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-surface-400">ID</span>
-                <code className="text-xs text-surface-400 font-mono">{viewTarget.id.slice(0, 12)}...</code>
-              </div>
-
-              <div>
-                <span className="text-surface-400 block mb-1">JSON Schema</span>
-                <pre className="bg-surface-950 rounded-lg p-3 text-xs font-mono text-surface-300 overflow-x-auto max-h-40">
-                  {JSON.stringify(viewTarget.json_schema, null, 2)}
-                </pre>
-              </div>
-
-              {viewTarget.prompt_template && (
-                <div>
-                  <span className="text-surface-400 block mb-1">Prompt Template</span>
-                  <pre className="bg-surface-950 rounded-lg p-3 text-xs font-mono text-surface-300 overflow-x-auto max-h-32 whitespace-pre-wrap">
-                    {viewTarget.prompt_template}
-                  </pre>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end mt-6">
-              <Button variant="secondary" size="sm" onClick={() => setViewTarget(null)}>Close</Button>
-            </div>
+      <Dialog
+        open={!!viewTarget}
+        onOpenChange={(o) => {
+          if (!o) setViewTarget(null);
+        }}
+        title={viewTarget?.name ?? ""}
+        size="lg"
+        footer={
+          <Button variant="secondary" size="sm" onClick={() => setViewTarget(null)}>Close</Button>
+        }
+      >
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-surface-400">Type</span>
+            <Badge variant={viewTarget?.type === "classification" ? "info" : "brand"} size="sm">{viewTarget?.type}</Badge>
           </div>
-        </>
-      )}
+          <div className="flex justify-between">
+            <span className="text-surface-400">Status</span>
+            <Badge variant={viewTarget?.is_active ? "success" : "default"} size="sm">
+              {viewTarget?.is_active ? "Active" : "Inactive"}
+            </Badge>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-surface-400">Created</span>
+            <span className="text-surface-200">{viewTarget ? formatDate(viewTarget.created_at) : ""}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-surface-400">ID</span>
+            <code className="text-xs text-surface-400 font-mono">{viewTarget?.id.slice(0, 12)}...</code>
+          </div>
+
+          <div>
+            <span className="text-surface-400 block mb-1">JSON Schema</span>
+            <pre className="bg-surface-950 rounded-lg p-3 text-xs font-mono text-surface-300 overflow-x-auto max-h-40">
+              {viewTarget ? JSON.stringify(viewTarget.json_schema, null, 2) : ""}
+            </pre>
+          </div>
+
+          {viewTarget?.prompt_template && (
+            <div>
+              <span className="text-surface-400 block mb-1">Prompt Template</span>
+              <pre className="bg-surface-950 rounded-lg p-3 text-xs font-mono text-surface-300 overflow-x-auto max-h-32 whitespace-pre-wrap">
+                {viewTarget.prompt_template}
+              </pre>
+            </div>
+          )}
+        </div>
+      </Dialog>
 
       {/* ── Delete Confirm Dialog ──────────────────────────────────────────────── */}
       <ConfirmDialog

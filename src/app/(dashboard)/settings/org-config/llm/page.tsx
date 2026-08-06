@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { Brain, RotateCcw, Eye, EyeOff } from "lucide-react";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import { Brain, Eye, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { get, patch, ApiError } from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
+import { SecretInput } from "@/components/ui/secret-input";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
 import { useConfigReset } from "@/hooks/use-config-reset";
@@ -18,7 +19,10 @@ interface OrgConfigResponse {
 
 type LlmBackend = "openai" | "anthropic" | "ollama" | "openai_like" | "openrouter" | "azure";
 
-interface FormState {
+// `type` (not `interface`) so the form gets an implicit index signature and is
+// assignable to the `Record<string, unknown>` the reset hook expects — this is
+// what removes the old `as unknown as` casts.
+type FormState = {
   llm_backend: LlmBackend;
   llm_model: string;
   llm_temperature: number;
@@ -29,11 +33,29 @@ interface FormState {
   ollama_base_url: string;
   azure_openai_endpoint: string;
   azure_openai_key: string;
+};
+
+/** One provider-specific field (api key, endpoint, base url, …). */
+interface ProviderField {
+  /** Must match a backend `UpdateOrgConfigRequest` field name exactly. */
+  field: keyof FormState;
+  label: string;
+  placeholder: string;
+  kind: "secret" | "url";
+}
+
+interface ProviderConfig {
+  /** Matches the backend `llm_backend` enum. */
+  id: LlmBackend;
+  label: string;
+  title: string;
+  description: string;
+  fields: readonly ProviderField[];
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const LLM_FIELDS: (keyof FormState)[] = [
+const LLM_FIELDS: readonly (keyof FormState)[] = [
   "llm_backend",
   "llm_model",
   "llm_temperature",
@@ -46,23 +68,65 @@ const LLM_FIELDS: (keyof FormState)[] = [
   "azure_openai_key",
 ];
 
-const BACKEND_OPTIONS: { value: LlmBackend; label: string }[] = [
-  { value: "openai", label: "OpenAI" },
-  { value: "anthropic", label: "Anthropic" },
-  { value: "openrouter", label: "OpenRouter" },
-  { value: "azure", label: "Azure OpenAI" },
-  { value: "ollama", label: "Ollama" },
-  { value: "openai_like", label: "OpenAI-compatible" },
+/**
+ * Single source of truth for provider selection (order = select order) and the
+ * provider settings card. Secret fields render through `SecretInput`.
+ */
+const PROVIDERS: readonly ProviderConfig[] = [
+  {
+    id: "openai",
+    label: "OpenAI",
+    title: "OpenAI Settings",
+    description: "API key for OpenAI models",
+    fields: [
+      { field: "openai_api_key", label: "OpenAI API Key", placeholder: "sk-...", kind: "secret" },
+    ],
+  },
+  {
+    id: "anthropic",
+    label: "Anthropic",
+    title: "Anthropic Settings",
+    description: "API key for Anthropic models",
+    fields: [
+      { field: "anthropic_api_key", label: "Anthropic API Key", placeholder: "sk-ant-...", kind: "secret" },
+    ],
+  },
+  {
+    id: "openrouter",
+    label: "OpenRouter",
+    title: "OpenRouter Settings",
+    description: "API key for OpenRouter",
+    fields: [
+      { field: "openrouter_api_key", label: "OpenRouter API Key", placeholder: "sk-or-...", kind: "secret" },
+    ],
+  },
+  {
+    id: "azure",
+    label: "Azure OpenAI",
+    title: "Azure OpenAI Settings",
+    description: "Azure OpenAI endpoint and credentials",
+    fields: [
+      { field: "azure_openai_endpoint", label: "Endpoint URL", placeholder: "https://my-resource.openai.azure.com", kind: "url" },
+      { field: "azure_openai_key", label: "API Key", placeholder: "Azure API key", kind: "secret" },
+    ],
+  },
+  {
+    id: "ollama",
+    label: "Ollama",
+    title: "Ollama Settings",
+    description: "Local LLM provider configuration",
+    fields: [
+      { field: "ollama_base_url", label: "Base URL", placeholder: "http://localhost:11434", kind: "url" },
+    ],
+  },
+  {
+    id: "openai_like",
+    label: "OpenAI-compatible",
+    title: "Provider Settings",
+    description: "No additional provider-specific configuration needed",
+    fields: [],
+  },
 ];
-
-const PROVIDER_META: Record<string, { title: string; subtitle: string }> = {
-  openai: { title: "OpenAI Settings", subtitle: "API key for OpenAI models" },
-  anthropic: { title: "Anthropic Settings", subtitle: "API key for Anthropic models" },
-  openrouter: { title: "OpenRouter Settings", subtitle: "API key for OpenRouter" },
-  ollama: { title: "Ollama Settings", subtitle: "Local LLM provider configuration" },
-  azure: { title: "Azure OpenAI Settings", subtitle: "Azure OpenAI endpoint and credentials" },
-  openai_like: { title: "Provider Settings", subtitle: "No additional provider-specific configuration needed" },
-};
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -85,8 +149,23 @@ export default function LlmConfigPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
+  const [visibleFields, setVisibleFields] = useState<Partial<Record<keyof FormState, boolean>>>({});
 
   const { setDirty } = useConfigDirty();
+
+  // The reset hook writes into a `Record<string, unknown>` form, but this page
+  // keeps a fully typed `FormState`. The hook only ever touches keys listed in
+  // `LLM_FIELDS` (all `FormState` keys), so a single bounded cast at this
+  // boundary is sound — it replaces the old triple `as unknown as` bridge.
+  const setFormForReset = useCallback(
+    (action: React.SetStateAction<Record<string, unknown>>) => {
+      setForm((prev) => {
+        const next = typeof action === "function" ? action(prev) : action;
+        return next as FormState;
+      });
+    },
+    [setForm],
+  );
 
   const {
     pendingResets,
@@ -94,17 +173,7 @@ export default function LlmConfigPage() {
     hasPendingResets,
     getSavePayload,
     clearResets,
-  } = useConfigReset(
-    LLM_FIELDS as unknown as readonly string[],
-    initialForm as unknown as Record<string, unknown>,
-    setForm as unknown as React.Dispatch<React.SetStateAction<Record<string, unknown>>>,
-  );
-
-  // Password visibility toggles
-  const [showOpenAiKey, setShowOpenAiKey] = useState(false);
-  const [showAnthropicKey, setShowAnthropicKey] = useState(false);
-  const [showOpenRouterKey, setShowOpenRouterKey] = useState(false);
-  const [showAzureKey, setShowAzureKey] = useState(false);
+  } = useConfigReset(LLM_FIELDS, initialForm, setFormForReset);
 
   // ── beforeunload protection ──────────────────────────────────────────────
 
@@ -181,7 +250,7 @@ export default function LlmConfigPage() {
 
   // ── Field helpers ─────────────────────────────────────────────────────────
 
-  function isFieldSet(field: string): boolean {
+  function isFieldSet(field: keyof FormState): boolean {
     return field in stored;
   }
 
@@ -196,18 +265,21 @@ export default function LlmConfigPage() {
     setDirty(dirty);
   }
 
+  function toggleFieldVisibility(field: keyof FormState) {
+    setVisibleFields((prev) => ({ ...prev, [field]: !prev[field] }));
+  }
+
   // ── Stage reset field (applied on save) ────────────────────────────────────
 
   function handleStageReset(field: keyof FormState) {
-    const defaultVal = typeof initialForm[field] === "number" ? (0 as FormState[keyof FormState]) : ("" as FormState[keyof FormState]);
-    stageReset(field as string, defaultVal);
+    stageReset(field, typeof initialForm[field] === "number" ? 0 : "");
     setDirty(true);
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
 
   async function handleSave() {
-    const payload = getSavePayload(form as unknown as Record<string, unknown>);
+    const payload = getSavePayload(form);
     if (Object.keys(payload).length === 0) return;
     setSaving(true);
     setError(null);
@@ -239,7 +311,10 @@ export default function LlmConfigPage() {
 
   // ── Provider meta ──────────────────────────────────────────────────────────
 
-  const provider = PROVIDER_META[form.llm_backend] ?? PROVIDER_META.openai_like;
+  // openai_like (last entry) is the no-fields fallback provider
+  const provider =
+    PROVIDERS.find((p) => p.id === form.llm_backend) ??
+    PROVIDERS[PROVIDERS.length - 1];
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -279,8 +354,8 @@ export default function LlmConfigPage() {
                     value={form.llm_backend}
                     onChange={(e) => updateField("llm_backend", e.target.value as LlmBackend)}
                   >
-                    {BACKEND_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    {PROVIDERS.map((p) => (
+                      <option key={p.id} value={p.id}>{p.label}</option>
                     ))}
                   </select>
                   {isFieldSet("llm_backend") && (
@@ -396,225 +471,58 @@ export default function LlmConfigPage() {
             </div>
             <div>
               <h2 className="text-base font-semibold">{provider.title}</h2>
-              <p className="text-xs text-surface-400">{provider.subtitle}</p>
+              <p className="text-xs text-surface-400">{provider.description}</p>
             </div>
           </div>
 
           <div className="space-y-4 max-w-md">
-            {/* openai_api_key — only when backend is OpenAI */}
-            {form.llm_backend === "openai" && (
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
-                  OpenAI API Key
-                </label>
-                <div className="flex gap-2 items-start">
-                  <div className="relative flex-1">
-                    <input
-                      className="input-base pr-10 w-full"
-                      type={showOpenAiKey ? "text" : "password"}
-                      placeholder="sk-..."
-                      value={form.openai_api_key}
-                      onChange={(e) => updateField("openai_api_key", e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowOpenAiKey((prev) => !prev)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300"
-                    >
-                      {showOpenAiKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  {isFieldSet("openai_api_key") && (
-                    <Button
-                      onClick={() => handleStageReset("openai_api_key")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Remove stored value — default will apply on save"
-                    >
-                      <RotateCcw size={14} />
-                    </Button>
-                  )}
-                </div>
-                {pendingResets.has("openai_api_key") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                )}
-              </div>
-            )}
-
-            {/* anthropic_api_key — only when backend is Anthropic */}
-            {form.llm_backend === "anthropic" && (
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Anthropic API Key
-                </label>
-                <div className="flex gap-2 items-start">
-                  <div className="relative flex-1">
-                    <input
-                      className="input-base pr-10 w-full"
-                      type={showAnthropicKey ? "text" : "password"}
-                      placeholder="sk-ant-..."
-                      value={form.anthropic_api_key}
-                      onChange={(e) => updateField("anthropic_api_key", e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowAnthropicKey((prev) => !prev)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300"
-                    >
-                      {showAnthropicKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  {isFieldSet("anthropic_api_key") && (
-                    <Button
-                      onClick={() => handleStageReset("anthropic_api_key")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Remove stored value — default will apply on save"
-                    >
-                      <RotateCcw size={14} />
-                    </Button>
-                  )}
-                </div>
-                {pendingResets.has("anthropic_api_key") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                )}
-              </div>
-            )}
-
-            {/* openrouter_api_key — only when backend is OpenRouter */}
-            {form.llm_backend === "openrouter" && (
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
-                  OpenRouter API Key
-                </label>
-                <div className="flex gap-2 items-start">
-                  <div className="relative flex-1">
-                    <input
-                      className="input-base pr-10 w-full"
-                      type={showOpenRouterKey ? "text" : "password"}
-                      placeholder="sk-or-..."
-                      value={form.openrouter_api_key}
-                      onChange={(e) => updateField("openrouter_api_key", e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowOpenRouterKey((prev) => !prev)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300"
-                    >
-                      {showOpenRouterKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  {isFieldSet("openrouter_api_key") && (
-                    <Button
-                      onClick={() => handleStageReset("openrouter_api_key")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Remove stored value — default will apply on save"
-                    >
-                      <RotateCcw size={14} />
-                    </Button>
-                  )}
-                </div>
-                {pendingResets.has("openrouter_api_key") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                )}
-              </div>
-            )}
-
-            {/* ollama_base_url — only when backend is Ollama */}
-            {form.llm_backend === "ollama" && (
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Base URL
-                </label>
-                <div className="flex gap-2 items-start">
-                  <input
-                    className="input-base flex-1"
-                    type="url"
-                    placeholder="http://localhost:11434"
-                    value={form.ollama_base_url}
-                    onChange={(e) => updateField("ollama_base_url", e.target.value)}
-                  />
-                  {isFieldSet("ollama_base_url") && (
-                    <Button
-                      onClick={() => handleStageReset("ollama_base_url")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Remove stored value — default will apply on save"
-                    >
-                      <RotateCcw size={14} />
-                    </Button>
-                  )}
-                </div>
-                {pendingResets.has("ollama_base_url") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                )}
-              </div>
-            )}
-
-            {/* azure_openai_endpoint + azure_openai_key — only when backend is Azure */}
-            {form.llm_backend === "azure" && (
-              <>
-                <div>
+            {provider.fields.map((f) => (
+              <Fragment key={f.field}>
+                {/* url fields keep the label above the input row, as before */}
+                {f.kind === "url" && (
                   <label className="block text-sm font-medium text-surface-300 mb-1">
-                    Endpoint URL
+                    {f.label}
                   </label>
-                  <div className="flex gap-2 items-start">
+                )}
+                <div className="flex gap-2 items-start">
+                  {f.kind === "secret" ? (
+                    <div className="flex-1">
+                      <SecretInput
+                        label={f.label}
+                        value={String(form[f.field] ?? "")}
+                        onChange={(v) => updateField(f.field, v)}
+                        placeholder={f.placeholder}
+                        visible={Boolean(visibleFields[f.field])}
+                        onToggleVisibility={() => toggleFieldVisibility(f.field)}
+                      />
+                    </div>
+                  ) : (
                     <input
                       className="input-base flex-1"
                       type="url"
-                      placeholder="https://my-resource.openai.azure.com"
-                      value={form.azure_openai_endpoint}
-                      onChange={(e) => updateField("azure_openai_endpoint", e.target.value)}
+                      placeholder={f.placeholder}
+                      value={String(form[f.field] ?? "")}
+                      onChange={(e) => updateField(f.field, e.target.value)}
                     />
-                  {isFieldSet("azure_openai_endpoint") && (
+                  )}
+                  {isFieldSet(f.field) && (
                     <Button
-                      onClick={() => handleStageReset("azure_openai_endpoint")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                      onClick={() => handleStageReset(f.field)}
+                      variant="ghost" size="sm"
+                      // secret fields: SecretInput renders its own label above the
+                      // input, so push the reset button down to the input row
+                      className={`rounded-md text-surface-400 hover:text-brand-300 shrink-0 ${f.kind === "secret" ? "mt-7" : "mt-0.5"}`}
                       title="Remove stored value — default will apply on save"
                     >
                       <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
-                {pendingResets.has("azure_openai_endpoint") && (
+                {pendingResets.has(f.field) && (
                   <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
                 )}
-              </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1">
-                    API Key
-                  </label>
-                  <div className="flex gap-2 items-start">
-                    <div className="relative flex-1">
-                      <input
-                        className="input-base pr-10 w-full"
-                        type={showAzureKey ? "text" : "password"}
-                        placeholder="Azure API key"
-                        value={form.azure_openai_key}
-                        onChange={(e) => updateField("azure_openai_key", e.target.value)}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowAzureKey((prev) => !prev)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300"
-                      >
-                        {showAzureKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  {isFieldSet("azure_openai_key") && (
-                    <Button
-                      onClick={() => handleStageReset("azure_openai_key")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Remove stored value — default will apply on save"
-                    >
-                      <RotateCcw size={14} />
-                    </Button>
-                  )}
-                </div>
-                {pendingResets.has("azure_openai_key") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                )}
-              </div>
-                </>
-              )}
+              </Fragment>
+            ))}
           </div>
         </div>
       )}

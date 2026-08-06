@@ -14,6 +14,8 @@ import {
   Database,
   TrendingUp,
   FileText,
+  Upload,
+  Network,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -85,6 +87,15 @@ const STAT_CARDS = [
   { label: "Episodes", key: "total_episodes" as const, icon: FileText, color: "text-accent-400" },
   { label: "API Keys", key: "total_api_keys" as const, icon: Key, color: "text-surface-300" },
 ];
+
+// Fresh-org quickstart — all destinations point at /projects (this page does not
+// fetch project data, so there is no first-project link available without adding
+// an API call).
+const QUICKSTART_STEPS = [
+  { title: "Create a project", description: "Organize your knowledge base and conversations.", href: "/projects", icon: FolderKanban },
+  { title: "Ingest a conversation", description: "Import a chat log to embed entities and facts.", href: "/projects", icon: Upload },
+  { title: "Explore the knowledge graph", description: "Watch connections light up as the graph grows.", href: "/projects", icon: Network },
+] as const;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -305,6 +316,49 @@ export default function OverviewPage() {
       <PageGuide title="Your organization at a glance" illustration={<GuideDashboard />}>
         <p>Monitor your organization&rsquo;s key metrics — messages, sessions, facts, users, episodes, and API keys. View recent activity and track daily usage trends with the interactive chart.</p>
       </PageGuide>
+
+      {/* Quickstart — only for a brand-new org (no messages yet) */}
+      {!loading && stats && stats.total_messages === 0 && (
+        <div className="card-base p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold">Get started in 3 steps</h2>
+              <p className="text-xs text-surface-300 mt-1">
+                Your workspace is ready — create a project, ingest a conversation, and watch the knowledge graph light up.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => router.push("/projects")}
+              className="shrink-0 self-start sm:self-auto"
+            >
+              Create your first project
+            </Button>
+          </div>
+          <ol className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+            {QUICKSTART_STEPS.map((s) => (
+              <li key={s.title}>
+                <button
+                  type="button"
+                  onClick={() => router.push(s.href)}
+                  className="group flex w-full items-start gap-3 rounded-md border border-surface-800 bg-surface-950/50 p-3 text-left transition-colors hover:border-brand-500/50 hover:bg-surface-900"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-500/10 text-brand-300">
+                    <s.icon size={14} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-surface-100 group-hover:text-white">
+                      {s.title}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-surface-300">{s.description}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       {/* Stat cards — all 6 in a single row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">

@@ -11,8 +11,9 @@ import {
   FileWarning,
 } from "lucide-react";
 import { cn, formatFileSize } from "@/lib/utils";
-import { get, post, uploadWithBlobs } from "@/lib/api-client";
+import { get, uploadWithBlobs } from "@/lib/api-client";
 import { BlobCard, type BlobCardData } from "@/components/shared/blob-card";
+import { EnrichmentStatus } from "@/components/shared/enrichment-status";
 import { useProject } from "@/stores/project-context";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageGuide, GuideMemory } from "@/components/guides";
@@ -74,6 +75,8 @@ function IngestTab({ projectId }: { projectId: string }) {
   const [result, setResult] = useState<IngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // TODO(me): surface per-episode enrichment bitmask once API exposes it —
+  // SessionListResponse has no per-episode enrichment field today.
   useEffect(() => {
     if (!projectId) return;
     setSessionsLoading(true);
@@ -99,16 +102,13 @@ function IngestTab({ projectId }: { projectId: string }) {
       const body: Record<string, unknown> = { messages };
       if (sessionId.trim()) body.session_id = sessionId.trim();
 
-      const data = selectedFiles.length > 0
-        ? await uploadWithBlobs<IngestResponse>(
-            `/v1/projects/${projectId}/memory`,
-            body,
-            selectedFiles,
-          )
-        : await post<IngestResponse>(
-            `/v1/projects/${projectId}/memory`,
-            body,
-          );
+      // Endpoint only accepts multipart/form-data (even for text-only calls) —
+      // uploadWithBlobs appends `data` = JSON.stringify(payload) + blobs.
+      const data = await uploadWithBlobs<IngestResponse>(
+        `/v1/projects/${projectId}/memory`,
+        body,
+        selectedFiles,
+      );
 
       setResult(data);
       setSelectedFiles([]);
@@ -225,12 +225,12 @@ function IngestTab({ projectId }: { projectId: string }) {
       {result && (
         <div className="space-y-3 rounded-md bg-brand-500/5 border border-brand-500/20 p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-brand-300"><CheckCircle2 size={16} />Ingest Successful</div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {result.job_id && <div><div className="text-xs text-surface-500">Job ID</div><div className="text-sm font-mono text-surface-200 truncate" title={result.job_id}>{result.job_id}</div></div>}
-            {result.episode_count !== undefined && <div><div className="text-xs text-surface-500">Episodes</div><div className="text-sm font-semibold text-surface-200">{result.episode_count}</div></div>}
-            {result.blob_count !== undefined && result.blob_count > 0 && <div><div className="text-xs text-surface-500">Files</div><div className="text-sm font-semibold text-surface-200">{result.blob_count}</div></div>}
-            {result.status && <div><div className="text-xs text-surface-500">Status</div><div className="text-sm font-medium text-success">{result.status}</div></div>}
-          </div>
+          <EnrichmentStatus
+            jobId={result.job_id}
+            status={result.status}
+            episodeCount={result.episode_count}
+            blobCount={result.blob_count}
+          />
         </div>
       )}
     </div>

@@ -21,7 +21,6 @@ import {
   Menu,
   ChevronLeft,
   ChevronRight,
-  User as UserIcon,
   Webhook,
   FileText,
   FileCode,
@@ -31,7 +30,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { API_BASE } from "@/lib/api-client";
+import { get, getAccessToken } from "@/lib/api-client";
 import { RequireAuth } from "./require-auth";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { usePinnedProjects } from "@/hooks/use-pinned-projects";
@@ -82,19 +81,13 @@ function Sidebar({
 
   // Fetch user info on mount
   useEffect(() => {
-    const token = sessionStorage.getItem("mg_access_token");
+    const token = getAccessToken();
     if (!token) return;
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
       const userId = payload.sub;
       if (userId) {
-        fetch(`${API_BASE}/v1/users/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        })
-          .then((r) => (r.ok ? r.json() : null))
+        get<{ email?: string; name?: string }>(`/v1/users/${userId}`)
           .then((user) => {
             if (user?.email) setCurrentUserLabel(user.email);
             else setCurrentUserLabel(user?.name || userId.slice(0, 8));
@@ -466,10 +459,6 @@ function Sidebar({
                 <div className="px-2 py-1.5 text-sm text-surface-400 border-b border-surface-800 mb-1">
                   {currentUserLabel}
                 </div>
-                <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-surface-200 hover:bg-surface-800">
-                  <UserIcon size={14} />
-                  Profile
-                </button>
                 <button
                   onClick={() => {
                     setUserMenuOpen(false);
@@ -521,21 +510,15 @@ export default function DashboardLayout({
   const [projectName, setProjectName] = useState<string | null>(null);
 
   // Fetch project name when inside a project
+  // ProjectProvider is mounted at projects/[id]/layout.tsx (below this layout), so
+  // useProject() here would always be the default null — use the typed client instead.
   useEffect(() => {
     if (projectId) {
-      const token = sessionStorage.getItem("mg_access_token");
-      if (!token) return;
-      fetch(`${API_BASE}/v1/projects/${projectId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
-        .then((r) => (r.ok ? r.json() : null))
+      get<{ name: string }>(`/v1/projects/${projectId}`)
         .then((data) => setProjectName(data?.name ?? null))
         .catch((err) => {
           console.error("Failed to fetch project name", err);
-          setProjectName(null);  // null state triggers error boundary
+          setProjectName(null); // null state triggers error boundary
         });
     } else {
       setProjectName(null);

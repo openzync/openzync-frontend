@@ -5,10 +5,8 @@ import { useRouter } from "next/navigation";
 import {
   Plus,
   FolderKanban,
-  Settings,
   Users,
   ArrowRight,
-  X,
   AlertTriangle,
   MapPin,
 } from "lucide-react";
@@ -18,6 +16,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { usePinnedProjects } from "@/hooks/use-pinned-projects";
 
 
@@ -231,80 +230,69 @@ export default function ProjectsPage() {
         )}
 
         {/* ── Create Dialog ──────────────────────────────────────────────── */}
-        {showCreate && (
-          <>
-            <div
-              className="fixed inset-0 z-50 bg-black/60"
-              onClick={() => !creating && setShowCreate(false)}
-            />
-            <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 card-base animate-slide-up">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-surface-800">
-                <h2 className="text-base font-semibold text-text-primary">
-                  Create Project
-                </h2>
-                <button
-                  onClick={() => !creating && setShowCreate(false)}
-                  className="text-surface-400 hover:text-surface-200"
-                  disabled={creating}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Name <span className="text-error">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder="e.g., Customer Support Bot"
-                    className="input-base"
-                    autoFocus
-                    disabled={creating}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Description
-                  </label>
-                  <textarea
-                    value={newDescription}
-                    onChange={(e) => setNewDescription(e.target.value)}
-                    placeholder="Optional description of this project"
-                    className="input-base min-h-[80px] resize-y"
-                    disabled={creating}
-                  />
-                </div>
-                {createError && (
-                  <div className="rounded-md border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">
-                    {createError}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-surface-800">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowCreate(false)}
-                  disabled={creating}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleCreate}
-                  loading={creating}
-                  disabled={!newName.trim()}
-                >
-                  Create
-                </Button>
-              </div>
+        <Dialog
+          open={showCreate}
+          onOpenChange={(open) => {
+            if (!open && !creating) setShowCreate(false);
+          }}
+          title="Create Project"
+          persistent={creating}
+          footer={
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowCreate(false)}
+                disabled={creating}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleCreate}
+                loading={creating}
+                disabled={!newName.trim()}
+              >
+                Create
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                Name <span className="text-error">*</span>
+              </label>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="e.g., Customer Support Bot"
+                className="input-base"
+                autoFocus
+                disabled={creating}
+              />
             </div>
-          </>
-        )}
+            <div>
+              <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                Description
+              </label>
+              <textarea
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                placeholder="Optional description of this project"
+                className="input-base min-h-[80px] resize-y"
+                disabled={creating}
+              />
+            </div>
+            {createError && (
+              <div className="rounded-md border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">
+                {createError}
+              </div>
+            )}
+          </div>
+        </Dialog>
       </div>
   );
 }

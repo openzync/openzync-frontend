@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Info } from "lucide-react";
 import { ForceGraph, type GraphNodeData, type GraphEdgeData } from "@/components/force-graph";
 import { PageGuide, GuideGraph } from "@/components/guides";
 import { get, API_BASE, getAccessToken } from "@/lib/api-client";
@@ -37,6 +37,7 @@ export default function GraphExplorerPage() {
   const [graphData, setGraphData] = useState<{ nodes: GraphNodeData[]; edges: GraphEdgeData[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!projectId) return;
@@ -44,7 +45,8 @@ export default function GraphExplorerPage() {
     try {
       const nodesData = await get<NodesApiResponse>(`/v1/projects/${projectId}/graph/nodes?limit=100`);
       const nodes: GraphNodeData[] = nodesData.data?.items ?? [];
-      if (nodes.length === 0) { setGraphData({ nodes: [], edges: [] }); setLoading(false); return; }
+      const hasMore = nodesData.data?.has_more ?? false;
+      if (nodes.length === 0) { setGraphData({ nodes: [], edges: [] }); setHasMore(false); setLoading(false); return; }
 
       const nodeIdList = nodes.map((n) => n.id).join(",");
       const edgesData = await get<EdgesApiResponse>(
@@ -58,6 +60,7 @@ export default function GraphExplorerPage() {
           nodeIdSet.has(e.target_id),
       );
       setGraphData({ nodes, edges: allEdges });
+      setHasMore(hasMore);
     } catch { setHasError(true); }
     finally { setLoading(false); }
   }, [projectId]);
@@ -87,6 +90,13 @@ export default function GraphExplorerPage() {
         <PageGuide title="Graph explorer" illustration={<GuideGraph />}>
           <p>Explore the knowledge graph visually. Nodes represent entities — people, places, concepts — and edges represent relationships between them. Search, filter, and navigate to understand your data&rsquo;s structure.</p>
         </PageGuide>
+
+        {hasMore && (
+          <div className="flex items-center gap-2 rounded-md border border-surface-800 bg-surface-900 px-3 py-2 text-xs text-surface-300">
+            <Info size={14} className="shrink-0" />
+            <span>Showing the first 100 entities — refine filters or query for more.</span>
+          </div>
+        )}
 
         <ForceGraph
           nodes={graphData?.nodes ?? []}

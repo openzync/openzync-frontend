@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import {
-  Plus, Copy, Edit, Trash2, RefreshCw, UsersIcon, X, AlertCircle, Eye,
+  Plus, Copy, Edit, Trash2, RefreshCw, UsersIcon, AlertCircle, Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get, post, patch as apiPatch, del as apiDel, ApiError } from "@/lib/api-client";
@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { TableSkeleton } from "@/components/shared/skeleton";
 
@@ -61,8 +62,7 @@ function UserFormDialog({
     if (error) setError(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!form.external_id.trim()) { setError("External ID is required"); return; }
     setSubmitting(true);
     try { await onSubmit(form); }
@@ -73,43 +73,45 @@ function UserFormDialog({
   const title = mode === "create" ? "Create User" : "Edit User";
 
   return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/50 animate-fade-in" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-surface-800 bg-surface-900 p-6 shadow-xl shadow-black/40 animate-slide-up">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
-          <button onClick={onClose} className="text-surface-400 hover:text-white p-1"><X size={18} /></button>
+    <Dialog
+      open={true}
+      onOpenChange={(open) => {
+        if (!open && !submitting) onClose();
+      }}
+      title={title}
+      persistent={submitting}
+      footer={
+        <>
+          <Button variant="secondary" size="sm" onClick={onClose} disabled={submitting}>Cancel</Button>
+          <Button variant="primary" size="sm" type="button" onClick={() => void handleSubmit()} loading={submitting}>
+            {mode === "create" ? "Create User" : "Save Changes"}
+          </Button>
+        </>
+      }
+    >
+      <form onSubmit={(e) => { e.preventDefault(); void handleSubmit(); }} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-surface-300 mb-1">External ID <span className="text-error">*</span></label>
+          <input className="input-base" placeholder="e.g. user-abc-123" value={form.external_id}
+            onChange={(e) => handleChange("external_id", e.target.value)} disabled={mode === "edit"} />
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">External ID <span className="text-error">*</span></label>
-            <input className="input-base" placeholder="e.g. user-abc-123" value={form.external_id}
-              onChange={(e) => handleChange("external_id", e.target.value)} disabled={mode === "edit"} />
+        <div>
+          <label className="block text-sm font-medium text-surface-300 mb-1">Name</label>
+          <input className="input-base" placeholder="e.g. John Doe" value={form.name}
+            onChange={(e) => handleChange("name", e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-surface-300 mb-1">Email</label>
+          <input className="input-base" type="email" placeholder="e.g. john@acme.com" value={form.email}
+            onChange={(e) => handleChange("email", e.target.value)} />
+        </div>
+        {error && (
+          <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
+            <AlertCircle size={14} />{error}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Name</label>
-            <input className="input-base" placeholder="e.g. John Doe" value={form.name}
-              onChange={(e) => handleChange("name", e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Email</label>
-            <input className="input-base" type="email" placeholder="e.g. john@acme.com" value={form.email}
-              onChange={(e) => handleChange("email", e.target.value)} />
-          </div>
-          {error && (
-            <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
-              <AlertCircle size={14} />{error}
-            </div>
-          )}
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
-            <Button variant="primary" size="sm" type="submit" loading={submitting}>
-              {mode === "create" ? "Create User" : "Save Changes"}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </>
+        )}
+      </form>
+    </Dialog>
   );
 }
 
