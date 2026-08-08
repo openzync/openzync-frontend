@@ -38,7 +38,9 @@ vi.mock("@/lib/api-client", async () => {
   >("@/lib/api-client");
   return {
     ...actual,
-    get: vi.fn().mockResolvedValue({ data: [] }),
+    get: vi.fn().mockResolvedValue({
+      data: [{ id: "session-1", external_id: "session-1" }],
+    }),
     post: vi.fn(),
     uploadWithBlobs: vi.fn(),
   };
@@ -81,6 +83,16 @@ function renderIngestCard() {
   return within(card as HTMLElement);
 }
 
+// Session is a required field now — select it before submitting. The sessions
+// fetch resolves async, so wait for the option to appear first.
+async function selectSession(card: ReturnType<typeof within>, sessionId = "session-1") {
+  const option = await card.findByText(sessionId);
+  await userEvent.selectOptions(
+    card.getByRole("combobox", { name: /Session/ }),
+    option,
+  );
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────────
 
 describe("MemoryPage Ingest", () => {
@@ -99,6 +111,7 @@ describe("MemoryPage Ingest", () => {
       card.getByPlaceholderText(/user: What is the capital/),
       "user: Hello there",
     );
+    await selectSession(card);
     await user.click(card.getByRole("button", { name: "Ingest" }));
 
     expect(
@@ -111,7 +124,10 @@ describe("MemoryPage Ingest", () => {
 
     expect(uploadWithBlobs).toHaveBeenCalledWith(
       "/v1/projects/project-123/memory",
-      { messages: [{ role: "user", content: "Hello there" }] },
+      {
+        messages: [{ role: "user", content: "Hello there" }],
+        session_id: "session-1",
+      },
       [],
     );
     expect(post).not.toHaveBeenCalled();
@@ -127,6 +143,7 @@ describe("MemoryPage Ingest", () => {
       card.getByPlaceholderText(/user: What is the capital/),
       "user: hi{enter}assistant: hello",
     );
+    await selectSession(card);
     await user.click(card.getByRole("button", { name: "Ingest" }));
 
     expect(await screen.findByText("Ingest Successful")).toBeInTheDocument();
@@ -137,6 +154,7 @@ describe("MemoryPage Ingest", () => {
           { role: "user", content: "hi" },
           { role: "assistant", content: "hello" },
         ],
+        session_id: "session-1",
       },
       [],
     );
@@ -163,6 +181,7 @@ describe("MemoryPage Ingest", () => {
       card.getByPlaceholderText(/user: What is the capital/),
       "user: Hello there",
     );
+    await selectSession(card);
     await user.click(card.getByRole("button", { name: "Ingest" }));
 
     expect(
@@ -176,11 +195,25 @@ describe("MemoryPage Ingest", () => {
     const user = userEvent.setup();
     const card = renderIngestCard();
 
+    await selectSession(card);
     await user.click(card.getByRole("button", { name: "Ingest" }));
 
     expect(
       await screen.findByText("Please enter at least one message"),
     ).toBeInTheDocument();
     expect(post).not.toHaveBeenCalled();
+  });
+
+  it("disables submit until a session is selected and offers no auto session option", async () => {
+    const card = renderIngestCard();
+
+    expect(card.getByRole("button", { name: "Ingest" })).toBeDisabled();
+    expect(card.queryByText("Default session (auto)")).not.toBeInTheDocument();
+    expect(
+      await card.findByText(
+        /Select a session — memory is ingested into an existing session only/,
+      ),
+    ).toBeInTheDocument();
+    expect(uploadWithBlobs).not.toHaveBeenCalled();
   });
 });

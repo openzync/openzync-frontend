@@ -89,6 +89,7 @@ function IngestTab({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   const handleIngest = useCallback(async () => {
+    if (!sessionId.trim()) { setError("Please select a session"); return; }
     if (!messagesText.trim()) { setError("Please enter at least one message"); return; }
     setIngesting(true); setUploading(true); setError(null); setResult(null);
 
@@ -99,8 +100,7 @@ function IngestTab({ projectId }: { projectId: string }) {
     });
 
     try {
-      const body: Record<string, unknown> = { messages };
-      if (sessionId.trim()) body.session_id = sessionId.trim();
+      const body: Record<string, unknown> = { messages, session_id: sessionId.trim() };
 
       // Endpoint only accepts multipart/form-data (even for text-only calls) —
       // uploadWithBlobs appends `data` = JSON.stringify(payload) + blobs.
@@ -122,15 +122,18 @@ function IngestTab({ projectId }: { projectId: string }) {
       <h2 className="text-sm font-semibold flex items-center gap-2"><Upload size={16} className="text-brand-300" />Ingest Messages</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-surface-400">Session</label>
-          <select value={sessionId} onChange={(e) => setSessionId(e.target.value)} className="input-base">
-            <option value="">Default session (auto)</option>
+          <label htmlFor="memory-session-select" className="text-xs font-medium text-surface-400">Session <span className="text-surface-500 font-normal">(required)</span></label>
+          <select id="memory-session-select" value={sessionId} onChange={(e) => setSessionId(e.target.value)} className="input-base" required>
+            <option value="">Select a session...</option>
             {sessionsLoading && <option disabled>Loading sessions...</option>}
             {!sessionsLoading && sessions.length === 0 && <option disabled>No sessions found</option>}
             {sessions.map((s) => (
               <option key={s.id} value={s.id}>{s.external_id || s.id.slice(0, 8)}</option>
             ))}
           </select>
+          {!sessionId && !sessionsLoading && (
+            <p className="text-xs text-warning">Select a session — memory is ingested into an existing session only.</p>
+          )}
         </div>
       </div>
       <div className="space-y-1.5">
@@ -219,7 +222,7 @@ function IngestTab({ projectId }: { projectId: string }) {
             {ROLES.map((role) => (<option key={role} value={role}>{role}</option>))}
           </select>
         </div>
-        <Button variant="primary" onClick={handleIngest} loading={ingesting} icon={<Upload size={16} />}>Ingest</Button>
+        <Button variant="primary" onClick={handleIngest} loading={ingesting} disabled={!sessionId.trim()} icon={<Upload size={16} />}>Ingest</Button>
       </div>
       {error && (<div className="flex items-start gap-2 rounded-md bg-error/10 border border-error/30 p-3 text-sm text-error"><AlertCircle size={16} className="mt-0.5 shrink-0" /><span>{error}</span></div>)}
       {result && (
