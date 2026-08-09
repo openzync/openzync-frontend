@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Copy, Check, RefreshCw, KeyRound, Loader2 } from "lucide-react";
-import { get, post, apiErrorMessage } from "@/lib/api-client";
+import { Copy, Check, RefreshCw, KeyRound, Loader2, UserPlus, AlertCircle } from "lucide-react";
+import { get, post, patch, apiErrorMessage } from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useUser } from "@/contexts/user-context";
 
 interface OrgCodeResponse {
   org_code: string;
+  join_enabled: boolean;
 }
 
 /**
@@ -19,6 +21,8 @@ interface OrgCodeResponse {
 export default function OrgConfigIndexPage() {
   const { isAdmin, loading: roleLoading } = useUser();
   const [orgCode, setOrgCode] = useState<string | null>(null);
+  const [joinEnabled, setJoinEnabled] = useState(true);
+  const [togglingJoin, setTogglingJoin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
@@ -32,7 +36,10 @@ export default function OrgConfigIndexPage() {
     (async () => {
       try {
         const data = await get<OrgCodeResponse>("/admin/org/org-code");
-        if (!cancelled) setOrgCode(data.org_code);
+        if (!cancelled) {
+          setOrgCode(data.org_code);
+          setJoinEnabled(data.join_enabled);
+        }
       } catch (err) {
         if (!cancelled) setError(apiErrorMessage(err, "Failed to load organization code"));
       } finally {
@@ -73,6 +80,23 @@ export default function OrgConfigIndexPage() {
       setShowRegenerate(false);
     } finally {
       setRegenerating(false);
+    }
+  };
+
+  // Await-then-update (not optimistic): state only changes from the PATCH
+  // response, so a failure needs no revert — the switch simply stays put.
+  const handleToggleJoin = async (newValue: boolean) => {
+    setTogglingJoin(true);
+    try {
+      const data = await patch<OrgCodeResponse>("/admin/org/org-code", {
+        join_enabled: newValue,
+      });
+      setJoinEnabled(data.join_enabled);
+      setError(null);
+    } catch (err) {
+      setError(apiErrorMessage(err, "Failed to update join setting"));
+    } finally {
+      setTogglingJoin(false);
     }
   };
 
@@ -144,6 +168,51 @@ export default function OrgConfigIndexPage() {
           <p className="mt-3 text-xs text-surface-500">
             Regenerating invalidates the previous code — existing members are unaffected.
           </p>
+        </div>
+      )}
+
+      {/* Join-enable toggle — admin controls whether the org code accepts new members. */}
+      {!loading && orgCode !== null && (
+        <div className="card-base p-6">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 shrink-0 text-brand-300">
+              <UserPlus size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-semibold">Self-registration</h2>
+              <p className="text-sm text-surface-400 mt-0.5">
+                Control whether people can join your organization with this code.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center justify-between gap-4 rounded-lg border border-surface-800 bg-surface-900/50 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <label htmlFor="join-enabled" className="block text-sm font-medium text-surface-200">
+                Allow new members to join with this code
+              </label>
+              <p className="mt-1 text-xs text-surface-500">
+                When off, the signup &ldquo;Join with code&rdquo; flow returns 403. Regenerating
+                the code still works while paused.
+              </p>
+            </div>
+            <Switch
+              id="join-enabled"
+              checked={joinEnabled}
+              onCheckedChange={handleToggleJoin}
+              disabled={togglingJoin}
+            />
+          </div>
+
+          {!joinEnabled && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+              <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-amber-200/80 leading-relaxed">
+                Joining is paused&nbsp;&mdash; new members can&rsquo;t join with this code
+                right now.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

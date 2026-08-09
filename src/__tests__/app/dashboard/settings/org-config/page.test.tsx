@@ -5,10 +5,11 @@ import OrgConfigIndexPage from "@/app/(dashboard)/settings/org-config/page";
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────────
 
-const { mockUseUser, mockGet, mockPost } = vi.hoisted(() => ({
+const { mockUseUser, mockGet, mockPost, mockPatch } = vi.hoisted(() => ({
   mockUseUser: vi.fn(),
   mockGet: vi.fn(),
   mockPost: vi.fn(),
+  mockPatch: vi.fn(),
 }));
 
 vi.mock("@/contexts/user-context", () => ({
@@ -31,6 +32,7 @@ vi.mock("@/lib/api-client", () => {
   return {
     get: mockGet,
     post: mockPost,
+    patch: mockPatch,
     ApiError,
     apiErrorMessage: (err: unknown, fallback: string) =>
       err instanceof ApiError && err.isForbidden ? "Admin access required" : fallback,
@@ -65,7 +67,7 @@ function renderAsAdmin() {
     isAdmin: true,
     loading: false,
   });
-  mockGet.mockResolvedValue({ org_code: OLD_CODE });
+  mockGet.mockResolvedValue({ org_code: OLD_CODE, join_enabled: true });
   return render(<OrgConfigIndexPage />);
 }
 
@@ -74,6 +76,7 @@ describe("OrgConfigIndexPage (org code card)", () => {
     mockUseUser.mockReset();
     mockGet.mockReset();
     mockPost.mockReset();
+    mockPatch.mockReset();
   });
 
   it("renders the code fetched from GET /admin/org/org-code", async () => {
@@ -143,5 +146,62 @@ describe("OrgConfigIndexPage (org code card)", () => {
     expect(
       await screen.findByText("Failed to load organization code"),
     ).toBeInTheDocument();
+  });
+
+  it("disables joining via PATCH and shows the paused banner", async () => {
+    const user = userEvent.setup();
+    mockPatch.mockResolvedValue({ org_code: OLD_CODE, join_enabled: false });
+    renderAsAdmin();
+
+    // Switch renders only after the GET resolves (join_enabled: true).
+    await user.click(await screen.findByRole("switch"));
+
+    await waitFor(() => {
+      expect(mockPatch).toHaveBeenCalledWith("/admin/org/org-code", {
+        join_enabled: false,
+      });
+    });
+    expect(await screen.findByText(/Joining is paused/)).toBeInTheDocument();
+    // The org-code card stays intact — code still visible alongside the banner.
+    expect(screen.getByText(OLD_CODE)).toBeInTheDocument();
+  });
+
+  it("disables the switch while the PATCH is in flight, re-enables after", async () => {
+    const user = userEvent.setup();
+    let resolvePatch!: (v: { org_code: string; join_enabled: boolean }) => void;
+    mockPatch.mockReturnValue(
+      new Promise((resolve) => {
+        resolvePatch = resolve;
+      }),
+    );
+    renderAsAdmin();
+
+    await user.click(await screen.findByRole("switch"));
+
+    // PATCH pending → switch disabled (no double-toggle, no state flash).
+    const toggle = screen.getByRole("switch");
+    expect(toggle).toBeDisabled();
+    expect(mockPatch).toHaveBeenCalledWith("/admin/org/org-code", {
+      join_enabled: false,
+    });
+
+    // Response lands → paused banner shows, switch is interactive again.
+    resolvePatch({ org_code: OLD_CODE, join_enabled: false });
+    expect(await screen.findByText(/Joining is paused/)).toBeInTheDocument();
+    expect(screen.getByRole("switch")).not.toBeDisabled();
+  });
+
+  it("shows the paused banner on load when joining is disabled", async () => {
+    mockUseUser.mockReturnValue({
+      user: { id: "u1", email: "admin@acme.com", name: "Admin", role: "admin" },
+      role: "admin",
+      isAdmin: true,
+      loading: false,
+    });
+    mockGet.mockResolvedValue({ org_code: OLD_CODE, join_enabled: false });
+    render(<OrgConfigIndexPage />);
+
+    expect(await screen.findByText(/Joining is paused/)).toBeInTheDocument();
+    expect(screen.getByText(OLD_CODE)).toBeInTheDocument();
   });
 });
