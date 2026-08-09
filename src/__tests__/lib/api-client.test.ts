@@ -9,6 +9,7 @@ import {
   ApiError,
   extractList,
   getAccessToken,
+  storeTokens,
   clearTokens,
   API_BASE,
   uploadWithBlobs,
@@ -70,6 +71,12 @@ describe("ApiError", () => {
     expect(new ApiError("", 403, null).isUnauthorized).toBe(false);
   });
 
+  it("isForbidden returns true for 403", () => {
+    expect(new ApiError("", 403, null).isForbidden).toBe(true);
+    expect(new ApiError("", 401, null).isForbidden).toBe(false);
+    expect(new ApiError("", 500, null).isForbidden).toBe(false);
+  });
+
   it("isNotFound returns true for 404", () => {
     expect(new ApiError("", 404, null).isNotFound).toBe(true);
     expect(new ApiError("", 400, null).isNotFound).toBe(false);
@@ -105,6 +112,12 @@ describe("auth token helpers", () => {
     clearTokens();
     expect(sessionStorage.getItem("mg_access_token")).toBeNull();
     expect(sessionStorage.getItem("mg_refresh_token")).toBeNull();
+  });
+
+  it("storeTokens writes both tokens", () => {
+    storeTokens("access-1", "refresh-1");
+    expect(sessionStorage.getItem("mg_access_token")).toBe("access-1");
+    expect(sessionStorage.getItem("mg_refresh_token")).toBe("refresh-1");
   });
 });
 
@@ -547,5 +560,175 @@ describe("extractList", () => {
 
   it("returns empty array for undefined", () => {
     expect(extractList(undefined)).toEqual([]);
+  });
+});
+
+// ─── join (org-code signup) ──────────────────────────────────────────────────────
+
+describe("join", () => {
+  it("posts email, password, and org_code to /v1/auth/join", async () => {
+    const { join } = await import("@/lib/api-client");
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          message: "Verification code sent to email",
+          email: "alice@acme.com",
+        }),
+        { status: 201, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const result = await join({
+      email: "alice@acme.com",
+      password: "SecurePass1",
+      org_code: "GCE3GG9Z",
+    });
+
+    expect(result).toEqual({
+      message: "Verification code sent to email",
+      email: "alice@acme.com",
+    });
+    const [url, opts] = mockFetch.mock.calls[0];
+    expect(url).toBe(`${API_BASE}/v1/auth/join`);
+    expect(opts.method).toBe("POST");
+    expect(JSON.parse(opts.body)).toEqual({
+      email: "alice@acme.com",
+      password: "SecurePass1",
+      org_code: "GCE3GG9Z",
+    });
+  });
+
+  it("throws ApiError with the RFC 7807 detail on 422 invalid code", async () => {
+    const { join } = await import("@/lib/api-client");
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          type: "https://errors.openzync.tech/validation_error",
+          title: "Validation Error",
+          status: 422,
+          detail: "Invalid organization code",
+        }),
+        { status: 422, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await expect(
+      join({ email: "a@b.com", password: "SecurePass1", org_code: "BADCODE9" }),
+    ).rejects.toMatchObject({
+      name: "ApiError",
+      status: 422,
+      message: "Invalid organization code",
+    });
+  });
+});
+
+// ─── Invite endpoints (admin invite → magic-link password set) ────────────────
+
+describe("invite endpoints", () => {
+  it("getInviteInfo posts the token in the body, never the URL", async () => {
+    const { getInviteInfo } = await import("@/lib/api-client");
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ org_name: "Acme Corp", email: "alice@acme.com", name: "Alice" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const result = await getInviteInfo("invite-tok-123");
+    expect(result).toEqual({
+      org_name: "Acme Corp",
+      email: "alice@acme.com",
+      name: "Alice",
+    });
+    const [url, opts] = mockFetch.mock.calls[0];
+    expect(url).toBe(`${API_BASE}/v1/auth/invites/info`);
+    expect(opts.method).toBe("POST");
+    expect(JSON.parse(opts.body)).toEqual({ token: "invite-tok-123" });
+    expect(url).not.toContain("invite-tok-123");
+  });
+
+  it("getInviteInfo surfaces the server detail on a bad token", async () => {
+    const { getInviteInfo } = await import("@/lib/api-client");
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ detail: "This invitation link is invalid or has expired." }),
+        { status: 404, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    await expect(getInviteInfo("bad-token")).rejects.toMatchObject({
+      name: "ApiError",
+      status: 404,
+      message: "This invitation link is invalid or has expired.",
+    });
+  });
+
+  it("acceptInvite clears stale tokens then stores the new pair", async () => {
+    const { acceptInvite } = await import("@/lib/api-client");
+    // Stale session from a previous login — must be overwritten, not merged.
+    sessionStorage.setItem("mg_access_token", "stale-access");
+    sessionStorage.setItem("mg_refresh_token", "stale-refresh");
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ access_token: "new-access", refresh_token: "new-refresh" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const result = await acceptInvite("invite-tok-123", "Str0ng!Pass");
+    expect(result).toEqual({ access_token: "new-access", refresh_token: "new-refresh" });
+
+    const [url, opts] = mockFetch.mock.calls[0];
+    expect(url).toBe(`${API_BASE}/v1/auth/invites/accept`);
+    expect(opts.method).toBe("POST");
+    expect(JSON.parse(opts.body)).toEqual({
+      token: "invite-tok-123",
+      password: "Str0ng!Pass",
+    });
+    expect(url).not.toContain("invite-tok-123");
+    expect(sessionStorage.getItem("mg_access_token")).toBe("new-access");
+    expect(sessionStorage.getItem("mg_refresh_token")).toBe("new-refresh");
+  });
+
+  it("acceptInvite throws the server detail and stores nothing on failure", async () => {
+    const { acceptInvite } = await import("@/lib/api-client");
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ detail: "This invitation link is invalid or has expired." }),
+        { status: 404, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await expect(acceptInvite("bad-token", "Str0ng!Pass")).rejects.toMatchObject({
+      name: "ApiError",
+      status: 404,
+      message: "This invitation link is invalid or has expired.",
+    });
+    expect(sessionStorage.getItem("mg_access_token")).toBeNull();
+    expect(sessionStorage.getItem("mg_refresh_token")).toBeNull();
+  });
+
+  it("inviteUser posts email+name to the admin endpoint with auth", async () => {
+    const { inviteUser } = await import("@/lib/api-client");
+    sessionStorage.setItem("mg_access_token", "admin-token");
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 201 }));
+
+    await inviteUser("alice@acme.com", "Alice");
+
+    const [url, opts] = mockFetch.mock.calls[0];
+    expect(url).toBe(`${API_BASE}/v1/admin/users/invite`);
+    expect(opts.method).toBe("POST");
+    expect(JSON.parse(opts.body)).toEqual({ email: "alice@acme.com", name: "Alice" });
+    expect(opts.headers["Authorization"]).toBe("Bearer admin-token");
+  });
+
+  it("revokeInvite DELETEs /v1/admin/users/invites/{id}", async () => {
+    const { revokeInvite } = await import("@/lib/api-client");
+    mockFetch.mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+    await revokeInvite("u-123");
+
+    const [url, opts] = mockFetch.mock.calls[0];
+    expect(url).toBe(`${API_BASE}/v1/admin/users/invites/u-123`);
+    expect(opts.method).toBe("DELETE");
   });
 });

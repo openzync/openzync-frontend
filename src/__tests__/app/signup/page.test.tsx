@@ -175,4 +175,120 @@ describe("SignupPage", () => {
 
     expect(btn).toBeDisabled();
   });
+
+  // ── Join mode (org-code) ─────────────────────────────────────────────────
+
+  it("renders both mode toggle options", () => {
+    render(<SignupPage />);
+
+    expect(
+      screen.getByRole("button", { name: "Create organization" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Join with code" }),
+    ).toBeInTheDocument();
+  });
+
+  it("switches to join mode and shows the org code field", async () => {
+    const user = userEvent.setup();
+    render(<SignupPage />);
+
+    await user.click(screen.getByRole("button", { name: "Join with code" }));
+
+    expect(screen.getByText("Join an organization")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("XXXX-XXXX-XXXX"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Join Organization" }),
+    ).toBeInTheDocument();
+    // Create-mode fields are hidden in join mode.
+    expect(screen.queryByPlaceholderText("My Organization")).not.toBeInTheDocument();
+  });
+
+  it("join mode submits POST /v1/auth/join with email, password, org_code", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          message: "Verification code sent to email",
+          email: "alice@acme.com",
+        }),
+        { status: 201, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    render(<SignupPage />);
+    await user.click(screen.getByRole("button", { name: "Join with code" }));
+    await user.type(screen.getByPlaceholderText("XXXX-XXXX-XXXX"), "GCE3GG9Z");
+    await user.type(screen.getByPlaceholderText("you@example.com"), "alice@acme.com");
+    await user.type(screen.getByPlaceholderText("Minimum 8 characters"), "Str0ng!Pass");
+    await user.click(screen.getByRole("button", { name: "Join Organization" }));
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/v1/auth/join"),
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "alice@acme.com",
+          password: "Str0ng!Pass",
+          org_code: "GCE3GG9Z",
+        }),
+      }),
+    );
+  });
+
+  it("join mode redirects to verify-email on success", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          message: "Verification code sent to email",
+          email: "alice@acme.com",
+        }),
+        { status: 201, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    render(<SignupPage />);
+    await user.click(screen.getByRole("button", { name: "Join with code" }));
+    await user.type(screen.getByPlaceholderText("XXXX-XXXX-XXXX"), "GCE3GG9Z");
+    await user.type(screen.getByPlaceholderText("you@example.com"), "alice@acme.com");
+    await user.type(screen.getByPlaceholderText("Minimum 8 characters"), "Str0ng!Pass");
+    await user.click(screen.getByRole("button", { name: "Join Organization" }));
+
+    expect(mockReplace).toHaveBeenCalledWith(
+      "/verify-email?email=alice%40acme.com",
+    );
+  });
+
+  it("join mode shows the error banner on 422 invalid organization code", async () => {
+    const user = userEvent.setup();
+    // RFC 7807 problem+json — the join() helper surfaces detail as message.
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          type: "https://errors.openzync.tech/validation_error",
+          title: "Validation Error",
+          status: 422,
+          detail: "Invalid organization code",
+        }),
+        { status: 422, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    render(<SignupPage />);
+    await user.click(screen.getByRole("button", { name: "Join with code" }));
+    await user.type(screen.getByPlaceholderText("XXXX-XXXX-XXXX"), "BADCODE9");
+    await user.type(screen.getByPlaceholderText("you@example.com"), "alice@acme.com");
+    await user.type(screen.getByPlaceholderText("Minimum 8 characters"), "Str0ng!Pass");
+    await user.click(screen.getByRole("button", { name: "Join Organization" }));
+
+    expect(
+      await screen.findByText("Invalid organization code"),
+    ).toBeInTheDocument();
+    // No redirect on failure.
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
 });

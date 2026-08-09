@@ -7,7 +7,7 @@ import { ProjectProvider, useProject } from "@/stores/project-context";
 const mockFetch = vi.fn();
 globalThis.fetch = mockFetch;
 
-let mockUseParams = { id: "project-123" };
+let mockUseParams: Record<string, string | undefined> = { id: "project-123" };
 
 vi.mock("next/navigation", () => ({
   useParams: () => mockUseParams,

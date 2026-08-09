@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import {
-  Plus, Copy, Edit, Trash2, RefreshCw, UsersIcon, AlertCircle, Eye, ShieldCheck, ShieldOff,
+  Plus, Copy, Edit, Trash2, RefreshCw, UsersIcon, AlertCircle, Eye, ShieldCheck, ShieldOff, UserPlus, Ban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { get, post, patch as apiPatch, del as apiDel, ApiError, apiErrorMessage } from "@/lib/api-client";
+import { get, post, patch as apiPatch, del as apiDel, ApiError, apiErrorMessage, inviteUser, revokeInvite } from "@/lib/api-client";
 import { formatDate, timeAgo, copyToClipboard } from "@/lib/utils";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
@@ -32,6 +32,8 @@ interface UserItem {
   email: string | null;
   role: UserRole;
   is_active: boolean;
+  /** True while the user is a pending invite — no account yet. Backend adds this field in the invite work; typed now. */
+  is_pending_invite: boolean;
   created_at: string;
 }
 
@@ -120,6 +122,77 @@ function UserFormDialog({
   );
 }
 
+// ─── Invite Member Dialog ─────────────────────────────────────────────────────
+
+function InviteMemberDialog({
+  onClose,
+  onSubmit,
+}: {
+  onClose: () => void;
+  onSubmit: (data: { email: string; name: string }) => Promise<void>;
+}) {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!email.trim() || !name.trim()) {
+      setError("Email and name are required");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await onSubmit({ email: email.trim(), name: name.trim() });
+    } catch (err) {
+      // Server detail (e.g. 409 "invite already pending") stays in the dialog.
+      setError(
+        err instanceof ApiError ? err.message : "Failed to send invitation",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open={true}
+      onOpenChange={(open) => {
+        if (!open && !submitting) onClose();
+      }}
+      title="Invite Member"
+      description="They’ll receive an email with a link to set their password."
+      persistent={submitting}
+      footer={
+        <>
+          <Button variant="secondary" size="sm" onClick={onClose} disabled={submitting}>Cancel</Button>
+          <Button variant="primary" size="sm" type="button" onClick={() => void handleSubmit()} loading={submitting}>
+            Send Invite
+          </Button>
+        </>
+      }
+    >
+      <form onSubmit={(e) => { e.preventDefault(); void handleSubmit(); }} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-surface-300 mb-1">Email <span className="text-error">*</span></label>
+          <input className="input-base" type="email" placeholder="e.g. jane@acme.com" value={email}
+            onChange={(e) => { setEmail(e.target.value); if (error) setError(null); }} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-surface-300 mb-1">Name <span className="text-error">*</span></label>
+          <input className="input-base" placeholder="e.g. Jane Doe" value={name}
+            onChange={(e) => { setName(e.target.value); if (error) setError(null); }} />
+        </div>
+        {error && (
+          <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
+            <AlertCircle size={14} />{error}
+          </div>
+        )}
+      </form>
+    </Dialog>
+  );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function UsersPage() {
@@ -133,9 +206,12 @@ export default function UsersPage() {
 
   // Dialog state
   const [showCreate, setShowCreate] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const [editTarget, setEditTarget] = useState<UserItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserItem | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [revokeTarget, setRevokeTarget] = useState<UserItem | null>(null);
+  const [revoking, setRevoking] = useState(false);
   const [roleChangeTarget, setRoleChangeTarget] = useState<{ user: UserItem; to: UserRole } | null>(null);
   const [changingRole, setChangingRole] = useState(false);
 
@@ -215,6 +291,26 @@ export default function UsersPage() {
     toast.success(ok ? "User ID copied to clipboard" : "Failed to copy");
   };
 
+  const handleInvite = async (data: { email: string; name: string }) => {
+    await inviteUser(data.email, data.name);
+    setShowInvite(false);
+    toast.success(`Invitation sent to ${data.email}`);
+    await loadUsers();
+  };
+
+  const handleRevoke = async () => {
+    if (!revokeTarget) return;
+    setRevoking(true);
+    try {
+      await revokeInvite(revokeTarget.id);
+      setRevokeTarget(null);
+      toast.success(`Invitation revoked for ${revokeTarget.name || revokeTarget.email || revokeTarget.external_id}`);
+      await loadUsers();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to revoke invitation");
+    } finally { setRevoking(false); }
+  };
+
   const handleRoleChange = async () => {
     if (!roleChangeTarget) return;
     const { user: target, to } = roleChangeTarget;
@@ -239,9 +335,14 @@ export default function UsersPage() {
         description="Manage end-users within your organization"
         actions={
           isAdmin && (
-            <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>
-              Create User
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" size="sm" icon={<UserPlus size={14} />} onClick={() => setShowInvite(true)}>
+                Invite Member
+              </Button>
+              <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>
+                Create User
+              </Button>
+            </div>
           )
         }
       />
@@ -284,6 +385,11 @@ export default function UsersPage() {
                       </td>
                       <td className="px-4 py-3 text-surface-200">
                         {user.name || <span className="text-surface-500 italic">—</span>}
+                        {user.is_pending_invite && (
+                          <Badge variant="warning" size="sm" className="ml-2 align-middle">
+                            Pending
+                          </Badge>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-surface-200">
                         {user.email || <span className="text-surface-500 italic">—</span>}
@@ -315,8 +421,16 @@ export default function UsersPage() {
                           )}
                           <Link href={`/users/${user.id}`}><Button variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-white" title="View User"><Eye size={14} /></Button></Link>
                           <Button variant="ghost" size="sm" onClick={() => handleCopyId(user.id)} className="rounded-md text-surface-400 hover:text-white" title="Copy User ID"><Copy size={14} /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => setEditTarget(user)} className="rounded-md text-surface-400 hover:text-white" title="Edit User"><Edit size={14} /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(user)} className="rounded-md text-surface-400 hover:text-error" title="Delete User"><Trash2 size={14} /></Button>
+                          {/* Edit/Delete are destructive mutations — org-admin only, same as Make/Remove Admin */}
+                          {isAdmin && (
+                            <Button variant="ghost" size="sm" onClick={() => setEditTarget(user)} className="rounded-md text-surface-400 hover:text-white" title="Edit User"><Edit size={14} /></Button>
+                          )}
+                          {isAdmin && (user.is_pending_invite ? (
+                            // Pending invites have no account to delete — revoke the invite instead.
+                            <Button variant="ghost" size="sm" onClick={() => setRevokeTarget(user)} className="rounded-md text-surface-400 hover:text-error" title="Revoke Invitation" aria-label={`Revoke invite for ${user.external_id}`}><Ban size={14} /></Button>
+                          ) : (
+                            <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(user)} className="rounded-md text-surface-400 hover:text-error" title="Delete User"><Trash2 size={14} /></Button>
+                          ))}
                         </div>
                       </td>
                     </tr>
@@ -338,6 +452,9 @@ export default function UsersPage() {
       </div>
 
       {/* Dialogs */}
+      {showInvite && (
+        <InviteMemberDialog onClose={() => setShowInvite(false)} onSubmit={handleInvite} />
+      )}
       {showCreate && (
         <UserFormDialog mode="create" initial={{ external_id: "", name: "", email: "" }}
           onClose={() => setShowCreate(false)} onSubmit={handleCreate} />
@@ -347,6 +464,17 @@ export default function UsersPage() {
           initial={{ external_id: editTarget.external_id, name: editTarget.name ?? "", email: editTarget.email ?? "" }}
           onClose={() => setEditTarget(null)} onSubmit={handleUpdate} />
       )}
+      <ConfirmDialog
+        open={!!revokeTarget}
+        title="Revoke Invitation"
+        message={`Revoke invitation for “${revokeTarget?.name || revokeTarget?.external_id}”? They’ll need a new invite.`}
+        confirmLabel="Revoke"
+        variant="danger"
+        loading={revoking}
+        onConfirm={handleRevoke}
+        onCancel={() => setRevokeTarget(null)}
+      />
+
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete User"

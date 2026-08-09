@@ -385,6 +385,55 @@ export function extractList<T>(response: unknown): T[] {
   return [];
 }
 
+// ─── Invite endpoints (admin invites → magic-link password set) ──────────────
+
+export interface InviteInfo {
+  org_name: string;
+  email: string;
+  name: string;
+}
+
+export interface TokenPair {
+  access_token: string;
+  refresh_token: string;
+}
+
+/**
+ * POST /v1/auth/invites/info — resolve an invite token to the invitee's org
+ * and profile. Unauthenticated: the token travels in the BODY, never the URL.
+ */
+export function getInviteInfo(token: string): Promise<InviteInfo> {
+  return post<InviteInfo>("/v1/auth/invites/info", { token });
+}
+
+/**
+ * POST /v1/auth/invites/accept — set the invitee's password and complete the
+ * invite flow. Success is a fresh login: any stale session is deliberately
+ * overwritten by the new token pair (clear → store).
+ */
+export async function acceptInvite(
+  token: string,
+  password: string,
+): Promise<TokenPair> {
+  const tokens = await post<TokenPair>("/v1/auth/invites/accept", {
+    token,
+    password,
+  });
+  clearTokens();
+  storeTokens(tokens.access_token, tokens.refresh_token);
+  return tokens;
+}
+
+/** POST /v1/admin/users/invite — org-admin only; emails the invite link. */
+export function inviteUser(email: string, name: string): Promise<unknown> {
+  return post("/v1/admin/users/invite", { email, name });
+}
+
+/** DELETE /v1/admin/users/invites/{id} — org-admin only; revokes a pending invite. */
+export function revokeInvite(userId: string): Promise<void> {
+  return del(`/v1/admin/users/invites/${userId}`);
+}
+
 // ─── Re-export base URL for edge cases ───────────────────────────────────────
 
-export { API_BASE, getAccessToken, clearTokens, uploadWithBlobs };
+export { API_BASE, getAccessToken, storeTokens, clearTokens, uploadWithBlobs };

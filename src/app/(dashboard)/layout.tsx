@@ -335,8 +335,8 @@ function Sidebar({
           </div>
         )}
 
-        {/* ── Administration (hidden inside project pages) ── */}
-        {!inProject && (
+        {/* ── Administration (org-admin only, hidden inside project pages) ── */}
+        {!inProject && isAdmin && (
           <div>
             <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
               {collapsed ? (
@@ -349,18 +349,14 @@ function Sidebar({
             </div>
             <div className="space-y-0.5">
               {[
-                // Users + org-level Configuration are org-admin only — hidden from members.
-                // The remaining Administration items stay visible to all members.
-                ...(isAdmin
-                  ? [{ label: "Users", href: "/users", icon: <Users size={18} /> }]
-                  : []),
+                // Every item in this section is org-admin only — hidden from members.
+                // The section header collapses with it so members never see a bare header.
+                { label: "Users", href: "/users", icon: <Users size={18} /> },
                 { label: "Extraction Schemas", href: "/settings/schemas", icon: <FileJson size={18} /> },
                 { label: "Webhooks", href: "/settings/webhooks", icon: <Webhook size={18} /> },
                 { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: <FileText size={18} /> },
                 { label: "Prompt Templates", href: "/settings/prompts", icon: <FileCode size={18} /> },
-                ...(isAdmin
-                  ? [{ label: "Configuration", href: "/settings/org-config", icon: <SlidersHorizontal size={18} /> }]
-                  : []),
+                { label: "Configuration", href: "/settings/org-config", icon: <SlidersHorizontal size={18} /> },
               ].map((item) => {
                 const active = isActive(item.href);
                 return (

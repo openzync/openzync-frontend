@@ -5,26 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { API_BASE, safeJsonParse, join } from "@/lib/api-client";
+import { getPasswordStrength } from "@/lib/password-strength";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-
-function getPasswordStrength(pw: string): {
-  score: number;
-  label: string;
-  color: string;
-} {
-  let score = 0;
-  if (pw.length >= 8) score += 1;
-  if (pw.length >= 12) score += 1;
-  if (/[A-Z]/.test(pw)) score += 1;
-  if (/[0-9]/.test(pw)) score += 1;
-  if (/[^A-Za-z0-9]/.test(pw)) score += 1;
-  if (score <= 1) return { score: 20, label: "Weak", color: "bg-error" };
-  if (score <= 2) return { score: 40, label: "Fair", color: "bg-warning" };
-  if (score <= 3) return { score: 60, label: "Good", color: "bg-warning" };
-  if (score <= 4) return { score: 80, label: "Strong", color: "bg-success" };
-  return { score: 100, label: "Very Strong", color: "bg-success" };
-}
 
 export default function SignupPage() {
   const router = useRouter();
