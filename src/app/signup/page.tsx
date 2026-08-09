@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { API_BASE, safeJsonParse } from "@/lib/api-client";
+import { API_BASE, safeJsonParse, join } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 function getPasswordStrength(pw: string): {
@@ -27,7 +28,9 @@ function getPasswordStrength(pw: string): {
 
 export default function SignupPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<"create" | "join">("create");
   const [orgName, setOrgName] = useState("");
+  const [orgCode, setOrgCode] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -42,6 +45,12 @@ export default function SignupPage() {
     setSubmitting(true);
 
     try {
+      if (mode === "join") {
+        const data = await join({ email, password, org_code: orgCode });
+        router.replace(`/verify-email?email=${encodeURIComponent(data.email ?? email)}`);
+        return;
+      }
+
       const res = await fetch(`${API_BASE}/v1/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,6 +67,8 @@ export default function SignupPage() {
       const data = await res.json();
       router.replace(`/verify-email?email=${encodeURIComponent(data.email ?? email)}`);
     } catch (err: any) {
+      // join() throws ApiError whose message is parsed from the RFC 7807 body
+      // (e.g. "Invalid organization code") — rendered in the error banner below.
       setError(err.message ?? "Connection error. Please try again.");
     } finally {
       setSubmitting(false);
@@ -102,10 +113,41 @@ export default function SignupPage() {
           </div>
 
           <div className="card-base p-6">
-            <h2 className="text-xl font-semibold mb-1">Create your account</h2>
-            <p className="text-sm text-surface-400 mb-6">
-              Set up your OpenZync organization
+            <h2 className="text-xl font-semibold mb-1">
+              {mode === "create" ? "Create your account" : "Join an organization"}
+            </h2>
+            <p className="text-sm text-surface-400 mb-5">
+              {mode === "create"
+                ? "Set up your OpenZync organization"
+                : "Enter your organization code to join"}
             </p>
+
+            {/* Mode toggle — segmented control */}
+            <div className="mb-5 grid grid-cols-2 gap-1 rounded-lg bg-surface-800 p-1">
+              {(
+                [
+                  { id: "create", label: "Create organization" },
+                  { id: "join", label: "Join with code" },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setMode(tab.id);
+                    setError("");
+                  }}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-sm transition-colors",
+                    mode === tab.id
+                      ? "bg-brand-500 text-white"
+                      : "text-surface-400 hover:text-white",
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
             {error && (
               <div className="mb-4 rounded-md border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">
@@ -114,20 +156,42 @@ export default function SignupPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Organization Name
-                </label>
-                <input
-                  type="text"
-                  value={orgName}
-                  onChange={(e) => setOrgName(e.target.value)}
-                  required
-                  autoFocus
-                  className="input-base w-full"
-                  placeholder="My Organization"
-                />
-              </div>
+              {mode === "create" && (
+                <div>
+                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                    Organization Name
+                  </label>
+                  <input
+                    type="text"
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    required
+                    autoFocus
+                    className="input-base w-full"
+                    placeholder="My Organization"
+                  />
+                </div>
+              )}
+
+              {mode === "join" && (
+                <div>
+                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                    Organization Code
+                  </label>
+                  <input
+                    type="text"
+                    value={orgCode}
+                    onChange={(e) => setOrgCode(e.target.value)}
+                    required
+                    autoFocus
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className="input-base w-full font-mono"
+                    placeholder="XXXX-XXXX-XXXX"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1.5">
@@ -191,8 +255,10 @@ export default function SignupPage() {
               >
                 {submitting ? (
                   <Loader2 size={18} className="animate-spin" />
-                ) : (
+                ) : mode === "create" ? (
                   "Create Account"
+                ) : (
+                  "Join Organization"
                 )}
               </Button>
             </form>

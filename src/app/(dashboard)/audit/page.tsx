@@ -10,7 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { get, ApiError } from "@/lib/api-client";
+import { get, apiErrorMessage } from "@/lib/api-client";
 import { smartTimestamp } from "@/lib/utils";
 import { PageGuide, GuideSecurity } from "@/components/guides";
 import { PageHeader } from "@/components/shared/page-header";
@@ -93,7 +93,7 @@ export default function AuditLogPage() {
       setTotal(data.total ?? 0);
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load audit logs");
+      setError(apiErrorMessage(err, "Failed to load audit logs"));
     } finally {
       setLoading(false);
     }

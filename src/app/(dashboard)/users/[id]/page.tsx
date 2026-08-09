@@ -29,8 +29,12 @@ import {
   BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { API_BASE, safeJsonParse } from "@/lib/api-client";
+import { API_BASE, safeJsonParse, patch as apiPatch, ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ErrorState } from "@/components/shared/error-state";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { useUser } from "@/contexts/user-context";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -508,12 +512,18 @@ export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
   const userId = params.id as string;
+  const { isAdmin, user: me } = useUser();
 
   // ── Data state ────────────────────────────────────────────────────────────
   const [user, setUser] = useState<UserWithStats | null>(null);
   const [summary, setSummary] = useState<UserSummaryResponse | null>(null);
   const [instructions, setInstructions] = useState<CustomInstruction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [forbidden, setForbidden] = useState(false);
+
+  // ── Role-change state ─────────────────────────────────────────────────────
+  const [roleChangeOpen, setRoleChangeOpen] = useState(false);
+  const [roleChanging, setRoleChanging] = useState(false);
 
   // ── Summary generation state ──────────────────────────────────────────────
   const [generating, setGenerating] = useState(false);
@@ -563,6 +573,11 @@ export default function UserDetailPage() {
           router.replace("/users");
           return;
         }
+        if (userRes.status === 403) {
+          setForbidden(true);
+          setLoading(false);
+          return;
+        }
         throw new Error(`Failed to load user: ${userRes.status}`);
       }
 
@@ -589,6 +604,27 @@ export default function UserDetailPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // ── Role management ────────────────────────────────────────────────────────
+
+  const handleRoleChange = async () => {
+    if (!user) return;
+    const to: "admin" | "member" = user.role === "admin" ? "member" : "admin";
+    setRoleChanging(true);
+    try {
+      const updated = await apiPatch<{ role?: string }>(`/v1/users/${user.id}`, { role: to });
+      setUser((prev) =>
+        prev ? { ...prev, role: (updated.role ?? to) as "admin" | "member" } : prev,
+      );
+      setRoleChangeOpen(false);
+      showToast(to === "admin" ? "User is now an admin" : "User is now a member", "success");
+    } catch (err) {
+      if (err instanceof ApiError && err.isForbidden) showToast("Admin access required", "error");
+      else showToast(err instanceof Error ? err.message : "Failed to update role", "error");
+    } finally {
+      setRoleChanging(false);
+    }
+  };
 
   // ── Generate summary ──────────────────────────────────────────────────────
 
@@ -690,6 +726,25 @@ export default function UserDetailPage() {
     showToast(`Instruction "${deleteInstructionTarget.name}" deleted`, "success");
   };
 
+  // ── Forbidden (member JWT on admin-gated user) ───────────────────────────
+
+  if (forbidden) {
+    return (
+      <div className="space-y-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push("/users")}
+          className="-ml-2"
+        >
+          <ArrowLeft size={14} />
+          Back to Users
+        </Button>
+        <ErrorState message="Admin access required" />
+      </div>
+    );
+  }
+
   // ── Loading skeleton ─────────────────────────────────────────────────────
 
   if (loading) {
@@ -771,13 +826,24 @@ export default function UserDetailPage() {
                   User overview
                 </p>
               </div>
-              {/* Link to sessions list for this user */}
-              <Link href={`/sessions?userId=${encodeURIComponent(user.id)}`}>
-                <Button variant="ghost" size="sm" className="text-surface-400 hover:text-white gap-1.5">
-                  <ArrowUpRight size={14} />
-                  Sessions
-                </Button>
-              </Link>
+              {/* Link to sessions list for this user + role management */}
+              <div className="flex items-center gap-2">
+                {isAdmin && me?.id !== user.id && (
+                  <Button
+                    variant={user.role === "admin" ? "secondary" : "primary"}
+                    size="sm"
+                    onClick={() => setRoleChangeOpen(true)}
+                  >
+                    {user.role === "admin" ? "Remove Admin" : "Make Admin"}
+                  </Button>
+                )}
+                <Link href={`/sessions?userId=${encodeURIComponent(user.id)}`}>
+                  <Button variant="ghost" size="sm" className="text-surface-400 hover:text-white gap-1.5">
+                    <ArrowUpRight size={14} />
+                    Sessions
+                  </Button>
+                </Link>
+              </div>
             </div>
 
             {/* Metadata grid */}
@@ -828,7 +894,12 @@ export default function UserDetailPage() {
                 icon={<Shield size={16} />}
                 label="Role"
               >
-                <span className="capitalize">{user.role}</span>
+                <Badge variant={user.role === "admin" ? "brand" : "default"} size="sm">
+                  {user.role === "admin" ? "Admin" : "Member"}
+                </Badge>
+                {me?.id === user.id && (
+                  <span className="ml-2 text-xs text-surface-500">(you)</span>
+                )}
               </MetadataRow>
 
               {/* Created */}
@@ -1019,6 +1090,22 @@ export default function UserDetailPage() {
           onConfirm={handleDeleteInstruction}
         />
       )}
+
+      {/* Role change ConfirmDialog */}
+      <ConfirmDialog
+        open={roleChangeOpen}
+        title={user?.role === "admin" ? "Remove Admin" : "Make Admin"}
+        message={
+          user?.role === "admin"
+            ? `Remove admin access from "${user.name || user.external_id}"? They will become a regular member.`
+            : `Grant admin access to "${user?.name || user?.external_id}"? Admins can manage org users, settings, and view monitoring/audit data.`
+        }
+        confirmLabel={user?.role === "admin" ? "Remove Admin" : "Make Admin"}
+        variant={user?.role === "admin" ? "danger" : "primary"}
+        loading={roleChanging}
+        onConfirm={handleRoleChange}
+        onCancel={() => setRoleChangeOpen(false)}
+      />
 
       {/* ═══ Toast ═══ */}
       <Toast toast={toast} onDismiss={dismissToast} />

@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { Brain, Eye, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
-import { get, patch, ApiError } from "@/lib/api-client";
+import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { SecretInput } from "@/components/ui/secret-input";
@@ -236,7 +236,7 @@ export default function LlmConfigPage() {
       setStored(data.stored ?? {});
       setError(null);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to load configuration";
+      const msg = apiErrorMessage(err, "Failed to load configuration");
       setError(msg);
       // initialForm keeps current values so the form remains interactive
     } finally {

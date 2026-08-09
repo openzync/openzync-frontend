@@ -32,6 +32,7 @@ import {
 import { cn } from "@/lib/utils";
 import { get, getAccessToken } from "@/lib/api-client";
 import { RequireAuth } from "./require-auth";
+import { useUser } from "@/contexts/user-context";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { usePinnedProjects } from "@/hooks/use-pinned-projects";
 import { CommandPalette } from "@/components/shared/command-palette";
@@ -70,6 +71,7 @@ function Sidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { isAdmin } = useUser();
 
   const inProject = isInProject(pathname);
   const onProjectList = isOnProjectList(pathname);
@@ -175,7 +177,10 @@ function Sidebar({
             <div className="space-y-0.5">
               {[
                 { label: "Overview", href: "/overview", icon: <LayoutDashboard size={18} /> },
-                { label: "Monitoring", href: "/monitoring", icon: <Activity size={18} /> },
+                // Monitoring is org-admin only — hidden from members
+                ...(isAdmin
+                  ? [{ label: "Monitoring", href: "/monitoring", icon: <Activity size={18} /> }]
+                  : []),
               ].map((item) => {
                 const active = isActive(item.href);
                 return (
@@ -344,12 +349,18 @@ function Sidebar({
             </div>
             <div className="space-y-0.5">
               {[
-                { label: "Users", href: "/users", icon: <Users size={18} /> },
+                // Users + org-level Configuration are org-admin only — hidden from members.
+                // The remaining Administration items stay visible to all members.
+                ...(isAdmin
+                  ? [{ label: "Users", href: "/users", icon: <Users size={18} /> }]
+                  : []),
                 { label: "Extraction Schemas", href: "/settings/schemas", icon: <FileJson size={18} /> },
                 { label: "Webhooks", href: "/settings/webhooks", icon: <Webhook size={18} /> },
                 { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: <FileText size={18} /> },
                 { label: "Prompt Templates", href: "/settings/prompts", icon: <FileCode size={18} /> },
-                { label: "Configuration", href: "/settings/org-config", icon: <SlidersHorizontal size={18} /> },
+                ...(isAdmin
+                  ? [{ label: "Configuration", href: "/settings/org-config", icon: <SlidersHorizontal size={18} /> }]
+                  : []),
               ].map((item) => {
                 const active = isActive(item.href);
                 return (
@@ -388,7 +399,10 @@ function Sidebar({
             </div>
             <div className="space-y-0.5">
               {[
-                { label: "Audit Log", href: "/audit", icon: <Shield size={18} /> },
+                // Audit Log is org-admin only — hidden from members
+                ...(isAdmin
+                  ? [{ label: "Audit Log", href: "/audit", icon: <Shield size={18} /> }]
+                  : []),
                 { label: "Account Settings", href: "/settings", icon: <Settings size={18} /> },
               ].map((item) => {
                 const active = isActive(item.href);

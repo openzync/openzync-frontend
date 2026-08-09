@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import {
-  Plus, Copy, Edit, Trash2, RefreshCw, UsersIcon, AlertCircle, Eye,
+  Plus, Copy, Edit, Trash2, RefreshCw, UsersIcon, AlertCircle, Eye, ShieldCheck, ShieldOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { get, post, patch as apiPatch, del as apiDel, ApiError } from "@/lib/api-client";
+import { get, post, patch as apiPatch, del as apiDel, ApiError, apiErrorMessage } from "@/lib/api-client";
 import { formatDate, timeAgo, copyToClipboard } from "@/lib/utils";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
@@ -17,15 +17,20 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
+import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { useUser } from "@/contexts/user-context";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
+
+type UserRole = "admin" | "member";
 
 interface UserItem {
   id: string;
   external_id: string;
   name: string | null;
   email: string | null;
+  role: UserRole;
   is_active: boolean;
   created_at: string;
 }
@@ -118,6 +123,7 @@ function UserFormDialog({
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function UsersPage() {
+  const { isAdmin, user: me } = useUser();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -130,6 +136,8 @@ export default function UsersPage() {
   const [editTarget, setEditTarget] = useState<UserItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserItem | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [roleChangeTarget, setRoleChangeTarget] = useState<{ user: UserItem; to: UserRole } | null>(null);
+  const [changingRole, setChangingRole] = useState(false);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
@@ -147,7 +155,7 @@ export default function UsersPage() {
       setNextCursor(data.next_cursor);
       setHasMore(data.has_more);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load users");
+      setError(apiErrorMessage(err, "Failed to load users"));
     } finally { setLoading(false); }
   }, [fetchUsers]);
 
@@ -160,7 +168,7 @@ export default function UsersPage() {
       setNextCursor(data.next_cursor);
       setHasMore(data.has_more);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to load more users");
+      toast.error(apiErrorMessage(err, "Failed to load more users"));
     } finally { setLoadingMore(false); }
   }, [nextCursor, loadingMore, fetchUsers]);
 
@@ -207,6 +215,21 @@ export default function UsersPage() {
     toast.success(ok ? "User ID copied to clipboard" : "Failed to copy");
   };
 
+  const handleRoleChange = async () => {
+    if (!roleChangeTarget) return;
+    const { user: target, to } = roleChangeTarget;
+    setChangingRole(true);
+    try {
+      await apiPatch(`/v1/users/${target.id}`, { role: to });
+      setRoleChangeTarget(null);
+      toast.success(`User "${target.external_id}" is now ${to === "admin" ? "an admin" : "a member"}`);
+      await loadUsers();
+    } catch (err) {
+      if (err instanceof ApiError && err.isForbidden) toast.error("Admin access required");
+      else toast.error(apiErrorMessage(err, "Failed to update role"));
+    } finally { setChangingRole(false); }
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -215,9 +238,11 @@ export default function UsersPage() {
         title="Users"
         description="Manage end-users within your organization"
         actions={
-          <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>
-            Create User
-          </Button>
+          isAdmin && (
+            <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>
+              Create User
+            </Button>
+          )
         }
       />
 
@@ -236,41 +261,67 @@ export default function UsersPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">External ID</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Role</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Created</th>
                 <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-surface-400">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-800">
               {loading ? (
-                <TableSkeleton rows={5} cols={5} colWidths={["w-32", "w-24", "w-36", "w-28", "w-32"]} />
+                <TableSkeleton rows={5} cols={6} colWidths={["w-32", "w-24", "w-36", "w-20", "w-28", "w-40"]} />
               ) : users.length === 0 ? (
-                <tr><td colSpan={5}><EmptyState icon={UsersIcon} title="No users found" description="Create your first user to get started" /></td></tr>
+                <tr><td colSpan={6}><EmptyState icon={UsersIcon} title="No users found" description="Create your first user to get started" /></td></tr>
               ) : (
-                users.map((user, idx) => (
-                  <tr key={user.id} className={cn("transition-colors hover:bg-surface-800/50", idx % 2 === 0 ? "bg-surface-950/50" : "")}>
-                    <td className="px-4 py-3"><span className="font-mono text-xs text-white">{user.external_id}</span></td>
-                    <td className="px-4 py-3 text-surface-200">
-                      {user.name || <span className="text-surface-500 italic">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-surface-200">
-                      {user.email || <span className="text-surface-500 italic">—</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col">
-                        <span className="text-surface-200 text-xs">{formatDate(user.created_at)}</span>
-                        <span className="text-surface-500 text-[11px]">{timeAgo(user.created_at)}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Link href={`/users/${user.id}`}><Button variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-white" title="View User"><Eye size={14} /></Button></Link>
-                        <Button variant="ghost" size="sm" onClick={() => handleCopyId(user.id)} className="rounded-md text-surface-400 hover:text-white" title="Copy User ID"><Copy size={14} /></Button>
-                        <Button variant="ghost" size="sm" onClick={() => setEditTarget(user)} className="rounded-md text-surface-400 hover:text-white" title="Edit User"><Edit size={14} /></Button>
-                        <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(user)} className="rounded-md text-surface-400 hover:text-error" title="Delete User"><Trash2 size={14} /></Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                users.map((user, idx) => {
+                  const isSelf = me?.id != null && user.id === me.id;
+                  return (
+                    <tr key={user.id} className={cn("transition-colors hover:bg-surface-800/50", idx % 2 === 0 ? "bg-surface-950/50" : "")}>
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-xs text-white">{user.external_id}</span>
+                        {isSelf && (
+                          <span className="ml-2 rounded-full bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-medium text-brand-300">you</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-surface-200">
+                        {user.name || <span className="text-surface-500 italic">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-surface-200">
+                        {user.email || <span className="text-surface-500 italic">—</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={user.role === "admin" ? "brand" : "default"} size="sm">
+                          {user.role === "admin" ? "Admin" : "Member"}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col">
+                          <span className="text-surface-200 text-xs">{formatDate(user.created_at)}</span>
+                          <span className="text-surface-500 text-[11px]">{timeAgo(user.created_at)}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {isAdmin && !isSelf && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setRoleChangeTarget({ user, to: user.role === "admin" ? "member" : "admin" })}
+                              className="rounded-md text-surface-400 hover:text-white"
+                              title={user.role === "admin" ? "Remove admin" : "Make admin"}
+                              aria-label={user.role === "admin" ? `Remove admin from ${user.external_id}` : `Make ${user.external_id} an admin`}
+                            >
+                              {user.role === "admin" ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
+                            </Button>
+                          )}
+                          <Link href={`/users/${user.id}`}><Button variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-white" title="View User"><Eye size={14} /></Button></Link>
+                          <Button variant="ghost" size="sm" onClick={() => handleCopyId(user.id)} className="rounded-md text-surface-400 hover:text-white" title="Copy User ID"><Copy size={14} /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => setEditTarget(user)} className="rounded-md text-surface-400 hover:text-white" title="Edit User"><Edit size={14} /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(user)} className="rounded-md text-surface-400 hover:text-error" title="Delete User"><Trash2 size={14} /></Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -305,6 +356,21 @@ export default function UsersPage() {
         loading={deleting}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={!!roleChangeTarget}
+        title={roleChangeTarget?.to === "admin" ? "Make Admin" : "Remove Admin"}
+        message={
+          roleChangeTarget?.to === "admin"
+            ? `Grant admin access to "${roleChangeTarget?.user.name || roleChangeTarget?.user.external_id}"? Admins can manage org users, settings, and view monitoring/audit data.`
+            : `Remove admin access from "${roleChangeTarget?.user.name || roleChangeTarget?.user.external_id}"? They will become a regular member.`
+        }
+        confirmLabel={roleChangeTarget?.to === "admin" ? "Make Admin" : "Remove Admin"}
+        variant={roleChangeTarget?.to === "admin" ? "primary" : "danger"}
+        loading={changingRole}
+        onConfirm={handleRoleChange}
+        onCancel={() => setRoleChangeTarget(null)}
       />
     </div>
   );

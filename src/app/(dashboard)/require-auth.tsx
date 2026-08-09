@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { AuthLoadingScreen } from "@/components/shared/auth-loading-screen";
+import { UserProvider } from "@/contexts/user-context";
 
 const MIN_DISPLAY_MS = 200;
 const UNAUTHORIZED_PAUSE_MS = 500;
@@ -52,5 +53,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     return <AuthLoadingScreen />;
   }
 
-  return <>{children}</>;
+  // Role context wraps the whole dashboard — Sidebar, layout, and every page
+  // read the org role from useUser().
+  return <UserProvider>{children}</UserProvider>;
 }

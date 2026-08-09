@@ -12,7 +12,7 @@ import {
   BarChart2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { get } from "@/lib/api-client";
+import { get, ApiError, apiErrorMessage } from "@/lib/api-client";
 import { timeAgo } from "@/lib/utils";
 import { PageGuide, GuideDashboard } from "@/components/guides";
 import { PageHeader } from "@/components/shared/page-header";
@@ -123,6 +123,7 @@ export default function MonitoringPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchData = useCallback(async (initial: boolean) => {
     if (initial) setLoading(true); else setRefreshing(true);
@@ -136,8 +137,13 @@ export default function MonitoringPage() {
         setTargets(Array.isArray(targetsData.targets) ? targetsData.targets : []);
       }
       setLastRefreshed(new Date());
-    } catch { /* silent */ }
-    finally { setLoading(false); setRefreshing(false); }
+      setLoadError(null);
+    } catch (err) {
+      // Metrics endpoints are admin-gated — members see a clear message, not a blank page.
+      setLoadError(err instanceof ApiError && err.isForbidden
+        ? "Admin access required"
+        : apiErrorMessage(err, "Unable to fetch monitoring data"));
+    } finally { setLoading(false); setRefreshing(false); }
   }, []);
 
   useEffect(() => {
@@ -172,6 +178,10 @@ export default function MonitoringPage() {
       <PageGuide title="Platform monitoring" illustration={<GuideDashboard />}>
         <p>Monitor your platform health and performance in real time. Track enrichment progress, error rates, API latency percentiles, queue depth, and Prometheus scrape targets.</p>
       </PageGuide>
+
+      {loadError && (
+        <ErrorState message={loadError} onRetry={() => { setLoadError(null); void fetchData(true); }} />
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -340,7 +350,7 @@ export default function MonitoringPage() {
           <div className="flex gap-4">
             {[1, 2, 3].map((i) => (<div key={i} className="h-4 w-20 rounded bg-surface-800 animate-pulse" />))}
           </div>
-        ) : (
+        ) : loadError ? null : (
           <ErrorState message="Unable to fetch monitoring data" onRetry={() => fetchData(true)} />
         )}
       </div>

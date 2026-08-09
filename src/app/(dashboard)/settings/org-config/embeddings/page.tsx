@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { Eye, EyeOff, AudioWaveform, RotateCcw } from "lucide-react";
-import { get, patch, ApiError } from "@/lib/api-client";
+import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
@@ -125,7 +125,7 @@ export default function EmbeddingsConfigPage() {
       setDirty(false);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load configuration");
+      setError(apiErrorMessage(err, "Failed to load configuration"));
     } finally {
       setLoading(false);
     }

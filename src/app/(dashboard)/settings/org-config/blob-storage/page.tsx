@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { RotateCcw, HardDrive } from "lucide-react";
 import { toast } from "sonner";
-import { get, patch, ApiError } from "@/lib/api-client";
+import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
 import { SecretInput } from "@/components/ui/secret-input";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
@@ -129,9 +129,7 @@ export default function BlobStorageConfigPage() {
       setDirty(false);
       setError(null);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load configuration",
-      );
+      setError(apiErrorMessage(err, "Failed to load configuration"));
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { ConfigDirtyProvider, useConfigDirty } from "@/contexts/config-dirty";
 
 const TABS = [
+  { label: "Organization", href: "/settings/org-config", id: "organization" },
   { label: "LLM", href: "/settings/org-config/llm", id: "llm" },
   { label: "Embeddings", href: "/settings/org-config/embeddings", id: "embeddings" },
   { label: "Graph", href: "/settings/org-config/graph", id: "graph" },

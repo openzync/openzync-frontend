@@ -122,6 +122,10 @@ export class ApiError extends Error {
     return this.status === 401;
   }
 
+  get isForbidden(): boolean {
+    return this.status === 403;
+  }
+
   get isNotFound(): boolean {
     return this.status === 404;
   }
@@ -141,7 +145,7 @@ export class ApiError extends Error {
  * `messages.0.content: Field required` style text instead of rendering
  * `[object Object]`.
  */
-function apiErrorMessage(body: unknown, status: number): string {
+function parseApiErrorMessage(body: unknown, status: number): string {
   if (!body || typeof body !== "object") return `Request failed with status ${status}`;
   const b = body as Record<string, unknown>;
   if (typeof b.message === "string") return b.message;
@@ -168,6 +172,18 @@ function apiErrorMessage(body: unknown, status: number): string {
   }
   if (typeof b.title === "string") return b.title;
   return `Request failed with status ${status}`;
+}
+
+/**
+ * Standard error-message resolution for page load failures.
+ * Maps 403 (admin-gated endpoint hit by a member JWT) to a clear message;
+ * everything else falls through to the parsed API error text.
+ */
+export function apiErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) {
+    return err.isForbidden ? "Admin access required" : err.message;
+  }
+  return fallback;
 }
 
 // ─── Core request helper ──────────────────────────────────────────────────────
@@ -226,7 +242,7 @@ async function request<T>(
   }
 
   if (!res.ok) {
-    throw new ApiError(apiErrorMessage(body, res.status), res.status, body);
+    throw new ApiError(parseApiErrorMessage(body, res.status), res.status, body);
   }
 
   return body as T;
@@ -324,7 +340,7 @@ async function uploadWithBlobs<T>(
   if (res.status === 204) return {} as T;
   const body = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new ApiError(apiErrorMessage(body, res.status), res.status, body);
+    throw new ApiError(parseApiErrorMessage(body, res.status), res.status, body);
   }
   return body as T;
 }
@@ -339,6 +355,24 @@ export interface CursorPageParams {
 export interface OffsetPageParams {
   limit?: number;
   offset?: number;
+}
+
+// ─── Auth endpoints ───────────────────────────────────────────────────────────
+
+export interface JoinRequest {
+  email: string;
+  password: string;
+  org_code: string;
+}
+
+export interface SignupResponse {
+  email: string;
+  message: string;
+}
+
+/** POST /v1/auth/join — join an existing organization via its org code. */
+export function join(data: JoinRequest): Promise<SignupResponse> {
+  return post<SignupResponse>("/v1/auth/join", data);
 }
 
 /** Normalise API responses that might use `data`, `items`, or be a bare array. */
