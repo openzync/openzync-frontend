@@ -74,6 +74,8 @@ describe("InvitePage", () => {
     await screen.findByText(/been invited to join/);
     expect(window.location.search).toBe("");
     expect(window.location.href).not.toContain("invite-tok-123");
+    // Mount fetches exactly once — a re-render re-firing the effect fails this.
+    expect(mockGetInviteInfo).toHaveBeenCalledTimes(1);
   });
 
   it("renders the invite even when the URL strip re-renders mid-fetch", async () => {
@@ -106,6 +108,8 @@ describe("InvitePage", () => {
 
     expect(await screen.findByText(/been invited to join/)).toBeInTheDocument();
     expect(screen.getByDisplayValue("alice@acme.com")).toBeInTheDocument();
+    // The stripped-URL re-render must not re-fire the fetch — exactly one call.
+    expect(mockGetInviteInfo).toHaveBeenCalledTimes(1);
   });
 
   it("shows the invalid/expired card when the token is missing", async () => {

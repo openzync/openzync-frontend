@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import UsersPage from "@/app/(dashboard)/users/page";
+import { ApiError } from "@/lib/api-client";
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -353,5 +354,67 @@ describe("UsersPage", () => {
     await waitFor(() => {
       expect(mockRevokeInvite).toHaveBeenCalledWith("u-pending");
     });
+  });
+
+  it("submits the Invite Member dialog with trimmed email and name, then closes", async () => {
+    const user = userEvent.setup();
+    mockInviteUser.mockResolvedValue({});
+    renderAsAdmin();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Invite Member" }),
+    );
+    await user.type(
+      screen.getByPlaceholderText("e.g. jane@acme.com"),
+      "  jane@acme.com  ",
+    );
+    await user.type(
+      screen.getByPlaceholderText("e.g. Jane Doe"),
+      "  Jane Doe  ",
+    );
+    await user.click(screen.getByRole("button", { name: "Send Invite" }));
+
+    // The dialog trims before submitting — the call must carry trimmed values.
+    await waitFor(() => {
+      expect(mockInviteUser).toHaveBeenCalledWith("jane@acme.com", "Jane Doe");
+    });
+
+    // Success closes the dialog (the "Send Invite" button only lives inside it).
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", { name: "Send Invite" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("keeps the dialog open and shows the server detail on a 409", async () => {
+    const user = userEvent.setup();
+    mockInviteUser.mockRejectedValue(
+      new ApiError("Invite already pending for this email", 409, null),
+    );
+    renderAsAdmin();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Invite Member" }),
+    );
+    await user.type(
+      screen.getByPlaceholderText("e.g. jane@acme.com"),
+      "jane@acme.com",
+    );
+    await user.type(
+      screen.getByPlaceholderText("e.g. Jane Doe"),
+      "Jane Doe",
+    );
+    await user.click(screen.getByRole("button", { name: "Send Invite" }));
+
+    // The page renders err.message inside the dialog — no toast-only fallback.
+    expect(
+      await screen.findByText("Invite already pending for this email"),
+    ).toBeInTheDocument();
+    expect(mockInviteUser).toHaveBeenCalledTimes(1);
+    // Dialog stays open so the admin can fix the input and retry.
+    expect(
+      screen.getByRole("button", { name: "Send Invite" }),
+    ).toBeInTheDocument();
   });
 });
