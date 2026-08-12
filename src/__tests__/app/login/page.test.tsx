@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LoginPage from "@/app/login/page";
+import { API_BASE } from "@/lib/api-client";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ describe("LoginPage", () => {
   it("has email input with correct attributes", () => {
     render(<LoginPage />);
     const emailInput = screen.getByPlaceholderText("you@example.com");
-    expect(emailInput).toHaveAttribute("type", "email");
+    expect(emailInput).toHaveAttribute("type", "text");
     expect(emailInput).toHaveAttribute("required");
     expect(emailInput).toHaveAttribute("placeholder", "you@example.com");
   });
@@ -123,6 +124,33 @@ describe("LoginPage", () => {
     expect(mockReplace).toHaveBeenCalledWith("/overview");
     expect(sessionStorage.getItem("mg_access_token")).toBe("access123");
     expect(sessionStorage.getItem("mg_refresh_token")).toBe("refresh123");
+  });
+
+  it("allows root user to sign in with non-email identifier", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          access_token: "access123",
+          refresh_token: "refresh123",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    render(<LoginPage />);
+    await user.type(screen.getByPlaceholderText("you@example.com"), "root");
+    await user.type(screen.getByPlaceholderText("Enter your password"), "root-password");
+    await user.click(screen.getByRole("button", { name: "Sign In" }));
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${API_BASE}/v1/auth/login`,
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "root", password: "root-password" }),
+      }),
+    );
   });
 
   it("redirects to MFA page when requires_mfa is true", async () => {

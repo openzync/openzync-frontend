@@ -1,0 +1,152 @@
+"use client";
+
+/**
+ * Non-secret system defaults rendered as label + input, shared by the
+ * superadmin System Config page and the per-org config page.
+ *
+ * Field names mirror the org-config `stored` map so the values round-trip
+ * through PATCH unchanged. Secrets (API keys) are deliberately NOT listed.
+ */
+
+export interface ConfigFieldMeta {
+  key: string;
+  label: string;
+  kind: "text" | "number" | "select";
+  options?: { value: string; label: string }[];
+  hint?: string;
+}
+
+export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
+  {
+    key: "llm_backend",
+    label: "LLM Backend",
+    kind: "select",
+    options: [
+      { value: "openai", label: "OpenAI" },
+      { value: "anthropic", label: "Anthropic" },
+      { value: "ollama", label: "Ollama" },
+      { value: "openai_like", label: "OpenAI-compatible" },
+      { value: "openrouter", label: "OpenRouter" },
+      { value: "azure", label: "Azure OpenAI" },
+    ],
+  },
+  { key: "llm_model", label: "LLM Model", kind: "text" },
+  {
+    key: "llm_temperature",
+    label: "LLM Temperature",
+    kind: "number",
+    hint: "0–2 sampling temperature",
+  },
+  { key: "llm_max_tokens", label: "LLM Max Tokens", kind: "number" },
+  {
+    key: "embedding_backend",
+    label: "Embedding Backend",
+    kind: "select",
+    options: [
+      { value: "openai", label: "OpenAI" },
+      { value: "ollama", label: "Ollama" },
+      { value: "openrouter", label: "OpenRouter" },
+      { value: "huggingface", label: "Hugging Face" },
+      { value: "sentence_transformers", label: "Sentence Transformers" },
+    ],
+  },
+  { key: "embedding_model", label: "Embedding Model", kind: "text" },
+  { key: "embedding_dim", label: "Embedding Dimensions", kind: "number" },
+  {
+    key: "graph_backend",
+    label: "Graph Backend",
+    kind: "select",
+    options: [
+      { value: "postgres", label: "PostgreSQL (pgvector)" },
+      { value: "surrealdb", label: "SurrealDB" },
+      { value: "falkordb", label: "FalkorDB" },
+      { value: "none", label: "No graph backend" },
+    ],
+  },
+  {
+    key: "graph_search_type",
+    label: "Graph Search Type",
+    kind: "select",
+    options: [
+      { value: "hybrid", label: "Hybrid (vector + keyword)" },
+      { value: "bm25", label: "BM25 (keyword)" },
+      { value: "vector", label: "Vector" },
+    ],
+  },
+  { key: "graph_max_traversal_depth", label: "Graph Max Traversal Depth", kind: "number" },
+  {
+    key: "reranker_backend",
+    label: "Reranker Backend",
+    kind: "select",
+    options: [
+      { value: "none", label: "None (disabled)" },
+      { value: "cohere", label: "Cohere" },
+      { value: "voyage", label: "Voyage" },
+      { value: "openai", label: "OpenAI" },
+    ],
+  },
+  { key: "reranker_model", label: "Reranker Model", kind: "text" },
+  {
+    key: "context_cache_ttl",
+    label: "Context Cache TTL (seconds)",
+    kind: "number",
+    hint: "How long context data is cached (0 = no caching)",
+  },
+];
+
+export function ConfigFields({
+  values,
+  onChange,
+  disabled = false,
+}: {
+  values: Record<string, unknown>;
+  onChange: (key: string, value: string | number) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="space-y-4 max-w-md">
+      {SYSTEM_DEFAULT_FIELDS.map((field) => (
+        <div key={field.key}>
+          <label className="block">
+            <span className="block text-sm font-medium text-surface-300 mb-1">
+              {field.label}
+            </span>
+            {field.kind === "select" ? (
+              <select
+                className="input-base w-full"
+                value={String(values[field.key] ?? "")}
+                disabled={disabled}
+                onChange={(e) => onChange(field.key, e.target.value)}
+              >
+                {field.options?.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            ) : field.kind === "number" ? (
+              <input
+                className="input-base w-full"
+                type="number"
+                value={String(values[field.key] ?? "")}
+                disabled={disabled}
+                onChange={(e) => onChange(field.key, parseFloat(e.target.value) || 0)}
+              />
+            ) : (
+              <input
+                className="input-base w-full"
+                type="text"
+                value={String(values[field.key] ?? "")}
+                disabled={disabled}
+                onChange={(e) => onChange(field.key, e.target.value)}
+              />
+            )}
+          </label>
+          {field.hint && (
+            <p className="text-xs text-surface-500 mt-1">{field.hint}</p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}

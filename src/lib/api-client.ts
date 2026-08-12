@@ -434,6 +434,80 @@ export function revokeInvite(userId: string): Promise<void> {
   return del(`/v1/admin/users/invites/${userId}`);
 }
 
+// ─── Registration gating & platform super-admin console ──────────────────────
+
+export type OrgCreationPolicy = "allow_all" | "reject_all" | "approvals";
+export type ApprovalScope = "in_app" | "public_signup" | "both";
+export type OrgApprovalStatus = "pending" | "approved" | "rejected";
+
+/** GET /v1/auth/registration-status — PUBLIC; drives signup/join gating. */
+export interface RegistrationStatus {
+  org_creation_policy: OrgCreationPolicy;
+  approval_scope: ApprovalScope;
+}
+
+export interface OrgListEntry {
+  id: string;
+  name: string;
+  status: OrgApprovalStatus;
+  created_at: string;
+}
+
+/** GET /admin/system/orgs — offset-paginated list of ALL orgs (superadmin only). */
+export interface OrgListResponse {
+  data: OrgListEntry[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/**
+ * GET/PATCH /admin/system/config — superadmin system defaults.
+ * `org_creation_policy`/`approval_scope` are flat; the remaining non-secret
+ * defaults use the same field names as the org-config `stored` map.
+ */
+export interface SystemConfigResponse {
+  org_creation_policy: OrgCreationPolicy;
+  approval_scope: ApprovalScope;
+  [key: string]: unknown;
+}
+
+/** POST /v1/org-requests — any authenticated user; creates an org (allow_all) or a pending request (approvals). */
+export interface OrgRequestCreate {
+  organization_name: string;
+  admin_email: string;
+  admin_name: string;
+}
+
+export interface OrgRequestResponse {
+  organization_name: string;
+  admin_email: string;
+  status: string;
+}
+
+/**
+ * POST /v1/auth/change-password — rotates the token pair and clears the
+ * `must_change_password` flag. Success is a fresh session: overwrite tokens
+ * exactly like acceptInvite, never merge with a stale pair.
+ */
+export async function changePassword(
+  old_password: string,
+  new_password: string,
+): Promise<TokenPair> {
+  const tokens = await post<TokenPair>("/v1/auth/change-password", {
+    old_password,
+    new_password,
+  });
+  clearTokens();
+  storeTokens(tokens.access_token, tokens.refresh_token);
+  return tokens;
+}
+
+/** GET /v1/auth/registration-status — PUBLIC; signup page gates on this. */
+export function getRegistrationStatus(): Promise<RegistrationStatus> {
+  return get<RegistrationStatus>("/v1/auth/registration-status");
+}
+
 // ─── Re-export base URL for edge cases ───────────────────────────────────────
 
 export { API_BASE, getAccessToken, storeTokens, clearTokens, uploadWithBlobs };

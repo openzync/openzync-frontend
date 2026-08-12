@@ -63,9 +63,16 @@ export default function LoginPage() {
       // Store tokens
       sessionStorage.setItem("mg_access_token", data.access_token);
       sessionStorage.setItem("mg_refresh_token", data.refresh_token);
+      // Forced password rotation is signalled by the /me payload and enforced
+      // by MustChangePasswordRedirect in require-auth — LoginResponse has no
+      // must_change_password field, so this branch was dead code.
       router.replace("/overview");
-    } catch (err: any) {
-      setError(err.message ?? "Connection error. Please try again.");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Connection error. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -130,11 +137,11 @@ export default function LoginPage() {
                 </label>
                 <input
                   ref={emailRef}
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  autoComplete="email"
+                  autoComplete="username"
                   className="input-base w-full"
                   placeholder="you@example.com"
                   suppressHydrationWarning

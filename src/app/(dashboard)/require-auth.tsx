@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { AuthLoadingScreen } from "@/components/shared/auth-loading-screen";
-import { UserProvider } from "@/contexts/user-context";
+import { UserProvider, useUser } from "@/contexts/user-context";
 
 const MIN_DISPLAY_MS = 200;
 const UNAUTHORIZED_PAUSE_MS = 500;
@@ -16,6 +17,24 @@ function isTokenExpired(): boolean {
   } catch {
     return true;
   }
+}
+
+/**
+ * Redirects to /change-password when the profile says the password must be
+ * rotated. Lives inside UserProvider so it reads the fetched profile — the
+ * backstop for the login-page hint when the login response lacks the flag.
+ */
+function MustChangePasswordRedirect() {
+  const router = useRouter();
+  const { mustChangePassword, loading } = useUser();
+
+  useEffect(() => {
+    if (!loading && mustChangePassword) {
+      router.replace("/change-password");
+    }
+  }, [mustChangePassword, loading, router]);
+
+  return null;
 }
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -55,5 +74,10 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
 
   // Role context wraps the whole dashboard — Sidebar, layout, and every page
   // read the org role from useUser().
-  return <UserProvider>{children}</UserProvider>;
+  return (
+    <UserProvider>
+      <MustChangePasswordRedirect />
+      {children}
+    </UserProvider>
+  );
 }

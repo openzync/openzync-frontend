@@ -28,6 +28,7 @@ import {
   FolderKanban,
   MapPin,
   X,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get, getAccessToken } from "@/lib/api-client";
@@ -71,7 +72,7 @@ function Sidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAdmin } = useUser();
+  const { isAdmin, isSuperadmin } = useUser();
 
   const inProject = isInProject(pathname);
   const onProjectList = isOnProjectList(pathname);
@@ -399,6 +400,10 @@ function Sidebar({
                 ...(isAdmin
                   ? [{ label: "Audit Log", href: "/audit", icon: <Shield size={18} /> }]
                   : []),
+                // Platform Admin is root/superadmin only — the platform console.
+                ...(isSuperadmin
+                  ? [{ label: "Platform Admin", href: "/superadmin/orgs", icon: <ShieldCheck size={18} /> }]
+                  : []),
                 { label: "Account Settings", href: "/settings", icon: <Settings size={18} /> },
               ].map((item) => {
                 const active = isActive(item.href);
@@ -577,6 +582,13 @@ export default function DashboardLayout({
     if (pathname === "/projects") return [{ label: "Projects" }];
     if (pathname === "/overview") return [{ label: "Insights" }, { label: "Overview" }];
     if (pathname.startsWith("/monitoring")) return [{ label: "Insights" }, { label: "Monitoring" }];
+    if (pathname.startsWith("/superadmin")) {
+      if (pathname.endsWith("/requests")) return [{ label: "Platform Admin" }, { label: "Approval Requests" }];
+      if (pathname.endsWith("/config")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Configuration" }];
+      if (pathname.endsWith("/members")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Members" }];
+      if (pathname.endsWith("/orgs")) return [{ label: "Platform Admin" }, { label: "Organizations" }];
+      return [{ label: "Platform Admin" }, { label: "System Configuration" }];
+    }
     if (pathname.startsWith("/users")) return [{ label: "Administration" }, { label: "Users" }];
     if (pathname.startsWith("/audit")) return [{ label: "System" }, { label: "Audit Log" }];
     if (pathname.startsWith("/settings")) {

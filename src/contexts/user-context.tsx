@@ -11,13 +11,15 @@ import { get } from "@/lib/api-client";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-export type UserRole = "admin" | "member";
+export type UserRole = "admin" | "member" | "superadmin";
 
 export interface CurrentUser {
   id: string;
   email: string | null;
   name: string | null;
   role: UserRole;
+  /** Root/admin accounts flagged to rotate their password before first use. */
+  must_change_password: boolean;
 }
 
 interface UserContextValue {
@@ -25,6 +27,8 @@ interface UserContextValue {
   /** `null` while loading or when the profile fetch failed — never a guessed role. */
   role: UserRole | null;
   isAdmin: boolean;
+  isSuperadmin: boolean;
+  mustChangePassword: boolean;
   loading: boolean;
 }
 
@@ -48,11 +52,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
       try {
         const data = await get<Partial<CurrentUser>>("/v1/auth/me");
         if (!cancelled) {
+          // Unknown roles fail closed to "member" — a role the backend hasn't
+          // told us about must never unlock admin/superadmin surfaces.
+          const role: UserRole =
+            data.role === "superadmin"
+              ? "superadmin"
+              : data.role === "admin"
+                ? "admin"
+                : "member";
           setUser({
             id: data.id ?? "",
             email: data.email ?? null,
             name: data.name ?? null,
-            role: data.role === "admin" ? "admin" : "member",
+            role,
+            must_change_password: data.must_change_password ?? false,
           });
         }
       } catch {
@@ -68,9 +81,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const role: UserRole | null = user?.role ?? null;
   const isAdmin = role === "admin";
+  const isSuperadmin = role === "superadmin";
+  const mustChangePassword = user?.must_change_password ?? false;
 
   return (
-    <UserContext.Provider value={{ user, role, isAdmin, loading }}>
+    <UserContext.Provider
+      value={{ user, role, isAdmin, isSuperadmin, mustChangePassword, loading }}
+    >
       {children}
     </UserContext.Provider>
   );
