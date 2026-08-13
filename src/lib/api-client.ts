@@ -472,6 +472,42 @@ export interface SystemConfigResponse {
   [key: string]: unknown;
 }
 
+/**
+ * GET /admin/system/settings — superadmin read-only view of platform runtime
+ * settings from the secrets backend. Secrets arrive pre-masked; reveal the
+ * raw value per-key via revealSystemSetting.
+ */
+export interface SystemSettingItem {
+  key: string;
+  category: string;
+  is_set: boolean;
+  masked_value: string | null;
+}
+
+export interface SystemSettingsResponse {
+  data: SystemSettingItem[];
+}
+
+/** POST /admin/system/settings/{key}/reveal — raw value for one key. POST so the server-side audit middleware logs the reveal. */
+export interface SystemSettingRevealResponse {
+  key: string;
+  value: string;
+}
+
+/** GET /admin/system/settings — all runtime settings, masked. */
+export function getSystemSettings(): Promise<SystemSettingsResponse> {
+  return get<SystemSettingsResponse>("/admin/system/settings");
+}
+
+/** POST /admin/system/settings/{key}/reveal — raw value for exactly one key (no body). */
+export function revealSystemSetting(
+  key: string,
+): Promise<SystemSettingRevealResponse> {
+  return post<SystemSettingRevealResponse>(
+    `/admin/system/settings/${encodeURIComponent(key)}/reveal`,
+  );
+}
+
 /** POST /v1/org-requests — any authenticated user; creates an org (allow_all) or a pending request (approvals). */
 export interface OrgRequestCreate {
   organization_name: string;

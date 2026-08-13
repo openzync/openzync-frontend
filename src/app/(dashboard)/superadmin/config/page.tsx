@@ -1,9 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, Settings2, ShieldCheck } from "lucide-react";
+import { Check, ServerCog, Settings2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { get, patch, ApiError, apiErrorMessage, type OrgCreationPolicy, type ApprovalScope, type SystemConfigResponse } from "@/lib/api-client";
+import {
+  get,
+  patch,
+  ApiError,
+  apiErrorMessage,
+  getSystemSettings,
+  revealSystemSetting,
+  type OrgCreationPolicy,
+  type ApprovalScope,
+  type SystemConfigResponse,
+  type SystemSettingItem,
+} from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { ConfigFields, SYSTEM_DEFAULT_FIELDS } from "@/app/(dashboard)/superadmin/_components/config-fields";
@@ -58,6 +69,13 @@ export default function SuperadminConfigPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
+  const [settings, setSettings] = useState<SystemSettingItem[]>([]);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  // key → raw value; presence in this map means the row is revealed.
+  const [revealed, setRevealed] = useState<Record<string, string>>({});
+  // key currently being fetched by the reveal endpoint.
+  const [revealing, setRevealing] = useState<string | null>(null);
 
   const fetchConfig = useCallback(async () => {
     setLoading(true);
@@ -80,6 +98,58 @@ export default function SuperadminConfigPage() {
     };
     void run();
   }, [fetchConfig]);
+
+  const fetchSettings = useCallback(async () => {
+    setSettingsLoading(true);
+    setSettingsError(null);
+    try {
+      const res = await getSystemSettings();
+      setSettings(res.data);
+    } catch (err) {
+      setSettingsError(apiErrorMessage(err, "Failed to load system settings"));
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const run = async () => {
+      await fetchSettings();
+    };
+    void run();
+  }, [fetchSettings]);
+
+  /** Reveal raw value once; Hide only clears local state — never refetches. */
+  const handleToggleReveal = async (item: SystemSettingItem) => {
+    if (revealed[item.key]) {
+      setRevealed((prev) => {
+        const next = { ...prev };
+        delete next[item.key];
+        return next;
+      });
+      return;
+    }
+    setRevealing(item.key);
+    try {
+      const res = await revealSystemSetting(item.key);
+      setRevealed((prev) => ({ ...prev, [item.key]: res.value }));
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Failed to reveal setting"));
+    } finally {
+      setRevealing(null);
+    }
+  };
+
+  // Group by category, preserving the server's category order.
+  const groupedSettings = settings.reduce<Map<string, SystemSettingItem[]>>(
+    (acc, item) => {
+      const list = acc.get(item.category) ?? [];
+      list.push(item);
+      acc.set(item.category, list);
+      return acc;
+    },
+    new Map(),
+  );
 
   const hasChanged = () =>
     form.policy !== initialForm.policy ||
@@ -221,6 +291,82 @@ export default function SuperadminConfigPage() {
             <Check size={14} />
             Saved
           </span>
+        )}
+      </div>
+
+      {/* ── Runtime settings (read-only, masked) ───────────────────────────── */}
+      <div className="card-base p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-500/10">
+            <ServerCog size={20} className="text-accent-300" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold">System Settings (runtime)</h2>
+            <p className="text-xs text-surface-400">
+              Platform runtime configuration from the secrets backend — read-only
+            </p>
+          </div>
+        </div>
+
+        {settingsError && <ErrorState message={settingsError} onRetry={fetchSettings} />}
+
+        {settingsLoading ? (
+          <div className="space-y-2">
+            <div className="h-9 rounded bg-surface-800 animate-pulse w-full" />
+            <div className="h-9 rounded bg-surface-800 animate-pulse w-full" />
+            <div className="h-9 rounded bg-surface-800 animate-pulse w-48" />
+          </div>
+        ) : (
+          <div className="divide-y divide-surface-800">
+            {[...groupedSettings.entries()].map(([category, items]) => (
+              <div key={category} className="py-4 first:pt-0 last:pb-0">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-surface-400 mb-2">
+                  {category}
+                </h3>
+                <div className="space-y-1">
+                  {items.map((item) => {
+                    const raw = revealed[item.key];
+                    const isRevealed = raw !== undefined;
+                    return (
+                      <div
+                        key={item.key}
+                        className="flex items-start gap-3 rounded-md px-2 py-2.5 hover:bg-surface-800/40"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <code className="block font-mono text-xs text-surface-300 truncate" title={item.key}>
+                            {item.key}
+                          </code>
+                          {!item.is_set ? (
+                            <span className="block mt-1 text-sm italic text-surface-600">Not set</span>
+                          ) : isRevealed ? (
+                            <code className="block mt-1 font-mono text-xs text-warning break-all" title={item.key}>
+                              {raw}
+                            </code>
+                          ) : (
+                            <span className="block mt-1 font-mono text-sm text-surface-400 break-all">
+                              {item.masked_value ?? ""}
+                            </span>
+                          )}
+                        </div>
+                        {item.is_set && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="shrink-0"
+                            loading={revealing === item.key}
+                            disabled={revealing !== null && revealing !== item.key}
+                            onClick={() => void handleToggleReveal(item)}
+                          >
+                            {isRevealed ? "Hide" : "Reveal"}
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
