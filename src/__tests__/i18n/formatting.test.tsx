@@ -1,7 +1,16 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { useTimeAgo } from "@/hooks/use-time-ago";
-import { negotiateLocale, getLocaleDir, isSupportedLocale } from "@/i18n/config";
+import {
+  negotiateLocale,
+  getLocaleDir,
+  isSupportedLocale,
+  locales,
+  defaultLocale,
+  LOCALE_COOKIE,
+  LOCALE_COOKIE_MAX_AGE,
+  LOCALE_LABELS,
+} from "@/i18n/config";
 
 function TimeAgoProbe({ date }: { date: string | null }) {
   const timeAgo = useTimeAgo();
@@ -78,5 +87,24 @@ describe("locale helpers", () => {
     expect(getLocaleDir("en")).toBe("ltr");
     expect(getLocaleDir("ar")).toBe("rtl");
     expect(getLocaleDir("he")).toBe("rtl");
+  });
+});
+
+describe("i18n config constants", () => {
+  it("ships exactly one locale (en) with en as the default", () => {
+    expect(locales).toEqual(["en"]);
+    expect(defaultLocale).toBe("en");
+  });
+
+  it("exposes the OZ_LOCALE cookie contract used by middleware + switcher", () => {
+    expect(LOCALE_COOKIE).toBe("OZ_LOCALE");
+    expect(LOCALE_COOKIE_MAX_AGE).toBe(60 * 60 * 24 * 365);
+  });
+
+  it("labels every supported locale — switcher options stay data-driven", () => {
+    for (const locale of locales) {
+      expect(LOCALE_LABELS[locale]).toBeTypeOf("string");
+      expect(LOCALE_LABELS[locale].length).toBeGreaterThan(0);
+    }
   });
 });
