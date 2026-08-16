@@ -86,6 +86,18 @@ const PROMPT_CACHING_FIELDS = [
 ] as const;
 
 /**
+ * True when the nested prompt_caching object holds at least one non-null
+ * value. The backend stores an empty object / all-null keys after a
+ * "clear to defaults" save, so that state counts as NOT stored — it must
+ * trigger the onboarding-defaults fetch instead of inline guesses.
+ */
+function hasStoredPromptCaching(pc: unknown): boolean {
+  if (pc == null || typeof pc !== "object") return false;
+  const obj = pc as Record<string, unknown>;
+  return Object.keys(obj).length > 0 && Object.values(obj).some((v) => v != null);
+}
+
+/**
  * Single source of truth for provider selection (order = select order) and the
  * provider settings card. Secret fields render through `SecretInput`.
  */
@@ -190,6 +202,7 @@ export default function LlmConfigPage() {
   const {
     pendingResets,
     stageReset,
+    unstageReset,
     hasPendingResets,
     getSavePayload,
     clearResets,
@@ -215,7 +228,7 @@ export default function LlmConfigPage() {
       const data = await get<OrgConfigResponse>("/admin/org/config");
       const stored = data.stored as Record<string, unknown>;
       const hasAnyStored =
-        LLM_FIELDS.some((f) => stored[f] != null) || stored.prompt_caching != null;
+        LLM_FIELDS.some((f) => stored[f] != null) || hasStoredPromptCaching(stored.prompt_caching);
 
       // If no stored values exist for this tab, pull onboarding defaults from API
       let defaults: Record<string, unknown> = {};
@@ -285,9 +298,10 @@ export default function LlmConfigPage() {
 
   function isFieldSet(field: keyof FormState): boolean {
     // prompt_caching is stored nested on the backend — the three flat form
-    // fields count as set when the nested object exists
+    // fields count as set only when the nested object holds a real value
+    // (empty / all-null after a clear-to-defaults save is NOT set)
     if ((PROMPT_CACHING_FIELDS as readonly string[]).includes(field)) {
-      return stored.prompt_caching != null;
+      return hasStoredPromptCaching(stored.prompt_caching);
     }
     return field in stored;
   }
@@ -297,9 +311,13 @@ export default function LlmConfigPage() {
   }
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
+    // Editing a field cancels its staged reset (matches sibling pages) —
+    // otherwise getSavePayload's null would silently win over the edit
+    unstageReset(field);
     setForm((prev) => ({ ...prev, [field]: value }));
     const newForm = { ...form, [field]: value };
-    const dirty = LLM_FIELDS.some((f) => newForm[f] !== initialForm[f]);
+    const dirty =
+      LLM_FIELDS.some((f) => newForm[f] !== initialForm[f]) || hasPendingResets;
     setDirty(dirty);
   }
 

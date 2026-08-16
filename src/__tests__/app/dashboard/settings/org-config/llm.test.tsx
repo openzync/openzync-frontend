@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LlmConfigPage from "@/app/(dashboard)/settings/org-config/llm/page";
 import { ConfigDirtyProvider } from "@/contexts/config-dirty";
@@ -127,5 +127,53 @@ describe("LlmConfigPage prompt caching save transform", () => {
       screen.queryByRole("button", { name: "Save Changes" }),
     ).not.toBeInTheDocument();
     expect(mockPatch).not.toHaveBeenCalled();
+  });
+
+  it("editing a field after staging its reset cancels the reset (no null sent)", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const resetButtons = await screen.findAllByTitle(RESET_TITLE);
+    await user.click(resetButtons[1]); // stage reset on anthropic_min_tokens
+
+    // spinbuttons in DOM order: temperature, max_tokens (backend card), min_tokens.
+    // fireEvent.change sets the full value at once — typing char-by-char would
+    // hit the min-512 clamp on every intermediate keystroke below 512.
+    const minTokensInput = screen.getAllByRole("spinbutton")[2];
+    fireEvent.change(minTokensInput, { target: { value: "2048" } });
+
+    await user.click(await screen.findByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => {
+      expect(mockPatch).toHaveBeenCalledWith("/admin/org/config", {
+        prompt_caching: {
+          enabled: true,
+          anthropic_min_tokens: 2048,
+          anthropic_cache_ttl: "5m",
+        },
+      });
+    });
+  });
+
+  it("all-null prompt_caching (clear-to-defaults state) counts as not stored", async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (url === "/admin/org/config/defaults") return Promise.resolve({});
+      return Promise.resolve({
+        stored: {
+          prompt_caching: {
+            enabled: null,
+            anthropic_min_tokens: null,
+            anthropic_cache_ttl: null,
+          },
+        },
+      });
+    });
+    renderPage();
+
+    await screen.findByRole("checkbox");
+    // defaults fetch fires because nothing is really stored
+    expect(mockGet).toHaveBeenCalledWith("/admin/org/config/defaults");
+    // no reset buttons — the fields are already at defaults
+    expect(screen.queryByTitle(RESET_TITLE)).not.toBeInTheDocument();
   });
 });

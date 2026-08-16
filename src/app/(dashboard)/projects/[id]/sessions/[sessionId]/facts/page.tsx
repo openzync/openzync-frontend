@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FileText } from "lucide-react";
 import { apiErrorMessage, get, post, ApiError } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
@@ -79,6 +79,9 @@ export default function SessionFactsPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [historyData, setHistoryData] = useState<FactHistoryResponse | null>(null);
+  // Mirrors historyTarget so async continuations can check the CURRENT target
+  // (state in a closure is stale by the time a slow fetch resolves).
+  const historyTargetRef = useRef<FactRow | null>(null);
 
   const loadFacts = useCallback(
     async (showSpinner = true) => {
@@ -148,6 +151,7 @@ export default function SessionFactsPage() {
 
   async function openHistory(fact: FactRow) {
     if (!projectId) return;
+    historyTargetRef.current = fact;
     setHistoryTarget(fact);
     setHistoryLoading(true);
     setHistoryError("");
@@ -156,8 +160,12 @@ export default function SessionFactsPage() {
       const json = await get<FactHistoryResponse>(
         `/v1/projects/${projectId}/facts/${fact.id}/history`,
       );
+      // Discard stale responses: a newer open/close may have retargeted the
+      // dialog while this fetch was in flight.
+      if (historyTargetRef.current?.id !== fact.id) return;
       setHistoryData(json);
     } catch (err) {
+      if (historyTargetRef.current?.id !== fact.id) return;
       setHistoryError(apiErrorMessage(err, "Failed to load fact history"));
     } finally {
       setHistoryLoading(false);
@@ -165,6 +173,7 @@ export default function SessionFactsPage() {
   }
 
   function closeHistory() {
+    historyTargetRef.current = null;
     setHistoryTarget(null);
     setHistoryData(null);
     setHistoryError("");
