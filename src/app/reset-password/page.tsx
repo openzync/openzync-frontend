@@ -3,11 +3,13 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Eye, EyeOff, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { API_BASE, safeJsonParse } from "@/lib/api-client";
 
 function ResetPasswordForm() {
+  const t = useTranslations("auth.reset");
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
@@ -25,11 +27,11 @@ function ResetPasswordForm() {
     setError("");
 
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(t("mismatch"));
       return;
     }
     if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setError(t("tooShort"));
       return;
     }
 
@@ -49,13 +51,13 @@ function ResetPasswordForm() {
         const data = await safeJsonParse(res);
         throw new Error(
           (data as Record<string, unknown>)?.detail as string ??
-            "Failed to reset password. Please try again."
+            t("failed")
         );
       }
       setDone(true);
       setTimeout(() => router.replace("/login"), 3000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Connection error.");
+      setError(err instanceof Error ? err.message : t("connectionError"));
     } finally {
       setSubmitting(false);
     }
@@ -68,22 +70,22 @@ function ResetPasswordForm() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(143,175,217,0.08)_0%,transparent_50%),radial-gradient(circle_at_25%_30%,rgba(20,72,140,0.12)_0%,transparent_50%)]" />
           <div className="relative z-10 text-center px-8">
             <h1 className="text-5xl font-extrabold text-text-primary tracking-tight mb-2">OpenZync</h1>
-            <p className="text-lg text-surface-300 max-w-sm mx-auto">Password reset successful</p>
+            <p className="text-lg text-surface-300 max-w-sm mx-auto">{t("doneTitle")}</p>
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="w-full max-w-sm">
             <div className="md:hidden text-center mb-8">
               <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-              <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
+              <p className="text-xs text-surface-400">{t("brandTagline")}</p>
             </div>
             <div className="card-base p-6 text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/10 mb-4">
                 <CheckCircle size={24} className="text-success" />
               </div>
-              <h2 className="text-xl font-semibold mb-2">Password reset successful</h2>
+              <h2 className="text-xl font-semibold mb-2">{t("doneTitle")}</h2>
               <p className="text-sm text-surface-400">
-                Redirecting you to login...
+                {t("doneBody")}
               </p>
             </div>
           </div>
@@ -99,7 +101,7 @@ function ResetPasswordForm() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(143,175,217,0.08)_0%,transparent_50%),radial-gradient(circle_at_25%_30%,rgba(20,72,140,0.12)_0%,transparent_50%)]" />
         <div className="relative z-10 text-center px-8">
           <h1 className="text-5xl font-extrabold text-text-primary tracking-tight mb-2">OpenZync</h1>
-          <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">Reset your password</p>
+          <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">{t("heroTitle")}</p>
         </div>
       </div>
 
@@ -109,22 +111,25 @@ function ResetPasswordForm() {
           {/* Mobile brand */}
           <div className="md:hidden text-center mb-8">
             <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-            <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
+            <p className="text-xs text-surface-400">{t("brandTagline")}</p>
           </div>
 
           <div className="card-base p-6">
-            <h2 className="text-xl font-semibold mb-1">Reset password</h2>
+            <h2 className="text-xl font-semibold mb-1">{t("title")}</h2>
             <p className="text-sm text-surface-400 mb-6">
-              Enter the code sent to <strong className="text-surface-300">{email}</strong>
+              {t.rich("subtitle", {
+                strong: (chunks) => <strong className="text-surface-300">{chunks}</strong>,
+                email,
+              })}
             </p>
 
             {!email && (
               <div className="mb-4 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning">
-                No email provided. Please start from the{" "}
+                {t("noEmail")}{" "}
                 <Link href="/forgot-password" className="underline">
-                  forgot password
+                  {t("forgotPasswordLink")}
                 </Link>{" "}
-                page.
+                {t("page")}.
               </div>
             )}
 
@@ -137,7 +142,7 @@ function ResetPasswordForm() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Verification Code
+                  {t("verificationCode")}
                 </label>
                 <input
                   type="text"
@@ -149,13 +154,13 @@ function ResetPasswordForm() {
                   required
                   autoFocus
                   className="input-base w-full text-center text-2xl tracking-[0.5em] font-mono"
-                  placeholder="000000"
+                  placeholder={t("otpPlaceholder")}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  New Password
+                  {t("newPassword")}
                 </label>
                 <div className="relative">
                   <input
@@ -165,13 +170,13 @@ function ResetPasswordForm() {
                     required
                     minLength={8}
                     autoComplete="new-password"
-                    className="input-base w-full pr-10"
-                    placeholder="Minimum 8 characters"
+                    className="input-base w-full pe-10"
+                    placeholder={t("min8Chars")}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
+                    className="absolute end-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -180,7 +185,7 @@ function ResetPasswordForm() {
 
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Confirm Password
+                  {t("confirmPassword")}
                 </label>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -190,7 +195,7 @@ function ResetPasswordForm() {
                   minLength={8}
                   autoComplete="new-password"
                   className="input-base w-full"
-                  placeholder="Repeat your password"
+                  placeholder={t("repeatPassword")}
                 />
               </div>
 
@@ -203,7 +208,7 @@ function ResetPasswordForm() {
                 {submitting ? (
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
-                  "Reset Password"
+                  t("submit")
                 )}
               </Button>
             </form>
@@ -211,7 +216,7 @@ function ResetPasswordForm() {
             <p className="mt-6 text-center text-sm text-surface-500">
               <Link href="/login" className="inline-flex items-center gap-1 text-accent-300 hover:text-accent-200 font-medium">
                 <ArrowLeft size={14} />
-                Back to login
+                {t("backToLogin")}
               </Link>
             </p>
           </div>

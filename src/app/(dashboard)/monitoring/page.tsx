@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import {
   Activity,
   Timer,
@@ -13,7 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get, ApiError, apiErrorMessage } from "@/lib/api-client";
-import { timeAgo } from "@/lib/utils";
+import { useTimeAgo } from "@/hooks/use-time-ago";
 import { PageGuide, GuideDashboard } from "@/components/guides";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
@@ -64,12 +65,6 @@ const REFRESH_INTERVAL_MS = 30000;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatMs(ms: number): string {
-  if (ms < 0.5) return "<1ms";
-  if (ms < 1) return `${ms.toFixed(1)}ms`;
-  return `${Math.round(ms)}ms`;
-}
-
 function latencyColor(ms: number): string {
   if (ms < 100) return "text-success";
   if (ms < 500) return "text-warning";
@@ -82,13 +77,21 @@ function latencyDot(ms: number): string {
   return "bg-error";
 }
 
-// ─── KPI Card — replaced by shared StatCard ─────────────────────────────────────
-
 // ─── Latency Card ──────────────────────────────────────────────────────────────
 
 function LatencyCard({ title, icon: Icon, data }: {
   title: string; icon: React.ComponentType<{ size?: number }>; data: LatencyMetrics;
 }) {
+  const t = useTranslations("monitoring");
+  const fmt = useFormatter();
+
+  const formatMs = (ms: number): string => {
+    if (ms < 0.5) return t("latency.subMs");
+    return t("latency.ms", {
+      value: fmt.number(ms, { maximumFractionDigits: ms < 1 ? 1 : 0 }),
+    });
+  };
+
   const percentiles = [
     { key: "p50" as const, label: "p50" },
     { key: "p95" as const, label: "p95" },
@@ -118,6 +121,9 @@ function LatencyCard({ title, icon: Icon, data }: {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function MonitoringPage() {
+  const t = useTranslations("monitoring");
+  const fmt = useFormatter();
+  const timeAgo = useTimeAgo();
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [targets, setTargets] = useState<ScrapeTarget[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,10 +147,10 @@ export default function MonitoringPage() {
     } catch (err) {
       // Metrics endpoints are admin-gated — members see a clear message, not a blank page.
       setLoadError(err instanceof ApiError && err.isForbidden
-        ? "Admin access required"
-        : apiErrorMessage(err, "Unable to fetch monitoring data"));
+        ? t("errorAdmin")
+        : apiErrorMessage(err, t("errorLoad")));
     } finally { setLoading(false); setRefreshing(false); }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchData(true);
@@ -157,26 +163,26 @@ export default function MonitoringPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Monitoring"
-        description="Real-time platform performance and health metrics"
+        title={t("title")}
+        description={t("description")}
         actions={
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 text-xs text-success font-medium">
-              <span className="h-2 w-2 rounded-full bg-success animate-pulse-dot" />Live
+              <span className="h-2 w-2 rounded-full bg-success animate-pulse-dot" />{t("live")}
             </span>
             {lastRefreshed && (
-              <span className="text-[11px] text-surface-500 hidden sm:block">Updated {timeAgo(lastRefreshed.toISOString())}</span>
+              <span className="text-[11px] text-surface-500 hidden sm:block">{t("updated", { time: timeAgo(lastRefreshed.toISOString()) })}</span>
             )}
             <Button variant="ghost" size="sm" onClick={() => fetchData(false)} disabled={refreshing}
-              className="rounded-md text-surface-400 hover:text-white disabled:opacity-50" title="Refresh now">
+              className="rounded-md text-surface-400 hover:text-white disabled:opacity-50" title={t("refreshNow")}>
               {refreshing ? <Spinner /> : <RefreshCw size={16} />}
             </Button>
           </div>
         }
       />
 
-      <PageGuide title="Platform monitoring" illustration={<GuideDashboard />}>
-        <p>Monitor your platform health and performance in real time. Track enrichment progress, error rates, API latency percentiles, queue depth, and Prometheus scrape targets.</p>
+      <PageGuide title={t("guideTitle")} illustration={<GuideDashboard />}>
+        <p>{t("guideBody")}</p>
       </PageGuide>
 
       {loadError && (
@@ -185,15 +191,15 @@ export default function MonitoringPage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Episodes Added (24h)" value={summary?.episodes.added_24h?.toLocaleString() ?? null} icon={TrendingUp} color="text-brand-300" loading={loading} trend={summary && summary.episodes.added_24h > 0 ? "up" : null} />
+        <StatCard label={t("kpi.episodesAdded24h")} value={summary != null ? fmt.number(summary.episodes.added_24h) : null} icon={TrendingUp} color="text-brand-300" loading={loading} trend={summary && summary.episodes.added_24h > 0 ? "up" : null} />
         <div className="rounded-lg border border-surface-800 p-4 space-y-3 hover:border-surface-700 transition-colors">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-medium text-surface-400">
-              <BarChart2 size={14} />Enrichment Progress
+              <BarChart2 size={14} />{t("enrichment.title")}
             </div>
             {summary && (
               <span className="text-xs text-surface-500">
-                {summary.episodes.fully_enriched.toLocaleString()} / {summary.episodes.added_total.toLocaleString()}
+                {fmt.number(summary.episodes.fully_enriched)} / {fmt.number(summary.episodes.added_total)}
               </span>
             )}
           </div>
@@ -216,10 +222,10 @@ export default function MonitoringPage() {
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-surface-400">
-                  {summary.episodes.fully_enriched_pct.toFixed(1)}% complete
+                  {t("enrichment.complete", { pct: fmt.number(summary.episodes.fully_enriched_pct, { maximumFractionDigits: 1 }) })}
                 </span>
                 <span className="text-surface-500">
-                  {summary.episodes.in_progress.toLocaleString()} in progress
+                  {t("enrichment.inProgress", { count: fmt.number(summary.episodes.in_progress) })}
                 </span>
               </div>
             </div>
@@ -231,55 +237,55 @@ export default function MonitoringPage() {
           <div className="grid grid-cols-3 gap-2 pt-1">
             <div className="text-center">
               <div className="text-lg font-semibold text-surface-200 font-mono">
-                {loading ? '—' : summary?.episodes.fully_enriched.toLocaleString() ?? '—'}
+                {loading ? '—' : summary != null ? fmt.number(summary.episodes.fully_enriched) : '—'}
               </div>
-              <div className="text-[10px] text-surface-500 uppercase tracking-wider">Enriched</div>
+              <div className="text-[10px] text-surface-500 uppercase tracking-wider">{t("enrichment.enriched")}</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-semibold text-surface-200 font-mono">
-                {loading ? '—' : summary?.episodes.with_embeddings.toLocaleString() ?? '—'}
+                {loading ? '—' : summary != null ? fmt.number(summary.episodes.with_embeddings) : '—'}
               </div>
-              <div className="text-[10px] text-surface-500 uppercase tracking-wider">Embedded</div>
+              <div className="text-[10px] text-surface-500 uppercase tracking-wider">{t("enrichment.embedded")}</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-semibold text-surface-200 font-mono">
-                {loading ? '—' : summary?.episodes.enrichment_pending.toLocaleString() ?? '—'}
+                {loading ? '—' : summary != null ? fmt.number(summary.episodes.enrichment_pending) : '—'}
               </div>
-              <div className="text-[10px] text-surface-500 uppercase tracking-wider">Pending</div>
+              <div className="text-[10px] text-surface-500 uppercase tracking-wider">{t("enrichment.pending")}</div>
             </div>
           </div>
         </div>
-        <StatCard label="Error Rate" value={summary != null ? `${summary.error_rate_pct.toFixed(2)}%` : null} icon={AlertTriangle}
+        <StatCard label={t("kpi.errorRate")} value={summary != null ? `${fmt.number(summary.error_rate_pct, { maximumFractionDigits: 2 })}%` : null} icon={AlertTriangle}
           color={summary && summary.error_rate_pct > 5 ? "text-error" : summary && summary.error_rate_pct > 1 ? "text-warning" : "text-success"}
           loading={loading} trend={summary && summary.error_rate_pct > 1 ? "up" : "down"} />
-        <StatCard label="Queue Depth" value={queueTotal?.toLocaleString() ?? null} icon={Activity}
+        <StatCard label={t("kpi.queueDepth")} value={queueTotal != null ? fmt.number(queueTotal) : null} icon={Activity}
           color={queueTotal != null && queueTotal > 500 ? "text-error" : queueTotal != null && queueTotal > 100 ? "text-warning" : "text-surface-300"}
           loading={loading} trend={summary && summary.queue_depth.high > 0 ? "up" : null} />
       </div>
 
       {/* Latency panel */}
       <div className="card-base p-5">
-        <h3 className="text-sm font-medium flex items-center gap-1.5 mb-4"><Timer size={16} className="text-brand-300" />Latency</h3>
+        <h3 className="text-sm font-medium flex items-center gap-1.5 mb-4"><Timer size={16} className="text-brand-300" />{t("latency.title")}</h3>
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (<div key={i} className="h-28 rounded-lg bg-surface-800 animate-pulse" />))}
           </div>
         ) : summary ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <LatencyCard title="Overall API" icon={Activity} data={summary.overall_latency_ms} />
-            <LatencyCard title="Context Assembly" icon={Timer} data={summary.context_latency_ms} />
-            <LatencyCard title="Graph Search" icon={Database} data={summary.graph_search_latency_ms} />
+            <LatencyCard title={t("latency.overall")} icon={Activity} data={summary.overall_latency_ms} />
+            <LatencyCard title={t("latency.context")} icon={Timer} data={summary.context_latency_ms} />
+            <LatencyCard title={t("latency.graphSearch")} icon={Database} data={summary.graph_search_latency_ms} />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-28 text-surface-500"><Timer size={28} className="mb-2 opacity-40" /><p className="text-sm">No latency data available</p></div>
+          <div className="flex flex-col items-center justify-center h-28 text-surface-500"><Timer size={28} className="mb-2 opacity-40" /><p className="text-sm">{t("latency.empty")}</p></div>
         )}
       </div>
 
       {/* Scrape Targets table */}
       <div className="card-base overflow-hidden">
         <div className="px-5 py-4 border-b border-surface-800 flex items-center justify-between">
-          <h3 className="text-sm font-medium flex items-center gap-1.5"><Info size={16} className="text-brand-300" />Scrape Targets</h3>
-          {!loading && <span className="text-[11px] text-surface-500">{targets.length} target{targets.length !== 1 ? "s" : ""}</span>}
+          <h3 className="text-sm font-medium flex items-center gap-1.5"><Info size={16} className="text-brand-300" />{t("targets.title")}</h3>
+          {!loading && <span className="text-[11px] text-surface-500">{t("targets.count", { count: targets.length })}</span>}
         </div>
         {loading ? (
           <div className="p-5 space-y-3">
@@ -292,35 +298,35 @@ export default function MonitoringPage() {
         ) : targets.length === 0 ? (
           <EmptyState
             icon={Info}
-            title="No scrape targets found"
-            description="Targets will appear once Prometheus scrape jobs are configured."
+            title={t("targets.emptyTitle")}
+            description={t("targets.emptyDescription")}
           />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-surface-800">
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Job</th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Instance</th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Health</th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Last Scrape</th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Last Error</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("targets.table.job")}</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("targets.table.instance")}</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("targets.table.health")}</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("targets.table.lastScrape")}</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("targets.table.lastError")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-800">
-                {targets.map((t, i) => {
-                  const isUp = t.health?.toLowerCase() === "up";
+                {targets.map((tgt, i) => {
+                  const isUp = tgt.health?.toLowerCase() === "up";
                   return (
-                    <tr key={`${t.job}-${t.instance}-${i}`} className={cn("transition-colors hover:bg-surface-800/50", i % 2 === 0 ? "bg-surface-950/50" : "")}>
-                      <td className="px-5 py-3"><span className="font-mono text-xs text-surface-200">{t.job}</span></td>
-                      <td className="px-5 py-3"><span className="font-mono text-xs text-surface-300">{t.instance}</span></td>
+                    <tr key={`${tgt.job}-${tgt.instance}-${i}`} className={cn("transition-colors hover:bg-surface-800/50", i % 2 === 0 ? "bg-surface-950/50" : "")}>
+                      <td className="px-5 py-3"><span className="font-mono text-xs text-surface-200">{tgt.job}</span></td>
+                      <td className="px-5 py-3"><span className="font-mono text-xs text-surface-300">{tgt.instance}</span></td>
                       <td className="px-5 py-3">
-                        <Badge variant={isUp ? "success" : "error"} size="sm">{isUp ? "UP" : "DOWN"}</Badge>
+                        <Badge variant={isUp ? "success" : "error"} size="sm">{isUp ? t("targets.up") : t("targets.down")}</Badge>
                       </td>
-                      <td className="px-5 py-3"><span className="text-xs text-surface-400">{t.last_scrape ? timeAgo(t.last_scrape) : "—"}</span></td>
+                      <td className="px-5 py-3"><span className="text-xs text-surface-400">{tgt.last_scrape ? timeAgo(tgt.last_scrape) : "—"}</span></td>
                       <td className="px-5 py-3">
-                        {t.last_error ? (
-                          <span className="text-xs text-surface-500 max-w-[220px] block truncate" title={t.last_error}>{t.last_error}</span>
+                        {tgt.last_error ? (
+                          <span className="text-xs text-surface-500 max-w-[220px] block truncate" title={tgt.last_error}>{tgt.last_error}</span>
                         ) : (<span className="text-xs text-surface-600">—</span>)}
                       </td>
                     </tr>
@@ -337,13 +343,19 @@ export default function MonitoringPage() {
         {summary ? (
           <>
             <div className="flex items-center gap-4 text-xs text-surface-400">
-              <span>Status: <span className={cn("font-medium capitalize", summary.status === "healthy" || summary.status === "up" ? "text-success" : "text-warning")}>{summary.status}</span></span>
-              <span className="hidden sm:inline">Active Requests: <span className="text-surface-200 font-medium">{summary.active_requests.toLocaleString()}</span></span>
-              <span className="hidden sm:inline">Users: <span className="text-surface-200 font-medium">{summary.users_total?.toLocaleString() ?? "—"}</span></span>
-              <span>Request Rate: <span className="text-surface-200 font-medium">{summary.request_rate["2xx"].toLocaleString()} 2xx</span> / <span className={cn("font-medium", summary.request_rate["5xx"] > 0 ? "text-error" : "text-surface-200")}>{summary.request_rate["5xx"].toLocaleString()} 5xx</span></span>
+              <span>
+                {t.rich("status.status", {
+                  status: (chunks) => (
+                    <span className={cn("font-medium capitalize", summary.status === "healthy" || summary.status === "up" ? "text-success" : "text-warning")}>{chunks}</span>
+                  ),
+                })}
+              </span>
+              <span className="hidden sm:inline">{t("status.activeRequests", { count: fmt.number(summary.active_requests) })}</span>
+              <span className="hidden sm:inline">{t("status.users", { count: summary.users_total != null ? fmt.number(summary.users_total) : "—" })}</span>
+              <span>{t("status.requestRate", { twoxx: fmt.number(summary.request_rate["2xx"]), fivexx: fmt.number(summary.request_rate["5xx"]) })}</span>
             </div>
             <div className="text-[11px] text-surface-500">
-              {refreshing ? <span className="flex items-center gap-1.5"><Spinner />Refreshing...</span> : `Auto-refreshes every ${REFRESH_INTERVAL_MS / 1000}s`}
+              {refreshing ? <span className="flex items-center gap-1.5"><Spinner />{t("refreshing")}</span> : t("autoRefreshes", { seconds: REFRESH_INTERVAL_MS / 1000 })}
             </div>
           </>
         ) : loading ? (
@@ -351,7 +363,7 @@ export default function MonitoringPage() {
             {[1, 2, 3].map((i) => (<div key={i} className="h-4 w-20 rounded bg-surface-800 animate-pulse" />))}
           </div>
         ) : loadError ? null : (
-          <ErrorState message="Unable to fetch monitoring data" onRetry={() => fetchData(true)} />
+          <ErrorState message={t("errorLoad")} onRetry={() => fetchData(true)} />
         )}
       </div>
     </div>

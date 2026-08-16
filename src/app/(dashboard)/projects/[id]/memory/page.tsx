@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import {
   Upload,
   Search,
@@ -53,17 +54,11 @@ interface SearchResponse {
 
 type TabId = "ingest" | "context" | "search";
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "ingest", label: "Ingest", icon: <Upload size={16} /> },
-  { id: "context", label: "Context", icon: <FileText size={16} /> },
-  { id: "search", label: "Search", icon: <Search size={16} /> },
-];
-
 const ROLES = ["user", "assistant", "system", "tool"] as const;
 
 // ─── Ingest Tab ────────────────────────────────────────────────────────────────
 
-function IngestTab({ projectId }: { projectId: string }) {
+function IngestTab({ projectId, t }: { projectId: string; t: (key: string, values?: Record<string, string | number | Date>) => string }) {
   const [sessionId, setSessionId] = useState("");
   const [sessions, setSessions] = useState<{ id: string; external_id: string }[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
@@ -89,8 +84,8 @@ function IngestTab({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   const handleIngest = useCallback(async () => {
-    if (!sessionId.trim()) { setError("Please select a session"); return; }
-    if (!messagesText.trim()) { setError("Please enter at least one message"); return; }
+    if (!sessionId.trim()) { setError(t("ingest.selectSessionError")); return; }
+    if (!messagesText.trim()) { setError(t("ingest.messagesError")); return; }
     setIngesting(true); setUploading(true); setError(null); setResult(null);
 
     const lines = messagesText.trim().split("\n").filter(Boolean);
@@ -113,39 +108,39 @@ function IngestTab({ projectId }: { projectId: string }) {
       setResult(data);
       setSelectedFiles([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ingest failed");
+      setError(err instanceof Error ? err.message : t("ingest.failed"));
     } finally { setIngesting(false); setUploading(false); }
-  }, [projectId, messagesText, selectedRole, sessionId, selectedFiles]);
+  }, [projectId, messagesText, selectedRole, sessionId, selectedFiles, t]);
 
   return (
     <div className="card-base p-5 space-y-5">
-      <h2 className="text-sm font-semibold flex items-center gap-2"><Upload size={16} className="text-brand-300" />Ingest Messages</h2>
+      <h2 className="text-sm font-semibold flex items-center gap-2"><Upload size={16} className="text-brand-300" />{t("ingest.title")}</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label htmlFor="memory-session-select" className="text-xs font-medium text-surface-400">Session <span className="text-surface-500 font-normal">(required)</span></label>
+          <label htmlFor="memory-session-select" className="text-xs font-medium text-surface-400">{t("ingest.sessionLabel")} <span className="text-surface-500 font-normal">({t("ingest.required")})</span></label>
           <select id="memory-session-select" value={sessionId} onChange={(e) => setSessionId(e.target.value)} className="input-base" required>
-            <option value="">Select a session...</option>
-            {sessionsLoading && <option disabled>Loading sessions...</option>}
-            {!sessionsLoading && sessions.length === 0 && <option disabled>No sessions found</option>}
+            <option value="">{t("ingest.selectSession")}</option>
+            {sessionsLoading && <option disabled>{t("ingest.loadingSessions")}</option>}
+            {!sessionsLoading && sessions.length === 0 && <option disabled>{t("ingest.noSessions")}</option>}
             {sessions.map((s) => (
               <option key={s.id} value={s.id}>{s.external_id || s.id.slice(0, 8)}</option>
             ))}
           </select>
           {!sessionId && !sessionsLoading && (
-            <p className="text-xs text-warning">Select a session — memory is ingested into an existing session only.</p>
+            <p className="text-xs text-warning">{t("ingest.sessionHint")}</p>
           )}
         </div>
       </div>
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-surface-400">Messages <span className="text-surface-500 font-normal">(one per line, format: role: content)</span></label>
+        <label className="text-xs font-medium text-surface-400">{t("ingest.messagesLabel")} <span className="text-surface-500 font-normal">({t("ingest.messagesFormatHint")})</span></label>
         <textarea value={messagesText} onChange={(e) => setMessagesText(e.target.value)}
-          placeholder="user: What is the capital of France?&#10;assistant: The capital of France is Paris."
+          placeholder={t("ingest.messagesPlaceholder")}
           rows={6} className="input-base min-h-[120px] py-2 resize-y leading-relaxed" style={{ height: "auto" }} />
       </div>
       {/* ── File Attachments ───────────────────────────────────── */}
       <div className="space-y-2">
         <label className="text-sm font-medium text-surface-300">
-          Attachments <span className="text-surface-500">(optional)</span>
+          {t("ingest.attachments")} <span className="text-surface-500">({t("ingest.optional")})</span>
         </label>
 
         {/* Drop zone */}
@@ -158,11 +153,11 @@ function IngestTab({ projectId }: { projectId: string }) {
         >
           <Upload className="size-8 text-surface-400" />
           <p className="text-sm text-surface-400">
-            <span className="text-brand-400 font-medium">Click to upload</span>{" "}
-            or drag and drop
+            <span className="text-brand-400 font-medium">{t("ingest.clickToUpload")}</span>{" "}
+            {t("ingest.orDragDrop")}
           </p>
           <p className="text-xs text-surface-500">
-            Images, PDFs, documents — up to 50 MB each
+            {t("ingest.fileTypesHint")}
           </p>
           <input
             type="file"
@@ -200,6 +195,7 @@ function IngestTab({ projectId }: { projectId: string }) {
                     setSelectedFiles((prev) => prev.filter((_, i) => i !== idx))
                   }
                   className="shrink-0 p-0.5 rounded text-surface-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  aria-label={t("ingest.removeFile")}
                 >
                   <X className="size-4" />
                 </button>
@@ -211,7 +207,7 @@ function IngestTab({ projectId }: { projectId: string }) {
 
       <div className="flex items-end gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-surface-400">Default Role</label>
+          <label className="text-xs font-medium text-surface-400">{t("ingest.defaultRole")}</label>
           <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)}
             className="input-base cursor-pointer w-36 appearance-none"
             style={{
@@ -222,12 +218,12 @@ function IngestTab({ projectId }: { projectId: string }) {
             {ROLES.map((role) => (<option key={role} value={role}>{role}</option>))}
           </select>
         </div>
-        <Button variant="primary" onClick={handleIngest} loading={ingesting} disabled={!sessionId.trim()} icon={<Upload size={16} />}>Ingest</Button>
+        <Button variant="primary" onClick={handleIngest} loading={ingesting} disabled={!sessionId.trim()} icon={<Upload size={16} />}>{t("ingest.submit")}</Button>
       </div>
       {error && (<div className="flex items-start gap-2 rounded-md bg-error/10 border border-error/30 p-3 text-sm text-error"><AlertCircle size={16} className="mt-0.5 shrink-0" /><span>{error}</span></div>)}
       {result && (
         <div className="space-y-3 rounded-md bg-brand-500/5 border border-brand-500/20 p-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-brand-300"><CheckCircle2 size={16} />Ingest Successful</div>
+          <div className="flex items-center gap-2 text-sm font-medium text-brand-300"><CheckCircle2 size={16} />{t("ingest.success")}</div>
           <EnrichmentStatus
             jobId={result.job_id}
             status={result.status}
@@ -242,7 +238,7 @@ function IngestTab({ projectId }: { projectId: string }) {
 
 // ─── Context Tab ───────────────────────────────────────────────────────────────
 
-function ContextTab({ projectId }: { projectId: string }) {
+function ContextTab({ projectId, t }: { projectId: string; t: (key: string, values?: Record<string, string | number | Date>) => string }) {
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(10);
   const [fetching, setFetching] = useState(false);
@@ -250,23 +246,23 @@ function ContextTab({ projectId }: { projectId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   const handleGetContext = useCallback(async () => {
-    if (!query.trim()) { setError("Please enter a query"); return; }
+    if (!query.trim()) { setError(t("context.queryError")); return; }
     setFetching(true); setError(null); setResult(null);
     try {
       const encodedQuery = encodeURIComponent(query.trim());
       const data = await get<ContextResult>(`/v1/projects/${projectId}/context?query=${encodedQuery}&limit=${limit}`);
       setResult(data);
-    } catch (err) { setError(err instanceof Error ? err.message : "Failed to fetch context"); }
+    } catch (err) { setError(err instanceof Error ? err.message : t("context.fetchFailed")); }
     finally { setFetching(false); }
-  }, [projectId, query, limit]);
+  }, [projectId, query, limit, t]);
 
   return (
     <div className="card-base p-5 space-y-5">
-      <h2 className="text-sm font-semibold flex items-center gap-2"><FileText size={16} className="text-brand-300" />Query Context</h2>
+      <h2 className="text-sm font-semibold flex items-center gap-2"><FileText size={16} className="text-brand-300" />{t("context.title")}</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-surface-400">
-            <div className="flex items-center justify-between"><span>Limit</span><span className="text-surface-500 font-mono text-[11px]">{limit}</span></div>
+            <div className="flex items-center justify-between"><span>{t("context.limit")}</span><span className="text-surface-500 font-mono text-[11px]">{limit}</span></div>
           </label>
           <div className="flex items-center gap-3">
             <input type="range" min={1} max={100} value={limit} onChange={(e) => setLimit(Number(e.target.value))}
@@ -277,15 +273,15 @@ function ContextTab({ projectId }: { projectId: string }) {
         </div>
       </div>
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-surface-400">Query</label>
-        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. What did the user say about their project?"
+        <label className="text-xs font-medium text-surface-400">{t("context.queryLabel")}</label>
+        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("context.queryPlaceholder")}
           className="input-base" onKeyDown={(e) => { if (e.key === "Enter" && !fetching) handleGetContext(); }} />
       </div>
-      <Button variant="primary" onClick={handleGetContext} loading={fetching} disabled={!query.trim()} icon={<FileText size={16} />}>Get Context</Button>
+      <Button variant="primary" onClick={handleGetContext} loading={fetching} disabled={!query.trim()} icon={<FileText size={16} />}>{t("context.submit")}</Button>
       {error && (<div className="flex items-start gap-2 rounded-md bg-error/10 border border-error/30 p-3 text-sm text-error"><AlertCircle size={16} className="mt-0.5 shrink-0" /><span>{error}</span></div>)}
       {result && (
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">Context Results</h3>
+          <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">{t("context.results")}</h3>
           <pre className="rounded-md bg-surface-950 border border-surface-800 p-4 text-sm text-surface-200 font-mono overflow-x-auto whitespace-pre-wrap max-h-96 overflow-y-auto">{JSON.stringify(result, null, 2)}</pre>
         </div>
       )}
@@ -295,7 +291,7 @@ function ContextTab({ projectId }: { projectId: string }) {
 
 // ─── Search Tab ────────────────────────────────────────────────────────────────
 
-function SearchTab({ projectId }: { projectId: string }) {
+function SearchTab({ projectId, t }: { projectId: string; t: (key: string, values?: Record<string, string | number | Date>) => string }) {
   const [query, setQuery] = useState("");
   const [searchEpisodes, setSearchEpisodes] = useState(true);
   const [searchFacts, setSearchFacts] = useState(true);
@@ -305,7 +301,7 @@ function SearchTab({ projectId }: { projectId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   const handleSearch = useCallback(async () => {
-    if (!query.trim()) { setError("Please enter a query"); return; }
+    if (!query.trim()) { setError(t("search.queryError")); return; }
     setSearching(true); setError(null); setResults(null);
     try {
       const selectedTypes: string[] = [];
@@ -317,21 +313,21 @@ function SearchTab({ projectId }: { projectId: string }) {
       if (selectedTypes.length > 0 && selectedTypes.length < 3) params.set("type", selectedTypes.join(","));
       const data = await get<SearchResponse>(`/v1/projects/${projectId}/search?${params.toString()}`);
       setResults(Array.isArray(data.results ?? data.items) ? (data.results ?? data.items ?? []) : []);
-    } catch (err) { setError(err instanceof Error ? err.message : "Search failed"); }
+    } catch (err) { setError(err instanceof Error ? err.message : t("search.failed")); }
     finally { setSearching(false); }
-  }, [projectId, query, searchEpisodes, searchFacts, searchEntities]);
+  }, [projectId, query, searchEpisodes, searchFacts, searchEntities, t]);
 
   return (
     <div className="card-base p-5 space-y-5">
-      <h2 className="text-sm font-semibold flex items-center gap-2"><Search size={16} className="text-brand-300" />Search Memory</h2>
+      <h2 className="text-sm font-semibold flex items-center gap-2"><Search size={16} className="text-brand-300" />{t("search.title")}</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-surface-400">Type Filter</label>
+          <label className="text-xs font-medium text-surface-400">{t("search.typeFilter")}</label>
           <div className="flex flex-wrap gap-3 h-9 items-center">
             {[
-              { id: "episodes" as const, label: "Episodes", value: searchEpisodes, set: setSearchEpisodes },
-              { id: "facts" as const, label: "Facts", value: searchFacts, set: setSearchFacts },
-              { id: "entities" as const, label: "Entities", value: searchEntities, set: setSearchEntities },
+              { id: "episodes" as const, label: t("search.types.episodes"), value: searchEpisodes, set: setSearchEpisodes },
+              { id: "facts" as const, label: t("search.types.facts"), value: searchFacts, set: setSearchFacts },
+              { id: "entities" as const, label: t("search.types.entities"), value: searchEntities, set: setSearchEntities },
             ].map(({ id, label, value, set }) => (
               <label key={id} className="flex items-center gap-1.5 cursor-pointer text-sm text-surface-300 hover:text-surface-100 transition-colors">
                 <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)}
@@ -343,25 +339,25 @@ function SearchTab({ projectId }: { projectId: string }) {
         </div>
       </div>
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-surface-400">Query</label>
-        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search across episodes, facts, and entities..."
+        <label className="text-xs font-medium text-surface-400">{t("search.queryLabel")}</label>
+        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search.queryPlaceholder")}
           className="input-base" onKeyDown={(e) => { if (e.key === "Enter" && !searching) handleSearch(); }} />
       </div>
-      <Button variant="primary" onClick={handleSearch} loading={searching} disabled={!query.trim()} icon={<Search size={16} />}>Search</Button>
+      <Button variant="primary" onClick={handleSearch} loading={searching} disabled={!query.trim()} icon={<Search size={16} />}>{t("search.submit")}</Button>
       {error && (<div className="flex items-start gap-2 rounded-md bg-error/10 border border-error/30 p-3 text-sm text-error"><AlertCircle size={16} className="mt-0.5 shrink-0" /><span>{error}</span></div>)}
       {results !== null && (
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">Results <span className="text-surface-500 font-normal normal-case">({results.length})</span></h3>
+          <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">{t("search.results", { count: results.length })}</h3>
           {results.length === 0 ? (
-            <div className="rounded-md bg-surface-950 border border-surface-800 p-6 text-center text-sm text-surface-500">No results found for this query.</div>
+            <div className="rounded-md bg-surface-950 border border-surface-800 p-6 text-center text-sm text-surface-500">{t("search.noResults")}</div>
           ) : (
             <div className="overflow-x-auto rounded-md border border-surface-800">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-surface-950 border-b border-surface-800">
-                    <th className="px-3 py-2 text-left text-xs font-medium text-surface-400 uppercase tracking-wider w-24">Type</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-surface-400 uppercase tracking-wider">Content</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-surface-400 uppercase tracking-wider w-20">Score</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-surface-400 uppercase tracking-wider w-24">{t("search.table.type")}</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-surface-400 uppercase tracking-wider">{t("search.table.content")}</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-surface-400 uppercase tracking-wider w-20">{t("search.table.score")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-800">
@@ -373,7 +369,7 @@ function SearchTab({ projectId }: { projectId: string }) {
                           : item.type === "fact" || item.type === "facts" ? "success"
                           : item.type === "entity" || item.type === "entities" ? "warning"
                           : "default"
-                        } size="sm">{item.type ?? "unknown"}</Badge>
+                        } size="sm">{item.type ?? t("search.unknown")}</Badge>
                       </td>
                       <td className="px-3 py-2.5 text-surface-200 max-w-md truncate">{item.content ?? JSON.stringify(item)}</td>
                       <td className="px-3 py-2.5 text-right">
@@ -398,17 +394,24 @@ function SearchTab({ projectId }: { projectId: string }) {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function MemoryPage() {
+  const t = useTranslations("memory");
   const [activeTab, setActiveTab] = useState<TabId>("ingest");
   const { project } = useProject();
   const projectId = project?.id;
 
+  const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+    { id: "ingest", label: t("tabs.ingest"), icon: <Upload size={16} /> },
+    { id: "context", label: t("tabs.context"), icon: <FileText size={16} /> },
+    { id: "search", label: t("tabs.search"), icon: <Search size={16} /> },
+  ];
+
   if (!projectId) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Memory" description="Ingest messages, query context, and search across memory" />
+        <PageHeader title={t("title")} description={t("description")} />
         <div className="card-base p-8 flex flex-col items-center justify-center text-surface-500">
           <AlertCircle size={24} className="mb-2" />
-          <p className="text-sm">Select a project to access memory features.</p>
+          <p className="text-sm">{t("noProject")}</p>
         </div>
       </div>
     );
@@ -416,10 +419,10 @@ export default function MemoryPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Memory" description={`Ingest messages, query context, and search across memory${project ? ` · ${project.name}` : ""}`} />
+      <PageHeader title={t("title")} description={project ? t("descriptionWithProject", { name: project.name }) : t("description")} />
 
-      <PageGuide title="Knowledge memory" illustration={<GuideMemory />}>
-        <p>Memory stores accumulated knowledge across all sessions — entities, facts, and relationships extracted from conversations. This persistent knowledge graph enables your AI to recall context from past interactions.</p>
+      <PageGuide title={t("guideTitle")} illustration={<GuideMemory />}>
+        <p>{t("guideBody")}</p>
       </PageGuide>
 
       <div className="flex gap-1 rounded-lg bg-surface-950 p-1 border border-surface-800 w-fit">
@@ -433,9 +436,9 @@ export default function MemoryPage() {
         ))}
       </div>
 
-      {activeTab === "ingest" && <IngestTab projectId={projectId} />}
-      {activeTab === "context" && <ContextTab projectId={projectId} />}
-      {activeTab === "search" && <SearchTab projectId={projectId} />}
+      {activeTab === "ingest" && <IngestTab projectId={projectId} t={t} />}
+      {activeTab === "context" && <ContextTab projectId={projectId} t={t} />}
+      {activeTab === "search" && <SearchTab projectId={projectId} t={t} />}
     </div>
   );
 }

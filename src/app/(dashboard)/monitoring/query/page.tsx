@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { Play } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { get, ApiError } from "@/lib/api-client";
 import { PageHeader } from "@/components/shared/page-header";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 
 export default function PromQueryPage() {
+  const t = useTranslations("monitoring.query");
   const [query, setQuery] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<any>(null);
@@ -21,19 +23,19 @@ export default function PromQueryPage() {
       const json = await get<unknown>(`/metrics/query?query=${encodeURIComponent(query.trim())}`);
       setResult(json);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Query failed");
+      setError(err instanceof ApiError ? err.message : t("queryFailed"));
     } finally { setLoading(false); }
   };
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Prometheus Query" description="Run ad-hoc PromQL queries" />
+      <PageHeader title={t("title")} description={t("description")} />
       <div className="card-base p-4">
         <div className="flex gap-2">
           <input type="text" value={query} onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleQuery()}
-            placeholder="e.g. rate(http_requests_total[5m])" className="input-base flex-1 font-mono text-sm" />
-          <Button variant="primary" onClick={handleQuery} loading={loading} disabled={!query.trim()} icon={<Play size={16} />}>Run</Button>
+            placeholder={t("placeholder")} className="input-base flex-1 font-mono text-sm" />
+          <Button variant="primary" onClick={handleQuery} loading={loading} disabled={!query.trim()} icon={<Play size={16} />}>{t("run")}</Button>
         </div>
       </div>
       {error && <ErrorState message={error} onRetry={handleQuery} />}

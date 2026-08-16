@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { GitBranch, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
@@ -63,15 +64,15 @@ const SEARCH_TYPE_OPTIONS: { value: GraphSearchType; label: string }[] = [
 // ─── Reset field titles ────────────────────────────────────────────────────────
 
 const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
-  graph_backend: "Reset graph backend to default",
-  graph_search_type: "Reset search type to default",
-  graph_max_traversal_depth: "Reset max traversal depth to default",
-  surrealdb_url: "Reset SurrealDB URL to default",
-  surrealdb_user: "Reset SurrealDB username to default",
-  surrealdb_pass: "Reset SurrealDB password to default",
-  surrealdb_namespace: "Reset SurrealDB namespace to default",
-  surrealdb_database: "Reset SurrealDB database to default",
-  falkordb_url: "Reset FalkorDB URL to default",
+  graph_backend: "reset.backend",
+  graph_search_type: "reset.searchType",
+  graph_max_traversal_depth: "reset.maxTraversalDepth",
+  surrealdb_url: "reset.surrealdbUrl",
+  surrealdb_user: "reset.surrealdbUsername",
+  surrealdb_pass: "reset.surrealdbPassword",
+  surrealdb_namespace: "reset.surrealdbNamespace",
+  surrealdb_database: "reset.surrealdbDatabase",
+  falkordb_url: "reset.falkordbUrl",
 };
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -97,6 +98,7 @@ export default function GraphConfigPage() {
   const [systemManaged, setSystemManaged] = useState<string[]>([]);
   const [showSurrealDbPass, setShowSurrealDbPass] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const t = useTranslations("settings.orgConfig.graph");
 
   const {
     pendingResets,
@@ -152,7 +154,7 @@ export default function GraphConfigPage() {
       setSystemManaged(data.system_managed_fields ?? []);
       setDirty(false);
     } catch (err) {
-      setError(apiErrorMessage(err, "Failed to load configuration"));
+      setError(apiErrorMessage(err, t("loadFailed")));
     } finally {
       setLoading(false);
     }
@@ -211,7 +213,7 @@ export default function GraphConfigPage() {
       if (Object.keys(payload).length === 0) return;
 
       await patch("/admin/org/config", payload);
-      toast.success("Graph configuration saved successfully");
+      toast.success(t("savedToast"));
       await fetchConfig();
       setDirty(false);
       clearResets();
@@ -223,7 +225,7 @@ export default function GraphConfigPage() {
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Failed to save configuration";
+            : t("saveFailed");
       setError(message);
       toast.error(message);
     } finally {
@@ -242,8 +244,8 @@ export default function GraphConfigPage() {
             <GitBranch size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Graph Settings</h2>
-            <p className="text-xs text-surface-400">Knowledge graph search and traversal</p>
+            <h2 className="text-base font-semibold">{t("title")}</h2>
+            <p className="text-xs text-surface-400">{t("description")}</p>
           </div>
         </div>
 
@@ -260,7 +262,7 @@ export default function GraphConfigPage() {
               {/* graph_backend */}
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Graph Backend
+                  {t("fields.graphBackend")}
                 </label>
                 <div className="flex gap-2 items-start">
                   <select
@@ -269,14 +271,14 @@ export default function GraphConfigPage() {
                     onChange={(e) => updateField("graph_backend", e.target.value as GraphBackend)}
                   >
                     {GRAPH_BACKEND_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value}>{opt.value === "none" ? t("graphBackendNone") : opt.label}</option>
                     ))}
                   </select>
                       {isFieldSet("graph_backend") && (
                         <Button
                           onClick={() => handleStageReset("graph_backend")}
                           variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title="Remove stored value — default will apply on save"
+                          title={t("resetFieldTitle")}
                         >
                           <RotateCcw size={14} />
                         </Button>
@@ -284,7 +286,7 @@ export default function GraphConfigPage() {
                 </div>
               </div>
               {pendingResets.has("graph_backend") && (
-                <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                <p className="text-xs text-amber-400 mt-1">{t("willResetOnSave")}</p>
               )}
 
               {/* search type + traversal depth — hidden when backend is "none" */}
@@ -293,7 +295,7 @@ export default function GraphConfigPage() {
                   {/* graph_search_type */}
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
-                      Search Type
+                      {t("fields.searchType")}
                     </label>
                     <div className="flex gap-2 items-start">
                       <select
@@ -323,7 +325,7 @@ export default function GraphConfigPage() {
                   {/* graph_max_traversal_depth */}
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
-                      Max Traversal Depth
+                      {t("fields.maxTraversalDepth")}
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
@@ -344,7 +346,8 @@ export default function GraphConfigPage() {
                         </Button>
                       )}
                     </div>
-                    <p className="text-xs text-surface-500 mt-1">How many hops the graph traversal will follow (1&ndash;10)</p>
+                    <p className="text-xs text-surface-500 mt-1">{t("fields.maxTraversalDepthHint")}
+                    </p>
                   </div>
                   {pendingResets.has("graph_max_traversal_depth") && (
                     <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
@@ -357,13 +360,13 @@ export default function GraphConfigPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
-                      SurrealDB URL
+                      {t("fields.surrealdbUrl")}
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
                         className="input-base flex-1"
                         type="url"
-                        placeholder="ws://surrealdb:8000/rpc"
+                        placeholder={t("fields.surrealdbUrlPlaceholder")}
                         value={form.surrealdb_url}
                         onChange={(e) => updateField("surrealdb_url", e.target.value)}
                       />
@@ -377,7 +380,8 @@ export default function GraphConfigPage() {
                         </Button>
                       )}
                     </div>
-                    <p className="text-xs text-surface-500 mt-1">Required when using SurrealDB backend</p>
+                    <p className="text-xs text-surface-500 mt-1">{t("fields.surrealdbUrlHint")}
+                    </p>
                   </div>
                   {pendingResets.has("surrealdb_url") && (
                     <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
@@ -386,13 +390,13 @@ export default function GraphConfigPage() {
                   {/* surrealdb_user */}
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
-                      SurrealDB Username
+                      {t("fields.surrealdbUsername")}
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
                         className="input-base flex-1"
                         type="text"
-                        placeholder="SurrealDB username"
+                        placeholder={t("fields.surrealdbUsernamePlaceholder")}
                         value={form.surrealdb_user}
                         onChange={(e) => updateField("surrealdb_user", e.target.value)}
                       />
@@ -413,10 +417,10 @@ export default function GraphConfigPage() {
 
                   {/* surrealdb_pass */}
                   <SecretInput
-                    label="SurrealDB Password"
+                    label={t("fields.surrealdbPassword")}
                     value={form.surrealdb_pass}
                     onChange={(v) => updateField("surrealdb_pass", v)}
-                    placeholder="SurrealDB password"
+                    placeholder={t("fields.surrealdbPasswordPlaceholder")}
                     visible={showSurrealDbPass}
                     onToggleVisibility={() => setShowSurrealDbPass((prev) => !prev)}
                   />
@@ -424,13 +428,13 @@ export default function GraphConfigPage() {
                   {/* surrealdb_namespace */}
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
-                      SurrealDB Namespace
+                      {t("fields.surrealdbNamespace")}
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
                         className="input-base flex-1"
                         type="text"
-                        placeholder="SurrealDB namespace"
+                        placeholder={t("fields.surrealdbNamespacePlaceholder")}
                         value={form.surrealdb_namespace}
                         onChange={(e) => updateField("surrealdb_namespace", e.target.value)}
                       />
@@ -452,13 +456,13 @@ export default function GraphConfigPage() {
                   {/* surrealdb_database */}
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
-                      SurrealDB Database
+                      {t("fields.surrealdbDatabase")}
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
                         className="input-base flex-1"
                         type="text"
-                        placeholder="SurrealDB database"
+                        placeholder={t("fields.surrealdbDatabasePlaceholder")}
                         value={form.surrealdb_database}
                         onChange={(e) => updateField("surrealdb_database", e.target.value)}
                       />
@@ -484,7 +488,7 @@ export default function GraphConfigPage() {
                 <div className="rounded-lg border border-surface-700 bg-surface-800/50 px-4 py-3">
                   <p className="text-sm font-medium text-surface-300">SurrealDB</p>
                   <p className="text-xs text-surface-500 mt-0.5">
-                    Configured at the system level. Connection details are managed by your administrator.
+                    {t("systemManagedHint")}
                   </p>
                 </div>
               )}
@@ -494,13 +498,13 @@ export default function GraphConfigPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
-                      FalkorDB URL
+                      {t("fields.falkordbUrl")}
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
                         className="input-base flex-1"
                         type="url"
-                        placeholder="redis://falkordb:6379"
+                        placeholder={t("fields.falkordbUrlPlaceholder")}
                         value={form.falkordb_url}
                         onChange={(e) => updateField("falkordb_url", e.target.value)}
                       />
@@ -514,7 +518,8 @@ export default function GraphConfigPage() {
                         </Button>
                       )}
                     </div>
-                    <p className="text-xs text-surface-500 mt-1">Required when using FalkorDB backend and no system-level config exists</p>
+                    <p className="text-xs text-surface-500 mt-1">{t("fields.falkordbUrlHint")}
+                    </p>
                   </div>
                   {pendingResets.has("falkordb_url") && (
                     <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>

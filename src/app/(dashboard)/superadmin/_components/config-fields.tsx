@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 /**
  * Non-secret system defaults rendered as label + input, shared by the
  * superadmin System Config page and the per-org config page.
@@ -19,7 +21,7 @@ export interface ConfigFieldMeta {
 export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
   {
     key: "llm_backend",
-    label: "LLM Backend",
+    label: "fields.llmBackend",
     kind: "select",
     options: [
       { value: "openai", label: "OpenAI" },
@@ -30,17 +32,17 @@ export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
       { value: "azure", label: "Azure OpenAI" },
     ],
   },
-  { key: "llm_model", label: "LLM Model", kind: "text" },
+  { key: "llm_model", label: "fields.llmModel", kind: "text" },
   {
     key: "llm_temperature",
-    label: "LLM Temperature",
+    label: "fields.llmTemperature",
     kind: "number",
-    hint: "0–2 sampling temperature",
+    hint: "hints.llmTemperature",
   },
-  { key: "llm_max_tokens", label: "LLM Max Tokens", kind: "number" },
+  { key: "llm_max_tokens", label: "fields.llmMaxTokens", kind: "number" },
   {
     key: "embedding_backend",
-    label: "Embedding Backend",
+    label: "fields.embeddingBackend",
     kind: "select",
     options: [
       { value: "openai", label: "OpenAI" },
@@ -50,22 +52,22 @@ export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
       { value: "sentence_transformers", label: "Sentence Transformers" },
     ],
   },
-  { key: "embedding_model", label: "Embedding Model", kind: "text" },
-  { key: "embedding_dim", label: "Embedding Dimensions", kind: "number" },
+  { key: "embedding_model", label: "fields.embeddingModel", kind: "text" },
+  { key: "embedding_dim", label: "fields.embeddingDimensions", kind: "number" },
   {
     key: "graph_backend",
-    label: "Graph Backend",
+    label: "fields.graphBackend",
     kind: "select",
     options: [
       { value: "postgres", label: "PostgreSQL (pgvector)" },
       { value: "surrealdb", label: "SurrealDB" },
       { value: "falkordb", label: "FalkorDB" },
-      { value: "none", label: "No graph backend" },
+      { value: "none", label: "options.noGraphBackend" },
     ],
   },
   {
     key: "graph_search_type",
-    label: "Graph Search Type",
+    label: "fields.graphSearchType",
     kind: "select",
     options: [
       { value: "hybrid", label: "Hybrid (vector + keyword)" },
@@ -73,24 +75,24 @@ export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
       { value: "vector", label: "Vector" },
     ],
   },
-  { key: "graph_max_traversal_depth", label: "Graph Max Traversal Depth", kind: "number" },
+  { key: "graph_max_traversal_depth", label: "fields.graphMaxTraversalDepth", kind: "number" },
   {
     key: "reranker_backend",
-    label: "Reranker Backend",
+    label: "fields.rerankerBackend",
     kind: "select",
     options: [
-      { value: "none", label: "None (disabled)" },
+      { value: "none", label: "options.noneDisabled" },
       { value: "cohere", label: "Cohere" },
       { value: "voyage", label: "Voyage" },
       { value: "openai", label: "OpenAI" },
     ],
   },
-  { key: "reranker_model", label: "Reranker Model", kind: "text" },
+  { key: "reranker_model", label: "fields.rerankerModel", kind: "text" },
   {
     key: "context_cache_ttl",
-    label: "Context Cache TTL (seconds)",
+    label: "fields.contextCacheTtl",
     kind: "number",
-    hint: "How long context data is cached (0 = no caching)",
+    hint: "hints.contextCacheTtl",
   },
 ];
 
@@ -103,13 +105,14 @@ export function ConfigFields({
   onChange: (key: string, value: string | number) => void;
   disabled?: boolean;
 }) {
+  const t = useTranslations("superadmin.configFields");
   return (
     <div className="space-y-4 max-w-md">
       {SYSTEM_DEFAULT_FIELDS.map((field) => (
         <div key={field.key}>
           <label className="block">
             <span className="block text-sm font-medium text-surface-300 mb-1">
-              {field.label}
+              {t(field.label)}
             </span>
             {field.kind === "select" ? (
               <select
@@ -120,7 +123,7 @@ export function ConfigFields({
               >
                 {field.options?.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                    {t(opt.label)}
                   </option>
                 ))}
               </select>
@@ -143,7 +146,7 @@ export function ConfigFields({
             )}
           </label>
           {field.hint && (
-            <p className="text-xs text-surface-500 mt-1">{field.hint}</p>
+            <p className="text-xs text-surface-500 mt-1">{t(field.hint)}</p>
           )}
         </div>
       ))}

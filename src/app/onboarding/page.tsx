@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Loader2,
   Eye,
@@ -59,6 +60,8 @@ type GraphBackend = "postgres" | "surrealdb" | "falkordb" | "none";
 type GraphSearchType = "hybrid" | "bm25" | "vector";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
+// Backend option labels are product/brand names (OpenAI, SurrealDB, ...) —
+// not translated. Only "No graph backend" needs a catalog entry.
 
 const LLM_BACKEND_OPTIONS: { value: LlmBackend; label: string }[] = [
   { value: "openai", label: "OpenAI" },
@@ -80,7 +83,7 @@ const GRAPH_BACKEND_OPTIONS: { value: GraphBackend; label: string }[] = [
   { value: "postgres", label: "PostgreSQL (pgvector)" },
   { value: "surrealdb", label: "SurrealDB" },
   { value: "falkordb", label: "FalkorDB" },
-  { value: "none", label: "No graph backend" },
+  { value: "none", label: "none-placeholder" }, // replaced below via t()
 ];
 
 const SEARCH_TYPE_OPTIONS: { value: GraphSearchType; label: string }[] = [
@@ -88,12 +91,6 @@ const SEARCH_TYPE_OPTIONS: { value: GraphSearchType; label: string }[] = [
   { value: "bm25", label: "BM25 (keyword)" },
   { value: "vector", label: "Vector" },
 ];
-
-const STEPS = [
-  { title: "LLM Provider", icon: <Brain size={16} /> },
-  { title: "Embeddings & Graph", icon: <AudioWaveform size={16} /> },
-  { title: "Review & Save", icon: <CheckCircle size={16} /> },
-] as const;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -142,6 +139,7 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 // ─── Main Onboarding Page ──────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
+  const t = useTranslations("auth.onboarding");
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -155,6 +153,12 @@ export default function OnboardingPage() {
   const [showAzureKey, setShowAzureKey] = useState(false);
   const [showEmbeddingKey, setShowEmbeddingKey] = useState(false);
   const [showSurrealDbPass, setShowSurrealDbPass] = useState(false);
+
+  const STEPS = [
+    { title: t("step1Title"), icon: <Brain size={16} /> },
+    { title: t("step2Title"), icon: <AudioWaveform size={16} /> },
+    { title: t("step3Title"), icon: <CheckCircle size={16} /> },
+  ] as const;
 
   // ── Form state (lifted to top level — shared by all steps) ─────────────────
 
@@ -183,7 +187,7 @@ export default function OnboardingPage() {
 
         // Fetch onboarding defaults (no auth required)
         const res = await fetch(`${API_BASE}/admin/org/config/defaults`);
-        if (!res.ok) throw new Error("Failed to load default configuration");
+        if (!res.ok) throw new Error(t("loadDefaultsError"));
         const data: UpdateOrgConfigRequest = await res.json();
 
         // Check if the org already has stored config — if so, redirect to dashboard
@@ -200,13 +204,13 @@ export default function OnboardingPage() {
 
         setForm(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load configuration defaults");
+        setError(err instanceof Error ? err.message : t("loadDefaultsFallback"));
       } finally {
         setLoading(false);
       }
     }
     loadDefaults();
-  }, [router]);
+  }, [router, t]);
 
   // ── Save ───────────────────────────────────────────────────────────────────
 
@@ -223,17 +227,17 @@ export default function OnboardingPage() {
 
       if (!res.ok) {
         const body = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(body?.detail ?? "Failed to save configuration");
+        throw new Error(body?.detail ?? t("saveFailed"));
       }
 
-      toast.success("Configuration saved successfully");
+      toast.success(t("savedToast"));
 
       // Short delay to show the toast, then redirect
       setTimeout(() => {
         router.replace("/overview");
       }, 800);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to save configuration";
+      const message = err instanceof Error ? err.message : t("saveFailed");
       setError(message);
       toast.error(message);
     } finally {
@@ -243,33 +247,33 @@ export default function OnboardingPage() {
 
   // ── Review summary ─────────────────────────────────────────────────────────
 
-  const secretStatus = (value?: string | null) => (value ? "Set" : "Not set");
+  const secretStatus = (value?: string | null) => (value ? t("review.set") : t("review.notSet"));
 
   const reviewRows: { label: string; value: string }[] = [
-    { label: "LLM Backend", value: form.llm_backend ?? "openai" },
-    { label: "LLM Model", value: form.llm_model || "Not set" },
-    { label: "Temperature", value: String(form.llm_temperature ?? 0) },
-    { label: "Max Tokens", value: String(form.llm_max_tokens ?? 4096) },
-    { label: "OpenAI API Key", value: secretStatus(form.openai_api_key) },
-    { label: "Anthropic API Key", value: secretStatus(form.anthropic_api_key) },
-    { label: "OpenRouter API Key", value: secretStatus(form.openrouter_api_key) },
-    { label: "Azure OpenAI API Key", value: secretStatus(form.azure_openai_key) },
-    ...(form.azure_openai_endpoint ? [{ label: "Azure Endpoint", value: form.azure_openai_endpoint }] : []),
-    ...(form.ollama_base_url ? [{ label: "Ollama Base URL", value: form.ollama_base_url }] : []),
-    { label: "Embedding Backend", value: form.embedding_backend ?? "openai" },
-    { label: "Embedding Model", value: form.embedding_model || "Not set" },
-    { label: "Embedding Provider", value: form.embedding_provider || "Not set" },
-    { label: "Graph Backend", value: form.graph_backend ?? "postgres" },
-    { label: "Search Type", value: form.graph_search_type ?? "hybrid" },
+    { label: t("review.llmBackend"), value: form.llm_backend ?? "openai" },
+    { label: t("review.llmModel"), value: form.llm_model || t("review.notSet") },
+    { label: t("review.temperature"), value: String(form.llm_temperature ?? 0) },
+    { label: t("review.maxTokens"), value: String(form.llm_max_tokens ?? 4096) },
+    { label: t("review.openaiApiKey"), value: secretStatus(form.openai_api_key) },
+    { label: t("review.anthropicApiKey"), value: secretStatus(form.anthropic_api_key) },
+    { label: t("review.openrouterApiKey"), value: secretStatus(form.openrouter_api_key) },
+    { label: t("review.azureApiKey"), value: secretStatus(form.azure_openai_key) },
+    ...(form.azure_openai_endpoint ? [{ label: t("review.azureEndpoint"), value: form.azure_openai_endpoint }] : []),
+    ...(form.ollama_base_url ? [{ label: t("review.ollamaBaseUrl"), value: form.ollama_base_url }] : []),
+    { label: t("review.embeddingBackend"), value: form.embedding_backend ?? "openai" },
+    { label: t("review.embeddingModel"), value: form.embedding_model || t("review.notSet") },
+    { label: t("review.embeddingProvider"), value: form.embedding_provider || t("review.notSet") },
+    { label: t("review.graphBackend"), value: form.graph_backend ?? "postgres" },
+    { label: t("review.searchType"), value: form.graph_search_type ?? "hybrid" },
     ...(form.graph_backend === "surrealdb" && form.surrealdb_url
-      ? [{ label: "SurrealDB URL", value: form.surrealdb_url }]
+      ? [{ label: t("review.surrealdbUrl"), value: form.surrealdb_url }]
       : []),
     ...(form.graph_backend === "falkordb" && form.falkordb_url
-      ? [{ label: "FalkorDB URL", value: form.falkordb_url }]
+      ? [{ label: t("review.falkordbUrl"), value: form.falkordb_url }]
       : []),
-    { label: "Max Traversal Depth", value: String(form.graph_max_traversal_depth ?? 2) },
-    { label: "Context Cache TTL", value: `${form.context_cache_ttl ?? 300}s` },
-    { label: "Audit Log Response Body", value: form.audit_log_response_body ? "Enabled" : "Disabled" },
+    { label: t("review.maxTraversalDepth"), value: String(form.graph_max_traversal_depth ?? 2) },
+    { label: t("review.contextCacheTtl"), value: `${form.context_cache_ttl ?? 300}s` },
+    { label: t("review.auditLogResponseBody"), value: form.audit_log_response_body ? t("review.enabled") : t("review.disabled") },
   ];
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -279,13 +283,16 @@ export default function OnboardingPage() {
       <div className="flex min-h-screen items-center justify-center bg-surface-950">
         <div className="flex flex-col items-center gap-4">
           <Loader2 size={32} className="animate-spin text-brand-500" />
-          <p className="text-sm text-surface-400">Loading configuration defaults...</p>
+          <p className="text-sm text-surface-400">{t("loading")}</p>
         </div>
       </div>
     );
   }
 
   const anyApiKeyEmpty = !form.openai_api_key && !form.anthropic_api_key && !form.openrouter_api_key && !form.azure_openai_key;
+  const graphBackendOptions = GRAPH_BACKEND_OPTIONS.map((opt) =>
+    opt.value === "none" ? { ...opt, label: t("graphBackendNone") } : opt,
+  );
 
   return (
     <div className="min-h-screen bg-surface-950">
@@ -296,10 +303,9 @@ export default function OnboardingPage() {
             <span className="text-brand-500 font-bold text-3xl">O</span>
             <span className="text-2xl font-bold text-text-primary">OpenZync</span>
           </div>
-          <h1 className="text-2xl font-bold text-text-primary">Complete Your Setup</h1>
+          <h1 className="text-2xl font-bold text-text-primary">{t("title")}</h1>
           <p className="text-sm text-surface-400 mt-1 max-w-md mx-auto">
-            Configure your organization&apos;s LLM, embeddings, graph, and behaviour settings.
-            Secrets like API keys must be filled in before you can use the platform.
+            {t("subtitle")}
           </p>
         </div>
 
@@ -339,7 +345,7 @@ export default function OnboardingPage() {
             onClick={() => router.replace("/overview")}
             className="shrink-0 text-xs text-surface-300 hover:text-surface-100 underline-offset-4 hover:underline transition-colors"
           >
-            Skip for now
+            {t("skipForNow")}
           </button>
         </div>
 
@@ -357,17 +363,17 @@ export default function OnboardingPage() {
             {anyApiKeyEmpty && (
               <div className="mb-6 rounded-md bg-warning/10 border border-warning/30 px-4 py-3 text-sm text-warning flex items-center gap-2">
                 <AlertCircle size={14} />
-                At least one LLM API key is required to use the platform. Fill in the key for your chosen provider below.
+                {t("apiKeyRequired")}
               </div>
             )}
 
             <div className="card-base p-6 mb-6">
-              <SectionHeader icon={<Brain size={20} />} title="LLM Configuration" description="Primary language model provider" />
+              <SectionHeader icon={<Brain size={20} />} title={t("llmSectionTitle")} description={t("llmSectionDesc")} />
 
               <div className="space-y-4 max-w-md">
                 {/* llm_backend */}
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Backend Provider</label>
+                  <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("backendProvider")}</label>
                   <select
                     className="input-base w-full"
                     value={form.llm_backend ?? "openai"}
@@ -381,10 +387,10 @@ export default function OnboardingPage() {
 
                 {/* llm_model */}
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Model</label>
+                  <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("model")}</label>
                   <input
                     className="input-base w-full"
-                    placeholder="gpt-4o-mini, claude-sonnet-4, ..."
+                    placeholder={t("modelPlaceholder")}
                     value={form.llm_model ?? ""}
                     onChange={(e) => updateField("llm_model", e.target.value)}
                   />
@@ -393,7 +399,7 @@ export default function OnboardingPage() {
                 <div className="flex gap-4">
                   {/* llm_temperature */}
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">Temperature</label>
+                    <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("temperature")}</label>
                     <input
                       className="input-base w-full"
                       type="number"
@@ -407,7 +413,7 @@ export default function OnboardingPage() {
 
                   {/* llm_max_tokens */}
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">Max Tokens</label>
+                    <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("maxTokens")}</label>
                     <input
                       className="input-base w-full"
                       type="number"
@@ -423,13 +429,13 @@ export default function OnboardingPage() {
             <div className="card-base p-6 mb-6">
               <SectionHeader
                 icon={<Eye size={20} />}
-                title="API Keys"
-                description="Credentials for LLM providers — fill in the key for your chosen provider"
+                title={t("apiKeysTitle")}
+                description={t("apiKeysDesc")}
               />
 
               <div className="space-y-4 max-w-md">
                 <SecretInput
-                  label="OpenAI API Key"
+                  label={t("openaiApiKey")}
                   value={form.openai_api_key ?? ""}
                   onChange={(v) => updateField("openai_api_key", v)}
                   placeholder="sk-..."
@@ -437,7 +443,7 @@ export default function OnboardingPage() {
                   onToggleVisibility={() => setShowOpenAiKey((prev) => !prev)}
                 />
                 <SecretInput
-                  label="Anthropic API Key"
+                  label={t("anthropicApiKey")}
                   value={form.anthropic_api_key ?? ""}
                   onChange={(v) => updateField("anthropic_api_key", v)}
                   placeholder="sk-ant-..."
@@ -445,7 +451,7 @@ export default function OnboardingPage() {
                   onToggleVisibility={() => setShowAnthropicKey((prev) => !prev)}
                 />
                 <SecretInput
-                  label="OpenRouter API Key"
+                  label={t("openrouterApiKey")}
                   value={form.openrouter_api_key ?? ""}
                   onChange={(v) => updateField("openrouter_api_key", v)}
                   placeholder="sk-or-..."
@@ -453,29 +459,29 @@ export default function OnboardingPage() {
                   onToggleVisibility={() => setShowOpenRouterKey((prev) => !prev)}
                 />
                 <SecretInput
-                  label="Azure OpenAI API Key"
+                  label={t("azureApiKey")}
                   value={form.azure_openai_key ?? ""}
                   onChange={(v) => updateField("azure_openai_key", v)}
-                  placeholder="Azure API key"
+                  placeholder={t("azureApiKeyPlaceholder")}
                   visible={showAzureKey}
                   onToggleVisibility={() => setShowAzureKey((prev) => !prev)}
                 />
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Azure OpenAI Endpoint</label>
+                  <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("azureEndpoint")}</label>
                   <input
                     className="input-base w-full"
                     type="url"
-                    placeholder="https://my-resource.openai.azure.com"
+                    placeholder={t("azureEndpointPlaceholder")}
                     value={form.azure_openai_endpoint ?? ""}
                     onChange={(e) => updateField("azure_openai_endpoint", e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Ollama Base URL</label>
+                  <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("ollamaBaseUrl")}</label>
                   <input
                     className="input-base w-full"
                     type="url"
-                    placeholder="http://localhost:11434"
+                    placeholder={t("ollamaBaseUrlPlaceholder")}
                     value={form.ollama_base_url ?? ""}
                     onChange={(e) => updateField("ollama_base_url", e.target.value)}
                   />
@@ -489,12 +495,12 @@ export default function OnboardingPage() {
         {step === 1 && (
           <>
             <div className="card-base p-6 mb-6">
-              <SectionHeader icon={<AudioWaveform size={20} />} title="Embeddings" description="Vector embedding model configuration" />
+              <SectionHeader icon={<AudioWaveform size={20} />} title={t("embeddingsTitle")} description={t("embeddingsDesc")} />
 
               <div className="space-y-4 max-w-md">
                 {/* embedding_backend */}
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Backend Provider</label>
+                  <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("backendProvider")}</label>
                   <select
                     className="input-base w-full"
                     value={form.embedding_backend ?? "openai"}
@@ -508,10 +514,10 @@ export default function OnboardingPage() {
 
                 {/* embedding_model */}
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Model</label>
+                  <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("model")}</label>
                   <input
                     className="input-base w-full"
-                    placeholder="text-embedding-3-small, ..."
+                    placeholder={t("embeddingModelPlaceholder")}
                     value={form.embedding_model ?? ""}
                     onChange={(e) => updateField("embedding_model", e.target.value)}
                   />
@@ -520,7 +526,7 @@ export default function OnboardingPage() {
                 <div className="flex gap-4">
                   {/* embedding_dim */}
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">Embedding Dimensions</label>
+                    <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("embeddingDimensions")}</label>
                     <input
                       className="input-base w-full"
                       type="number"
@@ -533,10 +539,10 @@ export default function OnboardingPage() {
 
                   {/* embedding_provider */}
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">Provider Name</label>
+                    <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("providerName")}</label>
                     <input
                       className="input-base w-full"
-                      placeholder="openai, azure, ..."
+                      placeholder={t("providerNamePlaceholder")}
                       value={form.embedding_provider ?? ""}
                       onChange={(e) => updateField("embedding_provider", e.target.value)}
                     />
@@ -545,10 +551,10 @@ export default function OnboardingPage() {
 
                 {/* embedding_api_key */}
                 <SecretInput
-                  label="Embedding API Key"
+                  label={t("embeddingApiKey")}
                   value={form.embedding_api_key ?? ""}
                   onChange={(v) => updateField("embedding_api_key", v)}
-                  placeholder="Embedding provider API key"
+                  placeholder={t("embeddingApiKeyPlaceholder")}
                   visible={showEmbeddingKey}
                   onToggleVisibility={() => setShowEmbeddingKey((prev) => !prev)}
                 />
@@ -556,18 +562,18 @@ export default function OnboardingPage() {
             </div>
 
             <div className="card-base p-6 mb-6">
-              <SectionHeader icon={<GitBranch size={20} />} title="Knowledge Graph" description="Graph backend, search, and traversal settings" />
+              <SectionHeader icon={<GitBranch size={20} />} title={t("graphTitle")} description={t("graphDesc")} />
 
               <div className="space-y-4 max-w-md">
                 {/* graph_backend */}
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Graph Backend</label>
+                  <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("graphBackend")}</label>
                   <select
                     className="input-base w-full"
                     value={form.graph_backend ?? "postgres"}
                     onChange={(e) => updateField("graph_backend", e.target.value)}
                   >
-                    {GRAPH_BACKEND_OPTIONS.map((opt) => (
+                    {graphBackendOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
@@ -575,7 +581,7 @@ export default function OnboardingPage() {
 
                 {/* graph_search_type */}
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Search Type</label>
+                  <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("searchType")}</label>
                   <select
                     className="input-base w-full"
                     value={form.graph_search_type ?? "hybrid"}
@@ -591,50 +597,50 @@ export default function OnboardingPage() {
                 {(form.graph_backend === "surrealdb") && (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-surface-300 mb-1.5">SurrealDB URL</label>
+                      <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("surrealdbUrl")}</label>
                       <input
                         className="input-base w-full"
                         type="url"
-                        placeholder="ws://surrealdb:8000/rpc"
+                        placeholder={t("surrealdbUrlPlaceholder")}
                         value={form.surrealdb_url ?? ""}
                         onChange={(e) => updateField("surrealdb_url", e.target.value)}
                       />
-                      <p className="text-xs text-surface-500 mt-1">Required when using SurrealDB backend</p>
+                      <p className="text-xs text-surface-500 mt-1">{t("surrealdbUrlHint")}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-surface-300 mb-1.5">SurrealDB Username</label>
+                      <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("surrealdbUsername")}</label>
                       <input
                         className="input-base w-full"
                         type="text"
-                        placeholder="SurrealDB username"
+                        placeholder={t("surrealdbUsernamePlaceholder")}
                         value={form.surrealdb_user ?? ""}
                         onChange={(e) => updateField("surrealdb_user", e.target.value)}
                       />
                     </div>
                     <SecretInput
-                      label="SurrealDB Password"
+                      label={t("surrealdbPassword")}
                       value={form.surrealdb_pass ?? ""}
                       onChange={(v) => updateField("surrealdb_pass", v)}
-                      placeholder="SurrealDB password"
+                      placeholder={t("surrealdbPasswordPlaceholder")}
                       visible={showSurrealDbPass}
                       onToggleVisibility={() => setShowSurrealDbPass((prev) => !prev)}
                     />
                     <div>
-                      <label className="block text-sm font-medium text-surface-300 mb-1.5">SurrealDB Namespace</label>
+                      <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("surrealdbNamespace")}</label>
                       <input
                         className="input-base w-full"
                         type="text"
-                        placeholder="SurrealDB namespace"
+                        placeholder={t("surrealdbNamespacePlaceholder")}
                         value={form.surrealdb_namespace ?? ""}
                         onChange={(e) => updateField("surrealdb_namespace", e.target.value)}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-surface-300 mb-1.5">SurrealDB Database</label>
+                      <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("surrealdbDatabase")}</label>
                       <input
                         className="input-base w-full"
                         type="text"
-                        placeholder="SurrealDB database"
+                        placeholder={t("surrealdbDatabasePlaceholder")}
                         value={form.surrealdb_database ?? ""}
                         onChange={(e) => updateField("surrealdb_database", e.target.value)}
                       />
@@ -646,25 +652,24 @@ export default function OnboardingPage() {
                 {form.graph_backend === "falkordb" && (
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                      FalkorDB URL
+                      {t("falkordbUrl")}
                     </label>
                     <input
                       className="input-base w-full"
                       type="url"
-                      placeholder="redis://falkordb:6379"
+                      placeholder={t("falkordbUrlPlaceholder")}
                       value={form.falkordb_url ?? ""}
                       onChange={(e) => updateField("falkordb_url", e.target.value)}
                     />
                     <p className="text-xs text-surface-500 mt-1">
-                      Required when using FalkorDB backend and no system-level config exists.
-                      If FalkorDB is configured at the system level, this field is ignored.
+                      {t("falkordbUrlHint")}
                     </p>
                   </div>
                 )}
 
                 {/* graph_max_traversal_depth */}
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Max Traversal Depth</label>
+                  <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("maxTraversalDepth")}</label>
                   <input
                     className="input-base w-full"
                     type="number"
@@ -673,18 +678,18 @@ export default function OnboardingPage() {
                     value={form.graph_max_traversal_depth ?? 2}
                     onChange={(e) => updateField("graph_max_traversal_depth", parseInt(e.target.value) || 1)}
                   />
-                  <p className="text-xs text-surface-500 mt-1">How many hops the graph traversal will follow (1&ndash;10)</p>
+                  <p className="text-xs text-surface-500 mt-1">{t("maxTraversalDepthHint")}</p>
                 </div>
               </div>
             </div>
 
             <div className="card-base p-6 mb-6">
-              <SectionHeader icon={<Settings2 size={20} />} title="Behaviour" description="Caching and audit behaviour" />
+              <SectionHeader icon={<Settings2 size={20} />} title={t("behaviourTitle")} description={t("behaviourDesc")} />
 
               <div className="space-y-4 max-w-md">
                 {/* context_cache_ttl */}
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Context Cache TTL (seconds)</label>
+                  <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("contextCacheTtl")}</label>
                   <input
                     className="input-base w-full"
                     type="number"
@@ -693,7 +698,7 @@ export default function OnboardingPage() {
                     onChange={(e) => updateField("context_cache_ttl", parseInt(e.target.value) || 0)}
                   />
                   <p className="text-xs text-surface-500 mt-1">
-                    How long context data is cached in Redis before being re-fetched (0 = no caching)
+                    {t("contextCacheTtlHint")}
                   </p>
                 </div>
 
@@ -701,10 +706,10 @@ export default function OnboardingPage() {
                 <div className="pt-2">
                   <div className="flex items-start justify-between">
                     <div>
-                      <label className="block text-sm font-medium text-surface-300 mb-1">Audit Log Response Body</label>
-                      <p className="text-xs text-surface-500">Include response body content in audit logs</p>
+                      <label className="block text-sm font-medium text-surface-300 mb-1">{t("auditLogResponseBody")}</label>
+                      <p className="text-xs text-surface-500">{t("auditLogResponseBodyHint")}</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-4">
+                    <div className="flex items-center gap-2 shrink-0 ms-4">
                       <label className="flex items-center gap-3 cursor-pointer">
                         <input
                           type="checkbox"
@@ -713,7 +718,7 @@ export default function OnboardingPage() {
                           onChange={(e) => updateField("audit_log_response_body", e.target.checked)}
                         />
                         <span className="text-sm text-surface-300">
-                          {form.audit_log_response_body ? "Enabled" : "Disabled"}
+                          {form.audit_log_response_body ? t("review.enabled") : t("review.disabled")}
                         </span>
                       </label>
                     </div>
@@ -727,7 +732,7 @@ export default function OnboardingPage() {
         {/* ── Step 3: Review & Save ────────────────────────────────────────────── */}
         {step === 2 && (
           <div className="card-base p-6 mb-6">
-            <SectionHeader icon={<CheckCircle size={20} />} title="Review & Save" description="Confirm your configuration before saving" />
+            <SectionHeader icon={<CheckCircle size={20} />} title={t("reviewTitle")} description={t("reviewDesc")} />
             <div>
               {reviewRows.map((row) => (
                 <ReviewRow key={row.label} label={row.label} value={row.value} />
@@ -745,11 +750,11 @@ export default function OnboardingPage() {
             disabled={step === 0 || saving}
           >
             <ChevronLeft size={16} />
-            Back
+            {t("back")}
           </Button>
           {step < STEPS.length - 1 ? (
             <Button variant="primary" size="sm" onClick={() => setStep((s) => s + 1)}>
-              Next
+              {t("next")}
               <ChevronRight size={16} />
             </Button>
           ) : (
@@ -764,7 +769,7 @@ export default function OnboardingPage() {
               ) : (
                 <Save size={16} />
               )}
-              {saving ? "Saving..." : "Save & Continue"}
+              {saving ? t("saving") : t("saveAndContinue")}
             </Button>
           )}
         </div>

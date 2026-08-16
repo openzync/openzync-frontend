@@ -2,6 +2,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
+import { useTranslations } from "next-intl";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ export function Dialog({
   persistent = false,
   size = "md",
 }: DialogProps) {
+  const t = useTranslations("components.dialog");
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       {trigger && (
@@ -112,7 +114,7 @@ export function Dialog({
                     "transition-colors",
                     "focus-visible:outline-2 focus-visible:outline-accent-300",
                   )}
-                  aria-label="Close dialog"
+                  aria-label={t("close")}
                 >
                   <X size={18} />
                 </button>
@@ -121,7 +123,7 @@ export function Dialog({
           </div>
 
           {/* ── Body ───────────────────────────────────────────────────── */}
-          <div className="px-6 py-3">{children}</div>
+          <div className="px-6 py-3">{children ?? t("cancel")}</div>
 
           {/* ── Footer ─────────────────────────────────────────────────── */}
           {footer && (
@@ -141,9 +143,10 @@ export function Dialog({
  * Wrapper around `<Button variant="secondary" />` that closes the dialog.
  */
 export function DialogCloseButton({
-  children = "Cancel",
+  children,
   ...props
 }: React.ComponentProps<typeof Button>) {
+  const t = useTranslations("components.dialog");
   return (
     <DialogPrimitive.Close asChild>
       <Button variant="secondary" {...props}>

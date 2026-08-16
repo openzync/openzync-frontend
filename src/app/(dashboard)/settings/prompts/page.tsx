@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Download,
   FileText,
@@ -27,7 +28,8 @@ import {
   ApiError,
   safeJsonParse,
 } from "@/lib/api-client";
-import { timeAgo, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
+import { useTimeAgo } from "@/hooks/use-time-ago";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageGuide, GuideSettings } from "@/components/guides";
@@ -118,6 +120,7 @@ function EditDialog({
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [settingDefault, setSettingDefault] = useState(false);
+  const t = useTranslations("settings.prompts");
 
   useEffect(() => {
     setTemplateText(template.template_text);
@@ -128,7 +131,7 @@ function EditDialog({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!templateText.trim()) { setError("Template text cannot be empty"); return; }
+    if (!templateText.trim()) { setError(t("errors.templateEmpty")); return; }
     setSaving(true); setError(null);
     try {
       const res = await fetch(`${API_BASE}/admin/org/prompts/${template.name}`, {
@@ -136,8 +139,8 @@ function EditDialog({
         headers: authHeaders(),
         body: JSON.stringify({ template_text: templateText, description: description.trim() || null }),
       });
-      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? "Failed to save template"); }
-      toast.success(`Template "${templateDisplayName(template.name)}" saved as new version`);
+      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? t("errors.saveFailed")); }
+      toast.success(t("toasts.savedVersion", { name: templateDisplayName(template.name) }));
       await onSaved();
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to save template"); }
     finally { setSaving(false); }
@@ -147,9 +150,9 @@ function EditDialog({
     setResetting(true);
     try {
       const res = await fetch(`${API_BASE}/admin/org/prompts/${template.name}`, { method: "DELETE", headers: authHeaders() });
-      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? "Failed to reset template"); }
+      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? t("errors.resetFailed")); }
       setShowResetConfirm(false);
-      toast.success(`Template "${templateDisplayName(template.name)}" reset to default`);
+      toast.success(t("toasts.reset", { name: templateDisplayName(template.name) }));
       await onReset();
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to reset template"); }
     finally { setResetting(false); }
@@ -160,10 +163,10 @@ function EditDialog({
     setSettingDefault(true); setError(null);
     try {
       const res = await fetch(`${API_BASE}/admin/org/prompts/${template.name}/set-default`, { method: "POST", headers: authHeaders() });
-      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? "Failed to set as default"); }
-      toast.success(`"${templateDisplayName(template.name)}" is now the default for its type`);
+      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? t("errors.setDefaultFailed")); }
+      toast.success(t("toasts.default", { name: templateDisplayName(template.name) }));
       await onSaved();
-    } catch (err) { setError(err instanceof Error ? err.message : "Failed to set as default"); }
+    } catch (err) { setError(err instanceof Error ? err.message : t("errors.setDefaultFailed")); }
     finally { setSettingDefault(false); }
   };
 
@@ -173,35 +176,35 @@ function EditDialog({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-500/10 shrink-0"><FileText size={16} className="text-brand-300" /></div>
-            <div><h2 className="text-lg font-semibold">{templateDisplayName(template.name)}</h2><p className="text-xs text-surface-400">Version {template.version}</p></div>
+            <div><h2 className="text-lg font-semibold">{templateDisplayName(template.name)}</h2><p className="text-xs text-surface-400">{t("version", { version: template.version })}</p></div>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} className="rounded-md text-surface-400 hover:text-white p-1"><X size={18} /></Button>
         </div>
         <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 mb-4">
           <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-200/80 leading-relaxed">Custom prompts override the system default. Incorrect Jinja2 syntax may cause extraction failures.</p>
+          <p className="text-xs text-amber-200/80 leading-relaxed">{t("customWarning")}</p>
         </div>
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Description <span className="text-surface-500">(optional)</span></label>
-            <input className="input-base" placeholder="Describe what this template does" value={description} onChange={(e) => { setDescription(e.target.value); if (error) setError(null); }} disabled={saving} />
+            <label className="block text-sm font-medium text-surface-300 mb-1">{t("fields.description")} <span className="text-surface-500">({t("optional")})</span></label>
+            <input className="input-base" placeholder={t("fields.descriptionPlaceholder")} value={description} onChange={(e) => { setDescription(e.target.value); if (error) setError(null); }} disabled={saving} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Template <span className="text-error">*</span></label>
+            <label className="block text-sm font-medium text-surface-300 mb-1">{t("fields.template")} <span className="text-error">*</span></label>
             <textarea
               className={cn("w-full rounded-lg border border-surface-700 bg-surface-950 p-4 text-sm font-mono leading-relaxed text-surface-100 placeholder-surface-500 outline-none resize-y min-h-[300px] transition-all duration-150 focus:border-accent-300 focus:shadow-[0_0_0_2px_rgba(143,175,217,0.2)]")}
               placeholder="{% raw %}{{ Enter your Jinja2 template here }}{% endraw %}"
               value={templateText} onChange={(e) => { setTemplateText(e.target.value); if (error) setError(null); }} disabled={saving} spellCheck={false}
             />
-            <p className="text-xs text-surface-500 mt-1">Jinja2 template syntax. Use {"{{ variables }}"} and {"{% tags %}"} for dynamic content.</p>
+            <p className="text-xs text-surface-500 mt-1">{t("fields.jinjaHint")}</p>
           </div>
           {error && (<div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2"><AlertCircle size={14} />{error}</div>)}
           <div className="flex items-center justify-between pt-2 border-t border-surface-800">
             <div className="flex items-center gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={onShowHistory}><History size={14} /> Version History</Button>
+              <Button type="button" variant="ghost" size="sm" onClick={onShowHistory}><History size={14} /> {t("versionHistory")}</Button>
               {template.type && !template.is_default_for_type && (
                 <Button type="button" variant="ghost" size="sm" onClick={handleSetDefault} disabled={settingDefault} className="text-amber-400 hover:text-amber-300">
-                  {settingDefault ? <Spinner className="text-amber-400" /> : <><Star size={12} /> Set as Default</>}
+                  {settingDefault ? <Spinner className="text-amber-400" /> : <><Star size={12} /> {t("setAsDefault")}</>}
                 </Button>
               )}
             </div>
@@ -210,20 +213,20 @@ function EditDialog({
                 <>
                   {showResetConfirm ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-surface-400">Reset to default?</span>
+                      <span className="text-xs text-surface-400">{t("resetConfirm")}</span>
                       <Button type="button" variant="danger" size="sm" onClick={handleReset} disabled={resetting} className="min-w-[80px] justify-center">
-                        {resetting ? <span className="flex items-center gap-1"><Spinner /> Resetting...</span> : <span className="flex items-center gap-1"><Trash2 size={12} /> Confirm</span>}
+                        {resetting ? <span className="flex items-center gap-1"><Spinner /> {t("resetting")}</span> : <span className="flex items-center gap-1"><Trash2 size={12} /> {t("confirm")}</span>}
                       </Button>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setShowResetConfirm(false)} disabled={resetting}>Cancel</Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setShowResetConfirm(false)} disabled={resetting}>{t("cancel")}</Button>
                     </div>
                   ) : (
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setShowResetConfirm(true)} className="text-surface-400 hover:text-error"><RotateCcw size={12} /> Reset to Default</Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setShowResetConfirm(true)} className="text-surface-400 hover:text-error"><RotateCcw size={12} /> {t("resetToDefault")}</Button>
                   )}
                 </>
               )}
               <Button type="button" variant="secondary" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
               <Button type="submit" variant="primary" size="sm" disabled={saving || (!templateText.trim() && !error)} className="min-w-[120px] justify-center">
-                {saving ? <span className="flex items-center gap-2"><Spinner /> Saving...</span> : <span className="flex items-center gap-2"><Save size={14} /> Save as New Version</span>}
+                {saving ? <span className="flex items-center gap-2"><Spinner /> {t("saving")}</span> : <span className="flex items-center gap-2"><Save size={14} /> {t("saveAsNewVersion")}</span>}
               </Button>
             </div>
           </div>
@@ -251,12 +254,13 @@ function VersionHistoryDialog({
   const [promoting, setPromoting] = useState(false);
   const [promoteConfirm, setPromoteConfirm] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("settings.prompts");
 
   const fetchVersions = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const res = await fetch(`${API_BASE}/admin/org/prompts/${templateName}/versions`, { headers: authHeaders() });
-      if (!res.ok) throw new Error("Failed to load version history");
+      if (!res.ok) throw new Error(t("errors.loadHistoryFailed"));
       const data: PromptTemplateVersions = await res.json();
       setVersionsData(data);
       const active = data.versions.find((v) => v.is_active);
@@ -271,8 +275,8 @@ function VersionHistoryDialog({
     setRollingBack(true);
     try {
       const res = await fetch(`${API_BASE}/admin/org/prompts/${templateName}/rollback/${version}`, { method: "POST", headers: authHeaders() });
-      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? "Failed to rollback template"); }
-      toast.success(`Template "${templateDisplayName(templateName)}" rolled back to version ${version}`);
+      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? t("errors.rollbackFailed")); }
+      toast.success(t("toasts.rolledBack", { name: templateDisplayName(templateName), version }));
       await fetchVersions();
       onRollback(version);
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to rollback template"); }
@@ -283,8 +287,8 @@ function VersionHistoryDialog({
     setPromoting(true); setPromoteConfirm(null);
     try {
       const res = await fetch(`${API_BASE}/admin/org/prompts/${templateName}/promote/${version}`, { method: "POST", headers: authHeaders() });
-      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? "Failed to promote template"); }
-      toast.success(`Version ${version} of "${templateDisplayName(templateName)}" is now the system default`);
+      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? t("errors.promoteFailed")); }
+      toast.success(t("toasts.promoted", { version, name: templateDisplayName(templateName) }));
       await fetchVersions();
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to promote template"); }
     finally { setPromoting(false); }
@@ -298,7 +302,7 @@ function VersionHistoryDialog({
         <div className="flex items-center justify-between mb-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-surface-800 shrink-0"><History size={16} className="text-surface-300" /></div>
-            <div><h2 className="text-lg font-semibold">Version History</h2><p className="text-xs text-surface-400">{templateDisplayName(templateName)}</p></div>
+            <div><h2 className="text-lg font-semibold">{t("versionHistory")}</h2><p className="text-xs text-surface-400">{templateDisplayName(templateName)}</p></div>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} className="rounded-md text-surface-400 hover:text-white p-1"><X size={18} /></Button>
         </div>
@@ -308,7 +312,7 @@ function VersionHistoryDialog({
             {loading ? (
               <div className="flex items-center justify-center py-12"><Spinner className="text-surface-400" /></div>
             ) : !versionsData || versionsData.versions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-surface-500"><History size={24} className="mb-2 opacity-40" /><p className="text-xs">No versions found</p></div>
+              <div className="flex flex-col items-center justify-center py-12 text-surface-500"><History size={24} className="mb-2 opacity-40" /><p className="text-xs">{t("noVersions")}</p></div>
             ) : (
               <div className="divide-y divide-surface-800">
                 {versionsData.versions.map((v) => {
@@ -317,10 +321,10 @@ function VersionHistoryDialog({
                     <button key={v.version} onClick={() => setSelectedVersion(v)} className={cn("w-full text-left px-3 py-2.5 transition-colors hover:bg-surface-800/50", selectedVersion?.version === v.version && "bg-surface-800")}>
                       <div className="flex items-center justify-between">
                         <span className={cn("text-sm font-medium", isActive ? "text-success" : "text-surface-300")}>v{v.version}</span>
-                        {v.is_system_default && <span className="text-[10px] font-medium text-amber-400">Default</span>}
-                        {isActive && !v.is_system_default && <span className="text-[10px] font-medium text-success">Active</span>}
+                        {v.is_system_default && <span className="text-[10px] font-medium text-amber-400">{t("default")}</span>}
+                        {isActive && !v.is_system_default && <span className="text-[10px] font-medium text-success">{t("active")}</span>}
                       </div>
-                      <p className="text-[11px] text-surface-500 mt-0.5 truncate">{v.description || "No description"}</p>
+                      <p className="text-[11px] text-surface-500 mt-0.5 truncate">{v.description || t("noDescription")}</p>
                     </button>
                   );
                 })}
@@ -333,29 +337,29 @@ function VersionHistoryDialog({
                 <div className="flex items-center justify-between mb-2 shrink-0">
                   <div className="flex items-center gap-2">
                     <Eye size={14} className="text-surface-400" />
-                    <span className="text-sm font-medium text-surface-200">Version {selectedVersion.version}</span>
-                    {isActiveVersion(selectedVersion.version) && <Badge variant="success" size="sm">Currently Active</Badge>}
+                    <span className="text-sm font-medium text-surface-200">{t("version", { version: selectedVersion.version })}</span>
+                    {isActiveVersion(selectedVersion.version) && <Badge variant="success" size="sm">{t("currentlyActive")}</Badge>}
                   </div>
                   <div className="flex items-center gap-2">
                     {!isActiveVersion(selectedVersion.version) && (
                       <Button variant="primary" size="sm" onClick={() => handleRollback(selectedVersion.version)} disabled={rollingBack} className="min-w-[100px] justify-center">
-                        {rollingBack ? <span className="flex items-center gap-1"><Spinner /> Rolling back...</span> : <span className="flex items-center gap-1"><RotateCcw size={12} /> Rollback to v{selectedVersion.version}</span>}
+                        {rollingBack ? <span className="flex items-center gap-1"><Spinner /> {t("rollingBack")}</span> : <span className="flex items-center gap-1"><RotateCcw size={12} /> {t("rollbackTo", { version: selectedVersion.version })}</span>}
                       </Button>
                     )}
                     {!selectedVersion.is_system_default ? (
                       promoteConfirm === selectedVersion.version ? (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-amber-400">Set as global default?</span>
+                          <span className="text-xs text-amber-400">{t("globalDefaultConfirm")}</span>
                           <Button variant="primary" size="sm" onClick={() => handlePromote(selectedVersion.version)} disabled={promoting} className="bg-amber-500/20 border-amber-500/30 hover:bg-amber-500/30 min-w-[80px] justify-center">
-                            {promoting ? <span className="flex items-center gap-1"><Spinner /> Promoting...</span> : <span className="flex items-center gap-1"><Star size={12} /> Confirm</span>}
+                            {promoting ? <span className="flex items-center gap-1"><Spinner /> {t("promoting")}</span> : <span className="flex items-center gap-1"><Star size={12} /> Confirm</span>}
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => setPromoteConfirm(null)} disabled={promoting}>Cancel</Button>
                         </div>
                       ) : (
-                        <Button variant="ghost" size="sm" onClick={() => setPromoteConfirm(selectedVersion.version)} className="text-amber-400 hover:text-amber-300"><Star size={12} /> Set as System Default</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setPromoteConfirm(selectedVersion.version)} className="text-amber-400 hover:text-amber-300"><Star size={12} /> {t("setAsSystemDefault")}</Button>
                       )
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-amber-400"><Star size={12} /> System Default</span>
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-400"><Star size={12} /> {t("systemDefault")}</span>
                     )}
                   </div>
                 </div>
@@ -364,7 +368,7 @@ function VersionHistoryDialog({
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-surface-500"><Eye size={32} className="mb-2 opacity-40" /><p className="text-sm">Select a version to preview</p></div>
+              <div className="flex flex-col items-center justify-center h-full text-surface-500"><Eye size={32} className="mb-2 opacity-40" /><p className="text-sm">{t("selectVersion")}</p></div>
             )}
           </div>
         </div>
@@ -382,6 +386,7 @@ interface SystemTemplateEntry {
 interface SystemPromptGroup { type: string; templates: SystemTemplateEntry[]; imported: string[]; }
 
 function BrowserDialog({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
+  const t = useTranslations("settings.prompts");
   const [groups, setGroups] = useState<SystemPromptGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState<string | null>(null);
@@ -390,7 +395,7 @@ function BrowserDialog({ onClose, onImported }: { onClose: () => void; onImporte
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/admin/org/prompts/system`, { headers: authHeaders() });
-      if (!res.ok) throw new Error("Failed to load system prompts");
+      if (!res.ok) throw new Error(t("errors.loadSystemFailed"));
       const data: { groups: SystemPromptGroup[] } = await res.json();
       setGroups(data.groups ?? []);
     } catch (err) {
@@ -405,8 +410,8 @@ function BrowserDialog({ onClose, onImported }: { onClose: () => void; onImporte
     setImporting(templateName);
     try {
       const res = await fetch(`${API_BASE}/admin/org/prompts/import`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ template_name: templateName }) });
-      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? "Failed to import template"); }
-      toast.success(`"${templateDisplayName(templateName)}" imported successfully`);
+      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? t("errors.importFailed")); }
+      toast.success(t("toasts.imported", { name: templateDisplayName(templateName) }));
       await fetchSystemPrompts();
       onImported();
     } catch (err) { toast.error(err instanceof Error ? err.message : "Failed to import template"); }
@@ -419,7 +424,7 @@ function BrowserDialog({ onClose, onImported }: { onClose: () => void; onImporte
         <div className="flex items-center justify-between mb-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-surface-800 shrink-0"><Download size={16} className="text-surface-300" /></div>
-            <div><h2 className="text-lg font-semibold">Browse System Prompts</h2><p className="text-xs text-surface-400">Import system-default prompt templates into your organisation</p></div>
+            <div><h2 className="text-lg font-semibold">{t("browseSystem")}</h2><p className="text-xs text-surface-400">{t("browseSystemDescription")}</p></div>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} className="rounded-md text-surface-400 hover:text-white p-1"><X size={18} /></Button>
         </div>
@@ -427,27 +432,27 @@ function BrowserDialog({ onClose, onImported }: { onClose: () => void; onImporte
           {loading ? (
             <div className="flex items-center justify-center py-12"><Spinner className="text-surface-400" /></div>
           ) : groups.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-surface-500"><Download size={32} className="mb-2 opacity-40" /><p className="text-sm">No system prompts available</p></div>
+            <div className="flex flex-col items-center justify-center py-12 text-surface-500"><Download size={32} className="mb-2 opacity-40" /><p className="text-sm">{t("noSystemPrompts")}</p></div>
           ) : (
             groups.map((group) => (
               <div key={group.type} className="border border-surface-800 rounded-md overflow-hidden">
                 <div className="bg-surface-800/50 px-3 py-2 text-sm font-medium text-surface-200">{templateDisplayName(group.type)}</div>
                 <div className="divide-y divide-surface-800">
-                  {group.templates.map((t) => {
+                  {group.templates.map((tmpl) => {
                     const isImported = group.imported.includes(t.name);
                     return (
-                      <div key={t.name} className="flex items-center justify-between px-3 py-2.5 hover:bg-surface-800/30">
+                      <div key={tmpl.name} className="flex items-center justify-between px-3 py-2.5 hover:bg-surface-800/30">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-mono text-surface-200">{t.name}</span>
-                          <span className="text-[10px] text-surface-500">v{t.version}</span>
-                          {t.is_system_default && <Badge variant="warning" size="sm"><Star size={10} /> Active Default</Badge>}
-                          {!t.is_active && !t.is_system_default && <span className="text-[10px] text-surface-500">inactive</span>}
+                          <span className="text-sm font-mono text-surface-200">{tmpl.name}</span>
+                          <span className="text-[10px] text-surface-500">v{tmpl.version}</span>
+                          {tmpl.is_system_default && <Badge variant="warning" size="sm"><Star size={10} /> {t("activeDefault")}</Badge>}
+                          {!tmpl.is_active && !tmpl.is_system_default && <span className="text-[10px] text-surface-500">{t("inactive")}</span>}
                         </div>
                         {isImported ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-success"><CheckCircle size={12} /> Imported</span>
+                          <span className="inline-flex items-center gap-1 text-xs text-success"><CheckCircle size={12} /> {t("imported")}</span>
                         ) : (
-                          <Button variant="primary" size="sm" onClick={() => handleImport(t.name)} disabled={importing === t.name} className="min-w-[80px] justify-center">
-                            {importing === t.name ? <span className="flex items-center gap-1"><Spinner /> Importing...</span> : "Import"}
+                          <Button variant="primary" size="sm" onClick={() => handleImport(tmpl.name)} disabled={importing === tmpl.name} className="min-w-[80px] justify-center">
+                            {importing === tmpl.name ? <span className="flex items-center gap-1"><Spinner /> {t("importing")}</span> : "Import"}
                           </Button>
                         )}
                       </div>
@@ -459,7 +464,7 @@ function BrowserDialog({ onClose, onImported }: { onClose: () => void; onImporte
           )}
         </div>
         <div className="flex justify-end mt-4 shrink-0 pt-3 border-t border-surface-800">
-          <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
+          <Button variant="ghost" size="sm" onClick={onClose}>{t("close")}</Button>
         </div>
       </div>
     </div>
@@ -469,6 +474,7 @@ function BrowserDialog({ onClose, onImported }: { onClose: () => void; onImporte
 // ─── Create Dialog ─────────────────────────────────────────────────────────────
 
 function CreateDialog({ onClose, onCreate }: { onClose: () => void; onCreate: () => Promise<void> }) {
+  const t = useTranslations("settings.prompts");
   const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [description, setDescription] = useState("");
@@ -480,17 +486,17 @@ function CreateDialog({ onClose, onCreate }: { onClose: () => void; onCreate: ()
     e.preventDefault();
     const trimmedName = name.trim();
     const trimmedText = templateText.trim();
-    if (!trimmedName) { setError("Template name is required"); return; }
-    if (!type) { setError("Template type is required"); return; }
-    if (!trimmedText) { setError("Template text is required"); return; }
+    if (!trimmedName) { setError(t("errors.nameRequired")); return; }
+    if (!type) { setError(t("errors.typeRequired")); return; }
+    if (!trimmedText) { setError(t("errors.templateEmpty")); return; }
     setCreating(true); setError(null);
     try {
       const res = await fetch(`${API_BASE}/admin/org/prompts/${encodeURIComponent(trimmedName)}`, {
         method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ template_text: trimmedText, description: description.trim() || null, type }),
       });
-      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? "Failed to create template"); }
-      toast.success(`Template "${templateDisplayName(trimmedName)}" created`);
+      if (!res.ok) { const b = (await safeJsonParse(res)) as { detail?: string } | null; throw new Error(b?.detail ?? t("errors.createFailed")); }
+      toast.success(t("toasts.created", { name: templateDisplayName(trimmedName) }));
       await onCreate();
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to create template"); }
     finally { setCreating(false); }
@@ -502,24 +508,24 @@ function CreateDialog({ onClose, onCreate }: { onClose: () => void; onCreate: ()
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-500/10 shrink-0"><FileText size={16} className="text-brand-300" /></div>
-            <div><h2 className="text-lg font-semibold">New Prompt Template</h2><p className="text-xs text-surface-400">Create a custom prompt template for your organisation</p></div>
+            <div><h2 className="text-lg font-semibold">{t("newTemplate")}</h2><p className="text-xs text-surface-400">{t("newTemplateDescription")}</p></div>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} className="rounded-md text-surface-400 hover:text-white p-1"><X size={18} /></Button>
         </div>
         <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 mb-4">
           <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-200/80 leading-relaxed">Incorrect Jinja2 syntax may cause extraction failures. Use the existing templates as reference.</p>
+          <p className="text-xs text-amber-200/80 leading-relaxed">{t("createWarning")}</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Template Name <span className="text-error">*</span></label>
-            <input className="input-base" placeholder="e.g. my_custom_ner_v1" value={name} onChange={(e) => { setName(e.target.value); if (error) setError(null); }} autoFocus disabled={creating} />
-            <p className="text-xs text-surface-500 mt-1">Unique identifier used as the template key in the system.</p>
+            <label className="block text-sm font-medium text-surface-300 mb-1">{t("fields.templateName")} <span className="text-error">*</span></label>
+            <input className="input-base" placeholder={t("fields.templateNamePlaceholder")} value={name} onChange={(e) => { setName(e.target.value); if (error) setError(null); }} autoFocus disabled={creating} />
+            <p className="text-xs text-surface-500 mt-1">{t("fields.templateNameHint")}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Type <span className="text-error">*</span></label>
+            <label className="block text-sm font-medium text-surface-300 mb-1">{t("fields.type")} <span className="text-error">*</span></label>
             <select className="input-base" value={type} onChange={(e) => { setType(e.target.value); if (error) setError(null); }} disabled={creating}>
-              <option value="">Select a type…</option>
+              <option value="">{t("selectType")}</option>
               {KNOWN_TYPES.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}
             </select>
           </div>
@@ -535,7 +541,7 @@ function CreateDialog({ onClose, onCreate }: { onClose: () => void; onCreate: ()
           <div className="flex items-center justify-end gap-3 pt-2 border-t border-surface-800">
             <Button type="button" variant="secondary" size="sm" onClick={onClose} disabled={creating}>Cancel</Button>
             <Button type="submit" variant="primary" size="sm" disabled={creating || !name.trim() || !type || !templateText.trim()} className="min-w-[140px] justify-center">
-              {creating ? <span className="flex items-center gap-2"><Spinner /> Creating...</span> : <span className="flex items-center gap-2"><Plus size={14} /> Create Template</span>}
+              {creating ? <span className="flex items-center gap-2"><Spinner /> {t("creating")}</span> : <span className="flex items-center gap-2"><Plus size={14} /> {t("createTemplate")}</span>}
             </Button>
           </div>
         </form>
@@ -550,20 +556,21 @@ function DeleteDialog({ templateName, templateDisplay, onClose, onConfirm }: {
   templateName: string; templateDisplay: string; onClose: () => void; onConfirm: () => Promise<void>;
 }) {
   const [submitting, setSubmitting] = useState(false);
+  const t = useTranslations("settings.prompts");
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in" onClick={onClose}>
       <div className="card-base w-full max-w-sm p-6 shadow-xl shadow-black/40 animate-slide-up" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-error/10 shrink-0"><Trash2 size={18} className="text-error" /></div>
-          <div><h2 className="text-lg font-semibold">Delete Template</h2><p className="text-sm text-surface-400">This action cannot be undone.</p></div>
+          <div><h2 className="text-lg font-semibold">{t("deleteTitle")}</h2><p className="text-sm text-surface-400">{t("cannotUndo")}</p></div>
         </div>
-        <p className="text-sm text-surface-300 mb-2">Are you sure you want to delete</p>
+        <p className="text-sm text-surface-300 mb-2">{t("deleteConfirmPrefix")}</p>
         <p className="text-sm font-medium text-white mb-5">&ldquo;{templateDisplay}&rdquo;</p>
-        <p className="text-xs text-surface-500 mb-5">All custom versions will be removed. The organisation will fall back to the system default.</p>
+        <p className="text-xs text-surface-500 mb-5">{t("deleteConfirmHint")}</p>
         <div className="flex justify-end gap-3">
           <Button variant="secondary" size="sm" onClick={onClose} disabled={submitting}>Cancel</Button>
           <Button variant="danger" size="sm" onClick={async () => { setSubmitting(true); try { await onConfirm(); } finally { setSubmitting(false); } }} disabled={submitting} className="min-w-[100px] justify-center">
-            {submitting ? <span className="flex items-center gap-2"><Spinner /> Deleting...</span> : <span className="flex items-center gap-2"><Trash2 size={14} /> Delete</span>}
+            {submitting ? <span className="flex items-center gap-2"><Spinner /> {t("deleting")}</span> : <span className="flex items-center gap-2"><Trash2 size={14} /> {t("delete")}</span>}
           </Button>
         </div>
       </div>
@@ -584,6 +591,9 @@ export default function PromptsPage() {
   const [showBrowser, setShowBrowser] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [settingDefault, setSettingDefault] = useState<string | null>(null);
+  const t = useTranslations("settings.prompts");
+  const timeAgo = useTimeAgo();
+  const locale = useLocale();
 
   // ── Fetch templates ──────────────────────────────────────────────────────
 
@@ -593,7 +603,7 @@ export default function PromptsPage() {
       const data = await get<{ data: PromptTemplateSummary[] }>("/admin/org/prompts");
       setTemplates(data.data ?? []);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to load prompt templates");
+      toast.error(err instanceof ApiError ? err.message : t("errors.loadFailed"));
     } finally { setLoading(false); }
   }, []);
 
@@ -606,7 +616,7 @@ export default function PromptsPage() {
       const data = await get<PromptTemplateDetail>(`/admin/org/prompts/${name}`);
       setEditTarget({ ...data, is_customised: isCustomised });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to load template");
+      toast.error(err instanceof ApiError ? err.message : t("errors.loadFailed"));
     }
   }, []);
 
@@ -629,7 +639,7 @@ export default function PromptsPage() {
     setSettingDefault(name);
     try {
       await post(`/admin/org/prompts/${name}/set-default`);
-      toast.success(`"${templateDisplayName(name)}" is now the default for its type`);
+      toast.success(t("toasts.default", { name: templateDisplayName(name) }));
       await fetchTemplates();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to set as default");
@@ -640,11 +650,11 @@ export default function PromptsPage() {
     if (!deleteTarget) return;
     try {
       await apiDel(`/admin/org/prompts/${deleteTarget}`);
-      toast.success(`"${templateDisplayName(deleteTarget)}" reverted to system default`);
+      toast.success(t("toasts.reverted", { name: templateDisplayName(deleteTarget) }));
       setDeleteTarget(null);
       await fetchTemplates();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to delete template");
+      toast.error(err instanceof ApiError ? err.message : t("errors.deleteFailed"));
       setDeleteTarget(null);
     }
   }, [deleteTarget, fetchTemplates]);
@@ -654,17 +664,17 @@ export default function PromptsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Prompt Templates"
-        description="Manage Jinja2 prompt templates for extraction workers. Organised by type with version history and rollback support."
+        title={t("title")}
+        description={t("description")}
         actions={
           <div className="flex items-center gap-3">
-            <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>New Template</Button>
-            <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => setShowBrowser(true)}>Browse System Prompts</Button>
+            <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>{t("newTemplate")}</Button>
+            <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => setShowBrowser(true)}>{t("browseSystem")}</Button>
           </div>
         }
       />
 
-      <PageGuide title="Prompt templates" illustration={<GuideSettings />}>
+      <PageGuide title={t("guideTitle")} illustration={<GuideSettings />}>
         <p>Manage Jinja2 prompt templates used by extraction workers. Browse system-provided templates, create custom versions, track version history, and roll back changes when needed.</p>
       </PageGuide>
 
@@ -674,11 +684,11 @@ export default function PromptsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Version</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Updated</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-surface-400">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.name")}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.version")}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.type")}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.updated")}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-800">
@@ -687,7 +697,7 @@ export default function PromptsPage() {
               ) : templates.length === 0 ? (
                 <tr>
                   <td colSpan={5}>
-                    <EmptyState icon={FileText} title="No prompt templates available" description="Prompt templates are loaded from the server" />
+                    <EmptyState icon={FileText} title={t("emptyTitle")} description={t("emptyDescription")} />
                   </td>
                 </tr>
               ) : (
@@ -717,24 +727,24 @@ export default function PromptsPage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             {tmpl.type ? <Badge variant="brand" size="sm">{templateDisplayName(tmpl.type)}</Badge> : <span className="text-[11px] text-surface-500">—</span>}
-                            {tmpl.is_default_for_type && <Badge variant="warning" size="sm"><Star size={10} /> Default</Badge>}
+                            {tmpl.is_default_for_type && <Badge variant="warning" size="sm"><Star size={10} /> {t("default")}</Badge>}
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-surface-400 text-xs" title={formatDate(tmpl.updated_at)}>{timeAgo(tmpl.updated_at)}</span>
+                          <span className="text-surface-400 text-xs" title={formatDate(tmpl.updated_at, false, locale)}>{timeAgo(tmpl.updated_at)}</span>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
                             {tmpl.type && !tmpl.is_default_for_type && (
                               <Button variant="ghost" size="sm" onClick={() => handleSetDefault(tmpl.name)} disabled={settingDefault === tmpl.name}
-                                className="rounded-md text-amber-400 hover:text-amber-300 p-1.5" title="Set as default for this type">
+                                className="rounded-md text-amber-400 hover:text-amber-300 p-1.5" title={t("setDefaultTitle")}>
                                 {settingDefault === tmpl.name ? <Spinner className="text-amber-400" /> : <Star size={14} />}
                               </Button>
                             )}
-                            <Button variant="ghost" size="sm" onClick={() => openEditor(tmpl.name, tmpl.is_customised)} className="rounded-md text-surface-400 hover:text-brand-300 p-1.5" title="Edit template"><Edit3 size={14} /></Button>
-                            <Button variant="ghost" size="sm" onClick={() => setHistoryTarget(tmpl.name)} className="rounded-md text-surface-400 hover:text-surface-200 p-1.5" title="View version history"><History size={14} /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => openEditor(tmpl.name, tmpl.is_customised)} className="rounded-md text-surface-400 hover:text-brand-300 p-1.5" title={t("editTemplate")}><Edit3 size={14} /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => setHistoryTarget(tmpl.name)} className="rounded-md text-surface-400 hover:text-surface-200 p-1.5" title={t("viewHistory")}><History size={14} /></Button>
                             {tmpl.is_customised && !tmpl.is_default_for_type && (
-                              <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(tmpl.name)} className="rounded-md text-surface-400 hover:text-error p-1.5" title="Delete template"><Trash2 size={14} /></Button>
+                              <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(tmpl.name)} className="rounded-md text-surface-400 hover:text-error p-1.5" title={t("deleteTemplate")}><Trash2 size={14} /></Button>
                             )}
                           </div>
                         </td>

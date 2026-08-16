@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Copy, Check, RefreshCw, KeyRound, Loader2, UserPlus, AlertCircle } from "lucide-react";
 import { get, post, patch, apiErrorMessage } from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
@@ -19,6 +20,7 @@ interface OrgCodeResponse {
  * via POST /v1/auth/join. Admin-only (GET/POST both 403 for members).
  */
 export default function OrgConfigIndexPage() {
+  const t = useTranslations("settings.orgConfig.organization");
   const { isAdmin, loading: roleLoading } = useUser();
   const [orgCode, setOrgCode] = useState<string | null>(null);
   const [joinEnabled, setJoinEnabled] = useState(true);
@@ -41,7 +43,7 @@ export default function OrgConfigIndexPage() {
           setJoinEnabled(data.join_enabled);
         }
       } catch (err) {
-        if (!cancelled) setError(apiErrorMessage(err, "Failed to load organization code"));
+        if (!cancelled) setError(apiErrorMessage(err, t("loadFailed")));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -49,7 +51,7 @@ export default function OrgConfigIndexPage() {
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, retryKey]);
+  }, [isAdmin, retryKey, t]);
 
   const handleRetry = () => {
     setError(null);
@@ -64,7 +66,7 @@ export default function OrgConfigIndexPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      setError("Failed to copy — clipboard unavailable");
+      setError(t("copyFailed"));
     }
   };
 
@@ -76,7 +78,7 @@ export default function OrgConfigIndexPage() {
       setError(null);
       setShowRegenerate(false);
     } catch (err) {
-      setError(apiErrorMessage(err, "Failed to regenerate code"));
+      setError(apiErrorMessage(err, t("regenerateFailed")));
       setShowRegenerate(false);
     } finally {
       setRegenerating(false);
@@ -94,7 +96,7 @@ export default function OrgConfigIndexPage() {
       setJoinEnabled(data.join_enabled);
       setError(null);
     } catch (err) {
-      setError(apiErrorMessage(err, "Failed to update join setting"));
+      setError(apiErrorMessage(err, t("joinToggleFailed")));
     } finally {
       setTogglingJoin(false);
     }
@@ -112,7 +114,7 @@ export default function OrgConfigIndexPage() {
 
   // Member (or role fetch failed → unknown treated as member): no code, no fetch.
   if (!isAdmin) {
-    return <ErrorState message="Admin access required" />;
+    return <ErrorState message={t("adminRequired")} />;
   }
 
   return (
@@ -126,10 +128,9 @@ export default function OrgConfigIndexPage() {
               <KeyRound size={20} />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold">Organization Code</h2>
+              <h2 className="text-lg font-semibold">{t("codeTitle")}</h2>
               <p className="text-sm text-surface-400 mt-0.5">
-                Share this code with people you want to invite — they can join your
-                organization from the signup page (&ldquo;Join with code&rdquo;).
+                {t("codeDescription")}
               </p>
             </div>
           </div>
@@ -139,7 +140,7 @@ export default function OrgConfigIndexPage() {
             {loading ? (
               <div className="flex items-center gap-3 rounded-lg border border-dashed border-surface-700 bg-surface-900/50 px-4 py-4">
                 <Loader2 size={16} className="animate-spin text-surface-500" />
-                <span className="text-sm text-surface-500">Loading organization code&hellip;</span>
+                <span className="text-sm text-surface-500">{t("loadingCode")}</span>
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-3">
@@ -149,7 +150,7 @@ export default function OrgConfigIndexPage() {
                 <div className="flex items-center gap-2">
                   <Button variant="secondary" size="sm" onClick={handleCopy} className="gap-1.5">
                     {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
-                    {copied ? "Copied" : "Copy"}
+                    {copied ? t("copied") : t("copy")}
                   </Button>
                   <Button
                     variant="secondary"
@@ -158,7 +159,7 @@ export default function OrgConfigIndexPage() {
                     className="gap-1.5"
                   >
                     <RefreshCw size={14} />
-                    Regenerate
+                    {t("regenerate")}
                   </Button>
                 </div>
               </div>
@@ -166,7 +167,7 @@ export default function OrgConfigIndexPage() {
           </div>
 
           <p className="mt-3 text-xs text-surface-500">
-            Regenerating invalidates the previous code — existing members are unaffected.
+            {t("regenerateHint")}
           </p>
         </div>
       )}
@@ -179,9 +180,9 @@ export default function OrgConfigIndexPage() {
               <UserPlus size={20} />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold">Self-registration</h2>
+              <h2 className="text-lg font-semibold">{t("registrationTitle")}</h2>
               <p className="text-sm text-surface-400 mt-0.5">
-                Control whether people can join your organization with this code.
+                {t("registrationDescription")}
               </p>
             </div>
           </div>
@@ -189,11 +190,10 @@ export default function OrgConfigIndexPage() {
           <div className="mt-5 flex items-center justify-between gap-4 rounded-lg border border-surface-800 bg-surface-900/50 px-4 py-3">
             <div className="min-w-0 flex-1">
               <label htmlFor="join-enabled" className="block text-sm font-medium text-surface-200">
-                Allow new members to join with this code
+                {t("joinLabel")}
               </label>
               <p className="mt-1 text-xs text-surface-500">
-                When off, the signup &ldquo;Join with code&rdquo; flow returns 403. Regenerating
-                the code still works while paused.
+                {t("joinHint")}
               </p>
             </div>
             <Switch
@@ -208,8 +208,7 @@ export default function OrgConfigIndexPage() {
             <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
               <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
               <p className="text-xs text-amber-200/80 leading-relaxed">
-                Joining is paused&nbsp;&mdash; new members can&rsquo;t join with this code
-                right now.
+                {t("joinPausedNotice")}
               </p>
             </div>
           )}
@@ -218,9 +217,9 @@ export default function OrgConfigIndexPage() {
 
       <ConfirmDialog
         open={showRegenerate}
-        title="Regenerate Organization Code?"
-        message="The current organization code will stop working immediately. Anyone with the old code will need the new one to join. Continue?"
-        confirmLabel="Regenerate"
+        title={t("regenerateTitle")}
+        message={t("regenerateConfirm")}
+        confirmLabel={t("regenerate")}
         variant="danger"
         loading={regenerating}
         onConfirm={handleRegenerate}

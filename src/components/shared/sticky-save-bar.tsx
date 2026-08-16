@@ -1,6 +1,7 @@
 "use client";
 
 import { Save } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 interface StickySaveBarProps {
@@ -16,6 +17,7 @@ interface StickySaveBarProps {
  * Renders as a normal block element at the bottom of the form flow.
  */
 export function StickySaveBar({ saving, hasChanges, hasSaved, onSave, onDiscard }: StickySaveBarProps) {
+  const t = useTranslations("components.stickySaveBar");
   const visible = hasChanges || hasSaved;
 
   if (!visible) return null;
@@ -25,13 +27,13 @@ export function StickySaveBar({ saving, hasChanges, hasSaved, onSave, onDiscard 
       <div className="flex items-center justify-between gap-4">
         <div className="text-sm text-surface-400">
           {hasSaved && (
-            <span className="text-emerald-400">Changes saved successfully</span>
+            <span className="text-emerald-400">{t("saved")}</span>
           )}
           {hasChanges && !saving && (
-            <span className="text-amber-400">You have unsaved changes</span>
+            <span className="text-amber-400">{t("unsaved")}</span>
           )}
           {saving && (
-            <span className="text-surface-400">Saving&hellip;</span>
+            <span className="text-surface-400">{t("saving")}</span>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -53,7 +55,7 @@ export function StickySaveBar({ saving, hasChanges, hasSaved, onSave, onDiscard 
             disabled={saving || !hasChanges}
             onClick={onSave}
           >
-            {saving ? "Saving\u2026" : "Save Changes"}
+            {saving ? t("saving") : t("saveChanges")}
           </Button>
         </div>
       </div>

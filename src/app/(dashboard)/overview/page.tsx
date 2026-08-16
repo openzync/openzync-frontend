@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import {
   Users,
   MessageSquare,
@@ -20,7 +21,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get } from "@/lib/api-client";
-import { timeAgo, actionLabel, formatNumber } from "@/lib/utils";
+import { actionLabel } from "@/lib/utils";
+import { useTimeAgo } from "@/hooks/use-time-ago";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { Button } from "@/components/ui/button";
@@ -79,44 +81,7 @@ const QUICK_ACTION_ICONS: Record<string, LucideIcon> = {
 const DAYS_OPTIONS = [7, 30, 90] as const;
 type DaysOption = (typeof DAYS_OPTIONS)[number];
 
-const STAT_CARDS = [
-  { label: "Messages", key: "total_messages" as const, icon: MessageCircle, color: "text-brand-300" },
-  { label: "Sessions", key: "total_sessions" as const, icon: MessageSquare, color: "text-accent-300" },
-  { label: "Facts", key: "total_facts" as const, icon: Database, color: "text-success" },
-  { label: "Users", key: "total_users" as const, icon: Users, color: "text-surface-300" },
-  { label: "Episodes", key: "total_episodes" as const, icon: FileText, color: "text-accent-400" },
-  { label: "API Keys", key: "total_api_keys" as const, icon: Key, color: "text-surface-300" },
-];
-
-// Fresh-org quickstart — all destinations point at /projects (this page does not
-// fetch project data, so there is no first-project link available without adding
-// an API call).
-const QUICKSTART_STEPS = [
-  { title: "Create a project", description: "Organize your knowledge base and conversations.", href: "/projects", icon: FolderKanban },
-  { title: "Ingest a conversation", description: "Import a chat log to embed entities and facts.", href: "/projects", icon: Upload },
-  { title: "Explore the knowledge graph", description: "Watch connections light up as the graph grows.", href: "/projects", icon: Network },
-] as const;
-
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-
-function actorLabel(entry: AuditEntry): string {
-  switch (entry.actor_type) {
-    case "api_key":
-      return "API";
-    case "system":
-      return "System";
-    case "user":
-      if (entry.actor_id) return entry.actor_id.slice(0, 8);
-      return "User";
-    default:
-      return "Anonymous";
-  }
-}
-
-function abbrevDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 
 function niceMax(value: number): number {
   if (value <= 0) return 100;
@@ -137,6 +102,10 @@ function cssVar(name: string): string {
 
 export default function OverviewPage() {
   const router = useRouter();
+  const t = useTranslations("overview");
+  const fmt = useFormatter();
+  const locale = useLocale();
+  const timeAgo = useTimeAgo();
   const [stats, setStats] = useState<OrgStats | null>(null);
   const [activities, setActivities] = useState<AuditEntry[]>([]);
   const [quickActions, setQuickActions] = useState<QuickActionItem[]>([]);
@@ -151,6 +120,40 @@ export default function OverviewPage() {
   const [hoveredBar, setHoveredBar] = useState<{
     index: number; value: number; sessionValue: number; date: string; x: number;
   } | null>(null);
+
+  // Fresh-org quickstart — all destinations point at /projects (this page does
+  // not fetch project data, so there is no first-project link available without
+  // adding an API call).
+  const QUICKSTART_STEPS = [
+    { title: t("quickstartSteps.step1.title"), description: t("quickstartSteps.step1.description"), href: "/projects", icon: FolderKanban },
+    { title: t("quickstartSteps.step2.title"), description: t("quickstartSteps.step2.description"), href: "/projects", icon: Upload },
+    { title: t("quickstartSteps.step3.title"), description: t("quickstartSteps.step3.description"), href: "/projects", icon: Network },
+  ] as const;
+
+  // Actor label for the recent-activity list; t() calls live in-component so
+  // the i18n extractor can statically resolve the catalog keys.
+  const actorLabel = (entry: AuditEntry): string => {
+    switch (entry.actor_type) {
+      case "api_key":
+        return t("actors.api");
+      case "system":
+        return t("actors.system");
+      case "user":
+        if (entry.actor_id) return entry.actor_id.slice(0, 8);
+        return t("actors.user");
+      default:
+        return t("actors.anonymous");
+    }
+  };
+
+  const STAT_CARDS = [
+    { label: t("stats.messages"), key: "total_messages" as const, icon: MessageCircle, color: "text-brand-300" },
+    { label: t("stats.sessions"), key: "total_sessions" as const, icon: MessageSquare, color: "text-accent-300" },
+    { label: t("stats.facts"), key: "total_facts" as const, icon: Database, color: "text-success" },
+    { label: t("stats.users"), key: "total_users" as const, icon: Users, color: "text-surface-300" },
+    { label: t("stats.episodes"), key: "total_episodes" as const, icon: FileText, color: "text-accent-400" },
+    { label: t("stats.apiKeys"), key: "total_api_keys" as const, icon: Key, color: "text-surface-300" },
+  ];
 
   // Chart container measurement
   useEffect(() => {
@@ -233,8 +236,8 @@ export default function OverviewPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[260px] text-surface-500">
         <BarChart3 size={40} className="mb-3 opacity-40" />
-        <p className="text-sm font-medium">No usage data available for this period.</p>
-        <p className="text-xs mt-1 text-surface-600">Try selecting a different time range.</p>
+        <p className="text-sm font-medium">{t("chartEmpty")}</p>
+        <p className="text-xs mt-1 text-surface-600">{t("chartEmptyHint")}</p>
       </div>
     );
   }
@@ -243,6 +246,9 @@ export default function OverviewPage() {
     if (chartWidth === 0) return <div className="h-[260px]" />;
     if (loading || (usageLoading && usage.length === 0)) return renderChartSkeleton();
     if (usage.length === 0) return renderEmptyChart();
+
+    const abbrevDate = (dateStr: string): string =>
+      new Date(dateStr).toLocaleDateString(locale, { month: "short", day: "numeric" });
 
     return (
       <div className="relative w-full">
@@ -253,7 +259,7 @@ export default function OverviewPage() {
               <g key={tick}>
                 <line x1={PADDING.left} y1={y} x2={PADDING.left + drawWidth} y2={y} stroke={cssVar("--color-surface-800")} strokeWidth={1} />
                 <text x={PADDING.left - 8} y={y + 4} textAnchor="end" fill={cssVar("--color-surface-500")} fontSize={11} fontFamily="var(--font-mono)">
-                  {tick >= 1000 ? `${(tick / 1000).toFixed(1)}k` : tick.toLocaleString()}
+                  {tick >= 1000 ? `${fmt.number(tick / 1000, { maximumFractionDigits: 1 })}k` : fmt.number(tick)}
                 </text>
               </g>
             );
@@ -287,15 +293,15 @@ export default function OverviewPage() {
             style={{ left: Math.max(0, Math.min(hoveredBar.x - 64, chartWidth - 140)), top: PADDING.top - 4 }}>
             <div className="card-base p-2.5 shadow-lg shadow-black/40 text-xs space-y-1.5 min-w-[130px]">
               <p className="text-surface-400 font-medium border-b border-surface-800 pb-1.5 mb-1">
-                {new Date(hoveredBar.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                {fmt.dateTime(new Date(hoveredBar.date), { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
               </p>
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-brand-500") }} />
-                <span className="text-surface-200">Messages: <span className="font-semibold font-mono">{hoveredBar.value.toLocaleString()}</span></span>
+                <span className="text-surface-200">{t("tooltip.messages", { value: fmt.number(hoveredBar.value) })}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-accent-300") }} />
-                <span className="text-surface-200">Sessions: <span className="font-semibold font-mono">{hoveredBar.sessionValue.toLocaleString()}</span></span>
+                <span className="text-surface-200">{t("tooltip.sessions", { value: fmt.number(hoveredBar.sessionValue) })}</span>
               </div>
             </div>
           </div>
@@ -309,12 +315,12 @@ export default function OverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Overview"
-        description="Organization dashboard — stats, activity, and usage trends"
+        title={t("title")}
+        description={t("description")}
       />
 
-      <PageGuide title="Your organization at a glance" illustration={<GuideDashboard />}>
-        <p>Monitor your organization&rsquo;s key metrics — messages, sessions, facts, users, episodes, and API keys. View recent activity and track daily usage trends with the interactive chart.</p>
+      <PageGuide title={t("guideTitle")} illustration={<GuideDashboard />}>
+        <p>{t("guideBody")}</p>
       </PageGuide>
 
       {/* Quickstart — only for a brand-new org (no messages yet) */}
@@ -322,9 +328,9 @@ export default function OverviewPage() {
         <div className="card-base p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-semibold">Get started in 3 steps</h2>
+              <h2 className="text-base font-semibold">{t("quickstartTitle")}</h2>
               <p className="text-xs text-surface-300 mt-1">
-                Your workspace is ready — create a project, ingest a conversation, and watch the knowledge graph light up.
+                {t("quickstartBody")}
               </p>
             </div>
             <Button
@@ -333,7 +339,7 @@ export default function OverviewPage() {
               onClick={() => router.push("/projects")}
               className="shrink-0 self-start sm:self-auto"
             >
-              Create your first project
+              {t("createFirstProject")}
             </Button>
           </div>
           <ol className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -377,7 +383,7 @@ export default function OverviewPage() {
       {/* Quick actions + Recent Activity */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="card-base p-4">
-          <h3 className="text-sm font-medium mb-2">Quick Actions</h3>
+          <h3 className="text-sm font-medium mb-2">{t("quickActionsTitle")}</h3>
           {loading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
@@ -386,7 +392,7 @@ export default function OverviewPage() {
             </div>
           ) : quickActions.length === 0 ? (
             <div className="text-sm text-surface-500 py-4 text-center">
-              No actions available
+              {t("noActionsAvailable")}
             </div>
           ) : (
             <div className="space-y-2">
@@ -401,7 +407,7 @@ export default function OverviewPage() {
                     className="w-full justify-start"
                     title={action.description}
                   >
-                    <Icon size={14} className="mr-2" />
+                    <Icon size={14} className="me-2" />
                     {action.label}
                   </Button>
                 );
@@ -412,12 +418,12 @@ export default function OverviewPage() {
 
         <div className="card-base p-4 md:col-span-2">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium">Recent Activity</h3>
+            <h3 className="text-sm font-medium">{t("recentActivityTitle")}</h3>
             <button
               onClick={() => router.push("/audit")}
               className="text-xs text-accent-300 hover:text-accent-200"
             >
-              View all &rarr;
+              {t("viewAll")}
             </button>
           </div>
           {activities.length === 0 ? (
@@ -429,7 +435,7 @@ export default function OverviewPage() {
                   ))}
                 </div>
               ) : (
-                "No recent activity found."
+                t("noRecentActivity")
               )}
             </div>
           ) : (
@@ -451,7 +457,7 @@ export default function OverviewPage() {
       <div className="card-base p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-medium flex items-center gap-1.5">
-            <TrendingUp size={16} className="text-brand-300" />Daily Usage
+            <TrendingUp size={16} className="text-brand-300" />{t("usageTitle")}
           </h3>
           <div className="flex gap-1 rounded-lg bg-surface-950 p-0.5 border border-surface-800">
             {DAYS_OPTIONS.map((d) => (
@@ -472,10 +478,10 @@ export default function OverviewPage() {
         {usage.length > 0 && !usageLoading && (
           <div className="flex items-center gap-5 mt-3 pt-3 border-t border-surface-800">
             <div className="flex items-center gap-1.5 text-xs text-surface-400">
-              <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-brand-500") }} />Messages
+              <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-brand-500") }} />{t("legend.messages")}
             </div>
             <div className="flex items-center gap-1.5 text-xs text-surface-400">
-              <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-accent-300") }} />Sessions
+              <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-accent-300") }} />{t("legend.sessions")}
             </div>
           </div>
         )}

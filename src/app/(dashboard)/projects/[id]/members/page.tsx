@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import {
   Users,
   Plus,
@@ -50,6 +51,9 @@ function getUserLabel(user: UserItem): string {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProjectMembersPage() {
+  const t = useTranslations("projects.members");
+  const common = useTranslations("common");
+  const fmt = useFormatter();
   const { project, loading: projectLoading } = useProject();
   const projectId = project?.id;
 
@@ -80,12 +84,12 @@ export default function ProjectMembersPage() {
       setMembers(extractList<Member>(json));
     } catch (err) {
       setFetchError(
-        err instanceof ApiError ? err.message : "Failed to load members",
+        err instanceof ApiError ? err.message : t("loadFailed"),
       );
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, t]);
 
   useEffect(() => {
     fetchMembers();
@@ -100,7 +104,7 @@ export default function ProjectMembersPage() {
       const data = await get<{ data: UserItem[] }>("/v1/users?limit=200");
       setUsers(extractList<UserItem>(data));
     } catch {
-      setAddError("Failed to load user list");
+      setAddError(t("userListFailed"));
     } finally {
       setUsersLoading(false);
     }
@@ -117,11 +121,11 @@ export default function ProjectMembersPage() {
         role: "member",
       });
       setShowAdd(false);
-      toast.success("Member added");
+      toast.success(t("addedToast"));
       fetchMembers();
     } catch (err) {
       setAddError(
-        err instanceof ApiError ? err.message : "Failed to add member",
+        err instanceof ApiError ? err.message : t("addFailed"),
       );
     } finally {
       setAdding(false);
@@ -137,10 +141,10 @@ export default function ProjectMembersPage() {
       );
       setMembers((prev) => prev.filter((m) => m.id !== removeTarget.id));
       setRemoveTarget(null);
-      toast.success("Member removed");
+      toast.success(t("removedToast"));
     } catch (err) {
       toast.error(
-        err instanceof ApiError ? err.message : "Failed to remove member",
+        err instanceof ApiError ? err.message : t("removeFailed"),
       );
     } finally {
       setRemoving(false);
@@ -153,7 +157,7 @@ export default function ProjectMembersPage() {
   if (projectLoading) {
     return (
         <div className="space-y-6">
-          <PageHeader title="Members" description="Project members" />
+          <PageHeader title={t("title")} description={t("loadingDescription")} />
           <TableSkeleton rows={4} cols={3} colWidths={["w-32", "w-20", "w-16"]} />
         </div>
     );
@@ -162,11 +166,11 @@ export default function ProjectMembersPage() {
   return (
       <div className="space-y-6">
         <PageHeader
-          title="Members"
+          title={t("title")}
           description={
             project
-              ? `Manage who has access to "${project.name}"`
-              : "Project member management"
+              ? t("subtitle", { name: project.name })
+              : t("genericSubtitle")
           }
           actions={
             <Button
@@ -175,7 +179,7 @@ export default function ProjectMembersPage() {
               icon={<Plus size={14} />}
               onClick={handleOpenAdd}
             >
-              Add Member
+              {t("addMember")}
             </Button>
           }
         />
@@ -191,14 +195,14 @@ export default function ProjectMembersPage() {
             <AlertTriangle size={36} className="text-error mb-3" />
             <p className="text-sm text-surface-300 mb-4">{fetchError}</p>
             <Button variant="secondary" size="sm" onClick={fetchMembers}>
-              Retry
+              {common("retry")}
             </Button>
           </div>
         ) : members.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="No members yet"
-            description="Add members to collaborate on this project."
+            title={t("emptyTitle")}
+            description={t("emptyDescription")}
             action={
               <Button
                 variant="secondary"
@@ -206,7 +210,7 @@ export default function ProjectMembersPage() {
                 icon={<Plus size={14} />}
                 onClick={handleOpenAdd}
               >
-                Add Member
+                {t("addMember")}
               </Button>
             }
           />
@@ -216,16 +220,16 @@ export default function ProjectMembersPage() {
               <thead>
                 <tr className="border-b border-surface-800">
                   <th className="text-left text-xs font-medium text-surface-400 px-4 py-3">
-                    User ID
+                    {t("table.userId")}
                   </th>
                   <th className="text-left text-xs font-medium text-surface-400 px-4 py-3">
-                    Role
+                    {t("table.role")}
                   </th>
                   <th className="text-left text-xs font-medium text-surface-400 px-4 py-3">
-                    Added
+                    {t("table.added")}
                   </th>
                   <th className="text-right text-xs font-medium text-surface-400 px-4 py-3">
-                    Actions
+                    {t("table.actions")}
                   </th>
                 </tr>
               </thead>
@@ -252,7 +256,7 @@ export default function ProjectMembersPage() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-surface-400">
-                      {new Date(member.created_at).toLocaleDateString()}
+                      {fmt.dateTime(new Date(member.created_at), { month: "short", day: "numeric", year: "numeric" })}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {!isOwner(member.role) && (
@@ -261,14 +265,14 @@ export default function ProjectMembersPage() {
                           size="sm"
                           onClick={() => setRemoveTarget(member)}
                           className="text-surface-400 hover:text-error"
-                          title="Remove member"
+                          title={t("removeMember")}
                         >
                           <Trash2 size={15} />
                         </Button>
                       )}
                       {isOwner(member.role) && ownerCount <= 1 && (
                         <span className="text-xs text-surface-500">
-                          Last owner
+                          {t("lastOwner")}
                         </span>
                       )}
                     </td>
@@ -285,7 +289,7 @@ export default function ProjectMembersPage() {
           onOpenChange={(open) => {
             if (!open && !adding) setShowAdd(false);
           }}
-          title="Add Member"
+          title={t("addMember")}
           persistent={adding}
           footer={
             <>
@@ -295,7 +299,7 @@ export default function ProjectMembersPage() {
                 onClick={() => setShowAdd(false)}
                 disabled={adding}
               >
-                Cancel
+                {common("cancel")}
               </Button>
               <Button
                 variant="primary"
@@ -304,7 +308,7 @@ export default function ProjectMembersPage() {
                 loading={adding}
                 disabled={!selectedUserId}
               >
-                Add Member
+                {t("addMember")}
               </Button>
             </>
           }
@@ -312,7 +316,7 @@ export default function ProjectMembersPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                User
+                {t("userLabel")}
               </label>
               {usersLoading ? (
                 <div className="h-9 rounded-md bg-surface-800 animate-pulse" />
@@ -325,8 +329,8 @@ export default function ProjectMembersPage() {
                 >
                   <option value="">
                     {users.length === 0
-                      ? "No users available"
-                      : "Select a user..."}
+                      ? t("noUsers")
+                      : t("selectUser")}
                   </option>
                   {users.map((user) => (
                     <option key={user.id} value={user.id}>
@@ -347,9 +351,9 @@ export default function ProjectMembersPage() {
         {/* ── Remove Confirm ────────────────────────────────────────────── */}
         <ConfirmDialog
           open={!!removeTarget}
-          title="Remove Member"
-          message={`Are you sure you want to remove this member from the project?`}
-          confirmLabel="Remove"
+          title={t("removeMember")}
+          message={t("removeConfirm")}
+          confirmLabel={t("remove")}
           variant="danger"
           loading={removing}
           onConfirm={handleRemoveMember}

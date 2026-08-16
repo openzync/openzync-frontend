@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Loader2, ArrowLeft, ArrowRight, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { API_BASE, safeJsonParse } from "@/lib/api-client";
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations("auth.forgot");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -27,12 +29,12 @@ export default function ForgotPasswordPage() {
         const data = await safeJsonParse(res);
         throw new Error(
           (data as Record<string, unknown>)?.detail as string ??
-            "Something went wrong. Please try again."
+            t("failedGeneric")
         );
       }
       setSent(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Connection error.");
+      setError(err instanceof Error ? err.message : t("connectionError"));
     } finally {
       setSubmitting(false);
     }
@@ -45,37 +47,39 @@ export default function ForgotPasswordPage() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(143,175,217,0.08)_0%,transparent_50%),radial-gradient(circle_at_25%_30%,rgba(20,72,140,0.12)_0%,transparent_50%)]" />
           <div className="relative z-10 text-center px-8">
             <h1 className="text-5xl font-extrabold text-text-primary tracking-tight mb-2">OpenZync</h1>
-            <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">Password reset sent</p>
+            <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">{t("sentTitle")}</p>
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="w-full max-w-sm">
             <div className="md:hidden text-center mb-8">
               <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-              <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
+              <p className="text-xs text-surface-400">{t("brandTagline")}</p>
             </div>
             <div className="card-base p-6 text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent-300/10 mb-4">
                 <Mail size={24} className="text-accent-300" />
               </div>
-              <h2 className="text-xl font-semibold mb-2">Check your email</h2>
+              <h2 className="text-xl font-semibold mb-2">{t("checkEmail")}</h2>
               <p className="text-sm text-surface-400 mb-2">
-                If an account exists for <strong className="text-surface-300">{email}</strong>,
-                you will receive a password reset code shortly.
+                {t.rich("sentBody", {
+                  strong: (chunks) => <strong className="text-surface-300">{chunks}</strong>,
+                  email,
+                })}
               </p>
               <p className="text-xs text-surface-500 mb-6">
-                Didn&apos;t receive it? Check your spam folder.
+                {t("spamHint")}
               </p>
               <Link
                 href={`/reset-password?email=${encodeURIComponent(email)}`}
                 className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-150 hover:bg-brand-600 hover:shadow-[0_0_20px_rgba(20,72,140,0.3)]"
               >
-                Enter Reset Code
+                {t("enterResetCode")}
                 <ArrowRight size={16} />
               </Link>
               <p className="mt-4 text-center text-xs text-surface-500">
                 <Link href="/login" className="hover:text-surface-300">
-                  Back to login
+                  {t("backToLogin")}
                 </Link>
               </p>
             </div>
@@ -92,7 +96,7 @@ export default function ForgotPasswordPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(143,175,217,0.08)_0%,transparent_50%),radial-gradient(circle_at_25%_30%,rgba(20,72,140,0.12)_0%,transparent_50%)]" />
         <div className="relative z-10 text-center px-8">
           <h1 className="text-5xl font-extrabold text-text-primary tracking-tight mb-2">OpenZync</h1>
-          <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">Reset your password</p>
+          <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">{t("heroTitle")}</p>
         </div>
       </div>
 
@@ -102,13 +106,13 @@ export default function ForgotPasswordPage() {
           {/* Mobile brand */}
           <div className="md:hidden text-center mb-8">
             <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-            <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
+            <p className="text-xs text-surface-400">{t("brandTagline")}</p>
           </div>
 
           <div className="card-base p-6">
-            <h2 className="text-xl font-semibold mb-1">Forgot password?</h2>
+            <h2 className="text-xl font-semibold mb-1">{t("title")}</h2>
             <p className="text-sm text-surface-400 mb-6">
-              Enter your email and we&apos;ll send you a reset code.
+              {t("subtitle")}
             </p>
 
             {error && (
@@ -120,7 +124,7 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Email
+                  {t("emailLabel")}
                 </label>
                 <input
                   type="email"
@@ -130,7 +134,7 @@ export default function ForgotPasswordPage() {
                   autoFocus
                   autoComplete="email"
                   className="input-base w-full"
-                  placeholder="you@example.com"
+                  placeholder={t("emailPlaceholder")}
                 />
               </div>
 
@@ -143,7 +147,7 @@ export default function ForgotPasswordPage() {
                 {submitting ? (
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
-                  "Send Reset Code"
+                  t("sendResetCode")
                 )}
               </Button>
             </form>
@@ -151,7 +155,7 @@ export default function ForgotPasswordPage() {
             <p className="mt-6 text-center text-sm text-surface-500">
               <Link href="/login" className="inline-flex items-center gap-1 text-accent-300 hover:text-accent-200 font-medium">
                 <ArrowLeft size={14} />
-                Back to login
+                {t("backToLogin")}
               </Link>
             </p>
           </div>

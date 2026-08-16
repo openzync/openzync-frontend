@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { HelpCircle, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface PageGuideProps {
   title: string;
@@ -10,6 +11,7 @@ interface PageGuideProps {
 }
 
 export function PageGuide({ title, illustration, children }: PageGuideProps) {
+  const t = useTranslations("components.pageGuide");
   const [isOpen, setIsOpen] = useState(false);
 
   return (

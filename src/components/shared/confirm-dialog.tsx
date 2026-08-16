@@ -3,6 +3,7 @@
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -28,13 +29,14 @@ export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   variant = "danger",
   loading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const t = useTranslations("components.confirmDialog");
   return (
     <AlertDialogPrimitive.Root
       open={open}
@@ -75,11 +77,11 @@ export function ConfirmDialog({
           <div className="mt-6 flex justify-end gap-3">
             <AlertDialogPrimitive.Cancel asChild>
               <Button variant="secondary" disabled={loading}>
-                {cancelLabel}
+                {cancelLabel ?? t("cancel")}
               </Button>
             </AlertDialogPrimitive.Cancel>
             <Button variant={variant} onClick={onConfirm} loading={loading}>
-              {confirmLabel}
+              {confirmLabel ?? t("confirm")}
             </Button>
           </div>
         </AlertDialogPrimitive.Content>

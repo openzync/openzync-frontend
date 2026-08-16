@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import { Tags } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
@@ -51,6 +52,8 @@ function NullableValue({ value }: { value: string | null }) {
 }
 
 export default function SessionClassificationsPage() {
+  const t = useTranslations("sessions.classifications");
+  const fmt = useFormatter();
   const params = useParams();
   const sessionId = params.sessionId as string;
   const { project } = useProject();
@@ -75,14 +78,14 @@ export default function SessionClassificationsPage() {
         setError(
           err instanceof ApiError
             ? err.message
-            : "Failed to load classifications",
+            : t("loadFailed"),
         );
       } finally {
         setLoading(false);
       }
     }
     loadData();
-  }, [projectId, sessionId]);
+  }, [projectId, sessionId, t]);
 
   const toggleExpand = useCallback((id: string) => {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
@@ -91,8 +94,8 @@ export default function SessionClassificationsPage() {
   return (
     <div>
       <SessionTabs sessionId={sessionId} activeTab="classifications" />
-      <PageGuide title="Classifications" illustration={<GuideData />}>
-        <p>Classifications categorize each conversation turn by intent, topic, sentiment, and priority. They provide structured labels that help organize and route conversations.</p>
+      <PageGuide title={t("guideTitle")} illustration={<GuideData />}>
+        <p>{t("guideBody")}</p>
       </PageGuide>
       {loading ? (
         <div className="divide-y divide-surface-800">
@@ -118,8 +121,8 @@ export default function SessionClassificationsPage() {
       ) : data.length === 0 ? (
         <EmptyState
           icon={Tags}
-          title="No classifications available yet"
-          description="Classification data will appear here once processed."
+          title={t("emptyTitle")}
+          description={t("emptyDescription")}
         />
       ) : (
         <div className="divide-y divide-surface-800">
@@ -132,9 +135,9 @@ export default function SessionClassificationsPage() {
                 {c.message.length > 200 && (
                   <button
                     onClick={() => toggleExpand(c.id)}
-                    className="text-brand-400 hover:text-brand-300 text-xs ml-1"
+                    className="text-brand-400 hover:text-brand-300 text-xs ms-1"
                   >
-                    {expanded[c.id] ? "Show less" : "... Read more"}
+                    {expanded[c.id] ? t("showLess") : t("readMore")}
                   </button>
                 )}
               </div>
@@ -145,16 +148,16 @@ export default function SessionClassificationsPage() {
                   {c.role}
                 </Badge>
                 <span>
-                  Intent: <NullableValue value={c.intent} />
+                  {t("meta.intent")}: <NullableValue value={c.intent} />
                 </span>
                 <span>
-                  Emotion: <NullableValue value={c.emotion} />
+                  {t("meta.emotion")}: <NullableValue value={c.emotion} />
                 </span>
                 <span>
-                  Valence: <NullableValue value={c.valence} />
+                  {t("meta.valence")}: <NullableValue value={c.valence} />
                 </span>
                 <span>
-                  Arousal: <NullableValue value={c.arousal} />
+                  {t("meta.arousal")}: <NullableValue value={c.arousal} />
                 </span>
               </div>
 
@@ -164,7 +167,7 @@ export default function SessionClassificationsPage() {
                   {(c.confidence * 100).toFixed(0)}%
                 </Badge>
                 <span className="text-xs text-surface-400">
-                  {new Date(c.created_at).toLocaleDateString()}
+                  {fmt.dateTime(new Date(c.created_at), { month: "short", day: "numeric", year: "numeric" })}
                 </span>
               </div>
             </div>

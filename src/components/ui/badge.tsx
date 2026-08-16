@@ -1,4 +1,5 @@
 import { type VariantProps, cva } from "class-variance-authority";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 // ─── Variants ─────────────────────────────────────────────────────────────────
@@ -67,6 +68,19 @@ export function actorTypeVariant(
   return "default";
 }
 
+/** Map actor type → catalog key (for localized rendering). */
+export function actorTypeLabelKey(type: string | null): string {
+  // null renders the raw API value ("system") — matches legacy behavior
+  if (!type) return "system";
+  const map: Record<string, string> = {
+    user: "actorUser",
+    api_key: "actorApiKey",
+    system: "actorSystem",
+  };
+  return map[type] ?? type;
+}
+
+/** Legacy English label — kept for non-component callers. */
 export function actorTypeLabel(type: string | null): string {
   if (!type) return "system";
   const map: Record<string, string> = {
@@ -115,9 +129,10 @@ export function ActorTypeBadge({
 }: {
   type: string | null;
 }) {
+  const t = useTranslations("components.badge");
   return (
     <Badge variant={actorTypeVariant(type)} size="sm">
-      {actorTypeLabel(type)}
+      {type == null ? "system" : t(actorTypeLabelKey(type))}
     </Badge>
   );
 }

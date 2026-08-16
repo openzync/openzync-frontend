@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import {
   Building2,
@@ -51,6 +52,7 @@ function CreateOrgDialog({
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const t = useTranslations("superadmin.orgs");
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -90,11 +92,11 @@ function CreateOrgDialog({
       <form onSubmit={(e) => { e.preventDefault(); void handleSubmit(); }} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-surface-300 mb-1">
-            Organization Name <span className="text-error">*</span>
+            {t("fields.orgName")} <span className="text-error">*</span>
           </label>
           <input
             className="input-base"
-            placeholder="e.g. Acme Corp"
+            placeholder={t("fields.orgNamePlaceholder")}
             value={name}
             onChange={(e) => {
               setName(e.target.value);

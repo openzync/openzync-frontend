@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Shield, Users as UsersIcon } from "lucide-react";
 import { get, ApiError, extractList } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
@@ -14,6 +15,7 @@ interface Community {
 }
 
 export default function CommunitiesPage() {
+  const t = useTranslations("graph.communities");
   const { project } = useProject();
   const projectId = project?.id;
 
@@ -29,26 +31,26 @@ export default function CommunitiesPage() {
         const json = await get<{ data: Community[] }>(`/v1/projects/${projectId}/graph/communities`);
         setData(json.data ?? []);
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : "Failed to load communities");
+        setError(err instanceof ApiError ? err.message : t("loadFailed"));
       } finally { setLoading(false); }
     }
     fetchCommunities();
-  }, [projectId]);
+  }, [projectId, t]);
 
   if (!projectId) {
     return (
         <div className="space-y-6">
-          <PageHeader title="Communities" description="Select a project to view communities" />
+          <PageHeader title={t("title")} description={t("noProjectDescription")} />
         </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Communities" description={`Community clusters from Label Propagation${project ? ` · ${project.name}` : ""}`} />
+      <PageHeader title={t("title")} description={project ? t("subtitle", { name: project.name }) : t("subtitleGeneric")} />
 
-      <PageGuide title="Communities" illustration={<GuideGraph />}>
-        <p>Communities are clusters of related entities discovered through graph analysis. They reveal groups of entities that are densely connected, helping you identify natural groupings in your data.</p>
+      <PageGuide title={t("guideTitle")} illustration={<GuideGraph />}>
+        <p>{t("guideBody")}</p>
       </PageGuide>
 
       {error && <ErrorState message={error} />}
@@ -58,8 +60,8 @@ export default function CommunitiesPage() {
           {[1, 2, 3].map(i => <div key={i} className="card-base p-6 h-32 animate-pulse" />)}
         </div>
       ) : data.length === 0 ? (
-        <EmptyState icon={Shield} title="No communities found"
-          description="Community detection runs as a scheduled task after graph sync." />
+        <EmptyState icon={Shield} title={t("emptyTitle")}
+          description={t("emptyDescription")} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.map((community) => (

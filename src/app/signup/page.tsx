@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { CheckCircle2, Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { API_BASE, safeJsonParse, join, getRegistrationStatus, type RegistrationStatus } from "@/lib/api-client";
 import { getPasswordStrength } from "@/lib/password-strength";
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
  *  - allow_all (or status fetch failure) → current behavior unchanged.
  */
 export default function SignupPage() {
+  const t = useTranslations("auth.signup");
   const router = useRouter();
   const [policy, setPolicy] = useState<RegistrationStatus["org_creation_policy"]>("allow_all");
   const [scope, setScope] = useState<RegistrationStatus["approval_scope"]>("both");
@@ -81,12 +83,12 @@ export default function SignupPage() {
       });
       if (!res.ok) {
         const data = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(data?.detail ?? "Signup failed. Please try again.");
+        throw new Error(data?.detail ?? t("signupFailed"));
       }
       const data = await res.json();
 
       if (approvalsPublic && data.status === "pending") {
-        setSubmittedMessage(data.message ?? "Your request has been submitted for approval.");
+        setSubmittedMessage(data.message ?? t("requestSubmittedFallback"));
         return;
       }
       router.replace(`/verify-email?email=${encodeURIComponent(data.email ?? email)}`);
@@ -96,7 +98,7 @@ export default function SignupPage() {
       setError(
         err instanceof Error && err.message
           ? err.message
-          : "Connection error. Please try again.",
+          : t("connectionError"),
       );
     } finally {
       setSubmitting(false);
@@ -112,16 +114,16 @@ export default function SignupPage() {
           OpenZync
         </h1>
         <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">
-          Get started with agent memory infrastructure
+          {t("hero")}
         </p>
         <div className="text-left max-w-xs mx-auto space-y-3">
           {[
-            "Persistent, queryable agent memory",
-            "Multi-provider LLM support (BYOK)",
-            "Knowledge graph with hybrid search",
-            "Async enrichment pipeline",
-          ].map((feature, i) => (
-            <div key={i} className="flex items-start gap-2.5">
+            t("feature1"),
+            t("feature2"),
+            t("feature3"),
+            t("feature4"),
+          ].map((feature) => (
+            <div key={feature} className="flex items-start gap-2.5">
               <div className="mt-1.5 h-2 w-2 rounded-full bg-accent-300 shrink-0" />
               <span className="text-sm text-surface-300">{feature}</span>
             </div>
@@ -140,7 +142,7 @@ export default function SignupPage() {
           <div className="w-full max-w-sm">
             <div className="md:hidden text-center mb-8">
               <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-              <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
+              <p className="text-xs text-surface-400">{t("brandTagline")}</p>
             </div>
             <div className="card-base p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -148,21 +150,19 @@ export default function SignupPage() {
                   <Lock size={20} className="text-warning" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold">Registration is currently closed</h2>
+                  <h2 className="text-xl font-semibold">{t("closedTitle")}</h2>
                   <p className="text-sm text-surface-400 mt-0.5">
-                    New accounts are not being accepted at this time
+                    {t("closedSubtitle")}
                   </p>
                 </div>
               </div>
               <p className="text-sm text-surface-400 leading-relaxed">
-                The platform administrator has disabled self-registration. If
-                you were invited, please contact your organization
-                administrator for an invite link.
+                {t("closedBody")}
               </p>
               <p className="mt-6 text-center text-sm text-surface-400">
-                Already have an account?{" "}
+                {t("alreadyHaveAccount")}{" "}
                 <Link href="/login" className="text-accent-300 font-medium hover:text-accent-200">
-                  Sign in
+                  {t("signIn")}
                 </Link>
               </p>
             </div>
@@ -184,7 +184,7 @@ export default function SignupPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/10 mb-4">
                   <CheckCircle2 size={24} className="text-success" />
                 </div>
-                <h2 className="text-xl font-semibold">Request submitted for approval</h2>
+                <h2 className="text-xl font-semibold">{t("requestSubmitted")}</h2>
                 <p className="text-sm text-surface-400 mt-2 leading-relaxed">
                   {submittedMessage}
                 </p>
@@ -192,7 +192,7 @@ export default function SignupPage() {
                   href="/login"
                   className="mt-6 text-accent-300 font-medium hover:text-accent-200 text-sm"
                 >
-                  Return to sign in
+                  {t("returnToSignIn")}
                 </Link>
               </div>
             </div>
@@ -213,23 +213,23 @@ export default function SignupPage() {
           {/* Mobile brand */}
           <div className="md:hidden text-center mb-8">
             <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-            <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
+            <p className="text-xs text-surface-400">{t("brandTagline")}</p>
           </div>
 
           <div className="card-base p-6">
             <h2 className="text-xl font-semibold mb-1">
               {approvalsPublic
-                ? "Request access to OpenZync"
+                ? t("titleRequest")
                 : mode === "create"
-                  ? "Create your account"
-                  : "Join an organization"}
+                  ? t("titleCreate")
+                  : t("titleJoin")}
             </h2>
             <p className="text-sm text-surface-400 mb-5">
               {approvalsPublic
-                ? "Submit your organization details for review"
+                ? t("subtitleRequest")
                 : mode === "create"
-                  ? "Set up your OpenZync organization"
-                  : "Enter your organization code to join"}
+                  ? t("subtitleCreate")
+                  : t("subtitleJoin")}
             </p>
 
             {/* Mode toggle — segmented control; hidden when join is disabled */}
@@ -237,8 +237,8 @@ export default function SignupPage() {
               <div className="mb-5 grid grid-cols-2 gap-1 rounded-lg bg-surface-800 p-1">
                 {(
                   [
-                    { id: "create", label: "Create organization" },
-                    { id: "join", label: "Join with code" },
+                    { id: "create", label: t("createOrgTab") },
+                    { id: "join", label: t("joinTab") },
                   ] as const
                 ).map((tab) => (
                   <button
@@ -271,7 +271,7 @@ export default function SignupPage() {
               {mode === "create" && (
                 <div>
                   <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Organization Name
+                    {t("orgName")}
                   </label>
                   <input
                     type="text"
@@ -280,7 +280,7 @@ export default function SignupPage() {
                     required
                     autoFocus
                     className="input-base w-full"
-                    placeholder="My Organization"
+                    placeholder={t("orgNamePlaceholder")}
                   />
                 </div>
               )}
@@ -288,7 +288,7 @@ export default function SignupPage() {
               {mode === "join" && (
                 <div>
                   <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Organization Code
+                    {t("orgCode")}
                   </label>
                   <input
                     type="text"
@@ -300,14 +300,14 @@ export default function SignupPage() {
                     autoCorrect="off"
                     spellCheck={false}
                     className="input-base w-full font-mono"
-                    placeholder="XXXX-XXXX-XXXX"
+                    placeholder={t("orgCodePlaceholder")}
                   />
                 </div>
               )}
 
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Email
+                  {t("emailLabel")}
                 </label>
                 <input
                   type="email"
@@ -316,14 +316,14 @@ export default function SignupPage() {
                   required
                   autoComplete="email"
                   className="input-base w-full"
-                  placeholder="you@example.com"
+                  placeholder={t("emailPlaceholder")}
                 />
               </div>
 
               {!approvalsPublic && (
                 <div>
                   <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Password
+                    {t("passwordLabel")}
                   </label>
                   <div className="relative">
                     <input
@@ -333,13 +333,13 @@ export default function SignupPage() {
                       required
                       minLength={8}
                       autoComplete="new-password"
-                      className="input-base w-full pr-10"
-                      placeholder="Minimum 8 characters"
+                      className="input-base w-full pe-10"
+                      placeholder={t("min8Chars")}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
+                      className="absolute end-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -347,7 +347,7 @@ export default function SignupPage() {
                   {password && (
                     <div className="mt-2">
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-surface-500">Password strength</span>
+                        <span className="text-surface-500">{t("passwordStrength")}</span>
                         <span className="font-medium text-surface-300">{pwStrength.label}</span>
                       </div>
                       <div className="h-1.5 w-full rounded-full bg-surface-800 overflow-hidden">
@@ -370,19 +370,19 @@ export default function SignupPage() {
                 {submitting ? (
                   <Loader2 size={18} className="animate-spin" />
                 ) : approvalsPublic ? (
-                  "Submit Request"
+                  t("submitRequest")
                 ) : mode === "create" ? (
-                  "Create Account"
+                  t("createAccount")
                 ) : (
-                  "Join Organization"
+                  t("joinOrganization")
                 )}
               </Button>
             </form>
 
             <p className="mt-6 text-center text-sm text-surface-400">
-              Already have an account?{" "}
+              {t("alreadyHaveAccount")}{" "}
               <Link href="/login" className="text-accent-300 font-medium hover:text-accent-200">
-                Sign in
+                {t("signIn")}
               </Link>
             </p>
           </div>

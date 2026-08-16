@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Plus,
   Key,
@@ -12,7 +13,8 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { get, post, del, ApiError } from "@/lib/api-client";
-import { timeAgo, formatDate, copyToClipboard } from "@/lib/utils";
+import { formatDate, copyToClipboard } from "@/lib/utils";
+import { useTimeAgo } from "@/hooks/use-time-ago";
 import { useProject } from "@/stores/project-context";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -48,6 +50,10 @@ interface ApiKeyCreateResponse {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProjectApiKeysPage() {
+  const t = useTranslations("projects.apiKeys");
+  const common = useTranslations("common");
+  const timeAgo = useTimeAgo();
+  const locale = useLocale();
   const { project, loading: projectLoading } = useProject();
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,11 +83,11 @@ export default function ProjectApiKeysPage() {
       );
       setKeys(data.data ?? []);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load API keys");
+      setError(err instanceof ApiError ? err.message : t("loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [project?.id]);
+  }, [project?.id, t]);
 
   useEffect(() => {
     if (project?.id) fetchKeys();
@@ -98,9 +104,9 @@ export default function ProjectApiKeysPage() {
         { name: newName.trim() }
       );
       setCreatedKey(result);
-      toast.success("API key created");
+      toast.success(t("createdToast"));
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to create key";
+      const msg = err instanceof ApiError ? err.message : t("createFailed");
       setError(msg);
       toast.error(msg);
       setCreating(false);
@@ -125,10 +131,10 @@ export default function ProjectApiKeysPage() {
     try {
       await del(`/v1/projects/${project.id}/api-keys/${revokeTarget.id}`);
       setRevokeTarget(null);
-      toast.success("API key revoked");
+      toast.success(t("revokedToast"));
       fetchKeys();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to revoke key";
+      const msg = err instanceof ApiError ? err.message : t("revokeFailed");
       setError(msg);
       toast.error(msg);
     } finally {
@@ -152,15 +158,15 @@ export default function ProjectApiKeysPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="API Keys"
+        title={t("title")}
         description={
           project
-            ? `Manage API keys for programmatic access to ${project.name}`
-            : "Manage API keys for programmatic access"
+            ? t("subtitle", { name: project.name })
+            : t("genericSubtitle")
         }
         actions={
           <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>
-            Create Key
+            {t("createKey")}
           </Button>
         }
       />
@@ -182,13 +188,13 @@ export default function ProjectApiKeysPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-surface-800">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Prefix</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Scopes</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Last Used</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Created</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400">Status</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400 w-20">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.name")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.prefix")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.scopes")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.lastUsed")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.created")}</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.status")}</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400 w-20">{t("table.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-800">
@@ -199,9 +205,9 @@ export default function ProjectApiKeysPage() {
                     <td colSpan={7}>
                       <EmptyState
                         icon={Key}
-                        title="No API keys yet"
-                        description="Create an API key to enable programmatic access to this project"
-                        action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>Create Key</Button>}
+                        title={t("emptyTitle")}
+                        description={t("emptyDescription")}
+                        action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>{t("createKey")}</Button>}
                       />
                     </td>
                   </tr>
@@ -232,11 +238,11 @@ export default function ProjectApiKeysPage() {
                         <span className="text-surface-400 text-xs">{timeAgo(key.last_used_at)}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-surface-400 text-xs">{formatDate(key.created_at)}</span>
+                        <span className="text-surface-400 text-xs">{formatDate(key.created_at, false, locale)}</span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <Badge variant={key.is_revoked ? "error" : "success"} size="sm">
-                          {key.is_revoked ? "Revoked" : "Active"}
+                          {key.is_revoked ? t("status.revoked") : t("status.active")}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -246,7 +252,7 @@ export default function ProjectApiKeysPage() {
                             size="sm"
                             onClick={() => setRevokeTarget(key)}
                             className="rounded-md text-surface-400 hover:text-error"
-                            title="Revoke key"
+                            title={t("revokeKey")}
                           >
                             <Ban size={14} />
                           </Button>
@@ -267,16 +273,16 @@ export default function ProjectApiKeysPage() {
         onOpenChange={(open) => {
           if (!open) closeCreate();
         }}
-        title={createdKey ? "Key Created" : "Create API Key"}
+        title={createdKey ? t("keyCreated") : t("createApiKey")}
         persistent={creating}
         footer={
           createdKey ? (
-            <Button variant="primary" size="sm" onClick={closeCreate}>Done</Button>
+            <Button variant="primary" size="sm" onClick={closeCreate}>{t("done")}</Button>
           ) : (
             <>
-              <Button variant="secondary" size="sm" onClick={closeCreate}>Cancel</Button>
+              <Button variant="secondary" size="sm" onClick={closeCreate}>{common("cancel")}</Button>
               <Button variant="primary" size="sm" onClick={handleCreate} loading={creating} disabled={!newName.trim()}>
-                Create
+                {t("create")}
               </Button>
             </>
           )
@@ -284,10 +290,10 @@ export default function ProjectApiKeysPage() {
       >
         {!createdKey ? (
           <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1.5">Key Name</label>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("keyName")}</label>
             <input
               className="input-base w-full"
-              placeholder="e.g. Production CI"
+              placeholder={t("keyNamePlaceholder")}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
@@ -301,13 +307,13 @@ export default function ProjectApiKeysPage() {
             </p>
             <div className="rounded-lg border border-surface-700 bg-surface-950 p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-surface-500 font-medium uppercase tracking-wider">Your API Key</span>
+                <span className="text-xs text-surface-500 font-medium uppercase tracking-wider">{t("yourApiKey")}</span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleCopy}
                   className="text-surface-400 hover:text-white"
-                  title="Copy to clipboard"
+                  title={t("copyToClipboard")}
                 >
                   {copied ? <CheckCircle size={14} className="text-success" /> : <Copy size={14} />}
                 </Button>
@@ -319,12 +325,12 @@ export default function ProjectApiKeysPage() {
                 onClick={() => setShowRawKey(!showRawKey)}
                 className="text-xs text-accent-300 hover:text-accent-200 mt-2"
               >
-                {showRawKey ? "Hide" : "Show full key"}
+                {showRawKey ? t("hide") : t("showFullKey")}
               </button>
             </div>
             <p className="text-xs text-warning flex items-center gap-1.5">
               <AlertCircle size={12} />
-              This key will not be shown again. Copy it now.
+              {t("showOnceWarning")}
             </p>
           </div>
         )}
@@ -333,9 +339,9 @@ export default function ProjectApiKeysPage() {
       {/* ── Revoke Confirm Dialog ──────────────────────────────────────────────── */}
       <ConfirmDialog
         open={!!revokeTarget}
-        title="Revoke API Key"
-        message={`Are you sure you want to revoke "${revokeTarget?.name}"? This action cannot be undone.`}
-        confirmLabel="Revoke"
+        title={t("revokeApiKey")}
+        message={t("revokeConfirm", { name: revokeTarget?.name ?? "" })}
+        confirmLabel={t("revoke")}
         variant="danger"
         loading={revoking}
         onConfirm={handleRevoke}

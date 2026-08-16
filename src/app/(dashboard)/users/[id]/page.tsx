@@ -29,6 +29,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { API_BASE, safeJsonParse, patch as apiPatch, ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -90,18 +91,18 @@ function authHeaders(): Record<string, string> {
   return headers;
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
+  return d.toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
 }
 
-function formatDateTime(dateStr: string): string {
+function formatDateTime(dateStr: string, locale: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
+  return d.toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -173,6 +174,7 @@ function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void 
 // ─── Copy Button ───────────────────────────────────────────────────────────────
 
 function CopyButton({ text }: { text: string }) {
+  const t = useTranslations("users.detail");
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -248,6 +250,7 @@ interface InstructionCreateDialogProps {
 }
 
 function InstructionCreateDialog({ onClose, onCreate }: InstructionCreateDialogProps) {
+  const t = useTranslations("users.detail");
   const [name, setName] = useState("");
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -288,7 +291,7 @@ function InstructionCreateDialog({ onClose, onCreate }: InstructionCreateDialogP
           {/* Name */}
           <div>
             <label className="block text-sm font-medium text-surface-300 mb-1">
-              Name <span className="text-error">*</span>
+              {t("fields.name")} <span className="text-error">*</span>
             </label>
             <input
               className="input-base"
@@ -304,7 +307,7 @@ function InstructionCreateDialog({ onClose, onCreate }: InstructionCreateDialogP
           {/* Text */}
           <div>
             <label className="block text-sm font-medium text-surface-300 mb-1">
-              Instruction Text <span className="text-error">*</span>
+              {t("fields.text")} <span className="text-error">*</span>
             </label>
             <textarea
               className="input-base min-h-[120px] resize-y"
@@ -327,7 +330,7 @@ function InstructionCreateDialog({ onClose, onCreate }: InstructionCreateDialogP
 
           <div className="flex justify-end gap-3 pt-2 border-t border-surface-800">
             <Button variant="secondary" size="sm" type="button" onClick={onClose} disabled={submitting}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button variant="primary" size="sm" type="submit" disabled={submitting} className="min-w-[140px] justify-center">
               {submitting ? (
@@ -335,7 +338,7 @@ function InstructionCreateDialog({ onClose, onCreate }: InstructionCreateDialogP
                   <Spinner /> Adding...
                 </span>
               ) : (
-                "Add Instruction"
+                t("addInstruction")
               )}
             </Button>
           </div>
@@ -354,6 +357,7 @@ interface InstructionEditDialogProps {
 }
 
 function InstructionEditDialog({ initial, onClose, onSave }: InstructionEditDialogProps) {
+  const t = useTranslations("users.detail");
   const [name, setName] = useState(initial.name);
   const [text, setText] = useState(initial.text);
   const [error, setError] = useState<string | null>(null);
@@ -436,7 +440,7 @@ function InstructionEditDialog({ initial, onClose, onSave }: InstructionEditDial
                   <Spinner /> Saving...
                 </span>
               ) : (
-                "Save Changes"
+                t("saveChanges")
               )}
             </Button>
           </div>
@@ -455,6 +459,7 @@ interface InstructionDeleteDialogProps {
 }
 
 function InstructionDeleteDialog({ instructionName, onClose, onConfirm }: InstructionDeleteDialogProps) {
+  const t = useTranslations("users.detail");
   const [submitting, setSubmitting] = useState(false);
 
   return (
@@ -513,6 +518,9 @@ export default function UserDetailPage() {
   const router = useRouter();
   const userId = params.id as string;
   const { isAdmin, user: me } = useUser();
+  const t = useTranslations("users.detail");
+  const fmt = useFormatter();
+  const locale = useLocale();
 
   // ── Data state ────────────────────────────────────────────────────────────
   const [user, setUser] = useState<UserWithStats | null>(null);
@@ -907,7 +915,7 @@ export default function UserDetailPage() {
                 icon={<Calendar size={16} />}
                 label="Created"
               >
-                <span>{formatDateTime(user.created_at)}</span>
+                <span>{formatDateTime(user.created_at, locale)}</span>
               </MetadataRow>
             </div>
 
@@ -943,8 +951,8 @@ export default function UserDetailPage() {
             </h2>
             <p className="text-xs text-surface-500 mt-0.5">
               {summary?.updated_at
-                ? `Last generated: ${formatDateTime(summary.updated_at)}`
-                : "Not yet generated"}
+                ? t("summary.lastGenerated", { date: formatDateTime(summary.updated_at, locale) })
+                : t("summary.notGenerated")}
             </p>
           </div>
           <div className="flex items-center gap-2">

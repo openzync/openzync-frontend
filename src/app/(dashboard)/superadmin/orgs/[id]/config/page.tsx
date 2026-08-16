@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Check, Settings2 } from "lucide-react";
@@ -23,6 +24,7 @@ export default function OrgConfigAdminPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
+  const t = useTranslations("superadmin.orgConfig");
 
   const fetchConfig = useCallback(async () => {
     setLoading(true);
@@ -132,12 +134,12 @@ export default function OrgConfigAdminPage() {
       {!loading && (
         <div className="flex items-center gap-3">
           <Button variant="primary" onClick={handleSave} loading={saving} disabled={!hasChanged()}>
-            Save Changes
+            {t("saveChanges")}
           </Button>
           {justSaved && (
             <span className="flex items-center gap-1.5 text-sm text-success">
               <Check size={14} />
-              Saved
+              {t("saved")}
             </span>
           )}
         </div>

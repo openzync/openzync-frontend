@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Check, ServerCog, Settings2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -76,6 +77,7 @@ export default function SuperadminConfigPage() {
   const [revealed, setRevealed] = useState<Record<string, string>>({});
   // key currently being fetched by the reveal endpoint.
   const [revealing, setRevealing] = useState<string | null>(null);
+  const t = useTranslations("superadmin.config");
 
   const fetchConfig = useCallback(async () => {
     setLoading(true);
@@ -236,7 +238,7 @@ export default function SuperadminConfigPage() {
 
         <div className="mt-5 max-w-xs">
           <label htmlFor="approval-scope" className="block text-sm font-medium text-surface-300 mb-1">
-            Approval Scope
+            {t("scopeLabel")}
           </label>
           <select
             id="approval-scope"
@@ -253,8 +255,8 @@ export default function SuperadminConfigPage() {
           </select>
           <p className="text-xs text-surface-500 mt-1">
             {form.policy === "approvals"
-              ? "Where organization requests are accepted for review."
-              : "Only applies when approval is required — ignored under the current policy."}
+              ? t("scopeHintApprovals")
+              : t("scopeHintOther")}
           </p>
         </div>
       </div>

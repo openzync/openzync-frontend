@@ -3,11 +3,13 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Loader2, Shield, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { API_BASE, safeJsonParse } from "@/lib/api-client";
 
 function MfaChallengeForm() {
+  const t = useTranslations("auth.mfa");
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
@@ -32,7 +34,7 @@ function MfaChallengeForm() {
       });
       if (!res.ok) {
         const data = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(data?.detail ?? "Invalid or expired verification code.");
+        throw new Error(data?.detail ?? t("invalidCode"));
       }
       const data = (await res.json()) as {
         access_token: string;
@@ -42,7 +44,7 @@ function MfaChallengeForm() {
       sessionStorage.setItem("mg_refresh_token", data.refresh_token);
       router.replace("/overview");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Connection error. Please try again.");
+      setError(err instanceof Error ? err.message : t("connectionError"));
     } finally {
       setSubmitting(false);
     }
@@ -58,13 +60,13 @@ function MfaChallengeForm() {
             OpenZync
           </h1>
           <p className="text-lg text-surface-300 max-w-sm mx-auto">
-            Persistent Agent Memory Infrastructure
+            {t("brandHero")}
           </p>
           <div className="mt-8 flex gap-6 justify-center">
             {[
-              { value: "10+", label: "Graph Backends" },
-              { value: "5", label: "LLM Providers" },
-              { value: "∞", label: "Scale" },
+              { value: "10+", label: t("brandStatGraphBackends") },
+              { value: "5", label: t("brandStatLlmProviders") },
+              { value: "∞", label: t("brandStatScale") },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl font-bold text-accent-300">{stat.value}</div>
@@ -81,7 +83,7 @@ function MfaChallengeForm() {
           {/* Mobile brand */}
           <div className="md:hidden text-center mb-8">
             <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-            <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
+            <p className="text-xs text-surface-400">{t("brandTagline")}</p>
           </div>
 
           <div className="card-base p-6">
@@ -90,9 +92,9 @@ function MfaChallengeForm() {
                 <Shield size={20} className="text-accent-300" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">Verify your identity</h2>
+                <h2 className="text-xl font-semibold">{t("title")}</h2>
                 <p className="text-sm text-surface-400">
-                  Enter the MFA code sent to
+                  {t("desc")}
                 </p>
               </div>
             </div>
@@ -109,15 +111,15 @@ function MfaChallengeForm() {
 
             {missingParams && (
               <div className="mb-4 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning">
-                Missing session information. Please{" "}
-                <Link href="/login" className="underline">sign in</Link> again.
+                {t("missingSession")}{" "}
+                <Link href="/login" className="underline">{t("signInLink")}</Link> {t("again")}.
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Authentication Code
+                  {t("authCode")}
                 </label>
                 <input
                   type="text"
@@ -130,7 +132,7 @@ function MfaChallengeForm() {
                   autoFocus
                   disabled={missingParams}
                   className="input-base w-full text-center text-2xl tracking-[0.5em] font-mono"
-                  placeholder="000000"
+                  placeholder={t("otpPlaceholder")}
                 />
               </div>
 
@@ -143,13 +145,13 @@ function MfaChallengeForm() {
                 {submitting ? (
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
-                  "Verify"
+                  t("verify")
                 )}
               </Button>
             </form>
 
             <p className="mt-6 text-center text-sm text-surface-400">
-              Didn&apos;t receive the code? Sign in again to request a new one.
+              {t("noCode")}
             </p>
 
             <p className="mt-4 text-center text-sm text-surface-500">
@@ -158,7 +160,7 @@ function MfaChallengeForm() {
                 className="inline-flex items-center gap-1 text-accent-300 hover:text-accent-200 font-medium"
               >
                 <ArrowLeft size={14} />
-                Back to login
+                {t("backToLogin")}
               </Link>
             </p>
           </div>

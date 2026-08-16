@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import {
   MessageSquare,
   User,
@@ -58,6 +59,8 @@ function RoleIcon({ role }: { role: string }) {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function MessagesPage() {
+  const t = useTranslations("sessions.messages");
+  const locale = useLocale();
   const params = useParams();
   const sessionId = params.sessionId as string;
   const { project, loading: projectLoading } = useProject();
@@ -104,12 +107,12 @@ export default function MessagesPage() {
           setAllLoaded(msgList.length < limit);
         }
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : "Failed to load messages");
+        setError(err instanceof ApiError ? err.message : t("loadFailed"));
       } finally {
         setLoadingFn(false);
       }
     },
-    [projectId, sessionId],
+    [projectId, sessionId, t],
   );
 
   // Initial load
@@ -157,13 +160,13 @@ export default function MessagesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Messages</h1>
-          <p className="text-sm text-surface-400 mt-1">Conversation messages for this session</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+          <p className="text-sm text-surface-400 mt-1">{t("subtitle")}</p>
         </div>
         <EmptyState
           icon={AlertCircle}
-          title="No project selected"
-          description="Select a project to view messages."
+          title={t("noProjectTitle")}
+          description={t("noProjectDescription")}
         />
       </div>
     );
@@ -172,15 +175,15 @@ export default function MessagesPage() {
   return (
     <div className="space-y-4">
       <SessionTabs sessionId={sessionId} activeTab="messages" />
-      <PageGuide title="Conversation messages" illustration={<GuideConversation />}>
-        <p>Browse all messages in this session in chronological order. Messages are the raw input that the enrichment pipeline processes to extract entities, facts, classifications, and structured data.</p>
+      <PageGuide title={t("guideTitle")} illustration={<GuideConversation />}>
+        <p>{t("guideBody")}</p>
       </PageGuide>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Messages</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-surface-400 mt-1">
-            Session:{" "}
+            {t("sessionLabel")}{" "}
             <span className="font-mono text-surface-300 text-xs" title={sessionId}>
               {sessionId.slice(0, 8)}…
             </span>
@@ -191,10 +194,10 @@ export default function MessagesPage() {
           size="sm"
           onClick={scrollToBottom}
           className="flex items-center gap-1"
-          title="Scroll to bottom"
+          title={t("scrollToBottom")}
         >
           <ArrowUp size={14} className="rotate-180" />
-          Latest
+          {t("latest")}
         </Button>
       </div>
 
@@ -207,7 +210,7 @@ export default function MessagesPage() {
         {/* Load older */}
         <div className="sticky top-0 z-10 flex justify-center py-3 bg-gradient-to-b from-surface-900 via-surface-900/95 to-transparent">
           {allLoaded ? (
-            <span className="text-xs text-surface-500">All messages loaded</span>
+            <span className="text-xs text-surface-500">{t("allLoaded")}</span>
           ) : (
             <Button
               variant="ghost"
@@ -218,12 +221,12 @@ export default function MessagesPage() {
               {loadOlderLoading ? (
                 <>
                   <Loader2 size={12} className="animate-spin" />
-                  Loading...
+                  {t("loading")}
                 </>
               ) : (
                 <>
                   <ChevronUp size={14} />
-                  Load older messages
+                  {t("loadOlder")}
                 </>
               )}
             </Button>
@@ -234,7 +237,7 @@ export default function MessagesPage() {
         {loading && (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Loader2 size={24} className="animate-spin text-brand-300" />
-            <span className="text-sm text-surface-400">Loading messages...</span>
+            <span className="text-sm text-surface-400">{t("loadingMessages")}</span>
           </div>
         )}
 
@@ -249,8 +252,8 @@ export default function MessagesPage() {
         {!loading && !error && messages.length === 0 && (
           <EmptyState
             icon={MessageSquare}
-            title="No messages in this session yet"
-            description="Messages will appear once the conversation starts."
+            title={t("emptyTitle")}
+            description={t("emptyDescription")}
           />
         )}
 
@@ -273,7 +276,7 @@ export default function MessagesPage() {
                       {msg.token_count !== undefined && (
                         <>
                           <span className="text-surface-600 mx-0.5">·</span>
-                          <span title="Tokens">{msg.token_count} tok</span>
+                          <span title={t("tokens")}>{msg.token_count} tok</span>
                         </>
                       )}
                       {/* Attached files */}
@@ -305,7 +308,7 @@ export default function MessagesPage() {
                     >
                       {msg.content}
                       {isAssistant && msg.token_count !== undefined && (
-                        <span className="ml-2 text-[11px] text-surface-500 font-mono inline-flex items-center gap-0.5">
+                        <span className="ms-2 text-[11px] text-surface-500 font-mono inline-flex items-center gap-0.5">
                           <Hash size={10} />
                           {msg.token_count}
                         </span>
@@ -330,11 +333,11 @@ export default function MessagesPage() {
                       {msg.created_at && (
                         <span className="flex items-center gap-0.5">
                           <Clock size={10} />
-                          {smartTimestamp(msg.created_at)}
+                          {smartTimestamp(msg.created_at, locale)}
                         </span>
                       )}
                       {isUser && msg.token_count !== undefined && (
-                        <span className="flex items-center gap-0.5" title="Tokens">
+                        <span className="flex items-center gap-0.5" title={t("tokens")}>
                           <Hash size={10} />
                           {msg.token_count}
                         </span>

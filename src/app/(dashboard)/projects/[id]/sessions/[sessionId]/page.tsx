@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import {
   ArrowLeft,
   Copy,
@@ -40,25 +41,9 @@ interface SessionDetail {
   closed_at?: string | null;
 }
 
-// ─── Tab configuration ─────────────────────────────────────────────────────────
-
-interface Tab {
-  label: string;
-  path: string;
-}
-
-const TABS: Tab[] = [
-  { label: "Messages", path: "messages" },
-  { label: "Facts", path: "facts" },
-  { label: "Graph", path: "graph" },
-  { label: "Classifications", path: "classifications" },
-  { label: "Extractions", path: "extractions" },
-  { label: "Observations", path: "observations" },
-];
-
 // ─── Copy Button ───────────────────────────────────────────────────────────────
 
-function CopyButton({ text }: { text: string }) {
+function CopyButton({ text, title }: { text: string; title: string }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -73,7 +58,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       className="text-surface-500 hover:text-surface-300 transition-colors shrink-0"
-      title="Copy to clipboard"
+      title={title}
     >
       {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
     </button>
@@ -105,6 +90,9 @@ function MetadataRow({
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SessionDetailPage() {
+  const t = useTranslations("sessions.detail");
+  const fmt = useFormatter();
+  const locale = useLocale();
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -112,6 +100,15 @@ export default function SessionDetailPage() {
   const sessionId = params.sessionId as string;
   const { project, loading: projectLoading } = useProject();
   const projectId = project?.id;
+
+  const TABS = [
+    { label: t("tabs.messages"), path: "messages" },
+    { label: t("tabs.facts"), path: "facts" },
+    { label: t("tabs.graph"), path: "graph" },
+    { label: t("tabs.classifications"), path: "classifications" },
+    { label: t("tabs.extractions"), path: "extractions" },
+    { label: t("tabs.observations"), path: "observations" },
+  ];
 
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,7 +126,7 @@ export default function SessionDetailPage() {
   useEffect(() => {
     if (!sessionId || !projectId) {
       setLoading(false);
-      setError(!projectId ? "No project selected." : "No session ID provided.");
+      setError(!projectId ? t("noProject") : t("noSessionId"));
       return;
     }
 
@@ -144,9 +141,9 @@ export default function SessionDetailPage() {
         setSession(data);
       } catch (err) {
         if (err instanceof ApiError && err.isNotFound) {
-          setError("Session not found.");
+          setError(t("notFound"));
         } else {
-          setError(err instanceof ApiError ? err.message : "Network error. Please try again.");
+          setError(err instanceof ApiError ? err.message : t("networkError"));
         }
       } finally {
         setLoading(false);
@@ -154,10 +151,10 @@ export default function SessionDetailPage() {
     }
 
     fetchSession();
-  }, [sessionId, projectId]);
+  }, [sessionId, projectId, t]);
 
   // Build tab href
-  function tabHref(tab: Tab): string {
+  function tabHref(tab: (typeof TABS)[number]): string {
     return `/projects/${projectId}/sessions/${sessionId}/${tab.path}`;
   }
 
@@ -169,7 +166,7 @@ export default function SessionDetailPage() {
           href={`/projects/${projectId}/sessions`}
           className="hover:text-surface-200 transition-colors"
         >
-          Sessions
+          {t("breadcrumbSessions")}
         </Link>
         <span className="text-surface-600">/</span>
         <span className="text-surface-100 font-medium">
@@ -198,17 +195,17 @@ export default function SessionDetailPage() {
         variant="ghost"
         size="sm"
         onClick={() => router.push(`/projects/${projectId}/sessions`)}
-        className="-ml-2"
+        className="-ms-2"
       >
         <ArrowLeft size={14} />
-        Back to Sessions
+        {t("backToSessions")}
       </Button>
 
       {/* Breadcrumb */}
       {projectId && <Breadcrumb />}
 
-      <PageGuide title="Session details" illustration={<GuideConversation />}>
-        <p>View all data for a single session: messages, extracted facts, graph relationships, classifications, and structured extractions. Each tab shows a different aspect of the processed conversation.</p>
+      <PageGuide title={t("guideTitle")} illustration={<GuideConversation />}>
+        <p>{t("guideBody")}</p>
       </PageGuide>
 
       {/* Metadata card */}
@@ -235,67 +232,67 @@ export default function SessionDetailPage() {
                   {session.external_id}
                 </h1>
                 <p className="text-xs text-surface-500 mt-0.5">
-                  Session overview
+                  {t("overviewLabel")}
                 </p>
               </div>
               <Badge variant={session.is_active ? "success" : "default"} size="sm">
-                <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${session.is_active ? "bg-success" : "bg-surface-500"}`} />
-                {session.is_active ? "Active" : "Closed"}
+                <span className={`me-1.5 h-1.5 w-1.5 rounded-full ${session.is_active ? "bg-success" : "bg-surface-500"}`} />
+                {session.is_active ? t("status.active") : t("status.closed")}
               </Badge>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <MetadataRow icon={<Hash size={16} />} label="Session ID">
+              <MetadataRow icon={<Hash size={16} />} label={t("meta.sessionId")}>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs bg-surface-800 rounded px-2 py-0.5">
                     {truncateId(session.id)}
                   </span>
-                  <CopyButton text={session.id} />
+                  <CopyButton text={session.id} title={t("copyToClipboard")} />
                 </div>
               </MetadataRow>
 
-              <MetadataRow icon={<UserIcon size={16} />} label="Created By">
+              <MetadataRow icon={<UserIcon size={16} />} label={t("meta.createdBy")}>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs bg-surface-800 rounded px-2 py-0.5">
                     {truncateId(session.user_id)}
                   </span>
-                  <CopyButton text={session.user_id} />
+                  <CopyButton text={session.user_id} title={t("copyToClipboard")} />
                 </div>
               </MetadataRow>
 
-              <MetadataRow icon={<Calendar size={16} />} label="Created">
-                <span>{smartTimestamp(session.created_at)}</span>
+              <MetadataRow icon={<Calendar size={16} />} label={t("meta.created")}>
+                <span>{smartTimestamp(session.created_at, locale)}</span>
               </MetadataRow>
 
-              <MetadataRow icon={<Clock size={16} />} label="Closed">
+              <MetadataRow icon={<Clock size={16} />} label={t("meta.closed")}>
                 {session.closed_at ? (
-                  <span>{smartTimestamp(session.closed_at)}</span>
+                  <span>{smartTimestamp(session.closed_at, locale)}</span>
                 ) : (
                   <span className="text-surface-500">—</span>
                 )}
               </MetadataRow>
 
-              <MetadataRow icon={<MessageSquare size={16} />} label="Messages">
+              <MetadataRow icon={<MessageSquare size={16} />} label={t("meta.messages")}>
                 <span className="font-semibold">
-                  {session.message_count.toLocaleString()}
+                  {fmt.number(session.message_count)}
                 </span>
               </MetadataRow>
 
-              <MetadataRow icon={<Database size={16} />} label="Facts">
+              <MetadataRow icon={<Database size={16} />} label={t("meta.facts")}>
                 <span className="font-semibold">
-                  {session.fact_count.toLocaleString()}
+                  {fmt.number(session.fact_count)}
                 </span>
               </MetadataRow>
 
-              <MetadataRow icon={<RefreshCw size={16} />} label="Pending Enrichment">
+              <MetadataRow icon={<RefreshCw size={16} />} label={t("meta.pendingEnrichment")}>
                 <span className="font-semibold">
-                  {session.pending_enrichment_count.toLocaleString()}
+                  {fmt.number(session.pending_enrichment_count)}
                 </span>
               </MetadataRow>
 
-              <MetadataRow icon={<Eye size={16} />} label="Observations">
+              <MetadataRow icon={<Eye size={16} />} label={t("meta.observations")}>
                 <span className="font-semibold">
-                  {(session.observation_count ?? 0).toLocaleString()}
+                  {fmt.number(session.observation_count ?? 0)}
                 </span>
               </MetadataRow>
             </div>
@@ -331,9 +328,9 @@ export default function SessionDetailPage() {
       {session && !activeTab && (
         <div className="card-base p-6 flex flex-col items-center justify-center py-12 text-surface-500">
           <ExternalLink size={32} className="mb-3 text-surface-600" />
-          <p className="text-sm">Select a tab above to view session data.</p>
+          <p className="text-sm">{t("selectTab")}</p>
           <p className="text-xs mt-1">
-            Messages, facts, graph, classifications, extractions, and observations.
+            {t("selectTabHint")}
           </p>
         </div>
       )}

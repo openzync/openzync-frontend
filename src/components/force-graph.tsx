@@ -14,6 +14,7 @@ import {
   Minimize2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║ Public Types                                                                ║
@@ -91,12 +92,12 @@ const NODE_COLORS: Record<string, string> = {
 const DEFAULT_NODE_COLOR = "#4A6D96";
 
 const ENTITY_TYPE_LEGEND = [
-  { type: "person", label: "Person", color: NODE_COLORS.person },
-  { type: "organization", label: "Organization", color: NODE_COLORS.organization },
-  { type: "location", label: "Location", color: NODE_COLORS.location },
-  { type: "event", label: "Event", color: NODE_COLORS.event },
-  { type: "concept", label: "Concept", color: NODE_COLORS.concept },
-  { type: "community", label: "Community", color: NODE_COLORS.community },
+  { type: "person", label: "legend.person", color: NODE_COLORS.person },
+  { type: "organization", label: "legend.organization", color: NODE_COLORS.organization },
+  { type: "location", label: "legend.location", color: NODE_COLORS.location },
+  { type: "event", label: "legend.event", color: NODE_COLORS.event },
+  { type: "concept", label: "legend.concept", color: NODE_COLORS.concept },
+  { type: "community", label: "legend.community", color: NODE_COLORS.community },
 ];
 
 function getColor(type: string | undefined): string {
@@ -172,9 +173,10 @@ export function ForceGraph({
   showControls = true,
   showLegend = true,
   height = 600,
-  emptyMessage = "No graph entities found",
+  emptyMessage,
   emptyAction,
 }: ForceGraphProps) {
+  const t = useTranslations("components.forceGraph");
   // ── State ────────────────────────────────────────────────────────────────
   const [filterText, setFilterText] = useState("");
   const [showRelated, setShowRelated] = useState(true);
@@ -727,7 +729,7 @@ export function ForceGraph({
               />
               <input
                 className="input-base pl-9 pr-3 text-sm"
-                placeholder="Filter by name or type…"
+                placeholder={t("filterPlaceholder")}
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
               />
@@ -739,7 +741,7 @@ export function ForceGraph({
             <div className="flex items-center rounded-md border border-surface-700 overflow-hidden shrink-0">
               <button
                 onClick={() => setShowRelated(false)}
-                title="Show only matching nodes (strict)"
+                title={t("strictTitle")}
                 className={`px-2.5 py-1 text-xs font-medium transition-colors ${
                   !showRelated
                     ? "bg-surface-800 text-white"
@@ -751,7 +753,7 @@ export function ForceGraph({
               <div className="w-px h-3 bg-surface-700" aria-hidden="true" />
               <button
                 onClick={() => setShowRelated(true)}
-                title="Include 1-hop neighbors of matched nodes"
+                title={t("relatedTitle")}
                 className={`px-2.5 py-1 text-xs font-medium transition-colors ${
                   showRelated
                     ? "bg-surface-800 text-white"
@@ -797,7 +799,7 @@ export function ForceGraph({
                 size="sm"
                 onClick={handleZoomIn}
                 className="rounded-md text-surface-400 hover:text-white"
-                title="Zoom in"
+                title={t("zoomIn")}
               >
                 <ZoomIn size={16} />
               </Button>
@@ -806,7 +808,7 @@ export function ForceGraph({
                 size="sm"
                 onClick={handleZoomOut}
                 className="rounded-md text-surface-400 hover:text-white"
-                title="Zoom out"
+                title={t("zoomOut")}
               >
                 <ZoomOut size={16} />
               </Button>
@@ -815,7 +817,7 @@ export function ForceGraph({
                 size="sm"
                 onClick={handleResetZoom}
                 className="rounded-md text-surface-400 hover:text-white"
-                title="Reset zoom"
+                title={t("resetZoom")}
               >
                 <RotateCcw size={14} />
               </Button>
@@ -825,7 +827,7 @@ export function ForceGraph({
                 size="sm"
                 onClick={() => setIsFullscreen((p) => !p)}
                 className="rounded-md text-surface-400 hover:text-white"
-                title={isFullscreen ? "Exit fullscreen (Esc)" : "Enter fullscreen"}
+                title={isFullscreen ? t("exitFullscreen") : t("enterFullscreen")}
               >
                 {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </Button>
@@ -845,7 +847,7 @@ export function ForceGraph({
           {loading && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-surface-900/80">
               <Spinner className="text-accent-300 h-8 w-8" />
-              <p className="text-sm text-surface-400 mt-3">Loading graph data…</p>
+              <p className="text-sm text-surface-400 mt-3">{t("loading")}</p>
             </div>
           )}
 
@@ -874,12 +876,12 @@ export function ForceGraph({
                 <Info size={22} className="text-surface-500" />
               </div>
               <p className="text-sm text-surface-300 font-medium">
-                {isFiltered ? "No matching entities" : emptyMessage}
+                {isFiltered ? t("noMatching") : (emptyMessage ?? t("empty"))}
               </p>
               <p className="text-xs text-surface-500 mt-1">
                 {isFiltered
-                  ? "Try a different filter term"
-                  : "Ingest some data to populate the knowledge graph"}
+                  ? t("filterHint")
+                  : t("emptyHint")}
               </p>
               {isFiltered && (
                 <Button
@@ -949,7 +951,7 @@ export function ForceGraph({
                   {/* Metadata from API */}
                   {nodeDetail?.node?.metadata && Object.keys(nodeDetail.node.metadata).length > 0 && (
                     <div className="mt-2 pt-2 border-t border-surface-800">
-                      <h4 className="text-[10px] font-medium text-surface-500 mb-1 uppercase tracking-wider">Metadata</h4>
+                      <h4 className="text-[10px] font-medium text-surface-500 mb-1 uppercase tracking-wider">{t("metadata")}</h4>
                       <div className="space-y-0.5">
                         {Object.entries(nodeDetail.node.metadata).map(([key, val]) => (
                           <div key={key} className="flex gap-2 text-[11px]">
@@ -967,7 +969,7 @@ export function ForceGraph({
                   {(nodeDetail?.edges ?? connectedEdges).length > 0 && (
                     <div className="mt-2 pt-2 border-t border-surface-800">
                       <h4 className="text-[10px] font-medium text-surface-500 mb-1.5 uppercase tracking-wider">
-                        Relationships ({(nodeDetail?.edges ?? connectedEdges).length})
+                        {t("relationships", { count: (nodeDetail?.edges ?? connectedEdges).length })}
                       </h4>
                       <div className="space-y-1">
                         {(nodeDetail?.edges ?? connectedEdges).map((edge, i) => {
@@ -1008,7 +1010,7 @@ export function ForceGraph({
                     <span className="font-mono truncate max-w-[140px]" title={selectedNode.id}>
                       {selectedNode.id.slice(0, 12)}…
                     </span>
-                    <span>Created {timeAgo(selectedNode.created_at)}</span>
+                    <span>{t("created", { time: timeAgo(selectedNode.created_at) })}</span>
                   </div>
                 </>
               )}
@@ -1022,7 +1024,7 @@ export function ForceGraph({
         <div className="card-base p-3">
           <div className="flex items-center gap-6 flex-wrap">
             <span className="text-xs text-surface-500 font-medium uppercase tracking-wider">
-              Entity Types
+              {t("entityTypes")}
             </span>
             {ENTITY_TYPE_LEGEND.map((entry) => (
               <div key={entry.type} className="flex items-center gap-2">
@@ -1030,7 +1032,7 @@ export function ForceGraph({
                   className="block h-2.5 w-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: entry.color }}
                 />
-                <span className="text-xs text-surface-400">{entry.label}</span>
+                <span className="text-xs text-surface-400">{t(entry.label)}</span>
               </div>
             ))}
             <div className="flex items-center gap-2">
@@ -1038,7 +1040,7 @@ export function ForceGraph({
                 className="block h-2.5 w-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: DEFAULT_NODE_COLOR }}
               />
-              <span className="text-xs text-surface-400">Other</span>
+              <span className="text-xs text-surface-400">{t("other")}</span>
             </div>
           </div>
         </div>

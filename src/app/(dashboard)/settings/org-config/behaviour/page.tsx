@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { RotateCcw, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
@@ -29,8 +30,8 @@ const FIELDS: (keyof FormState)[] = [
 // ─── Reset field titles ────────────────────────────────────────────────────────
 
 const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
-  context_cache_ttl: "Reset cache TTL to default",
-  audit_log_response_body: "Reset audit logging to default",
+  context_cache_ttl: "reset.cacheTtl",
+  audit_log_response_body: "reset.auditLogging",
 };
 
 // ─── Default values for staged-reset UI ────────────────────────────────────────
@@ -54,6 +55,7 @@ export default function BehaviourConfigPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
+  const t = useTranslations("settings.orgConfig.behaviour");
 
   // ── Staged resets ────────────────────────────────────────────────────────────
 
@@ -114,7 +116,7 @@ export default function BehaviourConfigPage() {
       setDirty(false);
       setError(null);
     } catch (err) {
-      setError(apiErrorMessage(err, "Failed to load configuration"));
+      setError(apiErrorMessage(err, t("loadFailed")));
     } finally {
       setLoading(false);
     }
@@ -185,7 +187,7 @@ export default function BehaviourConfigPage() {
 
       await patch("/admin/org/config", payload);
 
-      toast.success("Behaviour configuration saved successfully");
+      toast.success(t("savedToast"));
       await fetchConfig();
       clearResets();
       setDirty(false);
@@ -193,7 +195,7 @@ export default function BehaviourConfigPage() {
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Failed to save configuration";
+        err instanceof Error ? err.message : t("saveFailed");
       setError(message);
       toast.error(
         err instanceof ApiError
@@ -216,9 +218,9 @@ export default function BehaviourConfigPage() {
             <Settings2 size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Behaviour Settings</h2>
+            <h2 className="text-base font-semibold">{t("title")}</h2>
             <p className="text-xs text-surface-400">
-              Caching and audit behaviour
+              {t("description")}
             </p>
           </div>
         </div>
@@ -236,7 +238,7 @@ export default function BehaviourConfigPage() {
               {/* context_cache_ttl */}
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Context Cache TTL (seconds)
+                  {t("fields.cacheTtl")}
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
@@ -257,7 +259,7 @@ export default function BehaviourConfigPage() {
                       variant="ghost"
                       size="sm"
                       className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title={RESET_TITLES.context_cache_ttl}
+                      title={t(RESET_TITLES.context_cache_ttl ?? "")}
                     >
                       <RotateCcw size={14} />
                     </Button>
@@ -265,12 +267,11 @@ export default function BehaviourConfigPage() {
                 </div>
                 {isPendingReset("context_cache_ttl") && (
                   <p className="text-xs text-amber-400 mt-1">
-                    Will reset to default on save
+                    {t("willResetOnSave")}
                   </p>
                 )}
                 <p className="text-xs text-surface-500 mt-1">
-                  How long context data is cached in Redis before being
-                  re-fetched (0 = no caching)
+                  {t("fields.cacheTtlHint")}
                 </p>
               </div>
 
@@ -279,13 +280,13 @@ export default function BehaviourConfigPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
-                      Audit Log Response Body
+                      {t("fields.auditLogResponseBody")}
                     </label>
                     <p className="text-xs text-surface-500">
-                      Include response body content in audit logs
+                      {t("fields.auditLogHint")}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-4">
+                  <div className="flex items-center gap-2 shrink-0 ms-4">
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="checkbox"
@@ -299,7 +300,7 @@ export default function BehaviourConfigPage() {
                         }
                       />
                       <span className="text-sm text-surface-300">
-                        {form.audit_log_response_body ? "Enabled" : "Disabled"}
+                        {form.audit_log_response_body ? t("enabled") : t("disabled")}
                       </span>
                     </label>
                     {isFieldSet("audit_log_response_body") && (
@@ -310,7 +311,7 @@ export default function BehaviourConfigPage() {
                         variant="ghost"
                         size="sm"
                         className="rounded-md text-surface-400 hover:text-brand-300"
-                        title={RESET_TITLES.audit_log_response_body}
+                        title={t(RESET_TITLES.audit_log_response_body ?? "")}
                       >
                         <RotateCcw size={14} />
                       </Button>

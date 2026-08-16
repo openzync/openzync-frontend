@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Eye, EyeOff, Loader2, LogIn, Mail } from "lucide-react";
 import { API_BASE, safeJsonParse } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 
 function LoginNotice() {
+  const t = useTranslations("auth.login");
   const searchParams = useSearchParams();
   const reason = searchParams.get("reason");
   if (reason !== "not-signed-in") return null;
@@ -15,16 +17,17 @@ function LoginNotice() {
     <div className="mb-4 rounded-lg border border-accent-300/20 bg-accent-300/5 px-4 py-3">
       <div className="flex items-center gap-2 mb-0.5">
         <LogIn size={16} className="text-accent-300" />
-        <p className="font-medium text-accent-300 text-sm">Sign in required</p>
+        <p className="font-medium text-accent-300 text-sm">{t("noticeTitle")}</p>
       </div>
-      <p className="text-surface-400 text-xs ml-6">
-        Please sign in to access the dashboard.
+      <p className="text-surface-400 text-xs ms-6">
+        {t("noticeBody")}
       </p>
     </div>
   );
 }
 
 export default function LoginPage() {
+  const t = useTranslations("auth");
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +54,7 @@ export default function LoginPage() {
       });
       if (!res.ok) {
         const data = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(data?.detail ?? "Invalid email or password.");
+        throw new Error(data?.detail ?? t("login.invalidCredentials"));
       }
       const data = await res.json();
       if (data.requires_mfa) {
@@ -71,7 +74,7 @@ export default function LoginPage() {
       setError(
         err instanceof Error && err.message
           ? err.message
-          : "Connection error. Please try again.",
+          : t("common.connectionError"),
       );
     } finally {
       setSubmitting(false);
@@ -88,13 +91,13 @@ export default function LoginPage() {
             OpenZync
           </h1>
           <p className="text-lg text-surface-300 max-w-sm mx-auto">
-            Persistent Agent Memory Infrastructure
+            {t("brand.hero")}
           </p>
           <div className="mt-8 flex gap-6 justify-center">
             {[
-              { value: "3", label: "Graph Backends" },
-              { value: "5", label: "LLM Providers" },
-              { value: "∞", label: "Scale" },
+              { value: "3", label: t("brand.stats.graphBackends") },
+              { value: "5", label: t("brand.stats.llmProviders") },
+              { value: "∞", label: t("brand.stats.scale") },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl font-bold text-accent-300">{stat.value}</div>
@@ -111,13 +114,13 @@ export default function LoginPage() {
           {/* Mobile brand */}
           <div className="md:hidden text-center mb-8">
             <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-            <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
+            <p className="text-xs text-surface-400">{t("brand.tagline")}</p>
           </div>
 
           <div className="card-base p-6 shadow-glow-sm">
-            <h2 className="text-xl font-semibold mb-1">Welcome back</h2>
+            <h2 className="text-xl font-semibold mb-1">{t("login.welcome")}</h2>
             <p className="text-sm text-surface-400 mb-6">
-              Sign in to your organization dashboard
+              {t("login.subtitle")}
             </p>
 
             <Suspense fallback={null}>
@@ -133,7 +136,7 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Email
+                  {t("common.email")}
                 </label>
                 <input
                   ref={emailRef}
@@ -143,14 +146,14 @@ export default function LoginPage() {
                   required
                   autoComplete="username"
                   className="input-base w-full"
-                  placeholder="you@example.com"
+                  placeholder={t("common.emailPlaceholder")}
                   suppressHydrationWarning
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Password
+                  {t("common.password")}
                 </label>
                 <div className="relative" suppressHydrationWarning>
                   <input
@@ -159,14 +162,14 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     autoComplete="current-password"
-                    className="input-base w-full pr-10"
-                    placeholder="Enter your password"
+                    className="input-base w-full pe-10"
+                    placeholder={t("common.passwordPlaceholder")}
                     suppressHydrationWarning
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
+                    className="absolute end-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -178,7 +181,7 @@ export default function LoginPage() {
                   href="/forgot-password"
                   className="text-xs text-accent-300 hover:text-accent-200 font-medium"
                 >
-                  Forgot password?
+                  {t("login.forgotPassword")}
                 </Link>
               </div>
 
@@ -191,7 +194,7 @@ export default function LoginPage() {
                 {submitting ? (
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
-                  "Sign In"
+                  t("login.signIn")
                 )}
               </Button>
             </form>
@@ -201,7 +204,7 @@ export default function LoginPage() {
                 <div className="w-full border-t border-surface-800" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-surface-900 px-2 text-surface-500">or</span>
+                <span className="bg-surface-900 px-2 text-surface-500">{t("login.or")}</span>
               </div>
             </div>
 
@@ -210,7 +213,7 @@ export default function LoginPage() {
               className="flex items-center justify-center gap-2 rounded-lg border border-surface-700 px-4 py-2.5 text-sm font-medium text-surface-300 transition-all duration-150 hover:border-accent-300/30 hover:text-accent-300 hover:shadow-[0_0_12px_rgba(143,175,217,0.06)]"
             >
               <Mail size={16} />
-              Sign in with a magic code
+              {t("login.magicCode")}
             </Link>
 
             <div className="mt-3 grid grid-cols-2 gap-3">
@@ -223,9 +226,9 @@ export default function LoginPage() {
             </div>
 
             <p className="mt-6 text-center text-sm text-surface-400">
-              Don&apos;t have an account?{" "}
+              {t("login.noAccount")}{" "}
               <Link href="/signup" className="text-accent-300 font-medium hover:text-accent-200">
-                Sign up
+                {t("login.signUp")}
               </Link>
             </p>
           </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ForceGraph, type GraphNodeData, type GraphEdgeData } from "@/components/force-graph";
 import { PageGuide, GuideGraph } from "@/components/guides";
 import { get, API_BASE, getAccessToken, ApiError } from "@/lib/api-client";
@@ -24,6 +25,7 @@ function buildAuthHeaders(): Record<string, string> {
 }
 
 export default function SessionGraphPage() {
+  const t = useTranslations("graph.session");
   const params = useParams();
   const sessionId = params.sessionId as string;
   const { project } = useProject();
@@ -69,11 +71,11 @@ export default function SessionGraphPage() {
 
       setGraphData({ nodes: items, edges: allEdges });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "An unknown error occurred");
+      setError(err instanceof ApiError ? err.message : t("unknownError"));
     } finally {
       setLoading(false);
     }
-  }, [projectId, sessionId]);
+  }, [projectId, sessionId, t]);
 
   useEffect(() => {
     loadData();
@@ -84,7 +86,7 @@ export default function SessionGraphPage() {
       <div>
         <SessionTabs sessionId={sessionId} activeTab="graph" />
         <div className="card-base p-8 flex flex-col items-center justify-center gap-3 text-surface-500 mt-4">
-          <p className="text-sm">No project selected.</p>
+          <p className="text-sm">{t("noProject")}</p>
         </div>
       </div>
     );
@@ -93,8 +95,8 @@ export default function SessionGraphPage() {
   return (
     <div>
       <SessionTabs sessionId={sessionId} activeTab="graph" />
-      <PageGuide title="Session graph" illustration={<GuideGraph />}>
-        <p>Visualize the knowledge graph extracted from this specific session. Nodes represent entities mentioned in the conversation, and edges show how they relate to each other.</p>
+      <PageGuide title={t("guideTitle")} illustration={<GuideGraph />}>
+        <p>{t("guideBody")}</p>
       </PageGuide>
       <ForceGraph
         nodes={graphData?.nodes ?? []}
@@ -110,7 +112,7 @@ export default function SessionGraphPage() {
         showFilter
         showControls
         showLegend
-        emptyMessage="No entities found for this session. Facts must be extracted first."
+        emptyMessage={t("emptyMessage")}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
   Save,
   Lock,
@@ -35,8 +36,6 @@ interface ToastState {
   type: "success" | "error";
 }
 
-// ─── Constants ─────────────────────────────────────────────────────────────────
-
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function authHeaders(): Record<string, string> {
@@ -62,7 +61,7 @@ function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void 
   const isSuccess = toast.type === "success";
 
   return (
-    <div className="fixed bottom-6 right-6 z-[60] animate-slide-up">
+    <div className="fixed bottom-6 end-6 z-[60] animate-slide-up">
       <div
         className={cn(
           "flex items-center gap-3 rounded-lg px-4 py-3 shadow-lg shadow-black/30 border min-w-[280px] max-w-sm",
@@ -84,6 +83,7 @@ function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const t = useTranslations("settings.account");
   // ── Profile state ──────────────────────────────────────────────────────────
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -175,12 +175,12 @@ export default function SettingsPage() {
 
       if (!res.ok) {
         const body = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(body?.detail ?? "Failed to update profile");
+        throw new Error(body?.detail ?? t("profileUpdateFailed"));
       }
 
-      showToast("Profile updated successfully", "success");
+      showToast(t("profileUpdatedToast"), "success");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to update profile", "error");
+      showToast(err instanceof Error ? err.message : t("profileUpdateFailed"), "error");
     } finally {
       setSavingProfile(false);
     }
@@ -192,15 +192,15 @@ export default function SettingsPage() {
     setPasswordError(null);
 
     if (!currentPassword) {
-      setPasswordError("Current password is required");
+      setPasswordError(t("currentPasswordRequired"));
       return;
     }
     if (!newPassword) {
-      setPasswordError("New password is required");
+      setPasswordError(t("newPasswordRequired"));
       return;
     }
     if (newPassword.length < 8) {
-      setPasswordError("New password must be at least 8 characters");
+      setPasswordError(t("newPasswordTooShort"));
       return;
     }
 
@@ -217,14 +217,14 @@ export default function SettingsPage() {
 
       if (!res.ok) {
         const body = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(body?.detail ?? "Failed to update password");
+        throw new Error(body?.detail ?? t("passwordUpdateFailed"));
       }
 
       setCurrentPassword("");
       setNewPassword("");
-      showToast("Password updated successfully", "success");
+      showToast(t("passwordUpdatedToast"), "success");
     } catch (err) {
-      setPasswordError(err instanceof Error ? err.message : "Failed to update password");
+      setPasswordError(err instanceof Error ? err.message : t("passwordUpdateFailed"));
     } finally {
       setUpdatingPassword(false);
     }
@@ -250,7 +250,7 @@ export default function SettingsPage() {
   const confirmEnableMfa = async () => {
     setDialogError(null);
     if (!dialogPassword) {
-      setDialogError("Current password is required");
+      setDialogError(t("currentPasswordRequired"));
       return;
     }
 
@@ -264,15 +264,15 @@ export default function SettingsPage() {
 
       if (!res.ok) {
         const body = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(body?.detail ?? "Failed to enable MFA");
+        throw new Error(body?.detail ?? t("mfaEnableFailed"));
       }
 
       setMfaDialogOpen(false);
-      showToast("MFA has been enabled", "success");
+      showToast(t("mfaEnabledToast"), "success");
       fetchProfile();
     } catch (err) {
       setDialogError(
-        err instanceof Error ? err.message : "Connection error. Please try again.",
+        err instanceof Error ? err.message : t("connectionError"),
       );
     } finally {
       setDialogSubmitting(false);
@@ -282,11 +282,11 @@ export default function SettingsPage() {
   const confirmDisableMfa = async () => {
     setDialogError(null);
     if (!dialogPassword) {
-      setDialogError("Current password is required");
+      setDialogError(t("currentPasswordRequired"));
       return;
     }
     if (!dialogOtp || dialogOtp.length !== 6) {
-      setDialogError("A valid 6-digit MFA code is required");
+      setDialogError(t("mfaCodeRequired"));
       return;
     }
 
@@ -300,15 +300,15 @@ export default function SettingsPage() {
 
       if (!res.ok) {
         const body = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(body?.detail ?? "Failed to disable MFA");
+        throw new Error(body?.detail ?? t("mfaDisableFailed"));
       }
 
       setMfaDialogOpen(false);
-      showToast("MFA has been disabled", "success");
+      showToast(t("mfaDisabledToast"), "success");
       fetchProfile();
     } catch (err) {
       setDialogError(
-        err instanceof Error ? err.message : "Connection error. Please try again.",
+        err instanceof Error ? err.message : t("connectionError"),
       );
     } finally {
       setDialogSubmitting(false);
@@ -321,12 +321,12 @@ export default function SettingsPage() {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-sm text-surface-400 mt-1">Manage your profile and organization</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+        <p className="text-sm text-surface-400 mt-1">{t("subtitle")}</p>
       </div>
 
-      <PageGuide title="Account settings" illustration={<GuideSettings />}>
-        <p>Manage your personal account settings — update your profile name and email, change your password, and configure multi-factor authentication for enhanced security.</p>
+      <PageGuide title={t("guideTitle")} illustration={<GuideSettings />}>
+        <p>{t("guideBody")}</p>
       </PageGuide>
 
       {/* ── Profile Card ────────────────────────────────────────────────────── */}
@@ -336,8 +336,8 @@ export default function SettingsPage() {
             <User size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Profile</h2>
-            <p className="text-xs text-surface-400">Your personal information</p>
+            <h2 className="text-base font-semibold">{t("profileTitle")}</h2>
+            <p className="text-xs text-surface-400">{t("profileDescription")}</p>
           </div>
         </div>
 
@@ -351,10 +351,10 @@ export default function SettingsPage() {
           <div className="space-y-4 max-w-md">
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-surface-300 mb-1">Name</label>
+              <label className="block text-sm font-medium text-surface-300 mb-1">{t("nameLabel")}</label>
               <input
                 className="input-base"
-                placeholder="Your name"
+                placeholder={t("namePlaceholder")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -362,11 +362,11 @@ export default function SettingsPage() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-surface-300 mb-1">Email</label>
+              <label className="block text-sm font-medium text-surface-300 mb-1">{t("emailLabel")}</label>
               <input
                 className="input-base"
                 type="email"
-                placeholder="your@email.com"
+                placeholder={t("emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -374,17 +374,17 @@ export default function SettingsPage() {
 
             {/* Role — disabled */}
             <div>
-              <label className="block text-sm font-medium text-surface-300 mb-1">Role</label>
+              <label className="block text-sm font-medium text-surface-300 mb-1">{t("roleLabel")}</label>
               <div className="relative">
                 <input
-                  className="input-base pr-10 cursor-not-allowed opacity-60"
+                  className="input-base pe-10 cursor-not-allowed opacity-60"
                   value={profile?.role ?? "admin"}
                   disabled
                   readOnly
                 />
-                <Shield size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-500 pointer-events-none" />
+                <Shield size={14} className="absolute end-3 top-1/2 -translate-y-1/2 text-surface-500 pointer-events-none" />
               </div>
-              <p className="text-xs text-surface-500 mt-1">Role is assigned by your organization administrator.</p>
+              <p className="text-xs text-surface-500 mt-1">{t("roleHint")}</p>
             </div>
 
             {/* Save button */}
@@ -396,7 +396,7 @@ export default function SettingsPage() {
                 className="text-sm"
               >
                 <Save size={14} />
-                {savingProfile ? "Saving..." : "Save Changes"}
+                {savingProfile ? t("saving") : t("saveChanges")}
               </Button>
             </div>
           </div>
@@ -410,19 +410,19 @@ export default function SettingsPage() {
             <Lock size={20} className="text-warning" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Change Password</h2>
-            <p className="text-xs text-surface-400">Update your account password</p>
+            <h2 className="text-base font-semibold">{t("passwordTitle")}</h2>
+            <p className="text-xs text-surface-400">{t("passwordDescription")}</p>
           </div>
         </div>
 
         <div className="space-y-4 max-w-md">
           {/* Current Password */}
           <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Current Password</label>
+            <label className="block text-sm font-medium text-surface-300 mb-1">{t("currentPasswordLabel")}</label>
             <input
               className="input-base"
               type="password"
-              placeholder="Enter current password"
+              placeholder={t("currentPasswordPlaceholder")}
               value={currentPassword}
               onChange={(e) => {
                 setCurrentPassword(e.target.value);
@@ -433,12 +433,12 @@ export default function SettingsPage() {
 
           {/* New Password */}
           <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">New Password</label>
+            <label className="block text-sm font-medium text-surface-300 mb-1">{t("newPasswordLabel")}</label>
             <div className="relative">
               <input
-                className="input-base pr-10"
+                className="input-base pe-10"
                 type={showNewPassword ? "text" : "password"}
-                placeholder="Enter new password (min 8 characters)"
+                placeholder={t("newPasswordPlaceholder")}
                 value={newPassword}
                 onChange={(e) => {
                   setNewPassword(e.target.value);
@@ -448,19 +448,19 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setShowNewPassword((prev) => !prev)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300"
+                className="absolute end-2.5 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300"
               >
                 {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             {newPassword.length > 0 && newPassword.length < 8 && (
               <p className="text-xs text-warning mt-1">
-                Password must be at least 8 characters ({newPassword.length}/8)
+                {t("passwordTooShort", { count: newPassword.length })}
               </p>
             )}
             {newPassword.length >= 8 && (
               <p className="text-xs text-success mt-1">
-                Password meets minimum length requirement
+                {t("passwordMeetsMin")}
               </p>
             )}
           </div>
@@ -482,7 +482,7 @@ export default function SettingsPage() {
               className="text-sm"
             >
               <Lock size={14} />
-              {updatingPassword ? "Updating..." : "Update Password"}
+              {updatingPassword ? t("updating") : t("updatePassword")}
             </Button>
           </div>
         </div>
@@ -500,17 +500,17 @@ export default function SettingsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3">
-                <h2 className="text-base font-semibold">Multi-Factor Authentication</h2>
+                <h2 className="text-base font-semibold">{t("mfaTitle")}</h2>
           {mfaIntent === "disable" && (
                   <span className="text-xs font-medium text-success bg-success/10 px-2 py-0.5 rounded-full border border-success/30 shrink-0">
-                    Enabled
+                    {t("mfaEnabled")}
                   </span>
                 )}
               </div>
               <p className="text-xs text-surface-400">
                 {profile?.mfa_enabled
-                  ? "Your account is protected with email-based MFA"
-                  : "Add an extra layer of security to your account"
+                  ? t("mfaEnabledHint")
+                  : t("mfaDisabledHint")
                 }
               </p>
             </div>
@@ -529,11 +529,11 @@ export default function SettingsPage() {
         onOpenChange={(open) => {
           if (!open) handleCancelMfa();
         }}
-        title={mfaIntent === "disable" ? "Disable MFA" : "Enable MFA"}
+        title={mfaIntent === "disable" ? t("mfaDisable") : t("mfaEnable")}
         description={
           mfaIntent === "disable"
-            ? "Enter your password and the MFA code from your email to disable."
-            : "Enter your password to enable email-based MFA."
+            ? t("mfaDisableDesc")
+            : t("mfaEnableDesc")
         }
         footer={
           <>
@@ -544,7 +544,7 @@ export default function SettingsPage() {
               onClick={mfaIntent === "disable" ? confirmDisableMfa : confirmEnableMfa}
               className={mfaIntent === "disable" ? "border-error/40 text-error hover:bg-error/10 hover:border-error/60" : ""}
             >
-              {profile?.mfa_enabled ? "Disable MFA" : "Enable MFA"}
+              {profile?.mfa_enabled ? t("mfaDisable") : t("mfaEnable")}
             </Button>
           </>
         }
@@ -552,12 +552,12 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-surface-300 mb-1">
-              Current Password
+              {t("currentPasswordLabel")}
             </label>
             <input
               className="input-base w-full"
               type="password"
-              placeholder="Enter your current password"
+              placeholder={t("currentPasswordPlaceholder")}
               value={dialogPassword}
               onChange={(e) => {
                 setDialogPassword(e.target.value);
@@ -569,7 +569,7 @@ export default function SettingsPage() {
           {profile?.mfa_enabled && (
             <div>
               <label className="block text-sm font-medium text-surface-300 mb-1">
-                MFA Code
+                {t("mfaCodeLabel")}
               </label>
               <input
                 className="input-base w-full text-center text-lg tracking-[0.3em] font-mono"

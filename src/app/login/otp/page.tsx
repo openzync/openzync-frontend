@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Loader2, ArrowLeft, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { API_BASE, safeJsonParse } from "@/lib/api-client";
 
 export default function LoginOtpPage() {
+  const t = useTranslations("auth.otp");
   const router = useRouter();
 
   // ── State machine: "email" → "otp"
@@ -42,13 +44,13 @@ export default function LoginOtpPage() {
       });
       if (!res.ok) {
         const data = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(data?.detail ?? "Failed to send login code.");
+        throw new Error(data?.detail ?? t("sendFailed"));
       }
-      setSentMsg("Code sent!");
+      setSentMsg(t("codeSent"));
       setCooldown(60);
       setStep("otp");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Connection error. Please try again.");
+      setError(err instanceof Error ? err.message : t("connectionError"));
     } finally {
       setSubmitting(false);
     }
@@ -69,12 +71,12 @@ export default function LoginOtpPage() {
       });
       if (!res.ok) {
         const data = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(data?.detail ?? "Failed to resend code.");
+        throw new Error(data?.detail ?? t("resendFailed"));
       }
-      setSentMsg("A new code has been sent.");
+      setSentMsg(t("newCodeSent"));
       setCooldown(60);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Connection error. Please try again.");
+      setError(err instanceof Error ? err.message : t("connectionError"));
     } finally {
       setResending(false);
     }
@@ -94,7 +96,7 @@ export default function LoginOtpPage() {
       });
       if (!res.ok) {
         const data = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(data?.detail ?? "Invalid or expired code.");
+        throw new Error(data?.detail ?? t("invalidCode"));
       }
       const data = (await res.json()) as {
         access_token: string;
@@ -104,7 +106,7 @@ export default function LoginOtpPage() {
       sessionStorage.setItem("mg_refresh_token", data.refresh_token);
       router.replace("/overview");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Connection error. Please try again.");
+      setError(err instanceof Error ? err.message : t("connectionError"));
     } finally {
       setSubmitting(false);
     }
@@ -120,13 +122,13 @@ export default function LoginOtpPage() {
             OpenZync
           </h1>
           <p className="text-lg text-surface-300 max-w-sm mx-auto">
-            Persistent Agent Memory Infrastructure
+            {t("brandHero")}
           </p>
           <div className="mt-8 flex gap-6 justify-center">
             {[
-              { value: "10+", label: "Graph Backends" },
-              { value: "5", label: "LLM Providers" },
-              { value: "∞", label: "Scale" },
+              { value: "10+", label: t("brandStatGraphBackends") },
+              { value: "5", label: t("brandStatLlmProviders") },
+              { value: "∞", label: t("brandStatScale") },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl font-bold text-accent-300">
@@ -150,7 +152,7 @@ export default function LoginOtpPage() {
               OpenZync
             </h1>
             <p className="text-xs text-surface-400">
-              Agent Memory Infrastructure
+              {t("brandTagline")}
             </p>
           </div>
 
@@ -161,12 +163,12 @@ export default function LoginOtpPage() {
               </div>
               <div>
                 <h2 className="text-xl font-semibold">
-                  {step === "email" ? "Sign in with a code" : "Enter the code"}
+                  {step === "email" ? t("titleEmail") : t("titleOtp")}
                 </h2>
                 <p className="text-sm text-surface-400">
                   {step === "email"
-                    ? "We'll send a one-time code to your email"
-                    : `Sent to ${email}`}
+                    ? t("descEmail")
+                    : t("descOtp", { email })}
                 </p>
               </div>
             </div>
@@ -187,7 +189,7 @@ export default function LoginOtpPage() {
               <form onSubmit={handleSendCode} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Email
+                    {t("emailLabel")}
                   </label>
                   <input
                     type="email"
@@ -197,7 +199,7 @@ export default function LoginOtpPage() {
                     autoFocus
                     autoComplete="email"
                     className="input-base w-full"
-                    placeholder="you@example.com"
+                    placeholder={t("emailPlaceholder")}
                   />
                 </div>
 
@@ -210,7 +212,7 @@ export default function LoginOtpPage() {
                   {submitting ? (
                     <Loader2 size={18} className="animate-spin" />
                   ) : (
-                    "Send Login Code"
+                    t("sendLoginCode")
                   )}
                 </Button>
               </form>
@@ -218,7 +220,7 @@ export default function LoginOtpPage() {
               <form onSubmit={handleVerifyOtp} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Verification Code
+                    {t("verificationCode")}
                   </label>
                   <input
                     type="text"
@@ -230,7 +232,7 @@ export default function LoginOtpPage() {
                     required
                     autoFocus
                     className="input-base w-full text-center text-2xl tracking-[0.5em] font-mono"
-                    placeholder="000000"
+                    placeholder={t("otpPlaceholder")}
                   />
                 </div>
 
@@ -243,7 +245,7 @@ export default function LoginOtpPage() {
                   {submitting ? (
                     <Loader2 size={18} className="animate-spin" />
                   ) : (
-                    "Sign In"
+                    t("signIn")
                   )}
                 </Button>
 
@@ -255,10 +257,10 @@ export default function LoginOtpPage() {
                     className="text-accent-300 hover:text-accent-200 font-medium disabled:text-surface-600 disabled:cursor-not-allowed"
                   >
                     {resending
-                      ? "Sending..."
+                      ? t("sending")
                       : cooldown > 0
-                        ? `Resend in ${cooldown}s`
-                        : "Resend code"}
+                        ? t("resendIn", { count: cooldown })
+                        : t("resend")}
                   </button>
 
                   <button
@@ -271,7 +273,7 @@ export default function LoginOtpPage() {
                     }}
                     className="text-accent-300 hover:text-accent-200 font-medium"
                   >
-                    Use a different email
+                    {t("differentEmail")}
                   </button>
                 </div>
               </form>
@@ -283,7 +285,7 @@ export default function LoginOtpPage() {
                 className="inline-flex items-center gap-1 text-accent-300 hover:text-accent-200 font-medium"
               >
                 <ArrowLeft size={14} />
-                Back to password login
+                {t("backToPasswordLogin")}
               </Link>
             </p>
           </div>

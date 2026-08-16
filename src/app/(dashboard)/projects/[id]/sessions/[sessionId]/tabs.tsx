@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/stores/project-context";
 
@@ -9,20 +10,21 @@ interface SessionTabsProps {
   activeTab: "messages" | "facts" | "graph" | "classifications" | "extractions" | "observations";
 }
 
-const TABS = [
-  { id: "messages", label: "Messages", href: "messages" },
-  { id: "facts", label: "Facts", href: "facts" },
-  { id: "graph", label: "Graph", href: "graph" },
-  { id: "classifications", label: "Classifications", href: "classifications" },
-  { id: "extractions", label: "Extractions", href: "extractions" },
-  { id: "observations", label: "Observations", href: "observations" },
-] as const;
-
 export default function SessionTabs({ sessionId, activeTab }: SessionTabsProps) {
+  const t = useTranslations("sessions.detail.tabs");
   const { project } = useProject();
   const projectId = project?.id;
 
   if (!projectId) return null;
+
+  const TABS = [
+    { id: "messages", label: t("messages"), href: "messages" },
+    { id: "facts", label: t("facts"), href: "facts" },
+    { id: "graph", label: t("graph"), href: "graph" },
+    { id: "classifications", label: t("classifications"), href: "classifications" },
+    { id: "extractions", label: t("extractions"), href: "extractions" },
+    { id: "observations", label: t("observations"), href: "observations" },
+  ] as const;
 
   return (
     <div className="mb-4 border-b border-surface-800">

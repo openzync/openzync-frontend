@@ -3,11 +3,13 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Loader2, Mail, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { API_BASE, safeJsonParse } from "@/lib/api-client";
 
 function VerifyEmailForm() {
+  const t = useTranslations("auth.verifyEmail");
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
@@ -41,7 +43,7 @@ function VerifyEmailForm() {
         const data = await safeJsonParse(res);
         throw new Error(
           (data as Record<string, unknown>)?.detail as string ??
-            "Invalid or expired verification code."
+            t("invalidCode")
         );
       }
       const data = (await res.json()) as {
@@ -52,7 +54,7 @@ function VerifyEmailForm() {
       sessionStorage.setItem("mg_refresh_token", data.refresh_token);
       router.replace("/onboarding");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Verification failed.");
+      setError(err instanceof Error ? err.message : t("verificationFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -74,13 +76,13 @@ function VerifyEmailForm() {
         const data = await safeJsonParse(res);
         throw new Error(
           (data as Record<string, unknown>)?.detail as string ??
-            "Failed to resend code."
+            t("resendFailed")
         );
       }
       setCooldown(60);
-      setResendMsg("A new verification code has been sent.");
+      setResendMsg(t("newCodeSent"));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to resend code.");
+      setError(err instanceof Error ? err.message : t("resendFailed"));
     } finally {
       setResending(false);
     }
@@ -96,16 +98,16 @@ function VerifyEmailForm() {
             OpenZync
           </h1>
           <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">
-            Verify your email to continue
+            {t("hero")}
           </p>
           <div className="text-left max-w-xs mx-auto space-y-3">
             {[
-              "Persistent, queryable agent memory",
-              "Multi-provider LLM support (BYOK)",
-              "Knowledge graph with hybrid search",
-              "Async enrichment pipeline",
-            ].map((feature, i) => (
-              <div key={i} className="flex items-start gap-2.5">
+              t("feature1"),
+              t("feature2"),
+              t("feature3"),
+              t("feature4"),
+            ].map((feature) => (
+              <div key={feature} className="flex items-start gap-2.5">
                 <div className="mt-1.5 h-2 w-2 rounded-full bg-accent-300 shrink-0" />
                 <span className="text-sm text-surface-300">{feature}</span>
               </div>
@@ -121,7 +123,7 @@ function VerifyEmailForm() {
           <div className="md:hidden text-center mb-8">
             <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
             <p className="text-xs text-surface-400">
-              Agent Memory Infrastructure
+              {t("brandTagline")}
             </p>
           </div>
 
@@ -131,9 +133,9 @@ function VerifyEmailForm() {
                 <Mail size={20} className="text-accent-300" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">Check your email</h2>
+                <h2 className="text-xl font-semibold">{t("title")}</h2>
                 <p className="text-sm text-surface-400">
-                  We sent a verification code to
+                  {t("desc")}
                 </p>
               </div>
             </div>
@@ -156,15 +158,15 @@ function VerifyEmailForm() {
 
             {!email && (
               <div className="mb-4 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning">
-                No email provided. Please{" "}
-                <Link href="/signup" className="underline">sign up</Link> first.
+                {t("noEmail")}{" "}
+                <Link href="/signup" className="underline">{t("signUpLink")}</Link> {t("first")}.
               </div>
             )}
 
             <form onSubmit={handleVerify} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Verification Code
+                  {t("verificationCode")}
                 </label>
                 <input
                   type="text"
@@ -176,7 +178,7 @@ function VerifyEmailForm() {
                   required
                   autoFocus
                   className="input-base w-full text-center text-2xl tracking-[0.5em] font-mono"
-                  placeholder="000000"
+                  placeholder={t("otpPlaceholder")}
                 />
               </div>
 
@@ -189,13 +191,13 @@ function VerifyEmailForm() {
                 {submitting ? (
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
-                  "Verify Email"
+                  t("verifyEmail")
                 )}
               </Button>
             </form>
 
             <p className="mt-6 text-center text-sm text-surface-400">
-              Didn&apos;t receive the code?{" "}
+              {t("didntReceive")}{" "}
               <button
                 type="button"
                 onClick={handleResend}
@@ -203,10 +205,10 @@ function VerifyEmailForm() {
                 className="text-accent-300 font-medium hover:text-accent-200 disabled:text-surface-600 disabled:cursor-not-allowed"
               >
                 {resending
-                  ? "Sending..."
+                  ? t("sending")
                   : cooldown > 0
-                    ? `Resend in ${cooldown}s`
-                    : "Resend"}
+                    ? t("resendIn", { count: cooldown })
+                    : t("resend")}
               </button>
             </p>
 
@@ -216,7 +218,7 @@ function VerifyEmailForm() {
                 className="inline-flex items-center gap-1 hover:text-surface-300"
               >
                 <ArrowLeft size={14} />
-                Back to sign up
+                {t("backToSignUp")}
               </Link>
             </p>
           </div>

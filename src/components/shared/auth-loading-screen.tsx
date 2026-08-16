@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 /**
  * Full-page loading overlay displayed while authentication state is being checked.
  * Prevents any dashboard UI from flashing before auth is confirmed.
@@ -9,6 +11,7 @@
  */
 
 export function AuthLoadingScreen() {
+  const t = useTranslations("auth.loadingScreen");
   return (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-surface-950">
       {/* Animated background glow */}
@@ -27,13 +30,13 @@ export function AuthLoadingScreen() {
         OpenZync
       </h1>
       <p className="relative text-sm text-surface-500 mb-10">
-        Agent Memory Infrastructure
+        {t("tagline")}
       </p>
 
       {/* Spinner */}
       <div className="relative flex items-center gap-3">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-surface-700 border-t-brand-500" />
-        <span className="text-sm text-surface-500">Loading your workspace&hellip;</span>
+        <span className="text-sm text-surface-500">{t("loading")}</span>
       </div>
     </div>
   );

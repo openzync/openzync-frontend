@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { FileText } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
@@ -38,6 +39,8 @@ function confidenceVariant(score: number): "success" | "warning" | "error" {
 }
 
 export default function SessionFactsPage() {
+  const t = useTranslations("sessions.facts");
+  const locale = useLocale();
   const params = useParams();
   const sessionId = params.sessionId as string;
   const { project } = useProject();
@@ -63,14 +66,14 @@ export default function SessionFactsPage() {
         setCursor(json.next_cursor ?? null);
         setHasMore(json.has_more ?? false);
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : "Failed to load facts");
+        setError(err instanceof ApiError ? err.message : t("loadFailed"));
         setFacts([]);
       } finally {
         setLoading(false);
       }
     }
     fetchFacts();
-  }, [projectId, sessionId]);
+  }, [projectId, sessionId, t]);
 
   async function loadMore() {
     if (!projectId || !cursor || loadingMore) return;
@@ -83,7 +86,7 @@ export default function SessionFactsPage() {
       setCursor(json.next_cursor ?? null);
       setHasMore(json.has_more ?? false);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to load more facts");
+      toast.error(err instanceof ApiError ? err.message : t("loadMoreFailed"));
     } finally {
       setLoadingMore(false);
     }
@@ -92,25 +95,25 @@ export default function SessionFactsPage() {
   return (
     <div>
       <SessionTabs sessionId={sessionId} activeTab="facts" />
-      <PageGuide title="Extracted facts" illustration={<GuideData />}>
-        <p>Facts are discrete pieces of information extracted from conversation messages — statements, attributes, and relationships about entities. Each fact is verified and stored in the knowledge graph.</p>
+      <PageGuide title={t("guideTitle")} illustration={<GuideData />}>
+        <p>{t("guideBody")}</p>
       </PageGuide>
       {loading ? (
         <TableSkeleton rows={5} cols={3} colWidths={["w-48", "w-32", "w-16"]} />
       ) : error ? (
         <ErrorState message={error} onRetry={() => window.location.reload()} />
       ) : facts.length === 0 ? (
-        <EmptyState icon={FileText} title="No facts extracted yet"
-          description="Facts will appear here once the session is processed." />
+        <EmptyState icon={FileText} title={t("emptyTitle")}
+          description={t("emptyDescription")} />
       ) : (
         <div className="card-base overflow-hidden">
           <table className="w-full">
             <thead className="bg-surface-800 text-surface-400 text-xs uppercase tracking-wider">
               <tr>
-                <th className="px-4 py-3 text-left">Content</th>
-                <th className="px-4 py-3 text-left">Triple</th>
-                <th className="px-4 py-3 text-center">Confidence</th>
-                <th className="px-4 py-3 text-right">Extracted</th>
+                <th className="px-4 py-3 text-left">{t("table.content")}</th>
+                <th className="px-4 py-3 text-left">{t("table.triple")}</th>
+                <th className="px-4 py-3 text-center">{t("table.confidence")}</th>
+                <th className="px-4 py-3 text-right">{t("table.extracted")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-800">
@@ -128,7 +131,7 @@ export default function SessionFactsPage() {
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-surface-400 whitespace-nowrap">
-                    {formatDate(fact.created_at)}
+                    {formatDate(fact.created_at, false, locale)}
                   </td>
                 </tr>
               ))}
@@ -137,7 +140,7 @@ export default function SessionFactsPage() {
           {hasMore && (
             <div className="flex justify-center py-4 border-t border-surface-800">
               <Button variant="secondary" size="sm" onClick={loadMore} loading={loadingMore}>
-                Load More
+                {t("loadMore")}
               </Button>
             </div>
           )}

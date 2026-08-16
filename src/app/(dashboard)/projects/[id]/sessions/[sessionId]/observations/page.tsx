@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import { Eye } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
@@ -29,17 +30,19 @@ interface Observation {
   updated_at: string;
 }
 
-/** Map observation type to a badge variant and label. */
+/** Map observation type to a badge variant and label key. */
 const typeConfig: Record<
   string,
-  { label: string; variant: "brand" | "success" | "warning" | "default" }
+  { labelKey: string; variant: "brand" | "success" | "warning" | "default" }
 > = {
-  co_occurrence: { label: "Co-occurrence", variant: "brand" },
-  temporal_pattern: { label: "Temporal Pattern", variant: "success" },
-  behavioral_pattern: { label: "Behavioral Pattern", variant: "warning" },
+  co_occurrence: { labelKey: "type.coOccurrence", variant: "brand" },
+  temporal_pattern: { labelKey: "type.temporalPattern", variant: "success" },
+  behavioral_pattern: { labelKey: "type.behavioralPattern", variant: "warning" },
 };
 
 export default function SessionObservationsPage() {
+  const t = useTranslations("sessions.observations");
+  const fmt = useFormatter();
   const params = useParams();
   const sessionId = params.sessionId as string;
   const { project } = useProject();
@@ -63,20 +66,20 @@ export default function SessionObservationsPage() {
         setError(
           err instanceof ApiError
             ? err.message
-            : "Failed to load observations",
+            : t("loadFailed"),
         );
       } finally {
         setLoading(false);
       }
     }
     loadData();
-  }, [projectId]);
+  }, [projectId, t]);
 
   return (
     <div>
       <SessionTabs sessionId={sessionId} activeTab="observations" />
-      <PageGuide title="Observations" illustration={<GuideData />}>
-        <p>Observations are insights derived from analyzing entity behavior across sessions — co-occurrence patterns, temporal sequences, and behavioral trends. They reveal how entities interact over time.</p>
+      <PageGuide title={t("guideTitle")} illustration={<GuideData />}>
+        <p>{t("guideBody")}</p>
       </PageGuide>
       {loading ? (
         <div className="divide-y divide-surface-800">
@@ -96,15 +99,15 @@ export default function SessionObservationsPage() {
       ) : data.length === 0 ? (
         <EmptyState
           icon={Eye}
-          title="No observations available yet"
-          description="Observations are computed after enough messages have been processed. They will appear here once the background analysis completes."
+          title={t("emptyTitle")}
+          description={t("emptyDescription")}
         />
       ) : (
         <div className="divide-y divide-surface-800">
           {data.map((o) => {
             const tc =
               typeConfig[o.observation_type] ?? {
-                label: o.observation_type,
+                labelKey: null,
                 variant: "default" as const,
               };
             return (
@@ -112,7 +115,7 @@ export default function SessionObservationsPage() {
                 {/* Type badge + confidence */}
                 <div className="flex items-center gap-3">
                   <Badge variant={tc.variant} size="sm">
-                    {tc.label}
+                    {tc.labelKey ? t(tc.labelKey) : o.observation_type}
                   </Badge>
                   <Badge variant="brand" size="sm">
                     {(o.confidence * 100).toFixed(0)}%
@@ -126,7 +129,7 @@ export default function SessionObservationsPage() {
 
                 {/* Footer: date + entity names */}
                 <div className="flex items-center justify-between text-xs text-surface-400">
-                  <span>{new Date(o.created_at).toLocaleDateString()}</span>
+                  <span>{fmt.dateTime(new Date(o.created_at), { month: "short", day: "numeric", year: "numeric" })}</span>
                   {o.subject_entity_name && (
                     <span className="text-surface-500">
                       {o.related_entity_name

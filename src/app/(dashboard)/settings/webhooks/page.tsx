@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Plus,
   Webhook,
@@ -14,7 +15,8 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { get, post, del, ApiError } from "@/lib/api-client";
-import { timeAgo, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
+import { useTimeAgo } from "@/hooks/use-time-ago";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageGuide, GuideSettings } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -108,6 +110,7 @@ function CreateDialog({
   const [createdEndpoint, setCreatedEndpoint] = useState<WebhookCreateResponse | null>(null);
   const [copied, setCopied] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
+  const t = useTranslations("settings.webhooks");
 
   // Select all events by default
   useEffect(() => {
@@ -243,7 +246,7 @@ function CreateDialog({
       <form id="webhook-create-form" onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-surface-300 mb-1">
-            Endpoint Name <span className="text-error">*</span>
+            {t("fields.endpointName")} <span className="text-error">*</span>
           </label>
           <input
             className="input-base"
@@ -258,7 +261,7 @@ function CreateDialog({
 
         <div>
           <label className="block text-sm font-medium text-surface-300 mb-1">
-            Endpoint URL <span className="text-error">*</span>
+            {t("fields.endpointUrl")} <span className="text-error">*</span>
           </label>
           <input
             className="input-base font-mono text-sm"
@@ -272,7 +275,7 @@ function CreateDialog({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-surface-300 mb-2">Subscribed Events</label>
+          <label className="block text-sm font-medium text-surface-300 mb-2">{t("fields.events")}</label>
           <p className="text-xs text-surface-500 mb-3">
             All events are selected by default. Uncheck events you don&apos;t want to receive.
           </p>
@@ -338,6 +341,9 @@ export default function WebhooksPage() {
   const [deleteTarget, setDeleteTarget] = useState<WebhookEndpoint | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [eventCategories, setEventCategories] = useState<EventCategories>({});
+  const tPage = useTranslations("settings.webhooks");
+  const timeAgo = useTimeAgo();
+  const locale = useLocale();
   const [eventsLoading, setEventsLoading] = useState(true);
 
   // ── Fetch event types ────────────────────────────────────────────────────
@@ -497,7 +503,7 @@ export default function WebhooksPage() {
                     </td>
                     <td className="px-4 py-3 text-surface-400 text-xs">{timeAgo(ep.last_delivery_at)}</td>
                     <td className="px-4 py-3">
-                      <span className="text-surface-300 text-xs">{formatDate(ep.created_at)}</span>
+                      <span className="text-surface-300 text-xs">{formatDate(ep.created_at, false, locale)}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Button

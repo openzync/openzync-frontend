@@ -25,10 +25,11 @@ export function timeAgo(dateStr: string | null | undefined): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-/** Formatted date string ("Apr 15, 2025") */
+/** Formatted date string ("Apr 15, 2025") — locale-aware, runtime tz */
 export function formatDate(
   dateStr: string | null | undefined,
   withTime = false,
+  locale = "en",
 ): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
@@ -41,11 +42,16 @@ export function formatDate(
     opts.hour = "2-digit";
     opts.minute = "2-digit";
   }
-  return d.toLocaleDateString("en-US", opts);
+  return d.toLocaleDateString(locale, opts);
 }
 
-/** Smart timestamp: "just now" for recent, "Mon 14:32" for today, etc. */
-export function smartTimestamp(dateStr: string): string {
+/**
+ * Smart timestamp: "just now" for recent, "Mon 14:32" for today, etc.
+ * Date/time parts are locale-aware; the relative prefixes ("just now",
+ * "Xm ago") keep the compact English form — pages needing fully localized
+ * relative time should use the useTimeAgo hook (catalog-backed).
+ */
+export function smartTimestamp(dateStr: string, locale = "en"): string {
   const d = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
@@ -54,11 +60,11 @@ export function smartTimestamp(dateStr: string): string {
   if (diffMins < 1) return "just now";
   if (diffMins < 60) return `${diffMins}m ago`;
 
-  const timeStr = d.toLocaleTimeString([], {
+  const timeStr = d.toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const dateStr_fmt = d.toLocaleDateString("en-US", {
+  const dateStr_fmt = d.toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
   });
@@ -122,9 +128,12 @@ export function actionLabel(action: string): string {
 // ─── Number helpers ───────────────────────────────────────────────────────────
 
 /** Format a number with locale separators (e.g. 1,234) */
-export function formatNumber(n: number | null | undefined): string {
+export function formatNumber(
+  n: number | null | undefined,
+  locale = "en",
+): string {
   if (n === null || n === undefined) return "—";
-  return n.toLocaleString();
+  return n.toLocaleString(locale);
 }
 
 // ─── File helpers ──────────────────────────────────────────────────────────────

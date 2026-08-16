@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import {
   acceptInvite,
@@ -13,9 +14,10 @@ import {
 import { getPasswordStrength } from "@/lib/password-strength";
 import { Button } from "@/components/ui/button";
 
-const INVALID_MESSAGE = "This invitation link is invalid or has expired.";
+const INVALID_MESSAGE_KEY = "notFoundBody";
 
 function InviteForm() {
+  const t = useTranslations("invite");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -72,11 +74,11 @@ function InviteForm() {
     setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(t("mismatch"));
       return;
     }
     if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setError(t("tooShort"));
       return;
     }
 
@@ -89,7 +91,7 @@ function InviteForm() {
       setError(
         err instanceof ApiError
           ? err.message
-          : "Connection error. Please try again.",
+          : t("connectionError"),
       );
     } finally {
       setSubmitting(false);
@@ -106,16 +108,16 @@ function InviteForm() {
             OpenZync
           </h1>
           <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">
-            Join your organization
+            {t("brandTitle")}
           </p>
           <div className="text-left max-w-xs mx-auto space-y-3">
             {[
-              "Persistent, queryable agent memory",
-              "Multi-provider LLM support (BYOK)",
-              "Knowledge graph with hybrid search",
-              "Async enrichment pipeline",
-            ].map((feature, i) => (
-              <div key={i} className="flex items-start gap-2.5">
+              t("feature1"),
+              t("feature2"),
+              t("feature3"),
+              t("feature4"),
+            ].map((feature) => (
+              <div key={feature} className="flex items-start gap-2.5">
                 <div className="mt-1.5 h-2 w-2 rounded-full bg-accent-300 shrink-0" />
                 <span className="text-sm text-surface-300">{feature}</span>
               </div>
@@ -130,39 +132,41 @@ function InviteForm() {
           {/* Mobile brand */}
           <div className="md:hidden text-center mb-8">
             <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-            <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
+            <p className="text-xs text-surface-400">{t("brandTagline")}</p>
           </div>
 
           {loading ? (
             <div className="card-base p-10 flex flex-col items-center gap-3 text-surface-400">
               <Loader2 size={24} className="animate-spin text-brand-500" />
-              <p className="text-sm">Checking your invitation…</p>
+              <p className="text-sm">{t("loading")}</p>
             </div>
           ) : invalid || !info ? (
             <div className="card-base p-6">
-              <h2 className="text-xl font-semibold mb-2">Invitation not found</h2>
-              <p className="text-sm text-surface-400 mb-5">{INVALID_MESSAGE}</p>
+              <h2 className="text-xl font-semibold mb-2">{t("notFoundTitle")}</h2>
+              <p className="text-sm text-surface-400 mb-5">{t(INVALID_MESSAGE_KEY)}</p>
               <Link href="/login">
                 <Button variant="primary" className="w-full">
-                  Go to sign in
+                  {t("goToSignIn")}
                 </Button>
               </Link>
             </div>
           ) : (
             <div className="card-base p-6">
               <h2 className="text-xl font-semibold mb-1">
-                You’ve been invited to join{" "}
-                <span className="text-brand-400">{info.org_name}</span>
+                {t.rich("welcomeTitle", {
+                  strong: (chunks) => <span className="text-brand-400">{chunks}</span>,
+                  org: info.org_name,
+                })}
               </h2>
               <p className="text-sm text-surface-400 mb-5">
-                Set a password to activate your account.
+                {t("setPassword")}
               </p>
 
               {/* Read-only profile — set by the admin on the invite */}
               <div className="space-y-4 mb-5">
                 <div>
                   <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Email
+                    {t("emailLabel")}
                   </label>
                   <input
                     type="email"
@@ -174,7 +178,7 @@ function InviteForm() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Name
+                    {t("nameLabel")}
                   </label>
                   <input
                     type="text"
@@ -195,7 +199,7 @@ function InviteForm() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Password
+                    {t("passwordLabel")}
                   </label>
                   <div className="relative">
                     <input
@@ -205,13 +209,13 @@ function InviteForm() {
                       required
                       minLength={8}
                       autoComplete="new-password"
-                      className="input-base w-full pr-10"
-                      placeholder="Minimum 8 characters"
+                      className="input-base w-full pe-10"
+                      placeholder={t("passwordPlaceholder")}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
+                      className="absolute end-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -219,7 +223,7 @@ function InviteForm() {
                   {password && (
                     <div className="mt-2">
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-surface-500">Password strength</span>
+                        <span className="text-surface-500">{t("passwordStrength")}</span>
                         <span className="font-medium text-surface-300">{pwStrength.label}</span>
                       </div>
                       <div className="h-1.5 w-full rounded-full bg-surface-800 overflow-hidden">
@@ -234,7 +238,7 @@ function InviteForm() {
 
                 <div>
                   <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Confirm Password
+                    {t("confirmPasswordLabel")}
                   </label>
                   <input
                     type={showPassword ? "text" : "password"}
@@ -244,7 +248,7 @@ function InviteForm() {
                     minLength={8}
                     autoComplete="new-password"
                     className="input-base w-full"
-                    placeholder="Repeat your password"
+                    placeholder={t("repeatPassword")}
                   />
                 </div>
 
@@ -257,7 +261,7 @@ function InviteForm() {
                   {submitting ? (
                     <Loader2 size={18} className="animate-spin" />
                   ) : (
-                    "Set password and join"
+                    t("setPasswordAndJoin")
                   )}
                 </Button>
               </form>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Plus,
   FolderKanban,
@@ -39,7 +40,10 @@ interface ProjectsApiResponse {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProjectsPage() {
+  const t = useTranslations("projects");
+  const common = useTranslations("common");
   const router = useRouter();
+  const locale = useLocale();
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,12 +66,12 @@ export default function ProjectsPage() {
       setProjects(extractList<Project>(json));
     } catch (err) {
       setFetchError(
-        err instanceof ApiError ? err.message : "Network error loading projects",
+        err instanceof ApiError ? err.message : t("loadError"),
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchProjects();
@@ -76,7 +80,7 @@ export default function ProjectsPage() {
   async function handleCreate() {
     const name = newName.trim();
     if (!name) {
-      setCreateError("Project name is required");
+      setCreateError(t("nameRequired"));
       return;
     }
     setCreating(true);
@@ -88,11 +92,11 @@ export default function ProjectsPage() {
       setShowCreate(false);
       setNewName("");
       setNewDescription("");
-      toast.success(`Project "${project.name}" created`);
+      toast.success(t("createdToast", { name: project.name }));
       router.push(`/projects/${project.id}/sessions`);
     } catch (err) {
       setCreateError(
-        err instanceof ApiError ? err.message : "Failed to create project",
+        err instanceof ApiError ? err.message : t("createFailed"),
       );
     } finally {
       setCreating(false);
@@ -102,8 +106,8 @@ export default function ProjectsPage() {
   return (
       <div className="space-y-6">
         <PageHeader
-          title="Projects"
-          description="Collaborative workspaces for memory and knowledge graph data"
+          title={t("title")}
+          description={t("description")}
           actions={
             <Button
               variant="primary"
@@ -116,7 +120,7 @@ export default function ProjectsPage() {
                 setShowCreate(true);
               }}
             >
-              Create Project
+              {t("createProject")}
             </Button>
           }
         />
@@ -137,14 +141,14 @@ export default function ProjectsPage() {
             <AlertTriangle size={36} className="text-error mb-3" />
             <p className="text-sm text-surface-300 mb-4">{fetchError}</p>
             <Button variant="secondary" size="sm" onClick={fetchProjects}>
-              Retry
+              {common("retry")}
             </Button>
           </div>
         ) : projects.length === 0 ? (
           <EmptyState
             icon={FolderKanban}
-            title="No projects yet"
-            description="Create your first project to start organising sessions, memory, and knowledge graphs."
+            title={t("emptyTitle")}
+            description={t("emptyDescription")}
             action={
               <Button
                 variant="primary"
@@ -157,7 +161,7 @@ export default function ProjectsPage() {
                   setShowCreate(true);
                 }}
               >
-                Create Project
+                {t("createProject")}
               </Button>
             }
           />
@@ -194,10 +198,10 @@ export default function ProjectsPage() {
                       disabled={isMaxPinned && !isPinned(project.id)}
                       title={
                         isPinned(project.id)
-                          ? "Unpin project"
+                          ? t("unpinProject")
                           : isMaxPinned
-                            ? "Maximum 3 pinned projects"
-                            : "Pin project"
+                            ? t("maxPinned")
+                            : t("pinProject")
                       }
                       className="p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-800 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
@@ -219,10 +223,9 @@ export default function ProjectsPage() {
                 <div className="flex items-center gap-4 text-xs text-surface-500">
                   <span className="flex items-center gap-1">
                     <Users size={12} />
-                    {project.member_count} member
-                    {project.member_count !== 1 ? "s" : ""}
+                    {t("membersCount", { count: project.member_count })}
                   </span>
-                  <span>Created {formatDate(project.created_at)}</span>
+                  <span>{t("created", { date: formatDate(project.created_at, false, locale) })}</span>
                 </div>
               </button>
             ))}
@@ -235,7 +238,7 @@ export default function ProjectsPage() {
           onOpenChange={(open) => {
             if (!open && !creating) setShowCreate(false);
           }}
-          title="Create Project"
+          title={t("createProject")}
           persistent={creating}
           footer={
             <>
@@ -245,7 +248,7 @@ export default function ProjectsPage() {
                 onClick={() => setShowCreate(false)}
                 disabled={creating}
               >
-                Cancel
+                {common("cancel")}
               </Button>
               <Button
                 variant="primary"
@@ -254,7 +257,7 @@ export default function ProjectsPage() {
                 loading={creating}
                 disabled={!newName.trim()}
               >
-                Create
+                {t("create")}
               </Button>
             </>
           }
@@ -262,13 +265,13 @@ export default function ProjectsPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                Name <span className="text-error">*</span>
+                {t("nameLabel")} <span className="text-error">*</span>
               </label>
               <input
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g., Customer Support Bot"
+                placeholder={t("namePlaceholder")}
                 className="input-base"
                 autoFocus
                 disabled={creating}
@@ -276,12 +279,12 @@ export default function ProjectsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                Description
+                {t("descriptionLabel")}
               </label>
               <textarea
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="Optional description of this project"
+                placeholder={t("descriptionPlaceholder")}
                 className="input-base min-h-[80px] resize-y"
                 disabled={creating}
               />

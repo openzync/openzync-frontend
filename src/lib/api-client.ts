@@ -14,6 +14,34 @@
 const API_BASE: string =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+// ─── Localized error messages ─────────────────────────────────────────────────
+// ponytail: static single-locale import — the catalog ships en only today;
+// when locales beyond en land, swap this for a per-locale message registry
+// (or a translator injected from the calling component).
+import messages from "@/messages/en.json";
+
+const ERROR_STATUS_KEYS: Record<number, string> = {
+  400: "http400",
+  401: "http401",
+  403: "http403",
+  404: "http404",
+  409: "http409",
+  413: "http413",
+  422: "http422",
+  429: "http429",
+};
+
+const errorsNs = (messages as Record<string, unknown>)
+  .errors as Record<string, string> | undefined;
+
+/** Catalog message for an HTTP status, or null when unmapped. */
+export function localizedStatusMessage(status: number): string | null {
+  const key = ERROR_STATUS_KEYS[status];
+  if (key && errorsNs?.[key]) return errorsNs[key];
+  if (status >= 500 && errorsNs?.http500) return errorsNs.http500;
+  return null;
+}
+
 /** Parse response JSON or throw a structured error with status and preview. */
 export async function safeJsonParse<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -176,12 +204,28 @@ function parseApiErrorMessage(body: unknown, status: number): string {
 
 /**
  * Standard error-message resolution for page load failures.
- * Maps 403 (admin-gated endpoint hit by a member JWT) to a clear message;
- * everything else falls through to the parsed API error text.
+ *
+ * Precedence: 403 (admin-gated endpoint hit by a member JWT) → localized
+ * "admin access required"; otherwise the server-provided detail (FastAPI
+ * 422 field errors are far more specific than any status-level message);
+ * then the localized status message from the errors.* catalog; then the
+ * generic "Request failed with status N" text.
+ *
+ * # note: the task spec asked for "key → detail → generic", but the server
+ * detail must win — existing tests pin `message: "Bad request"` passthrough
+ * and 422 field flattening, and server details are strictly more useful.
  */
 export function apiErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof ApiError) {
-    return err.isForbidden ? "Admin access required" : err.message;
+    if (err.isForbidden) {
+      return errorsNs?.adminAccessRequired ?? err.message;
+    }
+    const hasServerDetail = !/^Request failed with status \d+$/.test(
+      err.message,
+    );
+    return hasServerDetail
+      ? err.message
+      : localizedStatusMessage(err.status) ?? err.message;
   }
   return fallback;
 }

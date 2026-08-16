@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Eye, EyeOff, AudioWaveform, RotateCcw } from "lucide-react";
 import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
@@ -36,6 +37,7 @@ const FIELDS: (keyof FormState)[] = [
   "embedding_provider",
 ];
 
+// Brand names (OpenAI, Ollama, …) are not translated.
 const BACKEND_OPTIONS: { value: EmbeddingBackend; label: string }[] = [
   { value: "openai", label: "OpenAI" },
   { value: "ollama", label: "Ollama" },
@@ -44,19 +46,20 @@ const BACKEND_OPTIONS: { value: EmbeddingBackend; label: string }[] = [
   { value: "sentence_transformers", label: "Sentence Transformers" },
 ];
 
-// ─── Reset field titles ────────────────────────────────────────────────────────
+// ─── Reset field titles (keys into settings.orgConfig.embeddings.reset.*) ────
 
 const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
-  embedding_backend: "Reset embedding backend to default",
-  embedding_model: "Reset embedding model to default",
-  embedding_dim: "Reset embedding dimensions to default",
-  embedding_api_key: "Reset API key to default",
-  embedding_provider: "Reset provider to default",
+  embedding_backend: "reset.backend",
+  embedding_model: "reset.model",
+  embedding_dim: "reset.dimensions",
+  embedding_api_key: "reset.apiKey",
+  embedding_provider: "reset.provider",
 };
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function EmbeddingsConfigPage() {
+  const t = useTranslations("settings.orgConfig.embeddings");
   const { setDirty } = useConfigDirty();
   const [form, setForm] = useState<FormState>({
     embedding_backend: "openai",
@@ -125,11 +128,11 @@ export default function EmbeddingsConfigPage() {
       setDirty(false);
       setError(null);
     } catch (err) {
-      setError(apiErrorMessage(err, "Failed to load configuration"));
+      setError(apiErrorMessage(err, t("loadFailed")));
     } finally {
       setLoading(false);
     }
-  }, [setDirty]);
+  }, [setDirty, t]);
 
   useEffect(() => {
     fetchConfig();
@@ -184,14 +187,14 @@ export default function EmbeddingsConfigPage() {
       const changed = getSavePayload(form as unknown as Record<string, unknown>);
 
       await patch("/admin/org/config", changed);
-      toast.success("Embedding configuration saved successfully");
+      toast.success(t("savedToast"));
       clearResets();
       await fetchConfig();
       setDirty(false);
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to save configuration";
+      const message = err instanceof ApiError ? err.message : t("saveFailed");
       setError(message);
       toast.error(message);
     } finally {
@@ -210,8 +213,8 @@ export default function EmbeddingsConfigPage() {
             <AudioWaveform size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Embedding Provider</h2>
-            <p className="text-xs text-surface-400">Vector embedding model configuration</p>
+            <h2 className="text-base font-semibold">{t("providerTitle")}</h2>
+            <p className="text-xs text-surface-400">{t("providerDescription")}</p>
           </div>
         </div>
 
@@ -229,7 +232,7 @@ export default function EmbeddingsConfigPage() {
               {/* embedding_backend */}
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Backend Provider
+                  {t("fields.backendProvider")}
                 </label>
                 <div className="flex gap-2 items-start">
                   <select
@@ -245,26 +248,26 @@ export default function EmbeddingsConfigPage() {
                     <Button
                       onClick={() => handleStageReset("embedding_backend")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title={RESET_TITLES.embedding_backend}
+                      title={t(RESET_TITLES.embedding_backend ?? "")}
                     >
                       <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
                 {pendingResets.has("embedding_backend") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  <p className="text-xs text-amber-400 mt-1">{t("willResetOnSave")}</p>
                 )}
               </div>
 
               {/* embedding_model */}
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Model
+                  {t("fields.model")}
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
                     className="input-base flex-1"
-                    placeholder="text-embedding-3-small, ..."
+                    placeholder={t("fields.modelPlaceholder")}
                     value={form.embedding_model}
                     onChange={(e) => updateField("embedding_model", e.target.value)}
                   />
@@ -272,21 +275,21 @@ export default function EmbeddingsConfigPage() {
                     <Button
                       onClick={() => handleStageReset("embedding_model")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title={RESET_TITLES.embedding_model}
+                      title={t(RESET_TITLES.embedding_model ?? "")}
                     >
                       <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
                 {pendingResets.has("embedding_model") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  <p className="text-xs text-amber-400 mt-1">{t("willResetOnSave")}</p>
                 )}
               </div>
 
               {/* embedding_dim */}
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Embedding Dimensions
+                  {t("fields.dimensions")}
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
@@ -301,14 +304,14 @@ export default function EmbeddingsConfigPage() {
                     <Button
                       onClick={() => handleStageReset("embedding_dim")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title={RESET_TITLES.embedding_dim}
+                      title={t(RESET_TITLES.embedding_dim ?? "")}
                     >
                       <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
                 {pendingResets.has("embedding_dim") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  <p className="text-xs text-amber-400 mt-1">{t("willResetOnSave")}</p>
                 )}
               </div>
 
@@ -316,12 +319,12 @@ export default function EmbeddingsConfigPage() {
               {form.embedding_backend === "openrouter" && (
                 <div>
                   <label className="block text-sm font-medium text-surface-300 mb-1">
-                    Provider Name
+                    {t("fields.providerName")}
                   </label>
                   <div className="flex gap-2 items-start">
                     <input
                       className="input-base flex-1"
-                      placeholder="openai, azure, ..."
+                      placeholder={t("fields.providerNamePlaceholder")}
                       value={form.embedding_provider}
                       onChange={(e) => updateField("embedding_provider", e.target.value)}
                     />
@@ -329,14 +332,14 @@ export default function EmbeddingsConfigPage() {
                       <Button
                         onClick={() => handleStageReset("embedding_provider")}
                         variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                        title={RESET_TITLES.embedding_provider}
+                        title={t(RESET_TITLES.embedding_provider ?? "")}
                       >
                         <RotateCcw size={14} />
                       </Button>
                     )}
                   </div>
                   {pendingResets.has("embedding_provider") && (
-                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                    <p className="text-xs text-amber-400 mt-1">{t("willResetOnSave")}</p>
                   )}
                 </div>
               )}
@@ -345,21 +348,21 @@ export default function EmbeddingsConfigPage() {
               {(form.embedding_backend === "openai" || form.embedding_backend === "openrouter" || form.embedding_backend === "ollama") && (
                 <div>
                   <label className="block text-sm font-medium text-surface-300 mb-1">
-                    API Key
+                    {t("fields.apiKey")}
                   </label>
                   <div className="flex gap-2 items-start">
                     <div className="relative flex-1">
                       <input
-                        className="input-base pr-10 w-full"
+                        className="input-base pe-10 w-full"
                         type={showApiKey ? "text" : "password"}
-                        placeholder="Embedding provider API key"
+                        placeholder={t("fields.apiKeyPlaceholder")}
                         value={form.embedding_api_key}
                         onChange={(e) => updateField("embedding_api_key", e.target.value)}
                       />
                       <button
                         type="button"
                         onClick={() => setShowApiKey((prev) => !prev)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300"
+                        className="absolute end-2.5 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300"
                       >
                         {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
@@ -368,14 +371,14 @@ export default function EmbeddingsConfigPage() {
                       <Button
                         onClick={() => handleStageReset("embedding_api_key")}
                         variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                        title={RESET_TITLES.embedding_api_key}
+                        title={t(RESET_TITLES.embedding_api_key ?? "")}
                       >
                         <RotateCcw size={14} />
                       </Button>
                     )}
                   </div>
                   {pendingResets.has("embedding_api_key") && (
-                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                    <p className="text-xs text-amber-400 mt-1">{t("willResetOnSave")}</p>
                   )}
                 </div>
               )}

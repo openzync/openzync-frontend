@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
   Plus,
   FileText,
@@ -42,6 +43,7 @@ export default function ExtractionInstructionsPage() {
 
   // Delete dialog
   const [deleteTarget, setDeleteTarget] = useState<CustomInstruction | null>(null);
+  const t = useTranslations("settings.extractionInstructions");
   const [deleting, setDeleting] = useState(false);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
@@ -53,7 +55,7 @@ export default function ExtractionInstructionsPage() {
       const data = await get<{ data: CustomInstruction[] }>("/admin/org/custom-instructions");
       setInstructions(data.data ?? []);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load instructions");
+      setError(err instanceof ApiError ? err.message : t("loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -94,9 +96,9 @@ export default function ExtractionInstructionsPage() {
       await put("/admin/org/custom-instructions", { data: updated });
       setInstructions(updated);
       setShowDialog(false);
-      toast.success(editingIndex !== null ? "Instruction updated" : "Instruction created");
+      toast.success(editingIndex !== null ? t("updatedToast") : t("createdToast"));
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to save instructions";
+      const msg = err instanceof ApiError ? err.message : t("saveFailed");
       setError(msg);
       toast.error(msg);
       fetchInstructions();
@@ -117,9 +119,9 @@ export default function ExtractionInstructionsPage() {
       await put("/admin/org/custom-instructions", { data: updated });
       setInstructions(updated);
       setDeleteTarget(null);
-      toast.success("Instruction deleted");
+      toast.success(t("deletedToast"));
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to delete instruction";
+      const msg = err instanceof ApiError ? err.message : t("deleteFailed");
       setError(msg);
       toast.error(msg);
       fetchInstructions();
@@ -133,8 +135,8 @@ export default function ExtractionInstructionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Extraction Instructions"
-        description="Custom instructions for extraction behavior"
+        title={t("title")}
+        description={t("description")}
         actions={
           <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={openCreate}>
             Add Instruction
@@ -142,8 +144,9 @@ export default function ExtractionInstructionsPage() {
         }
       />
 
-      <PageGuide title="Extraction instructions" illustration={<GuideSettings />}>
-        <p>Create custom instruction strings that guide extraction behaviour. These instructions are injected into extraction prompts to tailor how the system processes and extracts data from conversations.</p>
+      <PageGuide title={t("guideTitle")} illustration={<GuideSettings />}>
+        <p>{t("guideBody")}
+      </p>
       </PageGuide>
 
       {/* Error */}
@@ -155,9 +158,9 @@ export default function ExtractionInstructionsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Instruction</th>
-                <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400 w-20">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.name")}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">{t("table.instruction")}</th>
+                <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400 w-20">{t("table.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-800">
@@ -168,9 +171,9 @@ export default function ExtractionInstructionsPage() {
                   <td colSpan={3}>
                     <EmptyState
                       icon={FileText}
-                      title="No instructions yet"
-                      description="Add custom instructions to guide extraction behavior"
-                      action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={openCreate}>Add Instruction</Button>}
+                      title={t("emptyTitle")}
+                      description={t("emptyDescription")}
+                      action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={openCreate}>{t("addInstruction")}</Button>}
                     />
                   </td>
                 </tr>
@@ -195,7 +198,7 @@ export default function ExtractionInstructionsPage() {
                           size="sm"
                           onClick={() => openEdit(idx)}
                           className="rounded-md text-surface-400 hover:text-white"
-                          title="Edit instruction"
+                          title={t("editInstruction")}
                         >
                           <Pencil size={14} />
                         </Button>
@@ -204,7 +207,7 @@ export default function ExtractionInstructionsPage() {
                           size="sm"
                           onClick={() => setDeleteTarget(inst)}
                           className="rounded-md text-surface-400 hover:text-error"
-                          title="Delete instruction"
+                          title={t("deleteInstruction")}
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -224,12 +227,12 @@ export default function ExtractionInstructionsPage() {
         onOpenChange={(o) => {
           if (!o) setShowDialog(false);
         }}
-        title={editingIndex !== null ? "Edit Instruction" : "Add Instruction"}
+        title={editingIndex !== null ? t("editInstruction") : t("addInstruction")}
         size="lg"
         persistent={saving}
         footer={
           <>
-            <Button variant="secondary" size="sm" onClick={() => setShowDialog(false)}>Cancel</Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowDialog(false)}>{t("cancel")}</Button>
             <Button
               variant="primary"
               size="sm"
@@ -237,27 +240,27 @@ export default function ExtractionInstructionsPage() {
               loading={saving}
               disabled={!formName.trim() || !formText.trim()}
             >
-              {editingIndex !== null ? "Save Changes" : "Add"}
+              {editingIndex !== null ? t("saveChanges") : t("add")}
             </Button>
           </>
         }
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1.5">Name</label>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("fields.name")}</label>
             <input
               className="input-base"
-              placeholder="e.g. financial_data"
+              placeholder={t("fields.namePlaceholder")}
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
               autoFocus
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1.5">Instruction Text</label>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">{t("fields.text")}</label>
             <textarea
               className="input-base min-h-[120px] pt-2 text-sm"
-              placeholder="Describe what to extract and how..."
+              placeholder={t("fields.textPlaceholder")}
               value={formText}
               onChange={(e) => setFormText(e.target.value)}
             />
@@ -268,9 +271,9 @@ export default function ExtractionInstructionsPage() {
       {/* ── Delete Confirm Dialog ──────────────────────────────────────────────── */}
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete Instruction"
-        message={`Are you sure you want to delete "${deleteTarget?.name}"?`}
-        confirmLabel="Delete"
+        title={t("deleteTitle")}
+        message={t("deleteConfirm", { name: deleteTarget?.name ?? "" })}
+        confirmLabel={t("delete")}
         variant="danger"
         loading={deleting}
         onConfirm={handleDelete}

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
   /* Standalone output produces a self-contained server.js for Docker
@@ -8,4 +9,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
 };
 
-export default nextConfig;
+/* i18n: next-intl App Router integration. The plugin wires the request
+ * config (src/i18n/request.ts) into the Next.js compilation pipeline. */
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withNextIntl(nextConfig);

@@ -1,4 +1,5 @@
 import { CheckCircle2, Circle, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -62,21 +63,21 @@ export function EnrichmentStatus({
   const statusText = status?.trim().toLowerCase();
   const isKnown = statusText ? KNOWN_STATUSES.has(statusText) || DONE_STATUSES.has(statusText) : false;
   const isDone = statusText ? DONE_STATUSES.has(statusText) : false;
+  const t = useTranslations("components.enrichmentStatus");
 
-  const note =
-    "Enrichment runs in the background — entities and facts appear as workers process episodes.";
+  const note = t("note");
 
   // Free-text status (not a known enum value): show verbatim with a pulse.
   if (status && !isKnown) {
     return (
-      <div role="status" aria-label="Enrichment pipeline status" className="flex flex-col gap-2 text-sm">
+      <div role="status" aria-label={t("ariaLabel")} className="flex flex-col gap-2 text-sm">
         <div className="flex items-center gap-2">
           <Loader2 className="size-4 shrink-0 animate-spin text-brand-300" aria-hidden="true" />
           <span className="font-medium text-surface-200">{status}</span>
         </div>
         {jobId && (
           <p className="font-mono text-xs text-surface-300 truncate" title={jobId}>
-            Job {jobId}
+            {t("job", { id: jobId })}
           </p>
         )}
         <p className="text-xs text-surface-300 leading-relaxed">{note}</p>
@@ -85,10 +86,10 @@ export function EnrichmentStatus({
   }
 
   const stages: Stage[] = [
-    { key: "accepted", label: "Ingest accepted", state: "done" },
-    { key: "queued", label: "Job queued", state: jobId ? "done" : "pending" },
-    { key: "processing", label: "Processing", state: isDone ? "done" : "active" },
-    { key: "done", label: "Done", state: isDone ? "done" : "pending" },
+    { key: "accepted", label: t("stages.accepted"), state: "done" },
+    { key: "queued", label: t("stages.queued"), state: jobId ? "done" : "pending" },
+    { key: "processing", label: t("stages.processing"), state: isDone ? "done" : "active" },
+    { key: "done", label: t("stages.done"), state: isDone ? "done" : "pending" },
   ];
 
   return (
@@ -115,13 +116,13 @@ export function EnrichmentStatus({
         <p className="text-xs text-surface-300 truncate">
           {episodeCount !== undefined && episodeCount > 0 && (
             <span className="font-medium text-surface-300">
-              {episodeCount} episode{episodeCount === 1 ? "" : "s"} queued for enrichment
+              {t("episodesQueued", { count: episodeCount })}
             </span>
           )}
           {episodeCount !== undefined && episodeCount > 0 && jobId && <span className="mx-1.5 text-surface-600">·</span>}
           {jobId && (
             <span className="font-mono" title={jobId}>
-              Job {jobId}
+              {t("job", { id: jobId })}
             </span>
           )}
         </p>

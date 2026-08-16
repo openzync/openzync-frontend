@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Brain, Eye, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
@@ -71,59 +72,60 @@ const LLM_FIELDS: readonly (keyof FormState)[] = [
 /**
  * Single source of truth for provider selection (order = select order) and the
  * provider settings card. Secret fields render through `SecretInput`.
+ * Provider brand names (OpenAI, Anthropic, …) are not translated.
  */
 const PROVIDERS: readonly ProviderConfig[] = [
   {
     id: "openai",
     label: "OpenAI",
-    title: "OpenAI Settings",
-    description: "API key for OpenAI models",
+    title: "providerTitles.openai",
+    description: "providerDescriptions.openai",
     fields: [
-      { field: "openai_api_key", label: "OpenAI API Key", placeholder: "sk-...", kind: "secret" },
+      { field: "openai_api_key", label: "fieldLabels.openaiApiKey", placeholder: "sk-...", kind: "secret" },
     ],
   },
   {
     id: "anthropic",
     label: "Anthropic",
-    title: "Anthropic Settings",
-    description: "API key for Anthropic models",
+    title: "providerTitles.anthropic",
+    description: "providerDescriptions.anthropic",
     fields: [
-      { field: "anthropic_api_key", label: "Anthropic API Key", placeholder: "sk-ant-...", kind: "secret" },
+      { field: "anthropic_api_key", label: "fieldLabels.anthropicApiKey", placeholder: "sk-ant-...", kind: "secret" },
     ],
   },
   {
     id: "openrouter",
     label: "OpenRouter",
-    title: "OpenRouter Settings",
-    description: "API key for OpenRouter",
+    title: "providerTitles.openrouter",
+    description: "providerDescriptions.openrouter",
     fields: [
-      { field: "openrouter_api_key", label: "OpenRouter API Key", placeholder: "sk-or-...", kind: "secret" },
+      { field: "openrouter_api_key", label: "fieldLabels.openrouterApiKey", placeholder: "sk-or-...", kind: "secret" },
     ],
   },
   {
     id: "azure",
     label: "Azure OpenAI",
-    title: "Azure OpenAI Settings",
-    description: "Azure OpenAI endpoint and credentials",
+    title: "providerTitles.azure",
+    description: "providerDescriptions.azure",
     fields: [
-      { field: "azure_openai_endpoint", label: "Endpoint URL", placeholder: "https://my-resource.openai.azure.com", kind: "url" },
-      { field: "azure_openai_key", label: "API Key", placeholder: "Azure API key", kind: "secret" },
+      { field: "azure_openai_endpoint", label: "fieldLabels.endpointUrl", placeholder: "https://my-resource.openai.azure.com", kind: "url" },
+      { field: "azure_openai_key", label: "fieldLabels.azureApiKey", placeholder: "Azure API key", kind: "secret" },
     ],
   },
   {
     id: "ollama",
     label: "Ollama",
-    title: "Ollama Settings",
-    description: "Local LLM provider configuration",
+    title: "providerTitles.ollama",
+    description: "providerDescriptions.ollama",
     fields: [
-      { field: "ollama_base_url", label: "Base URL", placeholder: "http://localhost:11434", kind: "url" },
+      { field: "ollama_base_url", label: "fieldLabels.baseUrl", placeholder: "http://localhost:11434", kind: "url" },
     ],
   },
   {
     id: "openai_like",
     label: "OpenAI-compatible",
-    title: "Provider Settings",
-    description: "No additional provider-specific configuration needed",
+    title: "providerTitles.openaiLike",
+    description: "providerDescriptions.openaiLike",
     fields: [],
   },
 ];
@@ -131,6 +133,7 @@ const PROVIDERS: readonly ProviderConfig[] = [
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function LlmConfigPage() {
+  const t = useTranslations("settings.orgConfig.llm");
   const [form, setForm] = useState<FormState>({
     llm_backend: "openai",
     llm_model: "",
@@ -209,7 +212,7 @@ export default function LlmConfigPage() {
       const val = (field: string, fallback: unknown) =>
         (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
 
-      setForm({
+      const nextForm: FormState = {
         llm_backend: val("llm_backend", "openai") as LlmBackend,
         llm_model: val("llm_model", "") as string,
         llm_temperature: val("llm_temperature", 0.7) as number,
@@ -220,29 +223,19 @@ export default function LlmConfigPage() {
         ollama_base_url: val("ollama_base_url", "") as string,
         azure_openai_endpoint: val("azure_openai_endpoint", "") as string,
         azure_openai_key: val("azure_openai_key", "") as string,
-      });
-      setInitialForm({
-        llm_backend: val("llm_backend", "openai") as LlmBackend,
-        llm_model: val("llm_model", "") as string,
-        llm_temperature: val("llm_temperature", 0.7) as number,
-        llm_max_tokens: val("llm_max_tokens", 4096) as number,
-        openai_api_key: val("openai_api_key", "") as string,
-        anthropic_api_key: val("anthropic_api_key", "") as string,
-        openrouter_api_key: val("openrouter_api_key", "") as string,
-        ollama_base_url: val("ollama_base_url", "") as string,
-        azure_openai_endpoint: val("azure_openai_endpoint", "") as string,
-        azure_openai_key: val("azure_openai_key", "") as string,
-      });
+      };
+      setForm(nextForm);
+      setInitialForm(nextForm);
       setStored(data.stored ?? {});
       setError(null);
     } catch (err) {
-      const msg = apiErrorMessage(err, "Failed to load configuration");
+      const msg = apiErrorMessage(err, t("loadFailed"));
       setError(msg);
       // initialForm keeps current values so the form remains interactive
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchConfig();
@@ -286,14 +279,14 @@ export default function LlmConfigPage() {
 
     try {
       await patch("/admin/org/config", payload);
-      toast.success("LLM configuration saved successfully");
+      toast.success(t("savedToast"));
       await fetchConfig();
       setDirty(false);
       clearResets();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to save configuration";
+      const msg = err instanceof ApiError ? err.message : t("saveFailed");
       setError(msg);
       toast.error(msg);
     } finally {
@@ -316,6 +309,10 @@ export default function LlmConfigPage() {
     PROVIDERS.find((p) => p.id === form.llm_backend) ??
     PROVIDERS[PROVIDERS.length - 1];
 
+  const providerTitle = t(provider.title);
+  const providerDescription = t(provider.description);
+  const fieldLabel = (f: ProviderField) => t(f.label);
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -327,8 +324,8 @@ export default function LlmConfigPage() {
             <Brain size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">LLM Backend</h2>
-            <p className="text-xs text-surface-400">Primary language model provider</p>
+            <h2 className="text-base font-semibold">{t("backendTitle")}</h2>
+            <p className="text-xs text-surface-400">{t("backendDescription")}</p>
           </div>
         </div>
 
@@ -346,7 +343,7 @@ export default function LlmConfigPage() {
               {/* llm_backend */}
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Backend Provider
+                  {t("fields.backendProvider")}
                 </label>
                 <div className="flex gap-2 items-start">
                   <select
@@ -362,26 +359,26 @@ export default function LlmConfigPage() {
                     <Button
                       onClick={() => handleStageReset("llm_backend")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Remove stored value — default will apply on save"
+                      title={t("resetFieldTitle")}
                     >
                       <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
                 {pendingResets.has("llm_backend") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  <p className="text-xs text-amber-400 mt-1">{t("willResetOnSave")}</p>
                 )}
               </div>
 
               {/* llm_model */}
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Model
+                  {t("fields.model")}
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
                     className="input-base flex-1"
-                    placeholder="gpt-4o, claude-sonnet-4, ..."
+                    placeholder={t("fields.modelPlaceholder")}
                     value={form.llm_model}
                     onChange={(e) => updateField("llm_model", e.target.value)}
                   />
@@ -389,21 +386,21 @@ export default function LlmConfigPage() {
                     <Button
                       onClick={() => handleStageReset("llm_model")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Remove stored value — default will apply on save"
+                      title={t("resetFieldTitle")}
                     >
                       <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
                 {pendingResets.has("llm_model") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  <p className="text-xs text-amber-400 mt-1">{t("willResetOnSave")}</p>
                 )}
               </div>
 
               {/* llm_temperature */}
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Temperature
+                  {t("fields.temperature")}
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
@@ -419,21 +416,21 @@ export default function LlmConfigPage() {
                     <Button
                       onClick={() => handleStageReset("llm_temperature")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Remove stored value — default will apply on save"
+                      title={t("resetFieldTitle")}
                     >
                       <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
                 {pendingResets.has("llm_temperature") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  <p className="text-xs text-amber-400 mt-1">{t("willResetOnSave")}</p>
                 )}
               </div>
 
               {/* llm_max_tokens */}
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1">
-                  Max Tokens
+                  {t("fields.maxTokens")}
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
@@ -447,14 +444,14 @@ export default function LlmConfigPage() {
                     <Button
                       onClick={() => handleStageReset("llm_max_tokens")}
                       variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Remove stored value — default will apply on save"
+                      title={t("resetFieldTitle")}
                     >
                       <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
                 {pendingResets.has("llm_max_tokens") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  <p className="text-xs text-amber-400 mt-1">{t("willResetOnSave")}</p>
                 )}
               </div>
             </div>
@@ -470,8 +467,8 @@ export default function LlmConfigPage() {
               <Eye size={20} className="text-warning" />
             </div>
             <div>
-              <h2 className="text-base font-semibold">{provider.title}</h2>
-              <p className="text-xs text-surface-400">{provider.description}</p>
+              <h2 className="text-base font-semibold">{providerTitle}</h2>
+              <p className="text-xs text-surface-400">{providerDescription}</p>
             </div>
           </div>
 
@@ -481,14 +478,14 @@ export default function LlmConfigPage() {
                 {/* url fields keep the label above the input row, as before */}
                 {f.kind === "url" && (
                   <label className="block text-sm font-medium text-surface-300 mb-1">
-                    {f.label}
+                    {fieldLabel(f)}
                   </label>
                 )}
                 <div className="flex gap-2 items-start">
                   {f.kind === "secret" ? (
                     <div className="flex-1">
                       <SecretInput
-                        label={f.label}
+                        label={fieldLabel(f)}
                         value={String(form[f.field] ?? "")}
                         onChange={(v) => updateField(f.field, v)}
                         placeholder={f.placeholder}
@@ -512,14 +509,14 @@ export default function LlmConfigPage() {
                       // secret fields: SecretInput renders its own label above the
                       // input, so push the reset button down to the input row
                       className={`rounded-md text-surface-400 hover:text-brand-300 shrink-0 ${f.kind === "secret" ? "mt-7" : "mt-0.5"}`}
-                      title="Remove stored value — default will apply on save"
+                      title={t("resetFieldTitle")}
                     >
                       <RotateCcw size={14} />
                     </Button>
                   )}
                 </div>
                 {pendingResets.has(f.field) && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  <p className="text-xs text-amber-400 mt-1">{t("willResetOnSave")}</p>
                 )}
               </Fragment>
             ))}

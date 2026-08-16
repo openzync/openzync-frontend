@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 export interface BreadcrumbItem {
@@ -13,13 +16,14 @@ interface BreadcrumbProps {
 }
 
 export function Breadcrumb({ items, className }: BreadcrumbProps) {
+  const t = useTranslations("components");
   return (
     <nav
       className={cn(
         "flex items-center gap-1.5 text-sm text-surface-400",
         className,
       )}
-      aria-label="Breadcrumb"
+      aria-label={t("breadcrumbLabel")}
     >
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-1.5">

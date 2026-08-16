@@ -22,6 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 import { get } from "@/lib/api-client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -54,20 +55,20 @@ interface CommandPaletteProps {
 // ─── Navigation items ──────────────────────────────────────────────────────
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Overview", href: "/overview", icon: LayoutDashboard, section: "Navigation" },
-  { label: "Monitoring", href: "/monitoring", icon: Activity, section: "Navigation" },
-  { label: "Projects", href: "/projects", icon: FolderKanban, section: "Navigation" },
-  { label: "Users", href: "/users", icon: Users, section: "Navigation" },
-  { label: "Audit Log", href: "/audit", icon: Shield, section: "Navigation" },
-  { label: "Account Settings", href: "/settings", icon: Settings, section: "Navigation" },
-  { label: "API Keys", href: "/settings/api-keys", icon: Key, section: "Settings" },
-  { label: "Extraction Schemas", href: "/settings/schemas", icon: FileJson, section: "Settings" },
-  { label: "Classifications", href: "/settings/classifications", icon: FileCode, section: "Settings" },
-  { label: "Extractions", href: "/settings/extractions", icon: SlidersHorizontal, section: "Settings" },
-  { label: "Webhooks", href: "/settings/webhooks", icon: Webhook, section: "Settings" },
-  { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: FileText, section: "Settings" },
-  { label: "Prompt Templates", href: "/settings/prompts", icon: MessageSquare, section: "Settings" },
-  { label: "Configuration", href: "/settings/org-config", icon: Settings, section: "Settings" },
+  { label: "nav.overview", href: "/overview", icon: LayoutDashboard, section: "section.navigation" },
+  { label: "nav.monitoring", href: "/monitoring", icon: Activity, section: "section.navigation" },
+  { label: "nav.projects", href: "/projects", icon: FolderKanban, section: "section.navigation" },
+  { label: "nav.users", href: "/users", icon: Users, section: "section.navigation" },
+  { label: "nav.auditLog", href: "/audit", icon: Shield, section: "section.navigation" },
+  { label: "nav.accountSettings", href: "/settings", icon: Settings, section: "section.navigation" },
+  { label: "nav.apiKeys", href: "/settings/api-keys", icon: Key, section: "section.settings" },
+  { label: "nav.extractionSchemas", href: "/settings/schemas", icon: FileJson, section: "section.settings" },
+  { label: "nav.classifications", href: "/settings/classifications", icon: FileCode, section: "section.settings" },
+  { label: "nav.extractions", href: "/settings/extractions", icon: SlidersHorizontal, section: "section.settings" },
+  { label: "nav.webhooks", href: "/settings/webhooks", icon: Webhook, section: "section.settings" },
+  { label: "nav.extractionInstructions", href: "/settings/extraction-instructions", icon: FileText, section: "section.settings" },
+  { label: "nav.promptTemplates", href: "/settings/prompts", icon: MessageSquare, section: "section.settings" },
+  { label: "nav.configuration", href: "/settings/org-config", icon: Settings, section: "section.settings" },
 ];
 
 // ─── Icons for search result types ─────────────────────────────────────────
@@ -83,6 +84,7 @@ const defaultIcon = FolderKanban;
 // ─── Component ─────────────────────────────────────────────────────────────
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+  const t = useTranslations("components.commandPalette");
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -177,7 +179,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             <div className="flex items-center gap-3 border-b border-surface-800 px-4">
               <Search size={18} className="shrink-0 text-surface-500" />
               <Command.Input
-                placeholder="Search projects, users, sessions\u2026"
+                placeholder={t("placeholder")}
                 value={query}
                 onValueChange={setQuery}
                 className="flex-1 bg-transparent py-4 text-sm text-text-primary placeholder:text-surface-500 focus:outline-none"
@@ -192,14 +194,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               {/* Empty state */}
               {query.length > 0 && !loading && !hasResults && filteredNav.length === 0 && (
                 <div className="py-12 text-center">
-                  <p className="text-sm text-surface-500">No results found.</p>
+                  <p className="text-sm text-surface-500">{t("noResults")}</p>
                 </div>
               )}
 
               {/* ── Navigation group ──────────────────────────────────── */}
               {filteredNav.length > 0 && (
                 <Command.Group
-                  heading="Navigation"
+                  heading={t("section.navigation")}
                   className={cn(
                     "pb-2",
                     "[&_[cmdk-group-heading]]:px-4 [&_[cmdk-group-heading]]:py-2",
@@ -222,7 +224,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         )}
                       >
                         <Icon size={18} className="shrink-0 text-surface-400" />
-                        <span>{item.label}</span>
+                        <span>{t(item.label)}</span>
                       </Command.Item>
                     );
                   })}
@@ -233,14 +235,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               {loading && (
                 <div className="flex items-center gap-2 px-4 py-2 text-xs text-surface-500">
                   <span className="inline-block h-3 w-3 animate-spin rounded-full border border-surface-400 border-t-transparent" />
-                  Searching\u2026
+                  {t("searching")}
                 </div>
               )}
 
               {/* ── Projects group ─────────────────────────────────────── */}
               {groupedResults.projects.length > 0 && (
                 <Command.Group
-                  heading="Projects"
+                  heading={t("groups.projects")}
                   className={cn(
                     "pb-2",
                     "[&_[cmdk-group-heading]]:px-4 [&_[cmdk-group-heading]]:py-2",
@@ -283,7 +285,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               {/* ── Users group ────────────────────────────────────────── */}
               {groupedResults.users.length > 0 && (
                 <Command.Group
-                  heading="Users"
+                  heading={t("groups.users")}
                   className={cn(
                     "pb-2",
                     "[&_[cmdk-group-heading]]:px-4 [&_[cmdk-group-heading]]:py-2",
@@ -326,7 +328,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               {/* ── Sessions group ─────────────────────────────────────── */}
               {groupedResults.sessions.length > 0 && (
                 <Command.Group
-                  heading="Sessions"
+                  heading={t("groups.sessions")}
                   className={cn(
                     "pb-2",
                     "[&_[cmdk-group-heading]]:px-4 [&_[cmdk-group-heading]]:py-2",

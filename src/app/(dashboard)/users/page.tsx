@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState, useCallback } from "react";
 import {
   Plus, Copy, Edit, Trash2, RefreshCw, UsersIcon, AlertCircle, Eye, ShieldCheck, ShieldOff, UserPlus, Ban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get, post, patch as apiPatch, del as apiDel, ApiError, apiErrorMessage, inviteUser, revokeInvite } from "@/lib/api-client";
-import { formatDate, timeAgo, copyToClipboard } from "@/lib/utils";
+import { formatDate, copyToClipboard } from "@/lib/utils";
+import { useTimeAgo } from "@/hooks/use-time-ago";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageGuide, GuideSecurity } from "@/components/guides";
@@ -63,6 +65,7 @@ function UserFormDialog({
   const [form, setForm] = useState<UserFormData>(initial);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const t = useTranslations("users");
 
   const handleChange = (field: keyof UserFormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -135,6 +138,7 @@ function InviteMemberDialog({
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const t = useTranslations("users");
 
   const handleSubmit = async () => {
     if (!email.trim() || !name.trim()) {
@@ -214,6 +218,9 @@ export default function UsersPage() {
   const [revoking, setRevoking] = useState(false);
   const [roleChangeTarget, setRoleChangeTarget] = useState<{ user: UserItem; to: UserRole } | null>(null);
   const [changingRole, setChangingRole] = useState(false);
+  const t = useTranslations("users");
+  const timeAgo = useTimeAgo();
+  const locale = useLocale();
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
@@ -348,7 +355,8 @@ export default function UsersPage() {
       />
 
       <PageGuide title="User management" illustration={<GuideSecurity />}>
-        <p>View and manage organization users. Monitor user activity, assign roles, and control access to organization resources.</p>
+        <p>{t("guideBody")}
+      </p>
       </PageGuide>
 
       {error && <ErrorState message={error} onRetry={loadUsers} />}
@@ -491,10 +499,10 @@ export default function UsersPage() {
         title={roleChangeTarget?.to === "admin" ? "Make Admin" : "Remove Admin"}
         message={
           roleChangeTarget?.to === "admin"
-            ? `Grant admin access to "${roleChangeTarget?.user.name || roleChangeTarget?.user.external_id}"? Admins can manage org users, settings, and view monitoring/audit data.`
-            : `Remove admin access from "${roleChangeTarget?.user.name || roleChangeTarget?.user.external_id}"? They will become a regular member.`
+            ? t("makeAdminConfirm", { name: (roleChangeTarget?.user.name || roleChangeTarget?.user.external_id) ?? "" })
+            : t("removeAdminConfirm", { name: (roleChangeTarget?.user.name || roleChangeTarget?.user.external_id) ?? "" })
         }
-        confirmLabel={roleChangeTarget?.to === "admin" ? "Make Admin" : "Remove Admin"}
+        confirmLabel={roleChangeTarget?.to === "admin" ? t("makeAdmin") : t("removeAdmin")}
         variant={roleChangeTarget?.to === "admin" ? "primary" : "danger"}
         loading={changingRole}
         onConfirm={handleRoleChange}

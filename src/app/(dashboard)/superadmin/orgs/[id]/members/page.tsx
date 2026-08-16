@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, ShieldCheck, ShieldOff, UsersIcon } from "lucide-react";
@@ -42,6 +43,8 @@ export default function OrgMembersAdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [roleTarget, setRoleTarget] = useState<{ user: OrgMember; to: "admin" | "member" } | null>(null);
   const [changingRole, setChangingRole] = useState(false);
+  const t = useTranslations("superadmin.orgMembers");
+  const locale = useLocale();
 
   const loadMembers = useCallback(async () => {
     setLoading(true);
@@ -152,8 +155,8 @@ export default function OrgMembersAdminPage() {
                         title={member.role === "admin" ? "Remove admin" : "Make admin"}
                         aria-label={
                           member.role === "admin"
-                            ? `Remove admin from ${member.name ?? member.external_id}`
-                            : `Make ${member.name ?? member.external_id} an admin`
+                            ? t("removeAdminAria", { name: member.name ?? member.external_id })
+                            : t("makeAdminAria", { name: member.name ?? member.external_id })
                         }
                       >
                         {member.role === "admin" ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
@@ -172,10 +175,10 @@ export default function OrgMembersAdminPage() {
         title={roleTarget?.to === "admin" ? "Make Admin" : "Remove Admin"}
         message={
           roleTarget?.to === "admin"
-            ? `Grant admin access to "${roleTarget?.user.name ?? roleTarget?.user.external_id}"? Admins can manage org users, settings, and view monitoring/audit data.`
-            : `Remove admin access from "${roleTarget?.user.name ?? roleTarget?.user.external_id}"? They will become a regular member.`
+            ? t("makeAdminConfirm", { name: (roleTarget?.user.name ?? roleTarget?.user.external_id) ?? "" })
+            : t("removeAdminConfirm", { name: (roleTarget?.user.name ?? roleTarget?.user.external_id) ?? "" })
         }
-        confirmLabel={roleTarget?.to === "admin" ? "Make Admin" : "Remove Admin"}
+        confirmLabel={roleTarget?.to === "admin" ? t("makeAdmin") : t("removeAdmin")}
         variant={roleTarget?.to === "admin" ? "primary" : "danger"}
         loading={changingRole}
         onConfirm={handleRoleChange}

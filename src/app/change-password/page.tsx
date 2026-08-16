@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { AlertCircle, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
 import { changePassword } from "@/lib/api-client";
 import { getPasswordStrength } from "@/lib/password-strength";
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/button";
  * by the api-client helper) and clears the flag; then back to the dashboard.
  */
 export default function ChangePasswordPage() {
+  const t = useTranslations("auth.changePassword");
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -36,7 +38,7 @@ export default function ChangePasswordPage() {
       setError(
         err instanceof Error && err.message
           ? err.message
-          : "Failed to change password. Please try again.",
+          : t("failed"),
       );
     } finally {
       setSubmitting(false);
@@ -53,7 +55,7 @@ export default function ChangePasswordPage() {
             OpenZync
           </h1>
           <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">
-            Secure your account before continuing
+            {t("hero")}
           </p>
         </div>
       </div>
@@ -67,9 +69,9 @@ export default function ChangePasswordPage() {
                 <KeyRound size={20} className="text-brand-300" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">Change Password</h2>
+                <h2 className="text-xl font-semibold">{t("title")}</h2>
                 <p className="text-sm text-surface-400">
-                  Your password must be updated before you can continue
+                  {t("subtitle")}
                 </p>
               </div>
             </div>
@@ -84,7 +86,7 @@ export default function ChangePasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Current Password
+                  {t("currentPassword")}
                 </label>
                 <input
                   type="password"
@@ -94,13 +96,13 @@ export default function ChangePasswordPage() {
                   autoFocus
                   autoComplete="current-password"
                   className="input-base w-full"
-                  placeholder="Enter your current password"
+                  placeholder={t("currentPasswordPlaceholder")}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  New Password
+                  {t("newPassword")}
                 </label>
                 <div className="relative">
                   <input
@@ -110,13 +112,13 @@ export default function ChangePasswordPage() {
                     required
                     minLength={8}
                     autoComplete="new-password"
-                    className="input-base w-full pr-10"
-                    placeholder="Minimum 8 characters"
+                    className="input-base w-full pe-10"
+                    placeholder={t("min8Chars")}
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
+                    className="absolute end-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
                   >
                     {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -124,7 +126,9 @@ export default function ChangePasswordPage() {
                 {newPassword && (
                   <div className="mt-2">
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-surface-500">Password strength</span>
+                      <span className="text-surface-500">{t("passwordStrength")}</span>
+                      {/* pwStrength.label comes from the shared strength lib —
+                          keep as-is (data-layer value, not UI chrome) */}
                       <span className="font-medium text-surface-300">{pwStrength.label}</span>
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-surface-800 overflow-hidden">
@@ -146,15 +150,15 @@ export default function ChangePasswordPage() {
                 {submitting ? (
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
-                  "Update Password"
+                  t("updatePassword")
                 )}
               </Button>
             </form>
 
             <p className="mt-6 text-center text-sm text-surface-400">
-              Changed your mind?{" "}
+              {t("changedMind")}{" "}
               <Link href="/overview" className="text-accent-300 font-medium hover:text-accent-200">
-                Return to dashboard
+                {t("returnDashboard")}
               </Link>
             </p>
           </div>

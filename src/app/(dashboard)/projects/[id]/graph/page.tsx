@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { RotateCcw, Info } from "lucide-react";
 import { ForceGraph, type GraphNodeData, type GraphEdgeData } from "@/components/force-graph";
 import { PageGuide, GuideGraph } from "@/components/guides";
@@ -31,6 +32,7 @@ function authHeaders(): Record<string, string> {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function GraphExplorerPage() {
+  const t = useTranslations("graph.explorer");
   const { project } = useProject();
   const projectId = project?.id;
 
@@ -70,7 +72,7 @@ export default function GraphExplorerPage() {
   if (!projectId) {
     return (
         <div className="space-y-6">
-          <PageHeader title="Graph Explorer" description="Select a project to explore the knowledge graph" />
+          <PageHeader title={t("title")} description={t("noProjectDescription")} />
         </div>
     );
   }
@@ -78,23 +80,23 @@ export default function GraphExplorerPage() {
   return (
       <div className="space-y-6">
         <PageHeader
-          title="Graph Explorer"
-          description={`Explore entities and relationships in your knowledge graph${project ? ` · ${project.name}` : ""}`}
+          title={t("title")}
+          description={project ? t("subtitle", { name: project.name }) : t("subtitleGeneric")}
           actions={
             <Button variant="secondary" size="sm" onClick={loadData} loading={loading} icon={<RotateCcw size={14} />}>
-              Refresh
+              {t("refresh")}
             </Button>
           }
         />
 
-        <PageGuide title="Graph explorer" illustration={<GuideGraph />}>
-          <p>Explore the knowledge graph visually. Nodes represent entities — people, places, concepts — and edges represent relationships between them. Search, filter, and navigate to understand your data&rsquo;s structure.</p>
+        <PageGuide title={t("guideTitle")} illustration={<GuideGraph />}>
+          <p>{t("guideBody")}</p>
         </PageGuide>
 
         {hasMore && (
           <div className="flex items-center gap-2 rounded-md border border-surface-800 bg-surface-900 px-3 py-2 text-xs text-surface-300">
             <Info size={14} className="shrink-0" />
-            <span>Showing the first 100 entities — refine filters or query for more.</span>
+            <span>{t("limitNotice")}</span>
           </div>
         )}
 
@@ -102,7 +104,7 @@ export default function GraphExplorerPage() {
           nodes={graphData?.nodes ?? []}
           edges={graphData?.edges ?? []}
           loading={loading}
-          error={hasError ? "Failed to load graph" : null}
+          error={hasError ? t("loadError") : null}
           onRetry={loadData}
           apiConfig={{ baseUrl: API_BASE, projectId, headers: authHeaders() }}
           showFilter showControls showLegend

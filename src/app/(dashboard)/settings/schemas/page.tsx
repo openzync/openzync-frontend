@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Plus,
   Eye,
@@ -55,6 +56,8 @@ export default function SchemasPage() {
 
   // Delete dialog
   const [deleteTarget, setDeleteTarget] = useState<Schema | null>(null);
+  const t = useTranslations("settings.schemas");
+  const locale = useLocale();
   const [deleting, setDeleting] = useState(false);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
@@ -259,10 +262,10 @@ export default function SchemasPage() {
         footer={
           <>
             <Button variant="secondary" size="sm" onClick={() => { setShowCreate(false); resetCreateForm(); }}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button variant="primary" size="sm" onClick={handleCreate} loading={creating} disabled={!newName.trim()}>
-              Create
+              {t("create")}
             </Button>
           </>
         }

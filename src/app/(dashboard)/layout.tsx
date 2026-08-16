@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import {
   LayoutDashboard,
@@ -38,6 +39,7 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { usePinnedProjects } from "@/hooks/use-pinned-projects";
 import { CommandPalette } from "@/components/shared/command-palette";
 import { AppVersion } from "@/components/shared/app-version";
+import { LanguageSwitcher } from "@/components/shared/language-switcher";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -73,6 +75,7 @@ function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { isAdmin, isSuperadmin } = useUser();
+  const t = useTranslations("nav");
 
   const inProject = isInProject(pathname);
   const onProjectList = isOnProjectList(pathname);
@@ -125,7 +128,7 @@ function Sidebar({
 
   return (
     <aside
-      aria-label="Sidebar"
+      aria-label={t("sidebar")}
       className={cn(
         "flex h-full flex-col border-r border-surface-800 bg-surface-900 transition-all duration-300",
         collapsed ? "w-16" : "w-56",
@@ -134,7 +137,7 @@ function Sidebar({
       {/* Logo */}
       <div className="flex h-14 items-center justify-between px-4 border-b border-surface-800">
         {collapsed ? (
-          <button onClick={onToggle} className="flex items-center justify-center w-full group" title="Expand sidebar">
+          <button onClick={onToggle} className="flex items-center justify-center w-full group" title={t("expandSidebar")}>
             <svg viewBox="0 0 28 28" width="24" height="24" className="group-hover:hidden" xmlns="http://www.w3.org/2000/svg">
               <rect x="1" y="1" width="26" height="26" rx="13" fill="#040507"/>
               <path d="M5.5 8.5h17l-8.5 6.5 8.5 6.5h-17l8.5-6.5z" fill="#78a8f1"/>
@@ -150,11 +153,11 @@ function Sidebar({
             <button
               onClick={onClose}
               className="sm:hidden rounded-md p-1.5 text-surface-400 hover:bg-surface-800"
-              aria-label="Close sidebar"
+              aria-label={t("closeSidebar")}
             >
               <X size={18} />
             </button>
-            <button onClick={onToggle} className="hidden sm:flex p-1.5 rounded-md text-surface-400 hover:text-surface-200 hover:bg-surface-800" title="Collapse sidebar">
+            <button onClick={onToggle} className="hidden sm:flex p-1.5 rounded-md text-surface-400 hover:text-surface-200 hover:bg-surface-800" title={t("collapseSidebar")}>
               <ChevronLeft size={18} />
             </button>
           </>
@@ -162,7 +165,7 @@ function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav id="sidebar-navigation" aria-label="Main navigation" className="flex-1 overflow-y-auto px-2 py-3 space-y-5">
+      <nav id="sidebar-navigation" aria-label={t("mainNavigation")} className="flex-1 overflow-y-auto px-2 py-3 space-y-5">
         {/* ── Insights (hidden inside project pages) ── */}
         {!inProject && (
           <div>
@@ -171,16 +174,16 @@ function Sidebar({
                 <div className="h-px bg-surface-700" />
               ) : (
                 <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
-                  Insights
+                  {t("insights")}
                 </h2>
               )}
             </div>
             <div className="space-y-0.5">
               {[
-                { label: "Overview", href: "/overview", icon: <LayoutDashboard size={18} /> },
+                { label: t("overview"), href: "/overview", icon: <LayoutDashboard size={18} /> },
                 // Monitoring is org-admin only — hidden from members
                 ...(isAdmin
-                  ? [{ label: "Monitoring", href: "/monitoring", icon: <Activity size={18} /> }]
+                  ? [{ label: t("monitoring"), href: "/monitoring", icon: <Activity size={18} /> }]
                   : []),
               ].map((item) => {
                 const active = isActive(item.href);
@@ -191,8 +194,8 @@ function Sidebar({
                     className={cn(
                       "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
                       active
-                        ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                        : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
+                        ? "bg-brand-500/10 text-brand-300 border-s-[3px] border-brand-500"
+                        : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-s-[3px] border-transparent",
                     )}
                   >
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
@@ -213,7 +216,7 @@ function Sidebar({
               <div className="h-px bg-surface-700" />
             ) : (
               <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
-                Projects
+                {t("projects")}
               </h2>
             )}
           </div>
@@ -229,8 +232,8 @@ function Sidebar({
                     "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
                     collapsed && "justify-center px-0",
                     isActiveProject
-                      ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                      : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
+                      ? "bg-brand-500/10 text-brand-300 border-s-[3px] border-brand-500"
+                      : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-s-[3px] border-transparent",
                   )}
                 >
                   <span className={cn("shrink-0", isActiveProject ? "text-brand-300" : "text-surface-400")}>
@@ -249,14 +252,14 @@ function Sidebar({
                   "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
                   collapsed && "justify-center px-0",
                   onProjectList
-                    ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                    : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
+                    ? "bg-brand-500/10 text-brand-300 border-s-[3px] border-brand-500"
+                    : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-s-[3px] border-transparent",
                 )}
               >
                 <span className="shrink-0 text-surface-400">
                   <FolderKanban size={18} />
                 </span>
-                <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>View all projects</span>
+                <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{t("viewAllProjects")}</span>
               </button>
             )}
 
@@ -265,10 +268,10 @@ function Sidebar({
               <>
                 <div className={cn("my-1", collapsed ? "border-t border-surface-700" : "border-t border-surface-800")} />
                 {[
-                  { label: "Sessions", href: `/projects/${projectId}/sessions`, icon: <MessageSquare size={18} /> },
-                  { label: "Memory", href: `/projects/${projectId}/memory`, icon: <BrainCircuit size={18} /> },
-                  { label: "Graph Explorer", href: `/projects/${projectId}/graph`, icon: <GitBranch size={18} /> },
-                  { label: "Communities", href: `/projects/${projectId}/graph/communities`, icon: <Shield size={18} /> },
+                  { label: t("sessions"), href: `/projects/${projectId}/sessions`, icon: <MessageSquare size={18} /> },
+                  { label: t("memory"), href: `/projects/${projectId}/memory`, icon: <BrainCircuit size={18} /> },
+                  { label: t("graphExplorer"), href: `/projects/${projectId}/graph`, icon: <GitBranch size={18} /> },
+                  { label: t("communities"), href: `/projects/${projectId}/graph/communities`, icon: <Shield size={18} /> },
                 ].map((item) => {
                   const active = isActive(item.href);
                   return (
@@ -279,8 +282,8 @@ function Sidebar({
                         "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
                         collapsed && "justify-center px-0",
                         active
-                          ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                          : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
+                          ? "bg-brand-500/10 text-brand-300 border-s-[3px] border-brand-500"
+                          : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-s-[3px] border-transparent",
                       )}
                     >
                       <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
@@ -303,15 +306,15 @@ function Sidebar({
                 <div className="h-px bg-surface-700" />
               ) : (
                 <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
-                  Project Settings
+                  {t("projectSettings")}
                 </h2>
               )}
             </div>
             <div className="space-y-0.5">
               {[
-                { label: "Members", href: `/projects/${projectId}/members`, icon: <Users size={18} /> },
-                { label: "API Keys", href: `/projects/${projectId}/settings/api-keys`, icon: <Key size={18} /> },
-                { label: "Settings", href: `/projects/${projectId}/settings`, icon: <Settings size={18} /> },
+                { label: t("members"), href: `/projects/${projectId}/members`, icon: <Users size={18} /> },
+                { label: t("apiKeys"), href: `/projects/${projectId}/settings/api-keys`, icon: <Key size={18} /> },
+                { label: t("settings"), href: `/projects/${projectId}/settings`, icon: <Settings size={18} /> },
               ].map((item) => {
                 const active = isActive(item.href);
                 return (
@@ -321,8 +324,8 @@ function Sidebar({
                     className={cn(
                       "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
                       active
-                        ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                        : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
+                        ? "bg-brand-500/10 text-brand-300 border-s-[3px] border-brand-500"
+                        : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-s-[3px] border-transparent",
                     )}
                   >
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
@@ -344,7 +347,7 @@ function Sidebar({
                 <div className="h-px bg-surface-700" />
               ) : (
                 <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
-                  Administration
+                  {t("administration")}
                 </h2>
               )}
             </div>
@@ -352,12 +355,12 @@ function Sidebar({
               {[
                 // Every item in this section is org-admin only — hidden from members.
                 // The section header collapses with it so members never see a bare header.
-                { label: "Users", href: "/users", icon: <Users size={18} /> },
-                { label: "Extraction Schemas", href: "/settings/schemas", icon: <FileJson size={18} /> },
-                { label: "Webhooks", href: "/settings/webhooks", icon: <Webhook size={18} /> },
-                { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: <FileText size={18} /> },
-                { label: "Prompt Templates", href: "/settings/prompts", icon: <FileCode size={18} /> },
-                { label: "Configuration", href: "/settings/org-config", icon: <SlidersHorizontal size={18} /> },
+                { label: t("users"), href: "/users", icon: <Users size={18} /> },
+                { label: t("extractionSchemas"), href: "/settings/schemas", icon: <FileJson size={18} /> },
+                { label: t("webhooks"), href: "/settings/webhooks", icon: <Webhook size={18} /> },
+                { label: t("extractionInstructions"), href: "/settings/extraction-instructions", icon: <FileText size={18} /> },
+                { label: t("promptTemplates"), href: "/settings/prompts", icon: <FileCode size={18} /> },
+                { label: t("configuration"), href: "/settings/org-config", icon: <SlidersHorizontal size={18} /> },
               ].map((item) => {
                 const active = isActive(item.href);
                 return (
@@ -367,8 +370,8 @@ function Sidebar({
                     className={cn(
                       "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
                       active
-                        ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                        : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
+                        ? "bg-brand-500/10 text-brand-300 border-s-[3px] border-brand-500"
+                        : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-s-[3px] border-transparent",
                     )}
                   >
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
@@ -390,7 +393,7 @@ function Sidebar({
                 <div className="h-px bg-surface-700" />
               ) : (
                 <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
-                  System
+                  {t("system")}
                 </h2>
               )}
             </div>
@@ -398,13 +401,13 @@ function Sidebar({
               {[
                 // Audit Log is org-admin only — hidden from members
                 ...(isAdmin
-                  ? [{ label: "Audit Log", href: "/audit", icon: <Shield size={18} /> }]
+                  ? [{ label: t("auditLog"), href: "/audit", icon: <Shield size={18} /> }]
                   : []),
                 // Platform Admin is root/superadmin only — the platform console.
                 ...(isSuperadmin
-                  ? [{ label: "Platform Admin", href: "/superadmin/orgs", icon: <ShieldCheck size={18} /> }]
+                  ? [{ label: t("platformAdmin"), href: "/superadmin/orgs", icon: <ShieldCheck size={18} /> }]
                   : []),
-                { label: "Account Settings", href: "/settings", icon: <Settings size={18} /> },
+                { label: t("accountSettings"), href: "/settings", icon: <Settings size={18} /> },
               ].map((item) => {
                 const active = isActive(item.href);
                 return (
@@ -414,8 +417,8 @@ function Sidebar({
                     className={cn(
                       "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
                       active
-                        ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                        : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
+                        ? "bg-brand-500/10 text-brand-300 border-s-[3px] border-brand-500"
+                        : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-s-[3px] border-transparent",
                     )}
                   >
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
@@ -437,10 +440,10 @@ function Sidebar({
           <button
             onClick={() => { router.push("/projects"); onClose?.(); }}
             className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
-            title={collapsed ? "View all projects" : undefined}
+            title={collapsed ? t("viewAllProjects") : undefined}
           >
             <FolderKanban size={18} />
-            <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>View all projects</span>
+            <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{t("viewAllProjects")}</span>
           </button>
         )}
 
@@ -448,10 +451,10 @@ function Sidebar({
         <button
           onClick={() => onSearchOpen?.()}
           className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
-          title={collapsed ? "Search" : undefined}
+          title={collapsed ? t("search") : undefined}
         >
           <Search size={18} />
-          <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>Search</span>
+          <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{t("search")}</span>
         </button>
 
         {/* User avatar + dropdown */}
@@ -482,7 +485,7 @@ function Sidebar({
                   className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-surface-200 hover:bg-surface-800"
                 >
                   <Settings size={14} />
-                  Settings
+                  {t("accountSettings")}
                 </button>
                 <hr className="my-1 border-surface-800" />
                 <button
@@ -495,7 +498,7 @@ function Sidebar({
                   className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-error hover:bg-surface-800"
                 >
                   <LogOut size={14} />
-                  Sign Out
+                  {t("signOut")}
                 </button>
               </div>
             </>
@@ -516,6 +519,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const t = useTranslations("nav");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -557,50 +561,50 @@ export default function DashboardLayout({
     // Project pages
     if (pathname.startsWith("/projects/")) {
       const pageLabel = (() => {
-        if (pathname.endsWith("/sessions")) return "Sessions";
-        if (pathname.endsWith("/memory")) return "Memory";
-        if (pathname.includes("/graph/communities")) return "Communities";
-        if (pathname.endsWith("/graph")) return "Graph Explorer";
-        if (pathname.endsWith("/members")) return "Members";
-        if (pathname.endsWith("/settings")) return "Project Settings";
-        if (pathname.includes("/settings/api-keys")) return "API Keys";
-        if (pathname.match(/\/sessions\/[^/]+$/)) return "Session";
-        if (pathname.includes("/messages")) return "Messages";
-        if (pathname.includes("/facts")) return "Facts";
-        if (pathname.includes("/classifications")) return "Classifications";
-        if (pathname.includes("/extractions")) return "Extractions";
-        return "Project";
+        if (pathname.endsWith("/sessions")) return t("sessions");
+        if (pathname.endsWith("/memory")) return t("memory");
+        if (pathname.includes("/graph/communities")) return t("communities");
+        if (pathname.endsWith("/graph")) return t("graphExplorer");
+        if (pathname.endsWith("/members")) return t("members");
+        if (pathname.endsWith("/settings")) return t("projectSettings");
+        if (pathname.includes("/settings/api-keys")) return t("apiKeys");
+        if (pathname.match(/\/sessions\/[^/]+$/)) return t("session");
+        if (pathname.includes("/messages")) return t("messages");
+        if (pathname.includes("/facts")) return t("facts");
+        if (pathname.includes("/classifications")) return t("classifications");
+        if (pathname.includes("/extractions")) return t("extractions");
+        return t("project");
       })();
       return [
-        { label: "Projects", href: "/projects" },
+        { label: t("projects"), href: "/projects" },
         ...(projectName ? [{ label: projectName }] : []),
         { label: pageLabel },
       ];
     }
 
     // Non-project pages
-    if (pathname === "/projects") return [{ label: "Projects" }];
-    if (pathname === "/overview") return [{ label: "Insights" }, { label: "Overview" }];
-    if (pathname.startsWith("/monitoring")) return [{ label: "Insights" }, { label: "Monitoring" }];
+    if (pathname === "/projects") return [{ label: t("projects") }];
+    if (pathname === "/overview") return [{ label: t("insights") }, { label: t("overview") }];
+    if (pathname.startsWith("/monitoring")) return [{ label: t("insights") }, { label: t("monitoring") }];
     if (pathname.startsWith("/superadmin")) {
-      if (pathname.endsWith("/requests")) return [{ label: "Platform Admin" }, { label: "Approval Requests" }];
-      if (pathname.endsWith("/config")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Configuration" }];
-      if (pathname.endsWith("/members")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Members" }];
-      if (pathname.endsWith("/orgs")) return [{ label: "Platform Admin" }, { label: "Organizations" }];
-      return [{ label: "Platform Admin" }, { label: "System Configuration" }];
+      if (pathname.endsWith("/requests")) return [{ label: t("platformAdmin") }, { label: t("approvalRequests") }];
+      if (pathname.endsWith("/config")) return [{ label: t("platformAdmin") }, { label: t("organizations") }, { label: t("configuration") }];
+      if (pathname.endsWith("/members")) return [{ label: t("platformAdmin") }, { label: t("organizations") }, { label: t("members") }];
+      if (pathname.endsWith("/orgs")) return [{ label: t("platformAdmin") }, { label: t("organizations") }];
+      return [{ label: t("platformAdmin") }, { label: t("systemConfiguration") }];
     }
-    if (pathname.startsWith("/users")) return [{ label: "Administration" }, { label: "Users" }];
-    if (pathname.startsWith("/audit")) return [{ label: "System" }, { label: "Audit Log" }];
+    if (pathname.startsWith("/users")) return [{ label: t("administration") }, { label: t("users") }];
+    if (pathname.startsWith("/audit")) return [{ label: t("system") }, { label: t("auditLog") }];
     if (pathname.startsWith("/settings")) {
-      if (pathname.includes("/api-keys")) return [{ label: "Administration" }, { label: "API Keys" }];
-      if (pathname.includes("/schemas")) return [{ label: "Administration" }, { label: "Extraction Schemas" }];
-      if (pathname.includes("/classifications")) return [{ label: "Administration" }, { label: "Classifications" }];
-      if (pathname.includes("/extractions")) return [{ label: "Administration" }, { label: "Extractions" }];
-      if (pathname.includes("/webhooks")) return [{ label: "Administration" }, { label: "Webhooks" }];
-      if (pathname.includes("/extraction-instructions")) return [{ label: "Administration" }, { label: "Extraction Instructions" }];
-      if (pathname.includes("/prompts")) return [{ label: "Administration" }, { label: "Prompt Templates" }];
-      if (pathname.includes("/org-config")) return [{ label: "Administration" }, { label: "Configuration" }];
-      return [{ label: "System" }, { label: "Account Settings" }];
+      if (pathname.includes("/api-keys")) return [{ label: t("administration") }, { label: t("apiKeys") }];
+      if (pathname.includes("/schemas")) return [{ label: t("administration") }, { label: t("extractionSchemas") }];
+      if (pathname.includes("/classifications")) return [{ label: t("administration") }, { label: t("classifications") }];
+      if (pathname.includes("/extractions")) return [{ label: t("administration") }, { label: t("extractions") }];
+      if (pathname.includes("/webhooks")) return [{ label: t("administration") }, { label: t("webhooks") }];
+      if (pathname.includes("/extraction-instructions")) return [{ label: t("administration") }, { label: t("extractionInstructions") }];
+      if (pathname.includes("/prompts")) return [{ label: t("administration") }, { label: t("promptTemplates") }];
+      if (pathname.includes("/org-config")) return [{ label: t("administration") }, { label: t("configuration") }];
+      return [{ label: t("system") }, { label: t("accountSettings") }];
     }
     return [];
   })();
@@ -613,7 +617,7 @@ export default function DashboardLayout({
         <button
           onClick={() => setMobileOpen(true)}
           className="fixed top-3 left-3 z-30 sm:hidden rounded-md p-2 bg-surface-900 border border-surface-800 text-surface-400 shadow-lg hover:bg-surface-800"
-          aria-label="Open sidebar"
+          aria-label={t("openSidebar")}
         >
           <Menu size={20} />
         </button>
@@ -648,12 +652,15 @@ export default function DashboardLayout({
 
       {/* Page content */}
       <main id="main-content" className="flex-1 overflow-y-auto">
-        {/* Breadcrumb — only shown for deep navigation context (project sub-pages etc.) */}
-        {breadcrumbItems.length >= 3 && (
-          <div className="px-6 pt-3 pb-0">
+        {/* Top bar — breadcrumb (deep pages) + language switcher */}
+        <div className="flex items-center justify-between gap-4 px-6 pt-3">
+          {breadcrumbItems.length >= 3 ? (
             <Breadcrumb items={breadcrumbItems} className="text-xs text-surface-500" />
-          </div>
-        )}
+          ) : (
+            <div />
+          )}
+          <LanguageSwitcher />
+        </div>
         <div className={cn("mx-auto max-w-7xl animate-fade-in", breadcrumbItems.length >= 3 ? "p-6 pt-3" : "p-6")}>
           {children}
         </div>
