@@ -91,8 +91,8 @@ describe("locale helpers", () => {
 });
 
 describe("i18n config constants", () => {
-  it("ships exactly one locale (en) with en as the default", () => {
-    expect(locales).toEqual(["en"]);
+  it("ships en and hi with en as the default", () => {
+    expect(locales).toEqual(["en", "hi"]);
     expect(defaultLocale).toBe("en");
   });
 

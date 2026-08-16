@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ApiError, apiErrorMessage, localizedStatusMessage } from "@/lib/api-client";
-import errors from "@/messages/en.json";
+import errors from "@/messages/en.po";
 
 /**
  * Error-message resolution contract (src/lib/api-client.ts).

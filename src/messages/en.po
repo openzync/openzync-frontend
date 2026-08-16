@@ -1,0 +1,6403 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: next-intl\n"
+"X-Crowdin-SourceKey: msgstr\n"
+
+msgctxt "audit"
+msgid "autoRefresh"
+msgstr "Auto-refresh"
+
+msgctxt "audit"
+msgid "autoRefreshing"
+msgstr "Auto-refreshing every 10s"
+
+msgctxt "audit"
+msgid "description"
+msgstr "Immutable record of all system actions"
+
+msgctxt "audit"
+msgid "emptyDescription"
+msgstr "Audit entries will appear here as actions are performed"
+
+msgctxt "audit"
+msgid "emptyTitle"
+msgstr "No audit entries found"
+
+msgctxt "audit"
+msgid "emptyWithFilters"
+msgstr "Try adjusting your filters"
+
+msgctxt "audit.filter"
+msgid "action"
+msgstr "Action"
+
+msgctxt "audit.filter"
+msgid "actionPlaceholder"
+msgstr "e.g. session.create"
+
+msgctxt "audit.filter"
+msgid "actorType"
+msgstr "Actor Type"
+
+msgctxt "audit.filter"
+msgid "all"
+msgstr "All"
+
+msgctxt "audit.filter"
+msgid "apiKey"
+msgstr "API Key"
+
+msgctxt "audit.filter"
+msgid "status"
+msgstr "Status"
+
+msgctxt "audit.filter"
+msgid "system"
+msgstr "System"
+
+msgctxt "audit.filter"
+msgid "user"
+msgstr "User"
+
+msgctxt "audit"
+msgid "guideBody"
+msgstr "View an immutable record of all system actions — session creation, message processing, configuration changes, and more. Filter by action type, resource, or actor to investigate activity."
+
+msgctxt "audit"
+msgid "guideTitle"
+msgstr "Audit log"
+
+msgctxt "audit"
+msgid "loadError"
+msgstr "Failed to load audit logs"
+
+msgctxt "audit.table"
+msgid "action"
+msgstr "Action"
+
+msgctxt "audit.table"
+msgid "actor"
+msgstr "Actor"
+
+msgctxt "audit.table"
+msgid "ip"
+msgstr "IP"
+
+msgctxt "audit.table"
+msgid "method"
+msgstr "Method"
+
+msgctxt "audit.table"
+msgid "path"
+msgstr "Path"
+
+msgctxt "audit.table"
+msgid "status"
+msgstr "Status"
+
+msgctxt "audit.table"
+msgid "time"
+msgstr "Time"
+
+msgctxt "audit.table"
+msgid "type"
+msgstr "Type"
+
+msgctxt "audit"
+msgid "title"
+msgstr "Audit Log"
+
+msgctxt "audit"
+msgid "toggleAutoRefresh"
+msgstr "Toggle auto-refresh"
+
+msgctxt "audit"
+msgid "updated"
+msgstr "Updated {time}"
+
+msgctxt "auth.brand.features"
+msgid "feature1"
+msgstr "Persistent, queryable agent memory"
+
+msgctxt "auth.brand.features"
+msgid "feature2"
+msgstr "Multi-provider LLM support (BYOK)"
+
+msgctxt "auth.brand.features"
+msgid "feature3"
+msgstr "Knowledge graph with hybrid search"
+
+msgctxt "auth.brand.features"
+msgid "feature4"
+msgstr "Async enrichment pipeline"
+
+msgctxt "auth.brand"
+msgid "hero"
+msgstr "Persistent Agent Memory Infrastructure"
+
+msgctxt "auth.brand.stats"
+msgid "graphBackends"
+msgstr "Graph Backends"
+
+msgctxt "auth.brand.stats"
+msgid "llmProviders"
+msgstr "LLM Providers"
+
+msgctxt "auth.brand.stats"
+msgid "scale"
+msgstr "Scale"
+
+msgctxt "auth.brand"
+msgid "tagline"
+msgstr "Agent Memory Infrastructure"
+
+msgctxt "auth.changePassword"
+msgid "changedMind"
+msgstr "Changed your mind?"
+
+msgctxt "auth.changePassword"
+msgid "currentPassword"
+msgstr "Current Password"
+
+msgctxt "auth.changePassword"
+msgid "currentPasswordPlaceholder"
+msgstr "Enter your current password"
+
+msgctxt "auth.changePassword"
+msgid "failed"
+msgstr "Failed to change password. Please try again."
+
+msgctxt "auth.changePassword"
+msgid "hero"
+msgstr "Secure your account before continuing"
+
+msgctxt "auth.changePassword"
+msgid "min8Chars"
+msgstr "Minimum 8 characters"
+
+msgctxt "auth.changePassword"
+msgid "newPassword"
+msgstr "New Password"
+
+msgctxt "auth.changePassword"
+msgid "passwordStrength"
+msgstr "Password strength"
+
+msgctxt "auth.changePassword"
+msgid "returnDashboard"
+msgstr "Return to dashboard"
+
+msgctxt "auth.changePassword"
+msgid "subtitle"
+msgstr "Your password must be updated before you can continue"
+
+msgctxt "auth.changePassword"
+msgid "title"
+msgstr "Change Password"
+
+msgctxt "auth.changePassword"
+msgid "updatePassword"
+msgstr "Update Password"
+
+msgctxt "auth.common"
+msgid "connectionError"
+msgstr "Connection error. Please try again."
+
+msgctxt "auth.common"
+msgid "email"
+msgstr "Email"
+
+msgctxt "auth.common"
+msgid "emailPlaceholder"
+msgstr "you@example.com"
+
+msgctxt "auth.common"
+msgid "password"
+msgstr "Password"
+
+msgctxt "auth.common"
+msgid "passwordPlaceholder"
+msgstr "Enter your password"
+
+msgctxt "auth.forgot"
+msgid "backToLogin"
+msgstr "Back to login"
+
+msgctxt "auth.forgot"
+msgid "brandTagline"
+msgstr "Agent Memory Infrastructure"
+
+msgctxt "auth.forgot"
+msgid "checkEmail"
+msgstr "Check your email"
+
+msgctxt "auth.forgot"
+msgid "connectionError"
+msgstr "Connection error."
+
+msgctxt "auth.forgot"
+msgid "emailLabel"
+msgstr "Email"
+
+msgctxt "auth.forgot"
+msgid "emailPlaceholder"
+msgstr "you@example.com"
+
+msgctxt "auth.forgot"
+msgid "enterResetCode"
+msgstr "Enter Reset Code"
+
+msgctxt "auth.forgot"
+msgid "failedGeneric"
+msgstr "Something went wrong. Please try again."
+
+msgctxt "auth.forgot"
+msgid "heroTitle"
+msgstr "Reset your password"
+
+msgctxt "auth.forgot"
+msgid "sendResetCode"
+msgstr "Send Reset Code"
+
+msgctxt "auth.forgot"
+msgid "sentBody"
+msgstr "If an account exists for <strong>{email}</strong>, you will receive a password reset code shortly."
+
+msgctxt "auth.forgot"
+msgid "sentTitle"
+msgstr "Password reset sent"
+
+msgctxt "auth.forgot"
+msgid "spamHint"
+msgstr "Didn't receive it? Check your spam folder."
+
+msgctxt "auth.forgot"
+msgid "subtitle"
+msgstr "Enter your email and we'll send you a reset code."
+
+msgctxt "auth.forgot"
+msgid "title"
+msgstr "Forgot password?"
+
+msgctxt "auth.loadingScreen"
+msgid "loading"
+msgstr "Loading your workspace…"
+
+msgctxt "auth.loadingScreen"
+msgid "tagline"
+msgstr "Agent Memory Infrastructure"
+
+msgctxt "auth.login"
+msgid "forgotPassword"
+msgstr "Forgot password?"
+
+msgctxt "auth.login"
+msgid "invalidCredentials"
+msgstr "Invalid email or password."
+
+msgctxt "auth.login"
+msgid "magicCode"
+msgstr "Sign in with a magic code"
+
+msgctxt "auth.login"
+msgid "noAccount"
+msgstr "Don't have an account?"
+
+msgctxt "auth.login"
+msgid "noticeBody"
+msgstr "Please sign in to access the dashboard."
+
+msgctxt "auth.login"
+msgid "noticeTitle"
+msgstr "Sign in required"
+
+msgctxt "auth.login"
+msgid "or"
+msgstr "or"
+
+msgctxt "auth.login"
+msgid "signIn"
+msgstr "Sign In"
+
+msgctxt "auth.login"
+msgid "signUp"
+msgstr "Sign up"
+
+msgctxt "auth.login"
+msgid "subtitle"
+msgstr "Sign in to your organization dashboard"
+
+msgctxt "auth.login"
+msgid "welcome"
+msgstr "Welcome back"
+
+msgctxt "auth.mfa"
+msgid "again"
+msgstr "again"
+
+msgctxt "auth.mfa"
+msgid "authCode"
+msgstr "Authentication Code"
+
+msgctxt "auth.mfa"
+msgid "backToLogin"
+msgstr "Back to login"
+
+msgctxt "auth.mfa"
+msgid "brandHero"
+msgstr "Persistent Agent Memory Infrastructure"
+
+msgctxt "auth.mfa"
+msgid "brandStatGraphBackends"
+msgstr "Graph Backends"
+
+msgctxt "auth.mfa"
+msgid "brandStatLlmProviders"
+msgstr "LLM Providers"
+
+msgctxt "auth.mfa"
+msgid "brandStatScale"
+msgstr "Scale"
+
+msgctxt "auth.mfa"
+msgid "brandTagline"
+msgstr "Agent Memory Infrastructure"
+
+msgctxt "auth.mfa"
+msgid "connectionError"
+msgstr "Connection error. Please try again."
+
+msgctxt "auth.mfa"
+msgid "desc"
+msgstr "Enter the MFA code sent to"
+
+msgctxt "auth.mfa"
+msgid "invalidCode"
+msgstr "Invalid or expired verification code."
+
+msgctxt "auth.mfa"
+msgid "missingSession"
+msgstr "Missing session information. Please"
+
+msgctxt "auth.mfa"
+msgid "noCode"
+msgstr "Didn't receive the code? Sign in again to request a new one."
+
+msgctxt "auth.mfa"
+msgid "otpPlaceholder"
+msgstr "000000"
+
+msgctxt "auth.mfa"
+msgid "signInLink"
+msgstr "sign in"
+
+msgctxt "auth.mfa"
+msgid "title"
+msgstr "Verify your identity"
+
+msgctxt "auth.mfa"
+msgid "verify"
+msgstr "Verify"
+
+msgctxt "auth.onboarding"
+msgid "anthropicApiKey"
+msgstr "Anthropic API Key"
+
+msgctxt "auth.onboarding"
+msgid "apiKeyRequired"
+msgstr "At least one LLM API key is required to use the platform. Fill in the key for your chosen provider below."
+
+msgctxt "auth.onboarding"
+msgid "apiKeysDesc"
+msgstr "Credentials for LLM providers — fill in the key for your chosen provider"
+
+msgctxt "auth.onboarding"
+msgid "apiKeysTitle"
+msgstr "API Keys"
+
+msgctxt "auth.onboarding"
+msgid "auditLogResponseBody"
+msgstr "Audit Log Response Body"
+
+msgctxt "auth.onboarding"
+msgid "auditLogResponseBodyHint"
+msgstr "Include response body content in audit logs"
+
+msgctxt "auth.onboarding"
+msgid "azureApiKey"
+msgstr "Azure OpenAI API Key"
+
+msgctxt "auth.onboarding"
+msgid "azureApiKeyPlaceholder"
+msgstr "Azure API key"
+
+msgctxt "auth.onboarding"
+msgid "azureEndpoint"
+msgstr "Azure OpenAI Endpoint"
+
+msgctxt "auth.onboarding"
+msgid "azureEndpointPlaceholder"
+msgstr "https://my-resource.openai.azure.com"
+
+msgctxt "auth.onboarding"
+msgid "back"
+msgstr "Back"
+
+msgctxt "auth.onboarding"
+msgid "backendProvider"
+msgstr "Backend Provider"
+
+msgctxt "auth.onboarding"
+msgid "behaviourDesc"
+msgstr "Caching and audit behaviour"
+
+msgctxt "auth.onboarding"
+msgid "behaviourTitle"
+msgstr "Behaviour"
+
+msgctxt "auth.onboarding"
+msgid "contextCacheTtl"
+msgstr "Context Cache TTL (seconds)"
+
+msgctxt "auth.onboarding"
+msgid "contextCacheTtlHint"
+msgstr "How long context data is cached in Redis before being re-fetched (0 = no caching)"
+
+msgctxt "auth.onboarding"
+msgid "embeddingApiKey"
+msgstr "Embedding API Key"
+
+msgctxt "auth.onboarding"
+msgid "embeddingApiKeyPlaceholder"
+msgstr "Embedding provider API key"
+
+msgctxt "auth.onboarding"
+msgid "embeddingDimensions"
+msgstr "Embedding Dimensions"
+
+msgctxt "auth.onboarding"
+msgid "embeddingModelPlaceholder"
+msgstr "text-embedding-3-small, ..."
+
+msgctxt "auth.onboarding"
+msgid "embeddingsDesc"
+msgstr "Vector embedding model configuration"
+
+msgctxt "auth.onboarding"
+msgid "embeddingsTitle"
+msgstr "Embeddings"
+
+msgctxt "auth.onboarding"
+msgid "falkordbUrl"
+msgstr "FalkorDB URL"
+
+msgctxt "auth.onboarding"
+msgid "falkordbUrlHint"
+msgstr "Required when using FalkorDB backend and no system-level config exists. If FalkorDB is configured at the system level, this field is ignored."
+
+msgctxt "auth.onboarding"
+msgid "falkordbUrlPlaceholder"
+msgstr "redis://falkordb:6379"
+
+msgctxt "auth.onboarding"
+msgid "graphBackend"
+msgstr "Graph Backend"
+
+msgctxt "auth.onboarding"
+msgid "graphBackendNone"
+msgstr "No graph backend"
+
+msgctxt "auth.onboarding"
+msgid "graphDesc"
+msgstr "Graph backend, search, and traversal settings"
+
+msgctxt "auth.onboarding"
+msgid "graphTitle"
+msgstr "Knowledge Graph"
+
+msgctxt "auth.onboarding"
+msgid "llmSectionDesc"
+msgstr "Primary language model provider"
+
+msgctxt "auth.onboarding"
+msgid "llmSectionTitle"
+msgstr "LLM Configuration"
+
+msgctxt "auth.onboarding"
+msgid "loadDefaultsError"
+msgstr "Failed to load default configuration"
+
+msgctxt "auth.onboarding"
+msgid "loadDefaultsFallback"
+msgstr "Failed to load configuration defaults"
+
+msgctxt "auth.onboarding"
+msgid "loading"
+msgstr "Loading configuration defaults..."
+
+msgctxt "auth.onboarding"
+msgid "maxTokens"
+msgstr "Max Tokens"
+
+msgctxt "auth.onboarding"
+msgid "maxTraversalDepth"
+msgstr "Max Traversal Depth"
+
+msgctxt "auth.onboarding"
+msgid "maxTraversalDepthHint"
+msgstr "How many hops the graph traversal will follow (1–10)"
+
+msgctxt "auth.onboarding"
+msgid "model"
+msgstr "Model"
+
+msgctxt "auth.onboarding"
+msgid "modelPlaceholder"
+msgstr "gpt-4o-mini, claude-sonnet-4, ..."
+
+msgctxt "auth.onboarding"
+msgid "next"
+msgstr "Next"
+
+msgctxt "auth.onboarding"
+msgid "ollamaBaseUrl"
+msgstr "Ollama Base URL"
+
+msgctxt "auth.onboarding"
+msgid "ollamaBaseUrlPlaceholder"
+msgstr "http://localhost:11434"
+
+msgctxt "auth.onboarding"
+msgid "openaiApiKey"
+msgstr "OpenAI API Key"
+
+msgctxt "auth.onboarding"
+msgid "openrouterApiKey"
+msgstr "OpenRouter API Key"
+
+msgctxt "auth.onboarding"
+msgid "providerName"
+msgstr "Provider Name"
+
+msgctxt "auth.onboarding"
+msgid "providerNamePlaceholder"
+msgstr "openai, azure, ..."
+
+msgctxt "auth.onboarding.review"
+msgid "anthropicApiKey"
+msgstr "Anthropic API Key"
+
+msgctxt "auth.onboarding.review"
+msgid "auditLogResponseBody"
+msgstr "Audit Log Response Body"
+
+msgctxt "auth.onboarding.review"
+msgid "azureApiKey"
+msgstr "Azure OpenAI API Key"
+
+msgctxt "auth.onboarding.review"
+msgid "azureEndpoint"
+msgstr "Azure Endpoint"
+
+msgctxt "auth.onboarding.review"
+msgid "contextCacheTtl"
+msgstr "Context Cache TTL"
+
+msgctxt "auth.onboarding.review"
+msgid "disabled"
+msgstr "Disabled"
+
+msgctxt "auth.onboarding.review"
+msgid "embeddingBackend"
+msgstr "Embedding Backend"
+
+msgctxt "auth.onboarding.review"
+msgid "embeddingModel"
+msgstr "Embedding Model"
+
+msgctxt "auth.onboarding.review"
+msgid "embeddingProvider"
+msgstr "Embedding Provider"
+
+msgctxt "auth.onboarding.review"
+msgid "enabled"
+msgstr "Enabled"
+
+msgctxt "auth.onboarding.review"
+msgid "falkordbUrl"
+msgstr "FalkorDB URL"
+
+msgctxt "auth.onboarding.review"
+msgid "graphBackend"
+msgstr "Graph Backend"
+
+msgctxt "auth.onboarding.review"
+msgid "llmBackend"
+msgstr "LLM Backend"
+
+msgctxt "auth.onboarding.review"
+msgid "llmModel"
+msgstr "LLM Model"
+
+msgctxt "auth.onboarding.review"
+msgid "maxTokens"
+msgstr "Max Tokens"
+
+msgctxt "auth.onboarding.review"
+msgid "maxTraversalDepth"
+msgstr "Max Traversal Depth"
+
+msgctxt "auth.onboarding.review"
+msgid "notSet"
+msgstr "Not set"
+
+msgctxt "auth.onboarding.review"
+msgid "ollamaBaseUrl"
+msgstr "Ollama Base URL"
+
+msgctxt "auth.onboarding.review"
+msgid "openaiApiKey"
+msgstr "OpenAI API Key"
+
+msgctxt "auth.onboarding.review"
+msgid "openrouterApiKey"
+msgstr "OpenRouter API Key"
+
+msgctxt "auth.onboarding.review"
+msgid "searchType"
+msgstr "Search Type"
+
+msgctxt "auth.onboarding.review"
+msgid "set"
+msgstr "Set"
+
+msgctxt "auth.onboarding.review"
+msgid "surrealdbUrl"
+msgstr "SurrealDB URL"
+
+msgctxt "auth.onboarding.review"
+msgid "temperature"
+msgstr "Temperature"
+
+msgctxt "auth.onboarding"
+msgid "reviewDesc"
+msgstr "Confirm your configuration before saving"
+
+msgctxt "auth.onboarding"
+msgid "reviewTitle"
+msgstr "Review & Save"
+
+msgctxt "auth.onboarding"
+msgid "saveAndContinue"
+msgstr "Save & Continue"
+
+msgctxt "auth.onboarding"
+msgid "savedToast"
+msgstr "Configuration saved successfully"
+
+msgctxt "auth.onboarding"
+msgid "saveFailed"
+msgstr "Failed to save configuration"
+
+msgctxt "auth.onboarding"
+msgid "saving"
+msgstr "Saving..."
+
+msgctxt "auth.onboarding"
+msgid "searchType"
+msgstr "Search Type"
+
+msgctxt "auth.onboarding"
+msgid "skipForNow"
+msgstr "Skip for now"
+
+msgctxt "auth.onboarding"
+msgid "step1Title"
+msgstr "LLM Provider"
+
+msgctxt "auth.onboarding"
+msgid "step2Title"
+msgstr "Embeddings & Graph"
+
+msgctxt "auth.onboarding"
+msgid "step3Title"
+msgstr "Review & Save"
+
+msgctxt "auth.onboarding"
+msgid "subtitle"
+msgstr "Configure your organization's LLM, embeddings, graph, and behaviour settings. Secrets like API keys must be filled in before you can use the platform."
+
+msgctxt "auth.onboarding"
+msgid "surrealdbDatabase"
+msgstr "SurrealDB Database"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbDatabasePlaceholder"
+msgstr "SurrealDB database"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbNamespace"
+msgstr "SurrealDB Namespace"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbNamespacePlaceholder"
+msgstr "SurrealDB namespace"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbPassword"
+msgstr "SurrealDB Password"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbPasswordPlaceholder"
+msgstr "SurrealDB password"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbUrl"
+msgstr "SurrealDB URL"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbUrlHint"
+msgstr "Required when using SurrealDB backend"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbUrlPlaceholder"
+msgstr "ws://surrealdb:8000/rpc"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbUsername"
+msgstr "SurrealDB Username"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbUsernamePlaceholder"
+msgstr "SurrealDB username"
+
+msgctxt "auth.onboarding"
+msgid "temperature"
+msgstr "Temperature"
+
+msgctxt "auth.onboarding"
+msgid "title"
+msgstr "Complete Your Setup"
+
+msgctxt "auth.otp"
+msgid "backToPasswordLogin"
+msgstr "Back to password login"
+
+msgctxt "auth.otp"
+msgid "brandHero"
+msgstr "Persistent Agent Memory Infrastructure"
+
+msgctxt "auth.otp"
+msgid "brandStatGraphBackends"
+msgstr "Graph Backends"
+
+msgctxt "auth.otp"
+msgid "brandStatLlmProviders"
+msgstr "LLM Providers"
+
+msgctxt "auth.otp"
+msgid "brandStatScale"
+msgstr "Scale"
+
+msgctxt "auth.otp"
+msgid "brandTagline"
+msgstr "Agent Memory Infrastructure"
+
+msgctxt "auth.otp"
+msgid "codeSent"
+msgstr "Code sent!"
+
+msgctxt "auth.otp"
+msgid "connectionError"
+msgstr "Connection error. Please try again."
+
+msgctxt "auth.otp"
+msgid "descEmail"
+msgstr "We'll send a one-time code to your email"
+
+msgctxt "auth.otp"
+msgid "descOtp"
+msgstr "Sent to {email}"
+
+msgctxt "auth.otp"
+msgid "differentEmail"
+msgstr "Use a different email"
+
+msgctxt "auth.otp"
+msgid "emailLabel"
+msgstr "Email"
+
+msgctxt "auth.otp"
+msgid "emailPlaceholder"
+msgstr "you@example.com"
+
+msgctxt "auth.otp"
+msgid "invalidCode"
+msgstr "Invalid or expired code."
+
+msgctxt "auth.otp"
+msgid "newCodeSent"
+msgstr "A new code has been sent."
+
+msgctxt "auth.otp"
+msgid "otpPlaceholder"
+msgstr "000000"
+
+msgctxt "auth.otp"
+msgid "resend"
+msgstr "Resend code"
+
+msgctxt "auth.otp"
+msgid "resendFailed"
+msgstr "Failed to resend code."
+
+msgctxt "auth.otp"
+msgid "resendIn"
+msgstr "Resend in {count}s"
+
+msgctxt "auth.otp"
+msgid "sendFailed"
+msgstr "Failed to send login code."
+
+msgctxt "auth.otp"
+msgid "sending"
+msgstr "Sending..."
+
+msgctxt "auth.otp"
+msgid "sendLoginCode"
+msgstr "Send Login Code"
+
+msgctxt "auth.otp"
+msgid "signIn"
+msgstr "Sign In"
+
+msgctxt "auth.otp"
+msgid "titleEmail"
+msgstr "Sign in with a code"
+
+msgctxt "auth.otp"
+msgid "titleOtp"
+msgstr "Enter the code"
+
+msgctxt "auth.otp"
+msgid "verificationCode"
+msgstr "Verification Code"
+
+msgctxt "auth.reset"
+msgid "backToLogin"
+msgstr "Back to login"
+
+msgctxt "auth.reset"
+msgid "brandTagline"
+msgstr "Agent Memory Infrastructure"
+
+msgctxt "auth.reset"
+msgid "confirmPassword"
+msgstr "Confirm Password"
+
+msgctxt "auth.reset"
+msgid "connectionError"
+msgstr "Connection error."
+
+msgctxt "auth.reset"
+msgid "doneBody"
+msgstr "Redirecting you to login..."
+
+msgctxt "auth.reset"
+msgid "doneTitle"
+msgstr "Password reset successful"
+
+msgctxt "auth.reset"
+msgid "failed"
+msgstr "Failed to reset password. Please try again."
+
+msgctxt "auth.reset"
+msgid "forgotPasswordLink"
+msgstr "forgot password"
+
+msgctxt "auth.reset"
+msgid "heroTitle"
+msgstr "Reset your password"
+
+msgctxt "auth.reset"
+msgid "min8Chars"
+msgstr "Minimum 8 characters"
+
+msgctxt "auth.reset"
+msgid "mismatch"
+msgstr "Passwords do not match."
+
+msgctxt "auth.reset"
+msgid "newPassword"
+msgstr "New Password"
+
+msgctxt "auth.reset"
+msgid "noEmail"
+msgstr "No email provided. Please start from the"
+
+msgctxt "auth.reset"
+msgid "otpPlaceholder"
+msgstr "000000"
+
+msgctxt "auth.reset"
+msgid "page"
+msgstr "page"
+
+msgctxt "auth.reset"
+msgid "repeatPassword"
+msgstr "Repeat your password"
+
+msgctxt "auth.reset"
+msgid "submit"
+msgstr "Reset Password"
+
+msgctxt "auth.reset"
+msgid "subtitle"
+msgstr "Enter the code sent to <strong>{email}</strong>"
+
+msgctxt "auth.reset"
+msgid "title"
+msgstr "Reset password"
+
+msgctxt "auth.reset"
+msgid "tooShort"
+msgstr "Password must be at least 8 characters."
+
+msgctxt "auth.reset"
+msgid "verificationCode"
+msgstr "Verification Code"
+
+msgctxt "auth.signup"
+msgid "alreadyHaveAccount"
+msgstr "Already have an account?"
+
+msgctxt "auth.signup"
+msgid "brandTagline"
+msgstr "Agent Memory Infrastructure"
+
+msgctxt "auth.signup"
+msgid "closedBody"
+msgstr "The platform administrator has disabled self-registration. If you were invited, please contact your organization administrator for an invite link."
+
+msgctxt "auth.signup"
+msgid "closedSubtitle"
+msgstr "New accounts are not being accepted at this time"
+
+msgctxt "auth.signup"
+msgid "closedTitle"
+msgstr "Registration is currently closed"
+
+msgctxt "auth.signup"
+msgid "connectionError"
+msgstr "Connection error. Please try again."
+
+msgctxt "auth.signup"
+msgid "createAccount"
+msgstr "Create Account"
+
+msgctxt "auth.signup"
+msgid "createOrgTab"
+msgstr "Create organization"
+
+msgctxt "auth.signup"
+msgid "emailLabel"
+msgstr "Email"
+
+msgctxt "auth.signup"
+msgid "emailPlaceholder"
+msgstr "you@example.com"
+
+msgctxt "auth.signup"
+msgid "feature1"
+msgstr "Persistent, queryable agent memory"
+
+msgctxt "auth.signup"
+msgid "feature2"
+msgstr "Multi-provider LLM support (BYOK)"
+
+msgctxt "auth.signup"
+msgid "feature3"
+msgstr "Knowledge graph with hybrid search"
+
+msgctxt "auth.signup"
+msgid "feature4"
+msgstr "Async enrichment pipeline"
+
+msgctxt "auth.signup"
+msgid "hero"
+msgstr "Get started with agent memory infrastructure"
+
+msgctxt "auth.signup"
+msgid "joinOrganization"
+msgstr "Join Organization"
+
+msgctxt "auth.signup"
+msgid "joinTab"
+msgstr "Join with code"
+
+msgctxt "auth.signup"
+msgid "min8Chars"
+msgstr "Minimum 8 characters"
+
+msgctxt "auth.signup"
+msgid "orgCode"
+msgstr "Organization Code"
+
+msgctxt "auth.signup"
+msgid "orgCodePlaceholder"
+msgstr "XXXX-XXXX-XXXX"
+
+msgctxt "auth.signup"
+msgid "orgName"
+msgstr "Organization Name"
+
+msgctxt "auth.signup"
+msgid "orgNamePlaceholder"
+msgstr "My Organization"
+
+msgctxt "auth.signup"
+msgid "passwordLabel"
+msgstr "Password"
+
+msgctxt "auth.signup"
+msgid "passwordStrength"
+msgstr "Password strength"
+
+msgctxt "auth.signup"
+msgid "requestSubmitted"
+msgstr "Request submitted for approval"
+
+msgctxt "auth.signup"
+msgid "requestSubmittedFallback"
+msgstr "Your request has been submitted for approval."
+
+msgctxt "auth.signup"
+msgid "returnToSignIn"
+msgstr "Return to sign in"
+
+msgctxt "auth.signup"
+msgid "signIn"
+msgstr "Sign in"
+
+msgctxt "auth.signup"
+msgid "signupFailed"
+msgstr "Signup failed. Please try again."
+
+msgctxt "auth.signup"
+msgid "submitRequest"
+msgstr "Submit Request"
+
+msgctxt "auth.signup"
+msgid "subtitleCreate"
+msgstr "Set up your OpenZync organization"
+
+msgctxt "auth.signup"
+msgid "subtitleJoin"
+msgstr "Enter your organization code to join"
+
+msgctxt "auth.signup"
+msgid "subtitleRequest"
+msgstr "Submit your organization details for review"
+
+msgctxt "auth.signup"
+msgid "titleCreate"
+msgstr "Create your account"
+
+msgctxt "auth.signup"
+msgid "titleJoin"
+msgstr "Join an organization"
+
+msgctxt "auth.signup"
+msgid "titleRequest"
+msgstr "Request access to OpenZync"
+
+msgctxt "auth.verifyEmail"
+msgid "backToSignUp"
+msgstr "Back to sign up"
+
+msgctxt "auth.verifyEmail"
+msgid "brandTagline"
+msgstr "Agent Memory Infrastructure"
+
+msgctxt "auth.verifyEmail"
+msgid "desc"
+msgstr "We sent a verification code to"
+
+msgctxt "auth.verifyEmail"
+msgid "didntReceive"
+msgstr "Didn't receive the code?"
+
+msgctxt "auth.verifyEmail"
+msgid "feature1"
+msgstr "Persistent, queryable agent memory"
+
+msgctxt "auth.verifyEmail"
+msgid "feature2"
+msgstr "Multi-provider LLM support (BYOK)"
+
+msgctxt "auth.verifyEmail"
+msgid "feature3"
+msgstr "Knowledge graph with hybrid search"
+
+msgctxt "auth.verifyEmail"
+msgid "feature4"
+msgstr "Async enrichment pipeline"
+
+msgctxt "auth.verifyEmail"
+msgid "first"
+msgstr "first"
+
+msgctxt "auth.verifyEmail"
+msgid "hero"
+msgstr "Verify your email to continue"
+
+msgctxt "auth.verifyEmail"
+msgid "invalidCode"
+msgstr "Invalid or expired verification code."
+
+msgctxt "auth.verifyEmail"
+msgid "newCodeSent"
+msgstr "A new verification code has been sent."
+
+msgctxt "auth.verifyEmail"
+msgid "noEmail"
+msgstr "No email provided. Please"
+
+msgctxt "auth.verifyEmail"
+msgid "otpPlaceholder"
+msgstr "000000"
+
+msgctxt "auth.verifyEmail"
+msgid "resend"
+msgstr "Resend"
+
+msgctxt "auth.verifyEmail"
+msgid "resendFailed"
+msgstr "Failed to resend code."
+
+msgctxt "auth.verifyEmail"
+msgid "resendIn"
+msgstr "Resend in {count}s"
+
+msgctxt "auth.verifyEmail"
+msgid "sending"
+msgstr "Sending..."
+
+msgctxt "auth.verifyEmail"
+msgid "signUpLink"
+msgstr "sign up"
+
+msgctxt "auth.verifyEmail"
+msgid "title"
+msgstr "Check your email"
+
+msgctxt "auth.verifyEmail"
+msgid "verificationCode"
+msgstr "Verification Code"
+
+msgctxt "auth.verifyEmail"
+msgid "verificationFailed"
+msgstr "Verification failed."
+
+msgctxt "auth.verifyEmail"
+msgid "verifyEmail"
+msgstr "Verify Email"
+
+msgctxt "common"
+msgid "apply"
+msgstr "Apply"
+
+msgctxt "common"
+msgid "cancel"
+msgstr "Cancel"
+
+msgctxt "common"
+msgid "clear"
+msgstr "Clear"
+
+#. Meta description for SEO and social sharing.
+msgctxt "common.metadata"
+msgid "description"
+msgstr "OpenZync — Agent Memory Infrastructure"
+
+#. Document <title> shown in the browser tab.
+msgctxt "common.metadata"
+msgid "title"
+msgstr "OpenZync Dashboard"
+
+msgctxt "common"
+msgid "nextPage"
+msgstr "Next page"
+
+msgctxt "common"
+msgid "pageOf"
+msgstr "Page {current} of {total}"
+
+msgctxt "common"
+msgid "previousPage"
+msgstr "Previous page"
+
+msgctxt "common"
+msgid "retry"
+msgstr "Retry"
+
+msgctxt "common"
+msgid "skipToMain"
+msgstr "Skip to main content"
+
+msgctxt "common"
+msgid "skipToNav"
+msgstr "Skip to navigation"
+
+#. Relative timestamp: {count} is days.
+msgctxt "common.timeAgo"
+msgid "days"
+msgstr "{count}d ago"
+
+#. Relative timestamp: {count} is hours.
+msgctxt "common.timeAgo"
+msgid "hours"
+msgstr "{count}h ago"
+
+#. Relative timestamp: {count} is minutes.
+msgctxt "common.timeAgo"
+msgid "minutes"
+msgstr "{count}m ago"
+
+#. Relative timestamp label: less than a minute ago.
+msgctxt "common.timeAgo"
+msgid "now"
+msgstr "just now"
+
+#. Relative timestamp: {count} is seconds.
+msgctxt "common.timeAgo"
+msgid "seconds"
+msgstr "{count}s ago"
+
+msgctxt "common"
+msgid "totalEntries"
+msgstr "{count, plural, =1 {# total entry} other {# total entries}}"
+
+msgctxt "components.badge"
+msgid "actorApiKey"
+msgstr "API Key"
+
+msgctxt "components.badge"
+msgid "actorSystem"
+msgstr "System"
+
+msgctxt "components.badge"
+msgid "actorUser"
+msgstr "User"
+
+msgctxt "components"
+msgid "breadcrumbLabel"
+msgstr "Breadcrumb"
+
+msgctxt "components.commandPalette.groups"
+msgid "projects"
+msgstr "Projects"
+
+msgctxt "components.commandPalette.groups"
+msgid "sessions"
+msgstr "Sessions"
+
+msgctxt "components.commandPalette.groups"
+msgid "users"
+msgstr "Users"
+
+msgctxt "components.commandPalette.nav"
+msgid "accountSettings"
+msgstr "Account Settings"
+
+msgctxt "components.commandPalette.nav"
+msgid "apiKeys"
+msgstr "API Keys"
+
+msgctxt "components.commandPalette.nav"
+msgid "auditLog"
+msgstr "Audit Log"
+
+msgctxt "components.commandPalette.nav"
+msgid "classifications"
+msgstr "Classifications"
+
+msgctxt "components.commandPalette.nav"
+msgid "configuration"
+msgstr "Configuration"
+
+msgctxt "components.commandPalette.nav"
+msgid "extractionInstructions"
+msgstr "Extraction Instructions"
+
+msgctxt "components.commandPalette.nav"
+msgid "extractions"
+msgstr "Extractions"
+
+msgctxt "components.commandPalette.nav"
+msgid "extractionSchemas"
+msgstr "Extraction Schemas"
+
+msgctxt "components.commandPalette.nav"
+msgid "monitoring"
+msgstr "Monitoring"
+
+msgctxt "components.commandPalette.nav"
+msgid "overview"
+msgstr "Overview"
+
+msgctxt "components.commandPalette.nav"
+msgid "projects"
+msgstr "Projects"
+
+msgctxt "components.commandPalette.nav"
+msgid "promptTemplates"
+msgstr "Prompt Templates"
+
+msgctxt "components.commandPalette.nav"
+msgid "users"
+msgstr "Users"
+
+msgctxt "components.commandPalette.nav"
+msgid "webhooks"
+msgstr "Webhooks"
+
+msgctxt "components.commandPalette"
+msgid "noResults"
+msgstr "No results found."
+
+msgctxt "components.commandPalette"
+msgid "placeholder"
+msgstr "Search projects, users, sessions…"
+
+msgctxt "components.commandPalette"
+msgid "searching"
+msgstr "Searching…"
+
+msgctxt "components.commandPalette.section"
+msgid "navigation"
+msgstr "Navigation"
+
+msgctxt "components.commandPalette.section"
+msgid "settings"
+msgstr "Settings"
+
+msgctxt "components.confirmDialog"
+msgid "cancel"
+msgstr "Cancel"
+
+msgctxt "components.confirmDialog"
+msgid "confirm"
+msgstr "Confirm"
+
+msgctxt "components.dialog"
+msgid "cancel"
+msgstr "Cancel"
+
+msgctxt "components.dialog"
+msgid "close"
+msgstr "Close dialog"
+
+msgctxt "components.enrichmentStatus"
+msgid "ariaLabel"
+msgstr "Enrichment pipeline status"
+
+msgctxt "components.enrichmentStatus"
+msgid "episodesQueued"
+msgstr "{count, plural, =1 {# episode queued for enrichment} other {# episodes queued for enrichment}}"
+
+msgctxt "components.enrichmentStatus"
+msgid "job"
+msgstr "Job {id}"
+
+msgctxt "components.enrichmentStatus"
+msgid "note"
+msgstr "Enrichment runs in the background — entities and facts appear as workers process episodes."
+
+msgctxt "components.enrichmentStatus.stages"
+msgid "accepted"
+msgstr "Ingest accepted"
+
+msgctxt "components.enrichmentStatus.stages"
+msgid "done"
+msgstr "Done"
+
+msgctxt "components.enrichmentStatus.stages"
+msgid "processing"
+msgstr "Processing"
+
+msgctxt "components.enrichmentStatus.stages"
+msgid "queued"
+msgstr "Job queued"
+
+msgctxt "components.forceGraph"
+msgid "created"
+msgstr "Created {time}"
+
+msgctxt "components.forceGraph"
+msgid "empty"
+msgstr "No graph entities found"
+
+msgctxt "components.forceGraph"
+msgid "emptyHint"
+msgstr "Ingest some data to populate the knowledge graph"
+
+msgctxt "components.forceGraph"
+msgid "enterFullscreen"
+msgstr "Enter fullscreen"
+
+msgctxt "components.forceGraph"
+msgid "entityTypes"
+msgstr "Entity Types"
+
+msgctxt "components.forceGraph"
+msgid "exitFullscreen"
+msgstr "Exit fullscreen (Esc)"
+
+msgctxt "components.forceGraph"
+msgid "filterHint"
+msgstr "Try a different filter term"
+
+msgctxt "components.forceGraph"
+msgid "filterPlaceholder"
+msgstr "Filter by name or type…"
+
+msgctxt "components.forceGraph.legend"
+msgid "community"
+msgstr "Community"
+
+msgctxt "components.forceGraph.legend"
+msgid "concept"
+msgstr "Concept"
+
+msgctxt "components.forceGraph.legend"
+msgid "event"
+msgstr "Event"
+
+msgctxt "components.forceGraph.legend"
+msgid "location"
+msgstr "Location"
+
+msgctxt "components.forceGraph.legend"
+msgid "organization"
+msgstr "Organization"
+
+msgctxt "components.forceGraph.legend"
+msgid "person"
+msgstr "Person"
+
+msgctxt "components.forceGraph"
+msgid "loading"
+msgstr "Loading graph data…"
+
+msgctxt "components.forceGraph"
+msgid "metadata"
+msgstr "Metadata"
+
+msgctxt "components.forceGraph"
+msgid "noMatching"
+msgstr "No matching entities"
+
+msgctxt "components.forceGraph"
+msgid "other"
+msgstr "Other"
+
+msgctxt "components.forceGraph"
+msgid "relatedTitle"
+msgstr "Include 1-hop neighbors of matched nodes"
+
+msgctxt "components.forceGraph"
+msgid "relationships"
+msgstr "Relationships ({count})"
+
+msgctxt "components.forceGraph"
+msgid "resetZoom"
+msgstr "Reset zoom"
+
+msgctxt "components.forceGraph"
+msgid "strictTitle"
+msgstr "Show only matching nodes (strict)"
+
+msgctxt "components.forceGraph"
+msgid "zoomIn"
+msgstr "Zoom in"
+
+msgctxt "components.forceGraph"
+msgid "zoomOut"
+msgstr "Zoom out"
+
+msgctxt "components.pageGuide"
+msgid "close"
+msgstr "Close guide"
+
+msgctxt "components.pageGuide"
+msgid "learn"
+msgstr "Learn about this page"
+
+msgctxt "components.secretInput"
+msgid "required"
+msgstr "Required"
+
+msgctxt "components.stickySaveBar"
+msgid "discard"
+msgstr "Discard"
+
+msgctxt "components.stickySaveBar"
+msgid "saveChanges"
+msgstr "Save Changes"
+
+msgctxt "components.stickySaveBar"
+msgid "saved"
+msgstr "Changes saved successfully"
+
+msgctxt "components.stickySaveBar"
+msgid "saving"
+msgstr "Saving…"
+
+msgctxt "components.stickySaveBar"
+msgid "unsaved"
+msgstr "You have unsaved changes"
+
+msgctxt "errors"
+msgid "adminAccessRequired"
+msgstr "Admin access required"
+
+#. Shown to users when an API request fails with HTTP 400.
+msgctxt "errors"
+msgid "http400"
+msgstr "The request was invalid."
+
+#. Shown to users when an API request fails with HTTP 401.
+msgctxt "errors"
+msgid "http401"
+msgstr "Your session has expired. Please sign in again."
+
+#. Shown to users when an API request fails with HTTP 403.
+msgctxt "errors"
+msgid "http403"
+msgstr "You don't have permission to perform this action."
+
+#. Shown to users when an API request fails with HTTP 404.
+msgctxt "errors"
+msgid "http404"
+msgstr "The requested resource was not found."
+
+#. Shown to users when an API request fails with HTTP 409.
+msgctxt "errors"
+msgid "http409"
+msgstr "The request conflicts with the current state of the resource."
+
+#. Shown to users when an API request fails with HTTP 413.
+msgctxt "errors"
+msgid "http413"
+msgstr "The upload is too large."
+
+#. Shown to users when an API request fails with HTTP 422.
+msgctxt "errors"
+msgid "http422"
+msgstr "The request could not be validated."
+
+#. Shown to users when an API request fails with HTTP 429.
+msgctxt "errors"
+msgid "http429"
+msgstr "Too many requests. Please try again later."
+
+#. Shown to users when an API request fails with HTTP 500.
+msgctxt "errors"
+msgid "http500"
+msgstr "Something went wrong on our end. Please try again."
+
+msgctxt "errors"
+msgid "requestFailed"
+msgstr "Request failed with status {status}"
+
+msgctxt "graph.communities"
+msgid "emptyDescription"
+msgstr "Community detection runs as a scheduled task after graph sync."
+
+msgctxt "graph.communities"
+msgid "emptyTitle"
+msgstr "No communities found"
+
+msgctxt "graph.communities"
+msgid "guideBody"
+msgstr "Communities are clusters of related entities discovered through graph analysis. They reveal groups of entities that are densely connected, helping you identify natural groupings in your data."
+
+msgctxt "graph.communities"
+msgid "guideTitle"
+msgstr "Communities"
+
+msgctxt "graph.communities"
+msgid "loadFailed"
+msgstr "Failed to load communities"
+
+msgctxt "graph.communities"
+msgid "noProjectDescription"
+msgstr "Select a project to view communities"
+
+msgctxt "graph.communities"
+msgid "subtitle"
+msgstr "Community clusters from Label Propagation · {name}"
+
+msgctxt "graph.communities"
+msgid "subtitleGeneric"
+msgstr "Community clusters from Label Propagation"
+
+msgctxt "graph.communities"
+msgid "title"
+msgstr "Communities"
+
+msgctxt "graph.explorer"
+msgid "guideBody"
+msgstr "Explore the knowledge graph visually. Nodes represent entities — people, places, concepts — and edges represent relationships between them. Search, filter, and navigate to understand your data’s structure."
+
+msgctxt "graph.explorer"
+msgid "guideTitle"
+msgstr "Graph explorer"
+
+msgctxt "graph.explorer"
+msgid "limitNotice"
+msgstr "Showing the first 100 entities — refine filters or query for more."
+
+msgctxt "graph.explorer"
+msgid "loadError"
+msgstr "Failed to load graph"
+
+msgctxt "graph.explorer"
+msgid "noProjectDescription"
+msgstr "Select a project to explore the knowledge graph"
+
+msgctxt "graph.explorer"
+msgid "refresh"
+msgstr "Refresh"
+
+msgctxt "graph.explorer"
+msgid "subtitle"
+msgstr "Explore entities and relationships in your knowledge graph · {name}"
+
+msgctxt "graph.explorer"
+msgid "subtitleGeneric"
+msgstr "Explore entities and relationships in your knowledge graph"
+
+msgctxt "graph.explorer"
+msgid "title"
+msgstr "Graph Explorer"
+
+msgctxt "graph.session"
+msgid "emptyMessage"
+msgstr "No entities found for this session. Facts must be extracted first."
+
+msgctxt "graph.session"
+msgid "guideBody"
+msgstr "Visualize the knowledge graph extracted from this specific session. Nodes represent entities mentioned in the conversation, and edges show how they relate to each other."
+
+msgctxt "graph.session"
+msgid "guideTitle"
+msgstr "Session graph"
+
+msgctxt "graph.session"
+msgid "noProject"
+msgstr "No project selected."
+
+msgctxt "graph.session"
+msgid "unknownError"
+msgstr "An unknown error occurred"
+
+msgctxt "invite"
+msgid "brandTagline"
+msgstr "Agent Memory Infrastructure"
+
+msgctxt "invite"
+msgid "brandTitle"
+msgstr "Join your organization"
+
+msgctxt "invite"
+msgid "confirmPasswordLabel"
+msgstr "Confirm Password"
+
+msgctxt "invite"
+msgid "connectionError"
+msgstr "Connection error. Please try again."
+
+msgctxt "invite"
+msgid "emailLabel"
+msgstr "Email"
+
+msgctxt "invite"
+msgid "feature1"
+msgstr "Persistent, queryable agent memory"
+
+msgctxt "invite"
+msgid "feature2"
+msgstr "Multi-provider LLM support (BYOK)"
+
+msgctxt "invite"
+msgid "feature3"
+msgstr "Knowledge graph with hybrid search"
+
+msgctxt "invite"
+msgid "feature4"
+msgstr "Async enrichment pipeline"
+
+msgctxt "invite"
+msgid "goToSignIn"
+msgstr "Go to sign in"
+
+msgctxt "invite"
+msgid "loading"
+msgstr "Checking your invitation…"
+
+msgctxt "invite"
+msgid "mismatch"
+msgstr "Passwords do not match."
+
+msgctxt "invite"
+msgid "nameLabel"
+msgstr "Name"
+
+msgctxt "invite"
+msgid "notFoundBody"
+msgstr "This invitation link is invalid or has expired."
+
+msgctxt "invite"
+msgid "notFoundTitle"
+msgstr "Invitation not found"
+
+msgctxt "invite"
+msgid "passwordLabel"
+msgstr "Password"
+
+msgctxt "invite"
+msgid "passwordPlaceholder"
+msgstr "Minimum 8 characters"
+
+msgctxt "invite"
+msgid "passwordStrength"
+msgstr "Password strength"
+
+msgctxt "invite"
+msgid "repeatPassword"
+msgstr "Repeat your password"
+
+msgctxt "invite"
+msgid "setPassword"
+msgstr "Set a password to activate your account."
+
+msgctxt "invite"
+msgid "setPasswordAndJoin"
+msgstr "Set password and join"
+
+msgctxt "invite"
+msgid "tooShort"
+msgstr "Password must be at least 8 characters."
+
+msgctxt "invite"
+msgid "welcomeTitle"
+msgstr "You've been invited to join <strong>{org}</strong>"
+
+msgctxt "memory.context"
+msgid "fetchFailed"
+msgstr "Failed to fetch context"
+
+msgctxt "memory.context"
+msgid "limit"
+msgstr "Limit"
+
+msgctxt "memory.context"
+msgid "queryError"
+msgstr "Please enter a query"
+
+msgctxt "memory.context"
+msgid "queryLabel"
+msgstr "Query"
+
+msgctxt "memory.context"
+msgid "queryPlaceholder"
+msgstr "e.g. What did the user say about their project?"
+
+msgctxt "memory.context"
+msgid "results"
+msgstr "Context Results"
+
+msgctxt "memory.context"
+msgid "submit"
+msgstr "Get Context"
+
+msgctxt "memory.context"
+msgid "title"
+msgstr "Query Context"
+
+msgctxt "memory"
+msgid "description"
+msgstr "Ingest messages, query context, and search across memory"
+
+msgctxt "memory"
+msgid "descriptionWithProject"
+msgstr "Ingest messages, query context, and search across memory · {name}"
+
+msgctxt "memory"
+msgid "guideBody"
+msgstr "Memory stores accumulated knowledge across all sessions — entities, facts, and relationships extracted from conversations. This persistent knowledge graph enables your AI to recall context from past interactions."
+
+msgctxt "memory"
+msgid "guideTitle"
+msgstr "Knowledge memory"
+
+msgctxt "memory.ingest"
+msgid "attachments"
+msgstr "Attachments"
+
+msgctxt "memory.ingest"
+msgid "clickToUpload"
+msgstr "Click to upload"
+
+msgctxt "memory.ingest"
+msgid "defaultRole"
+msgstr "Default Role"
+
+msgctxt "memory.ingest"
+msgid "failed"
+msgstr "Ingest failed"
+
+msgctxt "memory.ingest"
+msgid "fileTypesHint"
+msgstr "Images, PDFs, documents — up to 50 MB each"
+
+msgctxt "memory.ingest"
+msgid "loadingSessions"
+msgstr "Loading sessions..."
+
+msgctxt "memory.ingest"
+msgid "messagesError"
+msgstr "Please enter at least one message"
+
+msgctxt "memory.ingest"
+msgid "messagesFormatHint"
+msgstr "one per line, format: role: content"
+
+msgctxt "memory.ingest"
+msgid "messagesLabel"
+msgstr "Messages"
+
+msgctxt "memory.ingest"
+msgid "messagesPlaceholder"
+msgstr "user: What is the capital of France?\nassistant: The capital of France is Paris."
+
+msgctxt "memory.ingest"
+msgid "noSessions"
+msgstr "No sessions found"
+
+msgctxt "memory.ingest"
+msgid "optional"
+msgstr "optional"
+
+msgctxt "memory.ingest"
+msgid "orDragDrop"
+msgstr "or drag and drop"
+
+msgctxt "memory.ingest"
+msgid "removeFile"
+msgstr "Remove file"
+
+msgctxt "memory.ingest"
+msgid "required"
+msgstr "required"
+
+msgctxt "memory.ingest"
+msgid "selectSession"
+msgstr "Select a session..."
+
+msgctxt "memory.ingest"
+msgid "selectSessionError"
+msgstr "Please select a session"
+
+msgctxt "memory.ingest"
+msgid "sessionHint"
+msgstr "Select a session — memory is ingested into an existing session only."
+
+msgctxt "memory.ingest"
+msgid "sessionLabel"
+msgstr "Session"
+
+msgctxt "memory.ingest"
+msgid "submit"
+msgstr "Ingest"
+
+msgctxt "memory.ingest"
+msgid "success"
+msgstr "Ingest Successful"
+
+msgctxt "memory.ingest"
+msgid "title"
+msgstr "Ingest Messages"
+
+msgctxt "memory"
+msgid "noProject"
+msgstr "Select a project to access memory features."
+
+msgctxt "memory.search"
+msgid "failed"
+msgstr "Search failed"
+
+msgctxt "memory.search"
+msgid "noResults"
+msgstr "No results found for this query."
+
+msgctxt "memory.search"
+msgid "queryError"
+msgstr "Please enter a query"
+
+msgctxt "memory.search"
+msgid "queryLabel"
+msgstr "Query"
+
+msgctxt "memory.search"
+msgid "queryPlaceholder"
+msgstr "Search across episodes, facts, and entities..."
+
+msgctxt "memory.search"
+msgid "results"
+msgstr "Results ({count})"
+
+msgctxt "memory.search"
+msgid "submit"
+msgstr "Search"
+
+msgctxt "memory.search.table"
+msgid "content"
+msgstr "Content"
+
+msgctxt "memory.search.table"
+msgid "score"
+msgstr "Score"
+
+msgctxt "memory.search.table"
+msgid "type"
+msgstr "Type"
+
+msgctxt "memory.search"
+msgid "title"
+msgstr "Search Memory"
+
+msgctxt "memory.search"
+msgid "typeFilter"
+msgstr "Type Filter"
+
+msgctxt "memory.search.types"
+msgid "entities"
+msgstr "Entities"
+
+msgctxt "memory.search.types"
+msgid "episodes"
+msgstr "Episodes"
+
+msgctxt "memory.search.types"
+msgid "facts"
+msgstr "Facts"
+
+msgctxt "memory.search"
+msgid "unknown"
+msgstr "unknown"
+
+msgctxt "memory.tabs"
+msgid "context"
+msgstr "Context"
+
+msgctxt "memory.tabs"
+msgid "ingest"
+msgstr "Ingest"
+
+msgctxt "memory.tabs"
+msgid "search"
+msgstr "Search"
+
+msgctxt "memory"
+msgid "title"
+msgstr "Memory"
+
+msgctxt "monitoring"
+msgid "autoRefreshes"
+msgstr "Auto-refreshes every {seconds}s"
+
+msgctxt "monitoring"
+msgid "description"
+msgstr "Real-time platform performance and health metrics"
+
+msgctxt "monitoring.enrichment"
+msgid "complete"
+msgstr "{pct}% complete"
+
+msgctxt "monitoring.enrichment"
+msgid "embedded"
+msgstr "Embedded"
+
+msgctxt "monitoring.enrichment"
+msgid "enriched"
+msgstr "Enriched"
+
+msgctxt "monitoring.enrichment"
+msgid "inProgress"
+msgstr "{count} in progress"
+
+msgctxt "monitoring.enrichment"
+msgid "pending"
+msgstr "Pending"
+
+msgctxt "monitoring.enrichment"
+msgid "title"
+msgstr "Enrichment Progress"
+
+msgctxt "monitoring"
+msgid "errorAdmin"
+msgstr "Admin access required"
+
+msgctxt "monitoring"
+msgid "errorLoad"
+msgstr "Unable to fetch monitoring data"
+
+msgctxt "monitoring"
+msgid "guideBody"
+msgstr "Monitor your platform health and performance in real time. Track enrichment progress, error rates, API latency percentiles, queue depth, and Prometheus scrape targets."
+
+msgctxt "monitoring"
+msgid "guideTitle"
+msgstr "Platform monitoring"
+
+msgctxt "monitoring.kpi"
+msgid "episodesAdded24h"
+msgstr "Episodes Added (24h)"
+
+msgctxt "monitoring.kpi"
+msgid "errorRate"
+msgstr "Error Rate"
+
+msgctxt "monitoring.kpi"
+msgid "queueDepth"
+msgstr "Queue Depth"
+
+msgctxt "monitoring.latency"
+msgid "context"
+msgstr "Context Assembly"
+
+msgctxt "monitoring.latency"
+msgid "empty"
+msgstr "No latency data available"
+
+msgctxt "monitoring.latency"
+msgid "graphSearch"
+msgstr "Graph Search"
+
+msgctxt "monitoring.latency"
+msgid "ms"
+msgstr "{value}ms"
+
+msgctxt "monitoring.latency"
+msgid "overall"
+msgstr "Overall API"
+
+msgctxt "monitoring.latency"
+msgid "subMs"
+msgstr "<1ms"
+
+msgctxt "monitoring.latency"
+msgid "title"
+msgstr "Latency"
+
+msgctxt "monitoring"
+msgid "live"
+msgstr "Live"
+
+msgctxt "monitoring.query"
+msgid "description"
+msgstr "Run ad-hoc PromQL queries"
+
+msgctxt "monitoring.query"
+msgid "placeholder"
+msgstr "e.g. rate(http_requests_total[5m])"
+
+msgctxt "monitoring.query"
+msgid "queryFailed"
+msgstr "Query failed"
+
+msgctxt "monitoring.query"
+msgid "run"
+msgstr "Run"
+
+msgctxt "monitoring.query"
+msgid "title"
+msgstr "Prometheus Query"
+
+msgctxt "monitoring"
+msgid "refreshing"
+msgstr "Refreshing…"
+
+msgctxt "monitoring"
+msgid "refreshNow"
+msgstr "Refresh now"
+
+msgctxt "monitoring.status"
+msgid "activeRequests"
+msgstr "Active Requests: {count}"
+
+msgctxt "monitoring.status"
+msgid "requestRate"
+msgstr "Request Rate: {twoxx} 2xx / {fivexx} 5xx"
+
+msgctxt "monitoring.status"
+msgid "status"
+msgstr "Status: {status}"
+
+msgctxt "monitoring.status"
+msgid "users"
+msgstr "Users: {count}"
+
+msgctxt "monitoring.targets"
+msgid "count"
+msgstr "{count, plural, =1 {# target} other {# targets}}"
+
+msgctxt "monitoring.targets"
+msgid "down"
+msgstr "DOWN"
+
+msgctxt "monitoring.targets"
+msgid "emptyDescription"
+msgstr "Targets will appear once Prometheus scrape jobs are configured."
+
+msgctxt "monitoring.targets"
+msgid "emptyTitle"
+msgstr "No scrape targets found"
+
+msgctxt "monitoring.targets.table"
+msgid "health"
+msgstr "Health"
+
+msgctxt "monitoring.targets.table"
+msgid "instance"
+msgstr "Instance"
+
+msgctxt "monitoring.targets.table"
+msgid "job"
+msgstr "Job"
+
+msgctxt "monitoring.targets.table"
+msgid "lastError"
+msgstr "Last Error"
+
+msgctxt "monitoring.targets.table"
+msgid "lastScrape"
+msgstr "Last Scrape"
+
+msgctxt "monitoring.targets"
+msgid "title"
+msgstr "Scrape Targets"
+
+msgctxt "monitoring.targets"
+msgid "up"
+msgstr "UP"
+
+msgctxt "monitoring"
+msgid "title"
+msgstr "Monitoring"
+
+msgctxt "monitoring"
+msgid "updated"
+msgstr "Updated {time}"
+
+msgctxt "nav"
+msgid "accountSettings"
+msgstr "Account Settings"
+
+msgctxt "nav"
+msgid "administration"
+msgstr "Administration"
+
+msgctxt "nav"
+msgid "apiKeys"
+msgstr "API Keys"
+
+msgctxt "nav"
+msgid "approvalRequests"
+msgstr "Approval Requests"
+
+msgctxt "nav"
+msgid "auditLog"
+msgstr "Audit Log"
+
+msgctxt "nav"
+msgid "classifications"
+msgstr "Classifications"
+
+msgctxt "nav"
+msgid "closeSidebar"
+msgstr "Close sidebar"
+
+msgctxt "nav"
+msgid "collapseSidebar"
+msgstr "Collapse sidebar"
+
+msgctxt "nav"
+msgid "communities"
+msgstr "Communities"
+
+msgctxt "nav"
+msgid "configuration"
+msgstr "Configuration"
+
+msgctxt "nav"
+msgid "expandSidebar"
+msgstr "Expand sidebar"
+
+msgctxt "nav"
+msgid "extractionInstructions"
+msgstr "Extraction Instructions"
+
+msgctxt "nav"
+msgid "extractions"
+msgstr "Extractions"
+
+msgctxt "nav"
+msgid "extractionSchemas"
+msgstr "Extraction Schemas"
+
+msgctxt "nav"
+msgid "facts"
+msgstr "Facts"
+
+msgctxt "nav"
+msgid "graphExplorer"
+msgstr "Graph Explorer"
+
+msgctxt "nav"
+msgid "insights"
+msgstr "Insights"
+
+msgctxt "nav"
+msgid "language"
+msgstr "Language"
+
+msgctxt "nav"
+msgid "mainNavigation"
+msgstr "Main navigation"
+
+msgctxt "nav"
+msgid "members"
+msgstr "Members"
+
+msgctxt "nav"
+msgid "memory"
+msgstr "Memory"
+
+msgctxt "nav"
+msgid "messages"
+msgstr "Messages"
+
+msgctxt "nav"
+msgid "monitoring"
+msgstr "Monitoring"
+
+msgctxt "nav"
+msgid "openSidebar"
+msgstr "Open sidebar"
+
+msgctxt "nav"
+msgid "organizations"
+msgstr "Organizations"
+
+msgctxt "nav"
+msgid "overview"
+msgstr "Overview"
+
+msgctxt "nav"
+msgid "platformAdmin"
+msgstr "Platform Admin"
+
+msgctxt "nav"
+msgid "project"
+msgstr "Project"
+
+msgctxt "nav"
+msgid "projects"
+msgstr "Projects"
+
+msgctxt "nav"
+msgid "projectSettings"
+msgstr "Project Settings"
+
+msgctxt "nav"
+msgid "promptTemplates"
+msgstr "Prompt Templates"
+
+msgctxt "nav"
+msgid "search"
+msgstr "Search"
+
+msgctxt "nav"
+msgid "session"
+msgstr "Session"
+
+msgctxt "nav"
+msgid "sessions"
+msgstr "Sessions"
+
+msgctxt "nav"
+msgid "settings"
+msgstr "Settings"
+
+msgctxt "nav"
+msgid "sidebar"
+msgstr "Sidebar"
+
+msgctxt "nav"
+msgid "signOut"
+msgstr "Sign Out"
+
+msgctxt "nav"
+msgid "system"
+msgstr "System"
+
+msgctxt "nav"
+msgid "systemConfiguration"
+msgstr "System Configuration"
+
+msgctxt "nav"
+msgid "users"
+msgstr "Users"
+
+msgctxt "nav"
+msgid "viewAllProjects"
+msgstr "View all projects"
+
+msgctxt "nav"
+msgid "webhooks"
+msgstr "Webhooks"
+
+msgctxt "overview.actions"
+msgid "apiKeyCreate"
+msgstr "API key generated"
+
+msgctxt "overview.actions"
+msgid "apiKeyRevoke"
+msgstr "API key revoked"
+
+msgctxt "overview.actions"
+msgid "authLogin"
+msgstr "User logged in"
+
+msgctxt "overview.actions"
+msgid "authProfileUpdate"
+msgstr "Profile updated"
+
+msgctxt "overview.actions"
+msgid "authRefresh"
+msgstr "Session refreshed"
+
+msgctxt "overview.actions"
+msgid "authSignup"
+msgstr "User signed up"
+
+msgctxt "overview.actions"
+msgid "entityMerge"
+msgstr "Entities merged"
+
+msgctxt "overview.actions"
+msgid "factCreate"
+msgstr "Fact extracted"
+
+msgctxt "overview.actions"
+msgid "graphNodeDelete"
+msgstr "Graph entity removed"
+
+msgctxt "overview.actions"
+msgid "memoryIngest"
+msgstr "Message ingested"
+
+msgctxt "overview.actions"
+msgid "memoryWipe"
+msgstr "Memory wiped"
+
+msgctxt "overview.actions"
+msgid "organizationCreate"
+msgstr "Organization created"
+
+msgctxt "overview.actions"
+msgid "schemaCreate"
+msgstr "Extraction schema created"
+
+msgctxt "overview.actions"
+msgid "schemaDelete"
+msgstr "Extraction schema deleted"
+
+msgctxt "overview.actions"
+msgid "schemaUpdate"
+msgstr "Extraction schema updated"
+
+msgctxt "overview.actions"
+msgid "sessionCreate"
+msgstr "Session created"
+
+msgctxt "overview.actions"
+msgid "sessionDelete"
+msgstr "Session deleted"
+
+msgctxt "overview.actions"
+msgid "userCreate"
+msgstr "User added"
+
+msgctxt "overview.actions"
+msgid "userDelete"
+msgstr "User removed"
+
+msgctxt "overview.actions"
+msgid "userUpdate"
+msgstr "User updated"
+
+msgctxt "overview.actors"
+msgid "anonymous"
+msgstr "Anonymous"
+
+msgctxt "overview.actors"
+msgid "api"
+msgstr "API"
+
+msgctxt "overview.actors"
+msgid "system"
+msgstr "System"
+
+msgctxt "overview.actors"
+msgid "user"
+msgstr "User"
+
+msgctxt "overview"
+msgid "chartEmpty"
+msgstr "No usage data available for this period."
+
+msgctxt "overview"
+msgid "chartEmptyHint"
+msgstr "Try selecting a different time range."
+
+msgctxt "overview"
+msgid "createFirstProject"
+msgstr "Create your first project"
+
+msgctxt "overview"
+msgid "description"
+msgstr "Organization dashboard — stats, activity, and usage trends"
+
+msgctxt "overview"
+msgid "guideBody"
+msgstr "Monitor your organization's key metrics — messages, sessions, facts, users, episodes, and API keys. View recent activity and track daily usage trends with the interactive chart."
+
+msgctxt "overview"
+msgid "guideTitle"
+msgstr "Your organization at a glance"
+
+msgctxt "overview.legend"
+msgid "messages"
+msgstr "Messages"
+
+msgctxt "overview.legend"
+msgid "sessions"
+msgstr "Sessions"
+
+msgctxt "overview"
+msgid "noActionsAvailable"
+msgstr "No actions available"
+
+msgctxt "overview"
+msgid "noRecentActivity"
+msgstr "No recent activity found."
+
+msgctxt "overview"
+msgid "quickActionsTitle"
+msgstr "Quick Actions"
+
+msgctxt "overview"
+msgid "quickstartBody"
+msgstr "Your workspace is ready — create a project, ingest a conversation, and watch the knowledge graph light up."
+
+msgctxt "overview.quickstartSteps.step1"
+msgid "description"
+msgstr "Organize your knowledge base and conversations."
+
+msgctxt "overview.quickstartSteps.step1"
+msgid "title"
+msgstr "Create a project"
+
+msgctxt "overview.quickstartSteps.step2"
+msgid "description"
+msgstr "Import a chat log to embed entities and facts."
+
+msgctxt "overview.quickstartSteps.step2"
+msgid "title"
+msgstr "Ingest a conversation"
+
+msgctxt "overview.quickstartSteps.step3"
+msgid "description"
+msgstr "Watch connections light up as the graph grows."
+
+msgctxt "overview.quickstartSteps.step3"
+msgid "title"
+msgstr "Explore the knowledge graph"
+
+msgctxt "overview"
+msgid "quickstartTitle"
+msgstr "Get started in 3 steps"
+
+msgctxt "overview"
+msgid "recentActivityTitle"
+msgstr "Recent Activity"
+
+msgctxt "overview.stats"
+msgid "apiKeys"
+msgstr "API Keys"
+
+msgctxt "overview.stats"
+msgid "episodes"
+msgstr "Episodes"
+
+msgctxt "overview.stats"
+msgid "facts"
+msgstr "Facts"
+
+msgctxt "overview.stats"
+msgid "messages"
+msgstr "Messages"
+
+msgctxt "overview.stats"
+msgid "sessions"
+msgstr "Sessions"
+
+msgctxt "overview.stats"
+msgid "users"
+msgstr "Users"
+
+msgctxt "overview"
+msgid "title"
+msgstr "Overview"
+
+msgctxt "overview.tooltip"
+msgid "messages"
+msgstr "Messages: {value}"
+
+msgctxt "overview.tooltip"
+msgid "sessions"
+msgstr "Sessions: {value}"
+
+msgctxt "overview"
+msgid "usageTitle"
+msgstr "Daily Usage"
+
+msgctxt "overview"
+msgid "viewAll"
+msgstr "View all →"
+
+msgctxt "projects.apiKeys"
+msgid "copyToClipboard"
+msgstr "Copy to clipboard"
+
+msgctxt "projects.apiKeys"
+msgid "create"
+msgstr "Create"
+
+msgctxt "projects.apiKeys"
+msgid "createApiKey"
+msgstr "Create API Key"
+
+msgctxt "projects.apiKeys"
+msgid "createdToast"
+msgstr "API key created"
+
+msgctxt "projects.apiKeys"
+msgid "createFailed"
+msgstr "Failed to create key"
+
+msgctxt "projects.apiKeys"
+msgid "createKey"
+msgstr "Create Key"
+
+msgctxt "projects.apiKeys"
+msgid "done"
+msgstr "Done"
+
+msgctxt "projects.apiKeys"
+msgid "emptyDescription"
+msgstr "Create an API key to enable programmatic access to this project"
+
+msgctxt "projects.apiKeys"
+msgid "emptyTitle"
+msgstr "No API keys yet"
+
+msgctxt "projects.apiKeys"
+msgid "genericSubtitle"
+msgstr "Manage API keys for programmatic access"
+
+msgctxt "projects.apiKeys"
+msgid "hide"
+msgstr "Hide"
+
+msgctxt "projects.apiKeys"
+msgid "keyCreated"
+msgstr "Key Created"
+
+msgctxt "projects.apiKeys"
+msgid "keyName"
+msgstr "Key Name"
+
+msgctxt "projects.apiKeys"
+msgid "keyNamePlaceholder"
+msgstr "e.g. Production CI"
+
+msgctxt "projects.apiKeys"
+msgid "loadFailed"
+msgstr "Failed to load API keys"
+
+msgctxt "projects.apiKeys"
+msgid "revoke"
+msgstr "Revoke"
+
+msgctxt "projects.apiKeys"
+msgid "revokeApiKey"
+msgstr "Revoke API Key"
+
+msgctxt "projects.apiKeys"
+msgid "revokeConfirm"
+msgstr "Are you sure you want to revoke \"{name}\"? This action cannot be undone."
+
+msgctxt "projects.apiKeys"
+msgid "revokedToast"
+msgstr "API key revoked"
+
+msgctxt "projects.apiKeys"
+msgid "revokeFailed"
+msgstr "Failed to revoke key"
+
+msgctxt "projects.apiKeys"
+msgid "revokeKey"
+msgstr "Revoke key"
+
+msgctxt "projects.apiKeys"
+msgid "showFullKey"
+msgstr "Show full key"
+
+msgctxt "projects.apiKeys"
+msgid "showOnceWarning"
+msgstr "This key will not be shown again. Copy it now."
+
+msgctxt "projects.apiKeys.status"
+msgid "active"
+msgstr "Active"
+
+msgctxt "projects.apiKeys.status"
+msgid "revoked"
+msgstr "Revoked"
+
+msgctxt "projects.apiKeys"
+msgid "subtitle"
+msgstr "Manage API keys for programmatic access to {name}"
+
+msgctxt "projects.apiKeys.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "projects.apiKeys.table"
+msgid "created"
+msgstr "Created"
+
+msgctxt "projects.apiKeys.table"
+msgid "lastUsed"
+msgstr "Last Used"
+
+msgctxt "projects.apiKeys.table"
+msgid "name"
+msgstr "Name"
+
+msgctxt "projects.apiKeys.table"
+msgid "prefix"
+msgstr "Prefix"
+
+msgctxt "projects.apiKeys.table"
+msgid "scopes"
+msgstr "Scopes"
+
+msgctxt "projects.apiKeys.table"
+msgid "status"
+msgstr "Status"
+
+msgctxt "projects.apiKeys"
+msgid "title"
+msgstr "API Keys"
+
+msgctxt "projects.apiKeys"
+msgid "yourApiKey"
+msgstr "Your API Key"
+
+msgctxt "projects"
+msgid "create"
+msgstr "Create"
+
+msgctxt "projects"
+msgid "created"
+msgstr "Created {date}"
+
+msgctxt "projects"
+msgid "createdToast"
+msgstr "Project \"{name}\" created"
+
+msgctxt "projects"
+msgid "createFailed"
+msgstr "Failed to create project"
+
+msgctxt "projects"
+msgid "createProject"
+msgstr "Create Project"
+
+msgctxt "projects"
+msgid "description"
+msgstr "Collaborative workspaces for memory and knowledge graph data"
+
+msgctxt "projects"
+msgid "descriptionLabel"
+msgstr "Description"
+
+msgctxt "projects"
+msgid "descriptionPlaceholder"
+msgstr "Optional description of this project"
+
+msgctxt "projects"
+msgid "emptyDescription"
+msgstr "Create your first project to start organising sessions, memory, and knowledge graphs."
+
+msgctxt "projects"
+msgid "emptyTitle"
+msgstr "No projects yet"
+
+msgctxt "projects"
+msgid "loadError"
+msgstr "Network error loading projects"
+
+msgctxt "projects"
+msgid "maxPinned"
+msgstr "Maximum 3 pinned projects"
+
+msgctxt "projects.members"
+msgid "addedToast"
+msgstr "Member added"
+
+msgctxt "projects.members"
+msgid "addFailed"
+msgstr "Failed to add member"
+
+msgctxt "projects.members"
+msgid "addMember"
+msgstr "Add Member"
+
+msgctxt "projects.members"
+msgid "emptyDescription"
+msgstr "Add members to collaborate on this project."
+
+msgctxt "projects.members"
+msgid "emptyTitle"
+msgstr "No members yet"
+
+msgctxt "projects.members"
+msgid "genericSubtitle"
+msgstr "Project member management"
+
+msgctxt "projects.members"
+msgid "lastOwner"
+msgstr "Last owner"
+
+msgctxt "projects.members"
+msgid "loadFailed"
+msgstr "Failed to load members"
+
+msgctxt "projects.members"
+msgid "loadingDescription"
+msgstr "Project members"
+
+msgctxt "projects.members"
+msgid "noUsers"
+msgstr "No users available"
+
+msgctxt "projects.members"
+msgid "remove"
+msgstr "Remove"
+
+msgctxt "projects.members"
+msgid "removeConfirm"
+msgstr "Are you sure you want to remove this member from the project?"
+
+msgctxt "projects.members"
+msgid "removedToast"
+msgstr "Member removed"
+
+msgctxt "projects.members"
+msgid "removeFailed"
+msgstr "Failed to remove member"
+
+msgctxt "projects.members"
+msgid "removeMember"
+msgstr "Remove member"
+
+msgctxt "projects.members"
+msgid "selectUser"
+msgstr "Select a user..."
+
+msgctxt "projects.members"
+msgid "subtitle"
+msgstr "Manage who has access to \"{name}\""
+
+msgctxt "projects.members.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "projects.members.table"
+msgid "added"
+msgstr "Added"
+
+msgctxt "projects.members.table"
+msgid "role"
+msgstr "Role"
+
+msgctxt "projects.members.table"
+msgid "userId"
+msgstr "User ID"
+
+msgctxt "projects.members"
+msgid "title"
+msgstr "Members"
+
+msgctxt "projects.members"
+msgid "userLabel"
+msgstr "User"
+
+msgctxt "projects.members"
+msgid "userListFailed"
+msgstr "Failed to load user list"
+
+msgctxt "projects"
+msgid "membersCount"
+msgstr "{count, plural, =1 {# member} other {# members}}"
+
+msgctxt "projects"
+msgid "nameLabel"
+msgstr "Name"
+
+msgctxt "projects"
+msgid "namePlaceholder"
+msgstr "e.g., Customer Support Bot"
+
+msgctxt "projects"
+msgid "nameRequired"
+msgstr "Project name is required"
+
+msgctxt "projects"
+msgid "pinProject"
+msgstr "Pin project"
+
+msgctxt "projects.settings"
+msgid "archive"
+msgstr "Archive"
+
+msgctxt "projects.settings"
+msgid "archiveConfirm"
+msgstr "Are you sure you want to archive \"{name}\"? All associated data will be hidden until an administrator restores it."
+
+msgctxt "projects.settings"
+msgid "archivedToast"
+msgstr "Project \"{name}\" archived"
+
+msgctxt "projects.settings"
+msgid "archiveFailed"
+msgstr "Failed to archive project"
+
+msgctxt "projects.settings"
+msgid "archiveProject"
+msgstr "Archive Project"
+
+msgctxt "projects.settings"
+msgid "dangerZone"
+msgstr "Danger Zone"
+
+msgctxt "projects.settings"
+msgid "dangerZoneBody"
+msgstr "Archiving this project will soft-delete it. Sessions, memory, and graph data will be preserved but hidden. This action can be reversed by an administrator."
+
+msgctxt "projects.settings"
+msgid "descriptionLabel"
+msgstr "Description"
+
+msgctxt "projects.settings"
+msgid "loadingDescription"
+msgstr "Project settings"
+
+msgctxt "projects.settings"
+msgid "nameLabel"
+msgstr "Project Name"
+
+msgctxt "projects.settings"
+msgid "noDescription"
+msgstr "No description"
+
+msgctxt "projects.settings"
+msgid "notFound"
+msgstr "Project not found"
+
+msgctxt "projects.settings"
+msgid "saveChanges"
+msgstr "Save Changes"
+
+msgctxt "projects.settings"
+msgid "savedToast"
+msgstr "Project settings saved"
+
+msgctxt "projects.settings"
+msgid "saveFailed"
+msgstr "Failed to save settings"
+
+msgctxt "projects.settings"
+msgid "subtitle"
+msgstr "Configure \"{name}\""
+
+msgctxt "projects.settings"
+msgid "title"
+msgstr "Project Settings"
+
+msgctxt "projects"
+msgid "title"
+msgstr "Projects"
+
+msgctxt "projects"
+msgid "unpinProject"
+msgstr "Unpin project"
+
+msgctxt "sessions.classifications"
+msgid "emptyDescription"
+msgstr "Classification data will appear here once processed."
+
+msgctxt "sessions.classifications"
+msgid "emptyTitle"
+msgstr "No classifications available yet"
+
+msgctxt "sessions.classifications"
+msgid "guideBody"
+msgstr "Classifications categorize each conversation turn by intent, topic, sentiment, and priority. They provide structured labels that help organize and route conversations."
+
+msgctxt "sessions.classifications"
+msgid "guideTitle"
+msgstr "Classifications"
+
+msgctxt "sessions.classifications"
+msgid "loadFailed"
+msgstr "Failed to load classifications"
+
+msgctxt "sessions.classifications.meta"
+msgid "arousal"
+msgstr "Arousal"
+
+msgctxt "sessions.classifications.meta"
+msgid "emotion"
+msgstr "Emotion"
+
+msgctxt "sessions.classifications.meta"
+msgid "intent"
+msgstr "Intent"
+
+msgctxt "sessions.classifications.meta"
+msgid "valence"
+msgstr "Valence"
+
+msgctxt "sessions.classifications"
+msgid "readMore"
+msgstr "... Read more"
+
+msgctxt "sessions.classifications"
+msgid "showLess"
+msgstr "Show less"
+
+msgctxt "sessions.detail"
+msgid "backToSessions"
+msgstr "Back to Sessions"
+
+msgctxt "sessions.detail"
+msgid "breadcrumbSessions"
+msgstr "Sessions"
+
+msgctxt "sessions.detail"
+msgid "copyToClipboard"
+msgstr "Copy to clipboard"
+
+msgctxt "sessions.detail"
+msgid "guideBody"
+msgstr "View all data for a single session: messages, extracted facts, graph relationships, classifications, and structured extractions. Each tab shows a different aspect of the processed conversation."
+
+msgctxt "sessions.detail"
+msgid "guideTitle"
+msgstr "Session details"
+
+msgctxt "sessions.detail.meta"
+msgid "closed"
+msgstr "Closed"
+
+msgctxt "sessions.detail.meta"
+msgid "created"
+msgstr "Created"
+
+msgctxt "sessions.detail.meta"
+msgid "createdBy"
+msgstr "Created By"
+
+msgctxt "sessions.detail.meta"
+msgid "facts"
+msgstr "Facts"
+
+msgctxt "sessions.detail.meta"
+msgid "messages"
+msgstr "Messages"
+
+msgctxt "sessions.detail.meta"
+msgid "observations"
+msgstr "Observations"
+
+msgctxt "sessions.detail.meta"
+msgid "pendingEnrichment"
+msgstr "Pending Enrichment"
+
+msgctxt "sessions.detail.meta"
+msgid "sessionId"
+msgstr "Session ID"
+
+msgctxt "sessions.detail"
+msgid "networkError"
+msgstr "Network error. Please try again."
+
+msgctxt "sessions.detail"
+msgid "noProject"
+msgstr "No project selected."
+
+msgctxt "sessions.detail"
+msgid "noSessionId"
+msgstr "No session ID provided."
+
+msgctxt "sessions.detail"
+msgid "notFound"
+msgstr "Session not found."
+
+msgctxt "sessions.detail"
+msgid "overviewLabel"
+msgstr "Session overview"
+
+msgctxt "sessions.detail"
+msgid "selectTab"
+msgstr "Select a tab above to view session data."
+
+msgctxt "sessions.detail"
+msgid "selectTabHint"
+msgstr "Messages, facts, graph, classifications, extractions, and observations."
+
+msgctxt "sessions.detail.status"
+msgid "active"
+msgstr "Active"
+
+msgctxt "sessions.detail.status"
+msgid "closed"
+msgstr "Closed"
+
+msgctxt "sessions.detail.tabs"
+msgid "classifications"
+msgstr "Classifications"
+
+msgctxt "sessions.detail.tabs"
+msgid "extractions"
+msgstr "Extractions"
+
+msgctxt "sessions.detail.tabs"
+msgid "facts"
+msgstr "Facts"
+
+msgctxt "sessions.detail.tabs"
+msgid "graph"
+msgstr "Graph"
+
+msgctxt "sessions.detail.tabs"
+msgid "messages"
+msgstr "Messages"
+
+msgctxt "sessions.detail.tabs"
+msgid "observations"
+msgstr "Observations"
+
+msgctxt "sessions.extractions"
+msgid "emptyDescription"
+msgstr "Configure a JSON Schema in Settings > Extraction Schemas.\nDefine one, then process new messages through the enrichment pipeline."
+
+msgctxt "sessions.extractions"
+msgid "emptyTitle"
+msgstr "No structured extractions found"
+
+msgctxt "sessions.extractions"
+msgid "guideBody"
+msgstr "Structured extractions pull formatted data from conversations based on JSON schemas you define. Each extraction matches a schema and provides clean, validated data ready for downstream use."
+
+msgctxt "sessions.extractions"
+msgid "guideTitle"
+msgstr "Structured extractions"
+
+msgctxt "sessions.extractions"
+msgid "loadFailed"
+msgstr "Failed to load extractions"
+
+msgctxt "sessions.extractions"
+msgid "schemaLabel"
+msgstr "Schema"
+
+msgctxt "sessions.extractions"
+msgid "schemaNone"
+msgstr "none"
+
+msgctxt "sessions.facts"
+msgid "emptyDescription"
+msgstr "Facts will appear here once the session is processed."
+
+msgctxt "sessions.facts"
+msgid "emptyTitle"
+msgstr "No facts extracted yet"
+
+msgctxt "sessions.facts"
+msgid "guideBody"
+msgstr "Facts are discrete pieces of information extracted from conversation messages — statements, attributes, and relationships about entities. Each fact is verified and stored in the knowledge graph."
+
+msgctxt "sessions.facts"
+msgid "guideTitle"
+msgstr "Extracted facts"
+
+msgctxt "sessions.facts"
+msgid "loadFailed"
+msgstr "Failed to load facts"
+
+msgctxt "sessions.facts"
+msgid "loadMore"
+msgstr "Load More"
+
+msgctxt "sessions.facts"
+msgid "loadMoreFailed"
+msgstr "Failed to load more facts"
+
+msgctxt "sessions.facts.table"
+msgid "confidence"
+msgstr "Confidence"
+
+msgctxt "sessions.facts.table"
+msgid "content"
+msgstr "Content"
+
+msgctxt "sessions.facts.table"
+msgid "extracted"
+msgstr "Extracted"
+
+msgctxt "sessions.facts.table"
+msgid "triple"
+msgstr "Triple"
+
+msgctxt "sessions.list"
+msgid "create"
+msgstr "Create"
+
+msgctxt "sessions.list"
+msgid "createdToast"
+msgstr "Session \"{id}\" created"
+
+msgctxt "sessions.list"
+msgid "createSession"
+msgstr "Create Session"
+
+msgctxt "sessions.list"
+msgid "delete"
+msgstr "Delete"
+
+msgctxt "sessions.list"
+msgid "deleteConfirm"
+msgstr "Are you sure you want to delete session \"{id}\"? All associated messages, facts, and extracted data will be permanently removed."
+
+msgctxt "sessions.list"
+msgid "deletedToast"
+msgstr "Session \"{id}\" deleted"
+
+msgctxt "sessions.list"
+msgid "deleteFailed"
+msgstr "Failed to delete session"
+
+msgctxt "sessions.list"
+msgid "deleteSession"
+msgstr "Delete session"
+
+msgctxt "sessions.list"
+msgid "emptyDescription"
+msgstr "Create a session to start extracting memory and knowledge."
+
+msgctxt "sessions.list"
+msgid "emptyTitle"
+msgstr "No sessions yet"
+
+msgctxt "sessions.list"
+msgid "externalIdHint"
+msgstr "A unique identifier for this session within the project."
+
+msgctxt "sessions.list"
+msgid "externalIdLabel"
+msgstr "External ID"
+
+msgctxt "sessions.list"
+msgid "externalIdPlaceholder"
+msgstr "e.g., conversation-123"
+
+msgctxt "sessions.list"
+msgid "externalIdRequired"
+msgstr "External ID is required"
+
+msgctxt "sessions.list"
+msgid "guideBody"
+msgstr "Sessions are conversation threads between users and AI agents. Each session captures the full dialog, extracted facts, classifications, and structured data — building persistent memory for your applications."
+
+msgctxt "sessions.list"
+msgid "guideTitle"
+msgstr "Managing sessions"
+
+msgctxt "sessions.list"
+msgid "loadError"
+msgstr "Network error loading sessions"
+
+msgctxt "sessions.list"
+msgid "loadingProject"
+msgstr "Loading project..."
+
+msgctxt "sessions.list"
+msgid "loadMore"
+msgstr "Load More"
+
+msgctxt "sessions.list"
+msgid "networkError"
+msgstr "Network error. Please try again."
+
+msgctxt "sessions.list"
+msgid "projectNotFound"
+msgstr "Project not found"
+
+msgctxt "sessions.list.status"
+msgid "active"
+msgstr "Active"
+
+msgctxt "sessions.list.status"
+msgid "closed"
+msgstr "Closed"
+
+msgctxt "sessions.list"
+msgid "subtitle"
+msgstr "Conversation sessions with extracted memory · {name}"
+
+msgctxt "sessions.list"
+msgid "subtitleGeneric"
+msgstr "Conversation sessions with extracted memory"
+
+msgctxt "sessions.list.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "sessions.list.table"
+msgid "created"
+msgstr "Created"
+
+msgctxt "sessions.list.table"
+msgid "externalId"
+msgstr "External ID"
+
+msgctxt "sessions.list.table"
+msgid "facts"
+msgstr "Facts"
+
+msgctxt "sessions.list.table"
+msgid "messages"
+msgstr "Messages"
+
+msgctxt "sessions.list.table"
+msgid "status"
+msgstr "Status"
+
+msgctxt "sessions.list"
+msgid "title"
+msgstr "Sessions"
+
+msgctxt "sessions.list"
+msgid "viewSession"
+msgstr "View session"
+
+msgctxt "sessions.messages"
+msgid "allLoaded"
+msgstr "All messages loaded"
+
+msgctxt "sessions.messages"
+msgid "emptyDescription"
+msgstr "Messages will appear once the conversation starts."
+
+msgctxt "sessions.messages"
+msgid "emptyTitle"
+msgstr "No messages in this session yet"
+
+msgctxt "sessions.messages"
+msgid "guideBody"
+msgstr "Browse all messages in this session in chronological order. Messages are the raw input that the enrichment pipeline processes to extract entities, facts, classifications, and structured data."
+
+msgctxt "sessions.messages"
+msgid "guideTitle"
+msgstr "Conversation messages"
+
+msgctxt "sessions.messages"
+msgid "latest"
+msgstr "Latest"
+
+msgctxt "sessions.messages"
+msgid "loadFailed"
+msgstr "Failed to load messages"
+
+msgctxt "sessions.messages"
+msgid "loading"
+msgstr "Loading..."
+
+msgctxt "sessions.messages"
+msgid "loadingMessages"
+msgstr "Loading messages..."
+
+msgctxt "sessions.messages"
+msgid "loadOlder"
+msgstr "Load older messages"
+
+msgctxt "sessions.messages"
+msgid "noProjectDescription"
+msgstr "Select a project to view messages."
+
+msgctxt "sessions.messages"
+msgid "noProjectTitle"
+msgstr "No project selected"
+
+msgctxt "sessions.messages"
+msgid "scrollToBottom"
+msgstr "Scroll to bottom"
+
+msgctxt "sessions.messages"
+msgid "sessionLabel"
+msgstr "Session:"
+
+msgctxt "sessions.messages"
+msgid "subtitle"
+msgstr "Conversation messages for this session"
+
+msgctxt "sessions.messages"
+msgid "title"
+msgstr "Messages"
+
+msgctxt "sessions.messages"
+msgid "tokens"
+msgstr "Tokens"
+
+msgctxt "sessions.observations"
+msgid "emptyDescription"
+msgstr "Observations are computed after enough messages have been processed. They will appear here once the background analysis completes."
+
+msgctxt "sessions.observations"
+msgid "emptyTitle"
+msgstr "No observations available yet"
+
+msgctxt "sessions.observations"
+msgid "guideBody"
+msgstr "Observations are insights derived from analyzing entity behavior across sessions — co-occurrence patterns, temporal sequences, and behavioral trends. They reveal how entities interact over time."
+
+msgctxt "sessions.observations"
+msgid "guideTitle"
+msgstr "Observations"
+
+msgctxt "sessions.observations"
+msgid "loadFailed"
+msgstr "Failed to load observations"
+
+msgctxt "sessions.observations.type"
+msgid "behavioralPattern"
+msgstr "Behavioral Pattern"
+
+msgctxt "sessions.observations.type"
+msgid "coOccurrence"
+msgstr "Co-occurrence"
+
+msgctxt "sessions.observations.type"
+msgid "temporalPattern"
+msgstr "Temporal Pattern"
+
+msgctxt "settings.account"
+msgid "connectionError"
+msgstr "Connection error. Please try again."
+
+msgctxt "settings.account"
+msgid "currentPasswordLabel"
+msgstr "Current Password"
+
+msgctxt "settings.account"
+msgid "currentPasswordPlaceholder"
+msgstr "Enter current password"
+
+msgctxt "settings.account"
+msgid "currentPasswordRequired"
+msgstr "Current password is required"
+
+msgctxt "settings.account"
+msgid "emailLabel"
+msgstr "Email"
+
+msgctxt "settings.account"
+msgid "emailPlaceholder"
+msgstr "your@email.com"
+
+msgctxt "settings.account"
+msgid "guideBody"
+msgstr "Manage your personal account settings — update your profile name and email, change your password, and configure multi-factor authentication for enhanced security."
+
+msgctxt "settings.account"
+msgid "guideTitle"
+msgstr "Account settings"
+
+msgctxt "settings.account"
+msgid "mfaCodeLabel"
+msgstr "MFA Code"
+
+msgctxt "settings.account"
+msgid "mfaCodeRequired"
+msgstr "A valid 6-digit MFA code is required"
+
+msgctxt "settings.account"
+msgid "mfaDisable"
+msgstr "Disable MFA"
+
+msgctxt "settings.account"
+msgid "mfaDisableDesc"
+msgstr "Enter your password and the MFA code from your email to disable."
+
+msgctxt "settings.account"
+msgid "mfaDisabledHint"
+msgstr "Add an extra layer of security to your account"
+
+msgctxt "settings.account"
+msgid "mfaDisabledToast"
+msgstr "MFA has been disabled"
+
+msgctxt "settings.account"
+msgid "mfaDisableFailed"
+msgstr "Failed to disable MFA"
+
+msgctxt "settings.account"
+msgid "mfaEnable"
+msgstr "Enable MFA"
+
+msgctxt "settings.account"
+msgid "mfaEnabled"
+msgstr "Enabled"
+
+msgctxt "settings.account"
+msgid "mfaEnableDesc"
+msgstr "Enter your password to enable email-based MFA."
+
+msgctxt "settings.account"
+msgid "mfaEnabledHint"
+msgstr "Your account is protected with email-based MFA"
+
+msgctxt "settings.account"
+msgid "mfaEnabledToast"
+msgstr "MFA has been enabled"
+
+msgctxt "settings.account"
+msgid "mfaEnableFailed"
+msgstr "Failed to enable MFA"
+
+msgctxt "settings.account"
+msgid "mfaTitle"
+msgstr "Multi-Factor Authentication"
+
+msgctxt "settings.account"
+msgid "nameLabel"
+msgstr "Name"
+
+msgctxt "settings.account"
+msgid "namePlaceholder"
+msgstr "Your name"
+
+msgctxt "settings.account"
+msgid "newPasswordLabel"
+msgstr "New Password"
+
+msgctxt "settings.account"
+msgid "newPasswordPlaceholder"
+msgstr "Enter new password (min 8 characters)"
+
+msgctxt "settings.account"
+msgid "newPasswordRequired"
+msgstr "New password is required"
+
+msgctxt "settings.account"
+msgid "newPasswordTooShort"
+msgstr "New password must be at least 8 characters"
+
+msgctxt "settings.account"
+msgid "passwordDescription"
+msgstr "Update your account password"
+
+msgctxt "settings.account"
+msgid "passwordMeetsMin"
+msgstr "Password meets minimum length requirement"
+
+msgctxt "settings.account"
+msgid "passwordTitle"
+msgstr "Change Password"
+
+msgctxt "settings.account"
+msgid "passwordTooShort"
+msgstr "Password must be at least 8 characters ({count}/8)"
+
+msgctxt "settings.account"
+msgid "passwordUpdatedToast"
+msgstr "Password updated successfully"
+
+msgctxt "settings.account"
+msgid "passwordUpdateFailed"
+msgstr "Failed to update password"
+
+msgctxt "settings.account"
+msgid "profileDescription"
+msgstr "Your personal information"
+
+msgctxt "settings.account"
+msgid "profileTitle"
+msgstr "Profile"
+
+msgctxt "settings.account"
+msgid "profileUpdatedToast"
+msgstr "Profile updated successfully"
+
+msgctxt "settings.account"
+msgid "profileUpdateFailed"
+msgstr "Failed to update profile"
+
+msgctxt "settings.account"
+msgid "roleHint"
+msgstr "Role is assigned by your organization administrator."
+
+msgctxt "settings.account"
+msgid "roleLabel"
+msgstr "Role"
+
+msgctxt "settings.account"
+msgid "saveChanges"
+msgstr "Save Changes"
+
+msgctxt "settings.account"
+msgid "saving"
+msgstr "Saving..."
+
+msgctxt "settings.account"
+msgid "subtitle"
+msgstr "Manage your profile and organization"
+
+msgctxt "settings.account"
+msgid "title"
+msgstr "Settings"
+
+msgctxt "settings.account"
+msgid "updatePassword"
+msgstr "Update Password"
+
+msgctxt "settings.account"
+msgid "updating"
+msgstr "Updating..."
+
+msgctxt "settings.classifications"
+msgid "close"
+msgstr "Close"
+
+msgctxt "settings.classifications"
+msgid "description"
+msgstr "Dialog classification schemas and results"
+
+msgctxt "settings.classifications"
+msgid "emptyDescription"
+msgstr "Configure classification schemas to appear here"
+
+msgctxt "settings.classifications"
+msgid "emptyTitle"
+msgstr "No classification schemas found"
+
+msgctxt "settings.classifications"
+msgid "loadFailed"
+msgstr "Failed to load classification schemas"
+
+msgctxt "settings.classifications.status"
+msgid "active"
+msgstr "Active"
+
+msgctxt "settings.classifications.status"
+msgid "inactive"
+msgstr "Inactive"
+
+msgctxt "settings.classifications.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "settings.classifications.table"
+msgid "created"
+msgstr "Created"
+
+msgctxt "settings.classifications.table"
+msgid "name"
+msgstr "Name"
+
+msgctxt "settings.classifications.table"
+msgid "status"
+msgstr "Status"
+
+msgctxt "settings.classifications.table"
+msgid "template"
+msgstr "Template"
+
+msgctxt "settings.classifications"
+msgid "title"
+msgstr "Classifications"
+
+msgctxt "settings.classifications.view"
+msgid "created"
+msgstr "Created"
+
+msgctxt "settings.classifications.view"
+msgid "id"
+msgstr "ID"
+
+msgctxt "settings.classifications.view"
+msgid "jsonSchema"
+msgstr "JSON Schema"
+
+msgctxt "settings.classifications.view"
+msgid "promptTemplate"
+msgstr "Prompt Template"
+
+msgctxt "settings.classifications.view"
+msgid "status"
+msgstr "Status"
+
+msgctxt "settings.classifications.view"
+msgid "type"
+msgstr "Type"
+
+msgctxt "settings.classifications"
+msgid "viewSchema"
+msgstr "View schema"
+
+msgctxt "settings.classifications"
+msgid "yes"
+msgstr "Yes"
+
+msgctxt "settings.extractionInstructions"
+msgid "add"
+msgstr "Add"
+
+msgctxt "settings.extractionInstructions"
+msgid "addInstruction"
+msgstr "Add Instruction"
+
+msgctxt "settings.extractionInstructions"
+msgid "cancel"
+msgstr "Cancel"
+
+msgctxt "settings.extractionInstructions"
+msgid "createdToast"
+msgstr "Instruction created"
+
+msgctxt "settings.extractionInstructions"
+msgid "delete"
+msgstr "Delete"
+
+msgctxt "settings.extractionInstructions"
+msgid "deleteConfirm"
+msgstr "Are you sure you want to delete \"{name}\"?"
+
+msgctxt "settings.extractionInstructions"
+msgid "deletedToast"
+msgstr "Instruction deleted"
+
+msgctxt "settings.extractionInstructions"
+msgid "deleteFailed"
+msgstr "Failed to delete instruction"
+
+msgctxt "settings.extractionInstructions"
+msgid "deleteInstruction"
+msgstr "Delete instruction"
+
+msgctxt "settings.extractionInstructions"
+msgid "deleteTitle"
+msgstr "Delete Instruction"
+
+msgctxt "settings.extractionInstructions"
+msgid "description"
+msgstr "Custom instructions for extraction behavior"
+
+msgctxt "settings.extractionInstructions"
+msgid "editInstruction"
+msgstr "Edit Instruction"
+
+msgctxt "settings.extractionInstructions"
+msgid "emptyDescription"
+msgstr "Add custom instructions to guide extraction behavior"
+
+msgctxt "settings.extractionInstructions"
+msgid "emptyTitle"
+msgstr "No instructions yet"
+
+msgctxt "settings.extractionInstructions.fields"
+msgid "name"
+msgstr "Name"
+
+msgctxt "settings.extractionInstructions.fields"
+msgid "namePlaceholder"
+msgstr "e.g. financial_data"
+
+msgctxt "settings.extractionInstructions.fields"
+msgid "text"
+msgstr "Instruction Text"
+
+msgctxt "settings.extractionInstructions.fields"
+msgid "textPlaceholder"
+msgstr "Describe what to extract and how..."
+
+msgctxt "settings.extractionInstructions"
+msgid "guideBody"
+msgstr "Create custom instruction strings that guide extraction behaviour. These instructions are injected into extraction prompts to tailor how the system processes and extracts data from conversations."
+
+msgctxt "settings.extractionInstructions"
+msgid "guideTitle"
+msgstr "Extraction instructions"
+
+msgctxt "settings.extractionInstructions"
+msgid "loadFailed"
+msgstr "Failed to load instructions"
+
+msgctxt "settings.extractionInstructions"
+msgid "saveChanges"
+msgstr "Save Changes"
+
+msgctxt "settings.extractionInstructions"
+msgid "saveFailed"
+msgstr "Failed to save instructions"
+
+msgctxt "settings.extractionInstructions.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "settings.extractionInstructions.table"
+msgid "instruction"
+msgstr "Instruction"
+
+msgctxt "settings.extractionInstructions.table"
+msgid "name"
+msgstr "Name"
+
+msgctxt "settings.extractionInstructions"
+msgid "title"
+msgstr "Extraction Instructions"
+
+msgctxt "settings.extractionInstructions"
+msgid "updatedToast"
+msgstr "Instruction updated"
+
+msgctxt "settings.extractions"
+msgid "close"
+msgstr "Close"
+
+msgctxt "settings.extractions"
+msgid "description"
+msgstr "Structured extraction schemas and results"
+
+msgctxt "settings.extractions"
+msgid "emptyDescription"
+msgstr "Configure extraction schemas to appear here"
+
+msgctxt "settings.extractions"
+msgid "emptyTitle"
+msgstr "No extraction schemas found"
+
+msgctxt "settings.extractions"
+msgid "loadFailed"
+msgstr "Failed to load extraction schemas"
+
+msgctxt "settings.extractions.status"
+msgid "active"
+msgstr "Active"
+
+msgctxt "settings.extractions.status"
+msgid "inactive"
+msgstr "Inactive"
+
+msgctxt "settings.extractions.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "settings.extractions.table"
+msgid "created"
+msgstr "Created"
+
+msgctxt "settings.extractions.table"
+msgid "name"
+msgstr "Name"
+
+msgctxt "settings.extractions.table"
+msgid "status"
+msgstr "Status"
+
+msgctxt "settings.extractions.table"
+msgid "template"
+msgstr "Template"
+
+msgctxt "settings.extractions"
+msgid "title"
+msgstr "Extractions"
+
+msgctxt "settings.extractions.view"
+msgid "created"
+msgstr "Created"
+
+msgctxt "settings.extractions.view"
+msgid "id"
+msgstr "ID"
+
+msgctxt "settings.extractions.view"
+msgid "jsonSchema"
+msgstr "JSON Schema"
+
+msgctxt "settings.extractions.view"
+msgid "promptTemplate"
+msgstr "Prompt Template"
+
+msgctxt "settings.extractions.view"
+msgid "status"
+msgstr "Status"
+
+msgctxt "settings.extractions.view"
+msgid "type"
+msgstr "Type"
+
+msgctxt "settings.extractions"
+msgid "viewSchema"
+msgstr "View schema"
+
+msgctxt "settings.extractions"
+msgid "yes"
+msgstr "Yes"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "description"
+msgstr "Caching and audit behaviour"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "disabled"
+msgstr "Disabled"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "enabled"
+msgstr "Enabled"
+
+msgctxt "settings.orgConfig.behaviour.fields"
+msgid "auditLogHint"
+msgstr "Include response body content in audit logs"
+
+msgctxt "settings.orgConfig.behaviour.fields"
+msgid "auditLogResponseBody"
+msgstr "Audit Log Response Body"
+
+msgctxt "settings.orgConfig.behaviour.fields"
+msgid "cacheTtl"
+msgstr "Context Cache TTL (seconds)"
+
+msgctxt "settings.orgConfig.behaviour.fields"
+msgid "cacheTtlHint"
+msgstr "How long context data is cached in Redis before being re-fetched (0 = no caching)"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "loadFailed"
+msgstr "Failed to load configuration"
+
+msgctxt "settings.orgConfig.behaviour.reset"
+msgid "auditLogging"
+msgstr "Reset audit logging to default"
+
+msgctxt "settings.orgConfig.behaviour.reset"
+msgid "cacheTtl"
+msgstr "Reset cache TTL to default"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "savedToast"
+msgstr "Behaviour configuration saved successfully"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "saveFailed"
+msgstr "Failed to save configuration"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "title"
+msgstr "Behaviour Settings"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "willResetOnSave"
+msgstr "Will reset to default on save"
+
+msgctxt "settings.orgConfig.blobStorage"
+msgid "description"
+msgstr "S3-compatible storage for file attachments and image extraction"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "accessKeyId"
+msgstr "S3 Access Key ID"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "backend"
+msgstr "Storage Backend"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "backendHint"
+msgstr "Backend used for storing file attachments. \"none\" disables file uploads."
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "bucketName"
+msgstr "Bucket Name"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "bucketNameHint"
+msgstr "S3 bucket where blobs are stored."
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "endpointUrl"
+msgstr "S3 Endpoint URL"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "endpointUrlHint"
+msgstr "Endpoint URL for your S3-compatible object store (e.g. MinIO, AWS S3, GCS)."
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "endpointUrlPlaceholder"
+msgstr "http://minio:9000"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "imageExtraction"
+msgstr "Image Text Extraction"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "imageExtractionDetail"
+msgstr "<strong>{ocr}</strong> uses Tesseract locally (free). <strong>{vision}</strong> uses your configured LLM provider for higher accuracy on complex images. Requires Tesseract to be installed on workers."
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "imageExtractionHint"
+msgstr "Extract text from images using OCR or vision LLM"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "maxBlobSize"
+msgstr "Max Blob Size (MB)"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "maxBlobSizeHint"
+msgstr "Maximum file size allowed per upload (1–500 MB)."
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "region"
+msgstr "S3 Region"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "regionHint"
+msgstr "AWS region (use \"auto\" for MinIO)."
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "secretAccessKey"
+msgstr "S3 Secret Access Key"
+
+msgctxt "settings.orgConfig.blobStorage"
+msgid "loadFailed"
+msgstr "Failed to load configuration"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "disabled"
+msgstr "Disabled"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "extractionNone"
+msgstr "Disabled (store only)"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "extractionOcr"
+msgstr "OCR (Tesseract)"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "extractionOcrShort"
+msgstr "OCR"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "extractionVision"
+msgstr "Vision API (LLM)"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "extractionVisionShort"
+msgstr "Vision API"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "s3"
+msgstr "S3-compatible"
+
+msgctxt "settings.orgConfig.blobStorage.reset"
+msgid "backend"
+msgstr "Reset storage backend to default"
+
+msgctxt "settings.orgConfig.blobStorage.reset"
+msgid "bucketName"
+msgstr "Reset S3 bucket name to default"
+
+msgctxt "settings.orgConfig.blobStorage.reset"
+msgid "endpointUrl"
+msgstr "Reset S3 endpoint URL to default"
+
+msgctxt "settings.orgConfig.blobStorage.reset"
+msgid "imageExtraction"
+msgstr "Reset image extraction to default"
+
+msgctxt "settings.orgConfig.blobStorage.reset"
+msgid "maxBlobSize"
+msgstr "Reset max blob size to default"
+
+msgctxt "settings.orgConfig.blobStorage.reset"
+msgid "region"
+msgstr "Reset S3 region to default"
+
+msgctxt "settings.orgConfig.blobStorage"
+msgid "resetQueued"
+msgstr "Reset queued — will be applied on save"
+
+msgctxt "settings.orgConfig.blobStorage"
+msgid "savedToast"
+msgstr "Blob storage configuration saved successfully"
+
+msgctxt "settings.orgConfig.blobStorage"
+msgid "saveFailed"
+msgstr "Failed to save configuration"
+
+msgctxt "settings.orgConfig.blobStorage"
+msgid "title"
+msgstr "Blob Storage Settings"
+
+msgctxt "settings.orgConfig"
+msgid "discardConfirm"
+msgstr "You have unsaved changes. Discard them and leave?"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "apiKey"
+msgstr "API Key"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "apiKeyPlaceholder"
+msgstr "Embedding provider API key"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "backendProvider"
+msgstr "Backend Provider"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "dimensions"
+msgstr "Embedding Dimensions"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "model"
+msgstr "Model"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "modelPlaceholder"
+msgstr "text-embedding-3-small, ..."
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "providerName"
+msgstr "Provider Name"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "providerNamePlaceholder"
+msgstr "openai, azure, ..."
+
+msgctxt "settings.orgConfig.embeddings"
+msgid "loadFailed"
+msgstr "Failed to load configuration"
+
+msgctxt "settings.orgConfig.embeddings"
+msgid "providerDescription"
+msgstr "Vector embedding model configuration"
+
+msgctxt "settings.orgConfig.embeddings"
+msgid "providerTitle"
+msgstr "Embedding Provider"
+
+msgctxt "settings.orgConfig.embeddings.reset"
+msgid "apiKey"
+msgstr "Reset API key to default"
+
+msgctxt "settings.orgConfig.embeddings.reset"
+msgid "backend"
+msgstr "Reset embedding backend to default"
+
+msgctxt "settings.orgConfig.embeddings.reset"
+msgid "dimensions"
+msgstr "Reset embedding dimensions to default"
+
+msgctxt "settings.orgConfig.embeddings.reset"
+msgid "model"
+msgstr "Reset embedding model to default"
+
+msgctxt "settings.orgConfig.embeddings.reset"
+msgid "provider"
+msgstr "Reset provider to default"
+
+msgctxt "settings.orgConfig.embeddings"
+msgid "savedToast"
+msgstr "Embedding configuration saved successfully"
+
+msgctxt "settings.orgConfig.embeddings"
+msgid "saveFailed"
+msgstr "Failed to save configuration"
+
+msgctxt "settings.orgConfig.embeddings"
+msgid "willResetOnSave"
+msgstr "Will be reset on save"
+
+msgctxt "settings.orgConfig.graph"
+msgid "description"
+msgstr "Knowledge graph search and traversal"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "falkordbUrl"
+msgstr "FalkorDB URL"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "falkordbUrlHint"
+msgstr "Required when using FalkorDB backend and no system-level config exists"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "falkordbUrlPlaceholder"
+msgstr "redis://falkordb:6379"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "graphBackend"
+msgstr "Graph Backend"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "maxTraversalDepth"
+msgstr "Max Traversal Depth"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "maxTraversalDepthHint"
+msgstr "How many hops the graph traversal will follow (1–10)"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "searchType"
+msgstr "Search Type"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbDatabase"
+msgstr "SurrealDB Database"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbDatabasePlaceholder"
+msgstr "SurrealDB database"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbNamespace"
+msgstr "SurrealDB Namespace"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbNamespacePlaceholder"
+msgstr "SurrealDB namespace"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbPassword"
+msgstr "SurrealDB Password"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbPasswordPlaceholder"
+msgstr "SurrealDB password"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbUrl"
+msgstr "SurrealDB URL"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbUrlHint"
+msgstr "Required when using SurrealDB backend"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbUrlPlaceholder"
+msgstr "ws://surrealdb:8000/rpc"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbUsername"
+msgstr "SurrealDB Username"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbUsernamePlaceholder"
+msgstr "SurrealDB username"
+
+msgctxt "settings.orgConfig.graph"
+msgid "graphBackendNone"
+msgstr "No graph backend"
+
+msgctxt "settings.orgConfig.graph"
+msgid "loadFailed"
+msgstr "Failed to load configuration"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "backend"
+msgstr "Reset graph backend to default"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "falkordbUrl"
+msgstr "Reset FalkorDB URL to default"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "maxTraversalDepth"
+msgstr "Reset max traversal depth to default"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "searchType"
+msgstr "Reset search type to default"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "surrealdbDatabase"
+msgstr "Reset SurrealDB database to default"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "surrealdbNamespace"
+msgstr "Reset SurrealDB namespace to default"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "surrealdbPassword"
+msgstr "Reset SurrealDB password to default"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "surrealdbUrl"
+msgstr "Reset SurrealDB URL to default"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "surrealdbUsername"
+msgstr "Reset SurrealDB username to default"
+
+msgctxt "settings.orgConfig.graph"
+msgid "resetFieldTitle"
+msgstr "Remove stored value — default will apply on save"
+
+msgctxt "settings.orgConfig.graph"
+msgid "savedToast"
+msgstr "Graph configuration saved successfully"
+
+msgctxt "settings.orgConfig.graph"
+msgid "saveFailed"
+msgstr "Failed to save configuration"
+
+msgctxt "settings.orgConfig.graph"
+msgid "systemManagedHint"
+msgstr "Configured at the system level. Connection details are managed by your administrator."
+
+msgctxt "settings.orgConfig.graph"
+msgid "title"
+msgstr "Graph Settings"
+
+msgctxt "settings.orgConfig.graph"
+msgid "willResetOnSave"
+msgstr "Will be reset on save"
+
+msgctxt "settings.orgConfig"
+msgid "guideBody"
+msgstr "Configure your organization LLM backend, embedding models, graph database, behaviour settings, and blob storage. These settings control how the system processes, enriches, and stores data across all projects."
+
+msgctxt "settings.orgConfig"
+msgid "guideTitle"
+msgstr "Organization configuration"
+
+msgctxt "settings.orgConfig.llm"
+msgid "backendDescription"
+msgstr "Primary language model provider"
+
+msgctxt "settings.orgConfig.llm"
+msgid "backendTitle"
+msgstr "LLM Backend"
+
+msgctxt "settings.orgConfig.llm.fieldLabels"
+msgid "anthropicApiKey"
+msgstr "Anthropic API Key"
+
+msgctxt "settings.orgConfig.llm.fieldLabels"
+msgid "azureApiKey"
+msgstr "API Key"
+
+msgctxt "settings.orgConfig.llm.fieldLabels"
+msgid "baseUrl"
+msgstr "Base URL"
+
+msgctxt "settings.orgConfig.llm.fieldLabels"
+msgid "endpointUrl"
+msgstr "Endpoint URL"
+
+msgctxt "settings.orgConfig.llm.fieldLabels"
+msgid "openaiApiKey"
+msgstr "OpenAI API Key"
+
+msgctxt "settings.orgConfig.llm.fieldLabels"
+msgid "openrouterApiKey"
+msgstr "OpenRouter API Key"
+
+msgctxt "settings.orgConfig.llm.fields"
+msgid "backendProvider"
+msgstr "Backend Provider"
+
+msgctxt "settings.orgConfig.llm.fields"
+msgid "maxTokens"
+msgstr "Max Tokens"
+
+msgctxt "settings.orgConfig.llm.fields"
+msgid "model"
+msgstr "Model"
+
+msgctxt "settings.orgConfig.llm.fields"
+msgid "modelPlaceholder"
+msgstr "gpt-4o, claude-sonnet-4, ..."
+
+msgctxt "settings.orgConfig.llm.fields"
+msgid "temperature"
+msgstr "Temperature"
+
+msgctxt "settings.orgConfig.llm"
+msgid "loadFailed"
+msgstr "Failed to load configuration"
+
+msgctxt "settings.orgConfig.llm.providerDescriptions"
+msgid "anthropic"
+msgstr "API key for Anthropic models"
+
+msgctxt "settings.orgConfig.llm.providerDescriptions"
+msgid "azure"
+msgstr "Azure OpenAI endpoint and credentials"
+
+msgctxt "settings.orgConfig.llm.providerDescriptions"
+msgid "ollama"
+msgstr "Local LLM provider configuration"
+
+msgctxt "settings.orgConfig.llm.providerDescriptions"
+msgid "openai"
+msgstr "API key for OpenAI models"
+
+msgctxt "settings.orgConfig.llm.providerDescriptions"
+msgid "openaiLike"
+msgstr "No additional provider-specific configuration needed"
+
+msgctxt "settings.orgConfig.llm.providerDescriptions"
+msgid "openrouter"
+msgstr "API key for OpenRouter"
+
+msgctxt "settings.orgConfig.llm.providerTitles"
+msgid "anthropic"
+msgstr "Anthropic Settings"
+
+msgctxt "settings.orgConfig.llm.providerTitles"
+msgid "azure"
+msgstr "Azure OpenAI Settings"
+
+msgctxt "settings.orgConfig.llm.providerTitles"
+msgid "ollama"
+msgstr "Ollama Settings"
+
+msgctxt "settings.orgConfig.llm.providerTitles"
+msgid "openai"
+msgstr "OpenAI Settings"
+
+msgctxt "settings.orgConfig.llm.providerTitles"
+msgid "openaiLike"
+msgstr "Provider Settings"
+
+msgctxt "settings.orgConfig.llm.providerTitles"
+msgid "openrouter"
+msgstr "OpenRouter Settings"
+
+msgctxt "settings.orgConfig.llm"
+msgid "resetFieldTitle"
+msgstr "Remove stored value — default will apply on save"
+
+msgctxt "settings.orgConfig.llm"
+msgid "savedToast"
+msgstr "LLM configuration saved successfully"
+
+msgctxt "settings.orgConfig.llm"
+msgid "saveFailed"
+msgstr "Failed to save configuration"
+
+msgctxt "settings.orgConfig.llm"
+msgid "willResetOnSave"
+msgstr "Will be reset on save"
+
+msgctxt "settings.orgConfig.organization"
+msgid "adminRequired"
+msgstr "Admin access required"
+
+msgctxt "settings.orgConfig.organization"
+msgid "codeDescription"
+msgstr "Share this code with people you want to invite — they can join your organization from the signup page (\"Join with code\")."
+
+msgctxt "settings.orgConfig.organization"
+msgid "codeTitle"
+msgstr "Organization Code"
+
+msgctxt "settings.orgConfig.organization"
+msgid "copied"
+msgstr "Copied"
+
+msgctxt "settings.orgConfig.organization"
+msgid "copy"
+msgstr "Copy"
+
+msgctxt "settings.orgConfig.organization"
+msgid "copyFailed"
+msgstr "Failed to copy — clipboard unavailable"
+
+msgctxt "settings.orgConfig.organization"
+msgid "joinHint"
+msgstr "When off, the signup \"Join with code\" flow returns 403. Regenerating the code still works while paused."
+
+msgctxt "settings.orgConfig.organization"
+msgid "joinLabel"
+msgstr "Allow new members to join with this code"
+
+msgctxt "settings.orgConfig.organization"
+msgid "joinPausedNotice"
+msgstr "Joining is paused — new members can't join with this code right now."
+
+msgctxt "settings.orgConfig.organization"
+msgid "joinToggleFailed"
+msgstr "Failed to update join setting"
+
+msgctxt "settings.orgConfig.organization"
+msgid "loadFailed"
+msgstr "Failed to load organization code"
+
+msgctxt "settings.orgConfig.organization"
+msgid "loadingCode"
+msgstr "Loading organization code…"
+
+msgctxt "settings.orgConfig.organization"
+msgid "regenerate"
+msgstr "Regenerate"
+
+msgctxt "settings.orgConfig.organization"
+msgid "regenerateConfirm"
+msgstr "The current organization code will stop working immediately. Anyone with the old code will need the new one to join. Continue?"
+
+msgctxt "settings.orgConfig.organization"
+msgid "regenerateFailed"
+msgstr "Failed to regenerate code"
+
+msgctxt "settings.orgConfig.organization"
+msgid "regenerateHint"
+msgstr "Regenerating invalidates the previous code — existing members are unaffected."
+
+msgctxt "settings.orgConfig.organization"
+msgid "regenerateTitle"
+msgstr "Regenerate Organization Code?"
+
+msgctxt "settings.orgConfig.organization"
+msgid "registrationDescription"
+msgstr "Control whether people can join your organization with this code."
+
+msgctxt "settings.orgConfig.organization"
+msgid "registrationTitle"
+msgstr "Self-registration"
+
+msgctxt "settings.orgConfig"
+msgid "subtitle"
+msgstr "Manage settings for LLM, embeddings, graph, and behaviour"
+
+msgctxt "settings.orgConfig.tabs"
+msgid "behaviour"
+msgstr "Behaviour"
+
+msgctxt "settings.orgConfig.tabs"
+msgid "blobStorage"
+msgstr "Blob Storage"
+
+msgctxt "settings.orgConfig.tabs"
+msgid "embeddings"
+msgstr "Embeddings"
+
+msgctxt "settings.orgConfig.tabs"
+msgid "graph"
+msgstr "Graph"
+
+msgctxt "settings.orgConfig.tabs"
+msgid "llm"
+msgstr "LLM"
+
+msgctxt "settings.orgConfig.tabs"
+msgid "organization"
+msgstr "Organization"
+
+msgctxt "settings.orgConfig"
+msgid "title"
+msgstr "Organization Configuration"
+
+msgctxt "settings.prompts"
+msgid "active"
+msgstr "Active"
+
+msgctxt "settings.prompts"
+msgid "activeDefault"
+msgstr "Active Default"
+
+msgctxt "settings.prompts"
+msgid "browseSystem"
+msgstr "Browse System Prompts"
+
+msgctxt "settings.prompts"
+msgid "browseSystemDescription"
+msgstr "Import system-default prompt templates into your organisation"
+
+msgctxt "settings.prompts"
+msgid "cancel"
+msgstr "Cancel"
+
+msgctxt "settings.prompts"
+msgid "cannotUndo"
+msgstr "This action cannot be undone."
+
+msgctxt "settings.prompts"
+msgid "close"
+msgstr "Close"
+
+msgctxt "settings.prompts"
+msgid "confirm"
+msgstr "Confirm"
+
+msgctxt "settings.prompts"
+msgid "createTemplate"
+msgstr "Create Template"
+
+msgctxt "settings.prompts"
+msgid "createWarning"
+msgstr "Incorrect Jinja2 syntax may cause extraction failures. Use the existing templates as reference."
+
+msgctxt "settings.prompts"
+msgid "creating"
+msgstr "Creating..."
+
+msgctxt "settings.prompts"
+msgid "currentlyActive"
+msgstr "Currently Active"
+
+msgctxt "settings.prompts"
+msgid "customWarning"
+msgstr "Custom prompts override the system default. Incorrect Jinja2 syntax may cause extraction failures."
+
+msgctxt "settings.prompts"
+msgid "default"
+msgstr "Default"
+
+msgctxt "settings.prompts"
+msgid "delete"
+msgstr "Delete"
+
+msgctxt "settings.prompts"
+msgid "deleteConfirmHint"
+msgstr "All custom versions will be removed. The organisation will fall back to the system default."
+
+msgctxt "settings.prompts"
+msgid "deleteConfirmPrefix"
+msgstr "Are you sure you want to delete"
+
+msgctxt "settings.prompts"
+msgid "deleteTemplate"
+msgstr "Delete template"
+
+msgctxt "settings.prompts"
+msgid "deleteTitle"
+msgstr "Delete Template"
+
+msgctxt "settings.prompts"
+msgid "deleting"
+msgstr "Deleting..."
+
+msgctxt "settings.prompts"
+msgid "description"
+msgstr "Manage Jinja2 prompt templates for extraction workers. Organised by type with version history and rollback support."
+
+msgctxt "settings.prompts"
+msgid "editTemplate"
+msgstr "Edit template"
+
+msgctxt "settings.prompts"
+msgid "emptyDescription"
+msgstr "Prompt templates are loaded from the server"
+
+msgctxt "settings.prompts"
+msgid "emptyTitle"
+msgstr "No prompt templates available"
+
+msgctxt "settings.prompts.errors"
+msgid "createFailed"
+msgstr "Failed to create template"
+
+msgctxt "settings.prompts.errors"
+msgid "deleteFailed"
+msgstr "Failed to delete template"
+
+msgctxt "settings.prompts.errors"
+msgid "importFailed"
+msgstr "Failed to import template"
+
+msgctxt "settings.prompts.errors"
+msgid "loadFailed"
+msgstr "Failed to load prompt templates"
+
+msgctxt "settings.prompts.errors"
+msgid "loadHistoryFailed"
+msgstr "Failed to load version history"
+
+msgctxt "settings.prompts.errors"
+msgid "loadSystemFailed"
+msgstr "Failed to load system prompts"
+
+msgctxt "settings.prompts.errors"
+msgid "nameRequired"
+msgstr "Template name is required"
+
+msgctxt "settings.prompts.errors"
+msgid "promoteFailed"
+msgstr "Failed to promote template"
+
+msgctxt "settings.prompts.errors"
+msgid "resetFailed"
+msgstr "Failed to reset template"
+
+msgctxt "settings.prompts.errors"
+msgid "rollbackFailed"
+msgstr "Failed to rollback template"
+
+msgctxt "settings.prompts.errors"
+msgid "saveFailed"
+msgstr "Failed to save template"
+
+msgctxt "settings.prompts.errors"
+msgid "setDefaultFailed"
+msgstr "Failed to set as default"
+
+msgctxt "settings.prompts.errors"
+msgid "templateEmpty"
+msgstr "Template text cannot be empty"
+
+msgctxt "settings.prompts.errors"
+msgid "typeRequired"
+msgstr "Template type is required"
+
+msgctxt "settings.prompts.fields"
+msgid "description"
+msgstr "Description"
+
+msgctxt "settings.prompts.fields"
+msgid "descriptionPlaceholder"
+msgstr "Describe what this template does"
+
+msgctxt "settings.prompts.fields"
+msgid "jinjaHint"
+msgstr "Jinja2 template syntax. Use {{ variables }} and {% tags %} for dynamic content."
+
+msgctxt "settings.prompts.fields"
+msgid "template"
+msgstr "Template"
+
+msgctxt "settings.prompts.fields"
+msgid "templateName"
+msgstr "Template Name"
+
+msgctxt "settings.prompts.fields"
+msgid "templateNameHint"
+msgstr "Unique identifier used as the template key in the system."
+
+msgctxt "settings.prompts.fields"
+msgid "templateNamePlaceholder"
+msgstr "e.g. my_custom_ner_v1"
+
+msgctxt "settings.prompts.fields"
+msgid "type"
+msgstr "Type"
+
+msgctxt "settings.prompts"
+msgid "globalDefaultConfirm"
+msgstr "Set as global default?"
+
+msgctxt "settings.prompts"
+msgid "guideBody"
+msgstr "Manage Jinja2 prompt templates used by extraction workers. Browse system-provided templates, create custom versions, track version history, and roll back changes when needed."
+
+msgctxt "settings.prompts"
+msgid "guideTitle"
+msgstr "Prompt templates"
+
+msgctxt "settings.prompts"
+msgid "import"
+msgstr "Import"
+
+msgctxt "settings.prompts"
+msgid "imported"
+msgstr "Imported"
+
+msgctxt "settings.prompts"
+msgid "importing"
+msgstr "Importing..."
+
+msgctxt "settings.prompts"
+msgid "inactive"
+msgstr "inactive"
+
+msgctxt "settings.prompts"
+msgid "newTemplate"
+msgstr "New Template"
+
+msgctxt "settings.prompts"
+msgid "newTemplateDescription"
+msgstr "Create a custom prompt template for your organisation"
+
+msgctxt "settings.prompts"
+msgid "noDescription"
+msgstr "No description"
+
+msgctxt "settings.prompts"
+msgid "noSystemPrompts"
+msgstr "No system prompts available"
+
+msgctxt "settings.prompts"
+msgid "noVersions"
+msgstr "No versions found"
+
+msgctxt "settings.prompts"
+msgid "optional"
+msgstr "optional"
+
+msgctxt "settings.prompts"
+msgid "other"
+msgstr "Other"
+
+msgctxt "settings.prompts"
+msgid "promoting"
+msgstr "Promoting..."
+
+msgctxt "settings.prompts"
+msgid "resetConfirm"
+msgstr "Reset to default?"
+
+msgctxt "settings.prompts"
+msgid "resetting"
+msgstr "Resetting..."
+
+msgctxt "settings.prompts"
+msgid "resetToDefault"
+msgstr "Reset to Default"
+
+msgctxt "settings.prompts"
+msgid "rollbackTo"
+msgstr "Rollback to v{version}"
+
+msgctxt "settings.prompts"
+msgid "rollingBack"
+msgstr "Rolling back..."
+
+msgctxt "settings.prompts"
+msgid "saveAsNewVersion"
+msgstr "Save as New Version"
+
+msgctxt "settings.prompts"
+msgid "saving"
+msgstr "Saving..."
+
+msgctxt "settings.prompts"
+msgid "selectType"
+msgstr "Select a type…"
+
+msgctxt "settings.prompts"
+msgid "selectVersion"
+msgstr "Select a version to preview"
+
+msgctxt "settings.prompts"
+msgid "setAsDefault"
+msgstr "Set as Default"
+
+msgctxt "settings.prompts"
+msgid "setAsSystemDefault"
+msgstr "Set as System Default"
+
+msgctxt "settings.prompts"
+msgid "setDefaultTitle"
+msgstr "Set as default for this type"
+
+msgctxt "settings.prompts"
+msgid "systemDefault"
+msgstr "System Default"
+
+msgctxt "settings.prompts.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "settings.prompts.table"
+msgid "name"
+msgstr "Name"
+
+msgctxt "settings.prompts.table"
+msgid "type"
+msgstr "Type"
+
+msgctxt "settings.prompts.table"
+msgid "updated"
+msgstr "Updated"
+
+msgctxt "settings.prompts.table"
+msgid "version"
+msgstr "Version"
+
+msgctxt "settings.prompts"
+msgid "title"
+msgstr "Prompt Templates"
+
+msgctxt "settings.prompts.toasts"
+msgid "created"
+msgstr "Template \"{name}\" created"
+
+msgctxt "settings.prompts.toasts"
+msgid "default"
+msgstr "\"{name}\" is now the default for its type"
+
+msgctxt "settings.prompts.toasts"
+msgid "imported"
+msgstr "\"{name}\" imported successfully"
+
+msgctxt "settings.prompts.toasts"
+msgid "promoted"
+msgstr "Version {version} of \"{name}\" is now the system default"
+
+msgctxt "settings.prompts.toasts"
+msgid "reset"
+msgstr "Template \"{name}\" reset to default"
+
+msgctxt "settings.prompts.toasts"
+msgid "reverted"
+msgstr "\"{name}\" reverted to system default"
+
+msgctxt "settings.prompts.toasts"
+msgid "rolledBack"
+msgstr "Template \"{name}\" rolled back to version {version}"
+
+msgctxt "settings.prompts.toasts"
+msgid "savedVersion"
+msgstr "Template \"{name}\" saved as new version"
+
+msgctxt "settings.prompts"
+msgid "version"
+msgstr "Version {version}"
+
+msgctxt "settings.prompts"
+msgid "versionHistory"
+msgstr "Version History"
+
+msgctxt "settings.prompts"
+msgid "viewHistory"
+msgstr "View version history"
+
+msgctxt "settings.schemas"
+msgid "cancel"
+msgstr "Cancel"
+
+msgctxt "settings.schemas"
+msgid "close"
+msgstr "Close"
+
+msgctxt "settings.schemas"
+msgid "create"
+msgstr "Create"
+
+msgctxt "settings.schemas"
+msgid "createdToast"
+msgstr "Schema created"
+
+msgctxt "settings.schemas"
+msgid "createFailed"
+msgstr "Failed to create schema"
+
+msgctxt "settings.schemas"
+msgid "createSchema"
+msgstr "Create Schema"
+
+msgctxt "settings.schemas"
+msgid "delete"
+msgstr "Delete"
+
+msgctxt "settings.schemas"
+msgid "deleteConfirm"
+msgstr "Are you sure you want to delete \"{name}\"? This action cannot be undone."
+
+msgctxt "settings.schemas"
+msgid "deletedToast"
+msgstr "Schema deleted"
+
+msgctxt "settings.schemas"
+msgid "deleteFailed"
+msgstr "Failed to delete schema"
+
+msgctxt "settings.schemas"
+msgid "deleteSchema"
+msgstr "Delete schema"
+
+msgctxt "settings.schemas"
+msgid "description"
+msgstr "Define schemas for structured extractions and classifications"
+
+msgctxt "settings.schemas"
+msgid "emptyDescription"
+msgstr "Create your first extraction schema"
+
+msgctxt "settings.schemas"
+msgid "emptyTitle"
+msgstr "No schemas yet"
+
+msgctxt "settings.schemas.fields"
+msgid "jsonSchema"
+msgstr "JSON Schema"
+
+msgctxt "settings.schemas.fields"
+msgid "name"
+msgstr "Name"
+
+msgctxt "settings.schemas.fields"
+msgid "namePlaceholder"
+msgstr "e.g. invoice_data"
+
+msgctxt "settings.schemas.fields"
+msgid "promptTemplate"
+msgstr "Prompt Template"
+
+msgctxt "settings.schemas.fields"
+msgid "type"
+msgstr "Type"
+
+msgctxt "settings.schemas"
+msgid "guideBody"
+msgstr "Define JSON Schemas that control how structured data and classifications are extracted from conversations. Each schema defines the shape of extracted data and can optionally be paired with a custom prompt template."
+
+msgctxt "settings.schemas"
+msgid "guideTitle"
+msgstr "Extraction schemas"
+
+msgctxt "settings.schemas"
+msgid "invalidJson"
+msgstr "Invalid JSON schema"
+
+msgctxt "settings.schemas"
+msgid "loadFailed"
+msgstr "Failed to load schemas"
+
+msgctxt "settings.schemas"
+msgid "optional"
+msgstr "optional"
+
+msgctxt "settings.schemas.status"
+msgid "active"
+msgstr "Active"
+
+msgctxt "settings.schemas.status"
+msgid "inactive"
+msgstr "Inactive"
+
+msgctxt "settings.schemas.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "settings.schemas.table"
+msgid "created"
+msgstr "Created"
+
+msgctxt "settings.schemas.table"
+msgid "name"
+msgstr "Name"
+
+msgctxt "settings.schemas.table"
+msgid "status"
+msgstr "Status"
+
+msgctxt "settings.schemas.table"
+msgid "template"
+msgstr "Template"
+
+msgctxt "settings.schemas.table"
+msgid "type"
+msgstr "Type"
+
+msgctxt "settings.schemas"
+msgid "title"
+msgstr "Extraction Schemas"
+
+msgctxt "settings.schemas.types"
+msgid "classification"
+msgstr "Classification"
+
+msgctxt "settings.schemas.types"
+msgid "structured"
+msgstr "Structured"
+
+msgctxt "settings.schemas.view"
+msgid "created"
+msgstr "Created"
+
+msgctxt "settings.schemas.view"
+msgid "id"
+msgstr "ID"
+
+msgctxt "settings.schemas.view"
+msgid "jsonSchema"
+msgstr "JSON Schema"
+
+msgctxt "settings.schemas.view"
+msgid "promptTemplate"
+msgstr "Prompt Template"
+
+msgctxt "settings.schemas.view"
+msgid "status"
+msgstr "Status"
+
+msgctxt "settings.schemas.view"
+msgid "type"
+msgstr "Type"
+
+msgctxt "settings.schemas"
+msgid "viewSchema"
+msgstr "View schema"
+
+msgctxt "settings.schemas"
+msgid "yes"
+msgstr "Yes"
+
+msgctxt "settings.webhooks"
+msgid "all"
+msgstr "All"
+
+msgctxt "settings.webhooks"
+msgid "cancel"
+msgstr "Cancel"
+
+msgctxt "settings.webhooks"
+msgid "createdTitle"
+msgstr "Endpoint Created"
+
+msgctxt "settings.webhooks"
+msgid "createdToast"
+msgstr "Webhook endpoint created"
+
+msgctxt "settings.webhooks"
+msgid "createEndpoint"
+msgstr "Create Endpoint"
+
+msgctxt "settings.webhooks"
+msgid "createTitle"
+msgstr "Create Webhook Endpoint"
+
+msgctxt "settings.webhooks"
+msgid "delete"
+msgstr "Delete"
+
+msgctxt "settings.webhooks"
+msgid "deleteConfirm"
+msgstr "Are you sure you want to delete \"{name}\"? Any services using this webhook URL will immediately stop receiving events."
+
+msgctxt "settings.webhooks"
+msgid "deletedToast"
+msgstr "Webhook endpoint deleted"
+
+msgctxt "settings.webhooks"
+msgid "deleteEndpoint"
+msgstr "Delete endpoint"
+
+msgctxt "settings.webhooks"
+msgid "deleteFailed"
+msgstr "Failed to delete webhook"
+
+msgctxt "settings.webhooks"
+msgid "deleteTitle"
+msgstr "Delete Webhook"
+
+msgctxt "settings.webhooks"
+msgid "description"
+msgstr "Configure HTTP endpoints to receive real-time events from your OpenZync instance"
+
+msgctxt "settings.webhooks"
+msgid "done"
+msgstr "Done"
+
+msgctxt "settings.webhooks"
+msgid "emptyDescription"
+msgstr "Create an endpoint to start receiving webhook events"
+
+msgctxt "settings.webhooks"
+msgid "emptyTitle"
+msgstr "No webhook endpoints configured"
+
+msgctxt "settings.webhooks.errors"
+msgid "createFailed"
+msgstr "Failed to create endpoint"
+
+msgctxt "settings.webhooks.errors"
+msgid "nameRequired"
+msgstr "Endpoint name is required"
+
+msgctxt "settings.webhooks.errors"
+msgid "urlProtocol"
+msgstr "URL must start with http:// or https://"
+
+msgctxt "settings.webhooks.errors"
+msgid "urlRequired"
+msgstr "Endpoint URL is required"
+
+msgctxt "settings.webhooks.fields"
+msgid "endpointName"
+msgstr "Endpoint Name"
+
+msgctxt "settings.webhooks.fields"
+msgid "endpointNameHint"
+msgstr "A human-readable label for this webhook endpoint."
+
+msgctxt "settings.webhooks.fields"
+msgid "endpointNamePlaceholder"
+msgstr "e.g. Production Slack Notifier"
+
+msgctxt "settings.webhooks.fields"
+msgid "endpointUrl"
+msgstr "Endpoint URL"
+
+msgctxt "settings.webhooks.fields"
+msgid "endpointUrlHint"
+msgstr "HTTPS URL that receives POST requests with webhook payloads."
+
+msgctxt "settings.webhooks.fields"
+msgid "endpointUrlPlaceholder"
+msgstr "https://hooks.example.com/webhooks/openzync"
+
+msgctxt "settings.webhooks.fields"
+msgid "events"
+msgstr "Subscribed Events"
+
+msgctxt "settings.webhooks.fields"
+msgid "eventsHint"
+msgstr "All events are selected by default. Uncheck events you don't want to receive."
+
+msgctxt "settings.webhooks"
+msgid "guideBody"
+msgstr "Configure HTTP endpoints to receive real-time events from OpenZync. Subscribe to session, message, graph, fact, classification, extraction, and user events to integrate with external systems."
+
+msgctxt "settings.webhooks"
+msgid "guideTitle"
+msgstr "Webhook endpoints"
+
+msgctxt "settings.webhooks"
+msgid "hideSecret"
+msgstr "Hide secret"
+
+msgctxt "settings.webhooks"
+msgid "loadFailed"
+msgstr "Failed to load webhooks"
+
+msgctxt "settings.webhooks"
+msgid "nameLabel"
+msgstr "Name"
+
+msgctxt "settings.webhooks"
+msgid "secretFormat"
+msgstr "Secret format"
+
+msgctxt "settings.webhooks"
+msgid "secretNotice"
+msgstr "Copy the signing secret now. You won't be able to see it again."
+
+msgctxt "settings.webhooks"
+msgid "showSecret"
+msgstr "Show secret"
+
+msgctxt "settings.webhooks.status"
+msgid "active"
+msgstr "Active"
+
+msgctxt "settings.webhooks.status"
+msgid "disabled"
+msgstr "Disabled"
+
+msgctxt "settings.webhooks.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "settings.webhooks.table"
+msgid "created"
+msgstr "Created"
+
+msgctxt "settings.webhooks.table"
+msgid "events"
+msgstr "Events"
+
+msgctxt "settings.webhooks.table"
+msgid "lastDelivery"
+msgstr "Last Delivery"
+
+msgctxt "settings.webhooks.table"
+msgid "name"
+msgstr "Name"
+
+msgctxt "settings.webhooks.table"
+msgid "status"
+msgstr "Status"
+
+msgctxt "settings.webhooks.table"
+msgid "url"
+msgstr "URL"
+
+msgctxt "settings.webhooks"
+msgid "title"
+msgstr "Webhooks"
+
+msgctxt "settings.webhooks"
+msgid "urlLabel"
+msgstr "URL"
+
+msgctxt "superadmin.config"
+msgid "defaultsDescription"
+msgstr "Non-secret defaults applied to newly created organizations"
+
+msgctxt "superadmin.config"
+msgid "defaultsTitle"
+msgstr "System Defaults"
+
+msgctxt "superadmin.config"
+msgid "hide"
+msgstr "Hide"
+
+msgctxt "superadmin.config"
+msgid "loadFailed"
+msgstr "Failed to load system configuration"
+
+msgctxt "superadmin.config"
+msgid "notSet"
+msgstr "Not set"
+
+msgctxt "superadmin.config.policies.approvals"
+msgid "description"
+msgstr "New organizations are created as pending requests you review here."
+
+msgctxt "superadmin.config.policies.approvals"
+msgid "label"
+msgstr "Approval required"
+
+msgctxt "superadmin.config.policies.closed"
+msgid "description"
+msgstr "Signup and org-code join are disabled platform-wide."
+
+msgctxt "superadmin.config.policies.closed"
+msgid "label"
+msgstr "Registration closed"
+
+msgctxt "superadmin.config.policies.open"
+msgid "description"
+msgstr "Anyone can create an organization or join with a code."
+
+msgctxt "superadmin.config.policies.open"
+msgid "label"
+msgstr "Open registration"
+
+msgctxt "superadmin.config"
+msgid "policyDescription"
+msgstr "Controls who can create or join organizations"
+
+msgctxt "superadmin.config"
+msgid "policyLegend"
+msgstr "Organization creation policy"
+
+msgctxt "superadmin.config"
+msgid "policyTitle"
+msgstr "Registration Policy"
+
+msgctxt "superadmin.config"
+msgid "reveal"
+msgstr "Reveal"
+
+msgctxt "superadmin.config"
+msgid "revealFailed"
+msgstr "Failed to reveal setting"
+
+msgctxt "superadmin.config"
+msgid "saveChanges"
+msgstr "Save Changes"
+
+msgctxt "superadmin.config"
+msgid "saved"
+msgstr "Saved"
+
+msgctxt "superadmin.config"
+msgid "savedToast"
+msgstr "System configuration saved"
+
+msgctxt "superadmin.config"
+msgid "saveFailed"
+msgstr "Failed to save configuration"
+
+msgctxt "superadmin.config"
+msgid "scopeHintApprovals"
+msgstr "Where organization requests are accepted for review."
+
+msgctxt "superadmin.config"
+msgid "scopeHintOther"
+msgstr "Only applies when approval is required — ignored under the current policy."
+
+msgctxt "superadmin.config"
+msgid "scopeLabel"
+msgstr "Approval Scope"
+
+msgctxt "superadmin.config.scopes"
+msgid "both"
+msgstr "Both in-app requests and public signup"
+
+msgctxt "superadmin.config.scopes"
+msgid "inApp"
+msgstr "In-app requests only"
+
+msgctxt "superadmin.config.scopes"
+msgid "publicSignup"
+msgstr "Public signup only"
+
+msgctxt "superadmin.config"
+msgid "settingsDescription"
+msgstr "Platform runtime configuration from the secrets backend — read-only"
+
+msgctxt "superadmin.config"
+msgid "settingsLoadFailed"
+msgstr "Failed to load system settings"
+
+msgctxt "superadmin.config"
+msgid "settingsTitle"
+msgstr "System Settings (runtime)"
+
+msgctxt "superadmin.configFields.fields"
+msgid "contextCacheTtl"
+msgstr "Context Cache TTL (seconds)"
+
+msgctxt "superadmin.configFields.fields"
+msgid "embeddingBackend"
+msgstr "Embedding Backend"
+
+msgctxt "superadmin.configFields.fields"
+msgid "embeddingDimensions"
+msgstr "Embedding Dimensions"
+
+msgctxt "superadmin.configFields.fields"
+msgid "embeddingModel"
+msgstr "Embedding Model"
+
+msgctxt "superadmin.configFields.fields"
+msgid "graphBackend"
+msgstr "Graph Backend"
+
+msgctxt "superadmin.configFields.fields"
+msgid "graphMaxTraversalDepth"
+msgstr "Graph Max Traversal Depth"
+
+msgctxt "superadmin.configFields.fields"
+msgid "graphSearchType"
+msgstr "Graph Search Type"
+
+msgctxt "superadmin.configFields.fields"
+msgid "llmBackend"
+msgstr "LLM Backend"
+
+msgctxt "superadmin.configFields.fields"
+msgid "llmMaxTokens"
+msgstr "LLM Max Tokens"
+
+msgctxt "superadmin.configFields.fields"
+msgid "llmModel"
+msgstr "LLM Model"
+
+msgctxt "superadmin.configFields.fields"
+msgid "llmTemperature"
+msgstr "LLM Temperature"
+
+msgctxt "superadmin.configFields.fields"
+msgid "rerankerBackend"
+msgstr "Reranker Backend"
+
+msgctxt "superadmin.configFields.fields"
+msgid "rerankerModel"
+msgstr "Reranker Model"
+
+msgctxt "superadmin.configFields.hints"
+msgid "contextCacheTtl"
+msgstr "How long context data is cached (0 = no caching)"
+
+msgctxt "superadmin.configFields.hints"
+msgid "llmTemperature"
+msgstr "0–2 sampling temperature"
+
+msgctxt "superadmin.configFields.options"
+msgid "noGraphBackend"
+msgstr "No graph backend"
+
+msgctxt "superadmin.configFields.options"
+msgid "noneDisabled"
+msgstr "None (disabled)"
+
+msgctxt "superadmin.layout"
+msgid "organizations"
+msgstr "Organizations"
+
+msgctxt "superadmin.layout"
+msgid "requests"
+msgstr "Requests"
+
+msgctxt "superadmin.layout"
+msgid "subtitle"
+msgstr "Registration policy, organization approvals, and system defaults"
+
+msgctxt "superadmin.layout"
+msgid "systemConfiguration"
+msgstr "System Configuration"
+
+msgctxt "superadmin.layout"
+msgid "title"
+msgstr "Platform Administration"
+
+msgctxt "superadmin.orgConfig"
+msgid "backToOrgs"
+msgstr "Back to organizations"
+
+msgctxt "superadmin.orgConfig"
+msgid "defaultsDescription"
+msgstr "Same fields as the org-config pages, managed at the platform level"
+
+msgctxt "superadmin.orgConfig"
+msgid "defaultsTitle"
+msgstr "Non-secret Defaults"
+
+msgctxt "superadmin.orgConfig"
+msgid "loadFailed"
+msgstr "Failed to load organization configuration"
+
+msgctxt "superadmin.orgConfig"
+msgid "saveChanges"
+msgstr "Save Changes"
+
+msgctxt "superadmin.orgConfig"
+msgid "saved"
+msgstr "Saved"
+
+msgctxt "superadmin.orgConfig"
+msgid "savedToast"
+msgstr "Organization configuration saved"
+
+msgctxt "superadmin.orgConfig"
+msgid "saveFailed"
+msgstr "Failed to save configuration"
+
+msgctxt "superadmin.orgConfig"
+msgid "subtitle"
+msgstr "Cross-org defaults for organization {orgId}"
+
+msgctxt "superadmin.orgConfig"
+msgid "title"
+msgstr "Organization Configuration"
+
+msgctxt "superadmin.orgMembers"
+msgid "backToOrgs"
+msgstr "Back to organizations"
+
+msgctxt "superadmin.orgMembers"
+msgid "emptyDescription"
+msgstr "This organization has no members yet."
+
+msgctxt "superadmin.orgMembers"
+msgid "emptyTitle"
+msgstr "No members found"
+
+msgctxt "superadmin.orgMembers"
+msgid "loadFailed"
+msgstr "Failed to load members"
+
+msgctxt "superadmin.orgMembers"
+msgid "makeAdmin"
+msgstr "Make Admin"
+
+msgctxt "superadmin.orgMembers"
+msgid "makeAdminAria"
+msgstr "Make {name} an admin"
+
+msgctxt "superadmin.orgMembers"
+msgid "makeAdminConfirm"
+msgstr "Grant admin access to \"{name}\"? Admins can manage org users, settings, and view monitoring/audit data."
+
+msgctxt "superadmin.orgMembers"
+msgid "removeAdmin"
+msgstr "Remove Admin"
+
+msgctxt "superadmin.orgMembers"
+msgid "removeAdminAria"
+msgstr "Remove admin from {name}"
+
+msgctxt "superadmin.orgMembers"
+msgid "removeAdminConfirm"
+msgstr "Remove admin access from \"{name}\"? They will become a regular member."
+
+msgctxt "superadmin.orgMembers.role"
+msgid "admin"
+msgstr "Admin"
+
+msgctxt "superadmin.orgMembers.role"
+msgid "member"
+msgstr "Member"
+
+msgctxt "superadmin.orgMembers"
+msgid "roleChangedToast"
+msgstr "\"{name}\" is now {role}"
+
+msgctxt "superadmin.orgMembers"
+msgid "roleUpdateFailed"
+msgstr "Failed to update role"
+
+msgctxt "superadmin.orgMembers"
+msgid "subtitle"
+msgstr "Manage roles for organization {orgId}"
+
+msgctxt "superadmin.orgMembers.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "superadmin.orgMembers.table"
+msgid "created"
+msgstr "Created"
+
+msgctxt "superadmin.orgMembers.table"
+msgid "email"
+msgstr "Email"
+
+msgctxt "superadmin.orgMembers.table"
+msgid "name"
+msgstr "Name"
+
+msgctxt "superadmin.orgMembers.table"
+msgid "role"
+msgstr "Role"
+
+msgctxt "superadmin.orgMembers"
+msgid "title"
+msgstr "Organization Members"
+
+msgctxt "superadmin.orgs"
+msgid "approve"
+msgstr "Approve {name}"
+
+msgctxt "superadmin.orgs"
+msgid "approveConfirm"
+msgstr "Approve \"{name}\"? Its members can sign in and start using the platform."
+
+msgctxt "superadmin.orgs"
+msgid "approvedToast"
+msgstr "\"{name}\" approved"
+
+msgctxt "superadmin.orgs"
+msgid "approveFailed"
+msgstr "Failed to approve organization"
+
+msgctxt "superadmin.orgs"
+msgid "approveTitle"
+msgstr "Approve Organization"
+
+msgctxt "superadmin.orgs"
+msgid "cancel"
+msgstr "Cancel"
+
+msgctxt "superadmin.orgs"
+msgid "configTitle"
+msgstr "Organization configuration"
+
+msgctxt "superadmin.orgs"
+msgid "createDescription"
+msgstr "Creates the org directly — no approval needed."
+
+msgctxt "superadmin.orgs"
+msgid "createdToast"
+msgstr "Organization \"{name}\" created"
+
+msgctxt "superadmin.orgs"
+msgid "createOrganization"
+msgstr "Create Organization"
+
+msgctxt "superadmin.orgs"
+msgid "createTitle"
+msgstr "Create Organization"
+
+msgctxt "superadmin.orgs"
+msgid "emptyDescription"
+msgstr "Organizations appear here as they are created or requested."
+
+msgctxt "superadmin.orgs"
+msgid "emptyTitle"
+msgstr "No organizations yet"
+
+msgctxt "superadmin.orgs.errors"
+msgid "createFailed"
+msgstr "Failed to create organization"
+
+msgctxt "superadmin.orgs.errors"
+msgid "nameRequired"
+msgstr "Organization name is required"
+
+msgctxt "superadmin.orgs.fields"
+msgid "orgName"
+msgstr "Organization Name"
+
+msgctxt "superadmin.orgs.fields"
+msgid "orgNamePlaceholder"
+msgstr "e.g. Acme Corp"
+
+msgctxt "superadmin.orgs"
+msgid "loadFailed"
+msgstr "Failed to load organizations"
+
+msgctxt "superadmin.orgs"
+msgid "loadMore"
+msgstr "Load More"
+
+msgctxt "superadmin.orgs"
+msgid "loadMoreFailed"
+msgstr "Failed to load more organizations"
+
+msgctxt "superadmin.orgs"
+msgid "membersTitle"
+msgstr "Members"
+
+msgctxt "superadmin.orgs"
+msgid "reject"
+msgstr "Reject {name}"
+
+msgctxt "superadmin.orgs"
+msgid "rejectConfirm"
+msgstr "Reject \"{name}\"? This declines the registration request."
+
+msgctxt "superadmin.orgs"
+msgid "rejectedToast"
+msgstr "\"{name}\" rejected"
+
+msgctxt "superadmin.orgs"
+msgid "rejectFailed"
+msgstr "Failed to reject organization"
+
+msgctxt "superadmin.orgs"
+msgid "rejectTitle"
+msgstr "Reject Organization"
+
+msgctxt "superadmin.orgs.status"
+msgid "approved"
+msgstr "Approved"
+
+msgctxt "superadmin.orgs.status"
+msgid "pending"
+msgstr "Pending"
+
+msgctxt "superadmin.orgs.status"
+msgid "rejected"
+msgstr "Rejected"
+
+msgctxt "superadmin.orgs.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "superadmin.orgs.table"
+msgid "created"
+msgstr "Created"
+
+msgctxt "superadmin.orgs.table"
+msgid "name"
+msgstr "Name"
+
+msgctxt "superadmin.orgs.table"
+msgid "status"
+msgstr "Status"
+
+msgctxt "superadmin.orgs"
+msgid "title"
+msgstr "All Organizations"
+
+msgctxt "superadmin.requests"
+msgid "approve"
+msgstr "Approve {name}"
+
+msgctxt "superadmin.requests"
+msgid "approveConfirm"
+msgstr "Approve \"{name}\"? Its members can sign in and start using the platform."
+
+msgctxt "superadmin.requests"
+msgid "approvedToast"
+msgstr "\"{name}\" approved"
+
+msgctxt "superadmin.requests"
+msgid "approveFailed"
+msgstr "Failed to approve organization"
+
+msgctxt "superadmin.requests"
+msgid "approveTitle"
+msgstr "Approve Organization"
+
+msgctxt "superadmin.requests"
+msgid "emptyDescription"
+msgstr "You're all caught up — new organization requests will appear here."
+
+msgctxt "superadmin.requests"
+msgid "emptyTitle"
+msgstr "No pending requests"
+
+msgctxt "superadmin.requests"
+msgid "loadFailed"
+msgstr "Failed to load approval requests"
+
+msgctxt "superadmin.requests"
+msgid "pending"
+msgstr "Pending"
+
+msgctxt "superadmin.requests"
+msgid "pendingCount"
+msgstr "{count} pending"
+
+msgctxt "superadmin.requests"
+msgid "reject"
+msgstr "Reject {name}"
+
+msgctxt "superadmin.requests"
+msgid "rejectConfirm"
+msgstr "Reject \"{name}\"? This declines the registration request."
+
+msgctxt "superadmin.requests"
+msgid "rejectedToast"
+msgstr "\"{name}\" rejected"
+
+msgctxt "superadmin.requests"
+msgid "rejectFailed"
+msgstr "Failed to reject organization"
+
+msgctxt "superadmin.requests"
+msgid "rejectTitle"
+msgstr "Reject Organization"
+
+msgctxt "superadmin.requests"
+msgid "subtitle"
+msgstr "Organizations waiting for your decision"
+
+msgctxt "superadmin.requests.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "superadmin.requests.table"
+msgid "name"
+msgstr "Name"
+
+msgctxt "superadmin.requests.table"
+msgid "requested"
+msgstr "Requested"
+
+msgctxt "superadmin.requests.table"
+msgid "status"
+msgstr "Status"
+
+msgctxt "superadmin.requests"
+msgid "title"
+msgstr "Approval Requests"
+
+msgctxt "users"
+msgid "adminRequired"
+msgstr "Admin access required"
+
+msgctxt "users"
+msgid "cancel"
+msgstr "Cancel"
+
+msgctxt "users"
+msgid "copyFailed"
+msgstr "Failed to copy"
+
+msgctxt "users"
+msgid "copyUserId"
+msgstr "Copy User ID"
+
+msgctxt "users"
+msgid "createUser"
+msgstr "Create User"
+
+msgctxt "users"
+msgid "delete"
+msgstr "Delete"
+
+msgctxt "users"
+msgid "deleteConfirm"
+msgstr "Are you sure you want to delete user \"{name}\"? This action cannot be undone."
+
+msgctxt "users"
+msgid "deleteFailed"
+msgstr "Failed to delete user"
+
+msgctxt "users"
+msgid "deleteUser"
+msgstr "Delete User"
+
+msgctxt "users"
+msgid "description"
+msgstr "Manage end-users within your organization"
+
+msgctxt "users.detail"
+msgid "adding"
+msgstr "Adding..."
+
+msgctxt "users.detail"
+msgid "addInstruction"
+msgstr "Add Instruction"
+
+msgctxt "users.detail"
+msgid "addInstructionTitle"
+msgstr "Add Summary Instruction"
+
+msgctxt "users.detail"
+msgid "backToUsers"
+msgstr "Back to Users"
+
+msgctxt "users.detail"
+msgid "cancel"
+msgstr "Cancel"
+
+msgctxt "users.detail"
+msgid "cannotUndo"
+msgstr "This action cannot be undone."
+
+msgctxt "users.detail"
+msgid "copyToClipboard"
+msgstr "Copy to clipboard"
+
+msgctxt "users.detail"
+msgid "delete"
+msgstr "Delete"
+
+msgctxt "users.detail"
+msgid "deleteConfirmHint"
+msgstr "This instruction will no longer be used when generating user summaries."
+
+msgctxt "users.detail"
+msgid "deleteConfirmPrefix"
+msgstr "Are you sure you want to delete instruction"
+
+msgctxt "users.detail"
+msgid "deleteInstruction"
+msgstr "Delete instruction"
+
+msgctxt "users.detail"
+msgid "deleteInstructionTitle"
+msgstr "Delete Instruction"
+
+msgctxt "users.detail"
+msgid "deleting"
+msgstr "Deleting..."
+
+msgctxt "users.detail"
+msgid "editInstruction"
+msgstr "Edit instruction"
+
+msgctxt "users.detail"
+msgid "editInstructionTitle"
+msgstr "Edit Summary Instruction"
+
+msgctxt "users.detail.errors"
+msgid "adminRequired"
+msgstr "Admin access required"
+
+msgctxt "users.detail.errors"
+msgid "createFailed"
+msgstr "Failed to create instruction"
+
+msgctxt "users.detail.errors"
+msgid "instructionsFailed"
+msgstr "Failed to update instructions"
+
+msgctxt "users.detail.errors"
+msgid "loadFailed"
+msgstr "Failed to load user data"
+
+msgctxt "users.detail.errors"
+msgid "nameRequired"
+msgstr "Instruction name is required"
+
+msgctxt "users.detail.errors"
+msgid "roleUpdateFailed"
+msgstr "Failed to update role"
+
+msgctxt "users.detail.errors"
+msgid "summaryFailed"
+msgstr "Failed to generate summary"
+
+msgctxt "users.detail.errors"
+msgid "textRequired"
+msgstr "Instruction text is required"
+
+msgctxt "users.detail.errors"
+msgid "updateFailed"
+msgstr "Failed to update instruction"
+
+msgctxt "users.detail.fields"
+msgid "name"
+msgstr "Name"
+
+msgctxt "users.detail.fields"
+msgid "nameHint"
+msgstr "A label for this instruction."
+
+msgctxt "users.detail.fields"
+msgid "namePlaceholder"
+msgstr "e.g. Tone & Voice"
+
+msgctxt "users.detail.fields"
+msgid "text"
+msgstr "Instruction Text"
+
+msgctxt "users.detail.fields"
+msgid "textHint"
+msgstr "The instruction given to the LLM when generating the summary."
+
+msgctxt "users.detail.fields"
+msgid "textPlaceholder"
+msgstr "e.g. Summarize the user's tone, communication style, and preferred vocabulary."
+
+msgctxt "users.detail.instructions"
+msgid "emptyHint"
+msgstr "Add custom instructions to guide how the user summary is generated."
+
+msgctxt "users.detail.instructions"
+msgid "emptyTitle"
+msgstr "No summary instructions"
+
+msgctxt "users.detail.instructions"
+msgid "subtitle"
+msgstr "Custom instructions used when generating the user summary"
+
+msgctxt "users.detail.instructions"
+msgid "title"
+msgstr "Summary Instructions"
+
+msgctxt "users.detail"
+msgid "makeAdmin"
+msgstr "Make Admin"
+
+msgctxt "users.detail"
+msgid "makeAdminConfirm"
+msgstr "Grant admin access to \"{name}\"? Admins can manage org users, settings, and view monitoring/audit data."
+
+msgctxt "users.detail.meta"
+msgid "created"
+msgstr "Created"
+
+msgctxt "users.detail.meta"
+msgid "email"
+msgstr "Email"
+
+msgctxt "users.detail.meta"
+msgid "externalId"
+msgstr "External ID"
+
+msgctxt "users.detail.meta"
+msgid "name"
+msgstr "Name"
+
+msgctxt "users.detail.meta"
+msgid "role"
+msgstr "Role"
+
+msgctxt "users.detail.meta"
+msgid "userId"
+msgstr "User ID"
+
+msgctxt "users.detail"
+msgid "removeAdmin"
+msgstr "Remove Admin"
+
+msgctxt "users.detail"
+msgid "removeAdminConfirm"
+msgstr "Remove admin access from \"{name}\"? They will become a regular member."
+
+msgctxt "users.detail.role"
+msgid "admin"
+msgstr "Admin"
+
+msgctxt "users.detail.role"
+msgid "member"
+msgstr "Member"
+
+msgctxt "users.detail"
+msgid "saveChanges"
+msgstr "Save Changes"
+
+msgctxt "users.detail"
+msgid "saving"
+msgstr "Saving..."
+
+msgctxt "users.detail"
+msgid "sessions"
+msgstr "Sessions"
+
+msgctxt "users.detail.stats"
+msgid "facts"
+msgstr "Facts"
+
+msgctxt "users.detail.stats"
+msgid "messages"
+msgstr "Messages"
+
+msgctxt "users.detail.stats"
+msgid "sessions"
+msgstr "Sessions"
+
+msgctxt "users.detail.summary"
+msgid "emptyHint"
+msgstr "Click \"Generate Summary\" to create a profile of this user based on their conversation history."
+
+msgctxt "users.detail.summary"
+msgid "emptyTitle"
+msgstr "No summary generated yet"
+
+msgctxt "users.detail.summary"
+msgid "generate"
+msgstr "Generate Summary"
+
+msgctxt "users.detail.summary"
+msgid "generating"
+msgstr "Generating..."
+
+msgctxt "users.detail.summary"
+msgid "lastGenerated"
+msgstr "Last generated: {date}"
+
+msgctxt "users.detail.summary"
+msgid "notGenerated"
+msgstr "Not yet generated"
+
+msgctxt "users.detail.summary"
+msgid "refreshing"
+msgstr "Refreshing..."
+
+msgctxt "users.detail.summary"
+msgid "title"
+msgstr "User Summary"
+
+msgctxt "users.detail.toasts"
+msgid "instructionAdded"
+msgstr "Instruction \"{name}\" added successfully"
+
+msgctxt "users.detail.toasts"
+msgid "instructionDeleted"
+msgstr "Instruction \"{name}\" deleted"
+
+msgctxt "users.detail.toasts"
+msgid "instructionUpdated"
+msgstr "Instruction \"{name}\" updated successfully"
+
+msgctxt "users.detail.toasts"
+msgid "roleAdmin"
+msgstr "User is now an admin"
+
+msgctxt "users.detail.toasts"
+msgid "roleMember"
+msgstr "User is now a member"
+
+msgctxt "users.detail.toasts"
+msgid "summaryCooldown"
+msgstr "Please wait 5 minutes between summary generations."
+
+msgctxt "users.detail.toasts"
+msgid "summarySlow"
+msgstr "Summary generation is taking longer than expected. Refresh the page to check."
+
+msgctxt "users.detail.toasts"
+msgid "summaryStarted"
+msgstr "Summary generation started. Check back in a few moments."
+
+msgctxt "users.detail.toasts"
+msgid "userNotFound"
+msgstr "User not found"
+
+msgctxt "users.detail"
+msgid "userOverview"
+msgstr "User overview"
+
+msgctxt "users.detail"
+msgid "you"
+msgstr "you"
+
+msgctxt "users"
+msgid "editUser"
+msgstr "Edit User"
+
+msgctxt "users"
+msgid "emptyDescription"
+msgstr "Create your first user to get started"
+
+msgctxt "users"
+msgid "emptyTitle"
+msgstr "No users found"
+
+msgctxt "users.errors"
+msgid "adminRequired"
+msgstr "Admin access required"
+
+msgctxt "users.errors"
+msgid "copyFailed"
+msgstr "Failed to copy"
+
+msgctxt "users.errors"
+msgid "deleteFailed"
+msgstr "Failed to delete user"
+
+msgctxt "users.errors"
+msgid "externalIdRequired"
+msgstr "External ID is required"
+
+msgctxt "users.errors"
+msgid "inviteFailed"
+msgstr "Failed to send invitation"
+
+msgctxt "users.errors"
+msgid "inviteRequired"
+msgstr "Email and name are required"
+
+msgctxt "users.errors"
+msgid "loadFailed"
+msgstr "Failed to load users"
+
+msgctxt "users.errors"
+msgid "loadMoreFailed"
+msgstr "Failed to load more users"
+
+msgctxt "users.errors"
+msgid "revokeFailed"
+msgstr "Failed to revoke invitation"
+
+msgctxt "users.errors"
+msgid "roleUpdateFailed"
+msgstr "Failed to update role"
+
+msgctxt "users.fields"
+msgid "email"
+msgstr "Email"
+
+msgctxt "users.fields"
+msgid "emailPlaceholder"
+msgstr "e.g. john@acme.com"
+
+msgctxt "users.fields"
+msgid "externalId"
+msgstr "External ID"
+
+msgctxt "users.fields"
+msgid "externalIdPlaceholder"
+msgstr "e.g. user-abc-123"
+
+msgctxt "users.fields"
+msgid "inviteEmailPlaceholder"
+msgstr "e.g. jane@acme.com"
+
+msgctxt "users.fields"
+msgid "inviteNamePlaceholder"
+msgstr "e.g. Jane Doe"
+
+msgctxt "users.fields"
+msgid "name"
+msgstr "Name"
+
+msgctxt "users.fields"
+msgid "namePlaceholder"
+msgstr "e.g. John Doe"
+
+msgctxt "users"
+msgid "guideBody"
+msgstr "View and manage organization users. Monitor user activity, assign roles, and control access to organization resources."
+
+msgctxt "users"
+msgid "guideTitle"
+msgstr "User management"
+
+msgctxt "users"
+msgid "inviteDescription"
+msgstr "They'll receive an email with a link to set their password."
+
+msgctxt "users"
+msgid "inviteFailed"
+msgstr "Failed to send invitation"
+
+msgctxt "users"
+msgid "inviteMember"
+msgstr "Invite Member"
+
+msgctxt "users"
+msgid "loadFailed"
+msgstr "Failed to load users"
+
+msgctxt "users"
+msgid "loading"
+msgstr "Loading..."
+
+msgctxt "users"
+msgid "loadMore"
+msgstr "Load More"
+
+msgctxt "users"
+msgid "loadMoreFailed"
+msgstr "Failed to load more users"
+
+msgctxt "users"
+msgid "makeAdmin"
+msgstr "Make Admin"
+
+msgctxt "users"
+msgid "makeAdminAria"
+msgstr "Make {id} an admin"
+
+msgctxt "users"
+msgid "makeAdminConfirm"
+msgstr "Grant admin access to \"{name}\"? Admins can manage org users, settings, and view monitoring/audit data."
+
+msgctxt "users"
+msgid "pending"
+msgstr "Pending"
+
+msgctxt "users"
+msgid "removeAdmin"
+msgstr "Remove Admin"
+
+msgctxt "users"
+msgid "removeAdminAria"
+msgstr "Remove admin from {id}"
+
+msgctxt "users"
+msgid "removeAdminConfirm"
+msgstr "Remove admin access from \"{name}\"? They will become a regular member."
+
+msgctxt "users"
+msgid "revoke"
+msgstr "Revoke"
+
+msgctxt "users"
+msgid "revokeConfirm"
+msgstr "Revoke invitation for \"{name}\"? They'll need a new invite."
+
+msgctxt "users"
+msgid "revokeFailed"
+msgstr "Failed to revoke invitation"
+
+msgctxt "users"
+msgid "revokeInvitation"
+msgstr "Revoke Invitation"
+
+msgctxt "users"
+msgid "revokeInviteAria"
+msgstr "Revoke invite for {id}"
+
+msgctxt "users.role"
+msgid "admin"
+msgstr "Admin"
+
+msgctxt "users.role"
+msgid "member"
+msgstr "Member"
+
+msgctxt "users"
+msgid "roleUpdateFailed"
+msgstr "Failed to update role"
+
+msgctxt "users"
+msgid "saveChanges"
+msgstr "Save Changes"
+
+msgctxt "users"
+msgid "sendInvite"
+msgstr "Send Invite"
+
+msgctxt "users.table"
+msgid "actions"
+msgstr "Actions"
+
+msgctxt "users.table"
+msgid "created"
+msgstr "Created"
+
+msgctxt "users.table"
+msgid "email"
+msgstr "Email"
+
+msgctxt "users.table"
+msgid "externalId"
+msgstr "External ID"
+
+msgctxt "users.table"
+msgid "name"
+msgstr "Name"
+
+msgctxt "users.table"
+msgid "role"
+msgstr "Role"
+
+msgctxt "users"
+msgid "title"
+msgstr "Users"
+
+msgctxt "users.toasts"
+msgid "copiedId"
+msgstr "User ID copied to clipboard"
+
+msgctxt "users.toasts"
+msgid "created"
+msgstr "User \"{id}\" created successfully"
+
+msgctxt "users.toasts"
+msgid "deleted"
+msgstr "User \"{id}\" deleted"
+
+msgctxt "users.toasts"
+msgid "inviteRevoked"
+msgstr "Invitation revoked for {name}"
+
+msgctxt "users.toasts"
+msgid "inviteSent"
+msgstr "Invitation sent to {email}"
+
+msgctxt "users.toasts"
+msgid "roleChanged"
+msgstr "User \"{id}\" is now {role}"
+
+msgctxt "users.toasts"
+msgid "updated"
+msgstr "User \"{id}\" updated successfully"
+
+msgctxt "users"
+msgid "viewUser"
+msgstr "View User"
+
+msgctxt "users"
+msgid "you"
+msgstr "you"

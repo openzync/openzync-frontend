@@ -18,7 +18,7 @@ const API_BASE: string =
 // ponytail: static single-locale import — the catalog ships en only today;
 // when locales beyond en land, swap this for a per-locale message registry
 // (or a translator injected from the calling component).
-import messages from "@/messages/en.json";
+import messages from "@/messages/en.po";
 
 const ERROR_STATUS_KEYS: Record<number, string> = {
   400: "http400",

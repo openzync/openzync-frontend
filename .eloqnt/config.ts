@@ -9,7 +9,7 @@ export default defineConfig({
     path: "./src/messages",
     locales: "infer",
     sourceLocale: "en",
-    format: "json",
+    format: "po",
   },
 
   lint: {

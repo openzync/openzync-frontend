@@ -1,0 +1,6407 @@
+#. ⚠️ DRAFT — AI-GENERATED FIRST PASS, REQUIRES NATIVE HINDI REVIEW BEFORE PRODUCTION RELEASE
+#. Reference: docs/i18n/glossary.md — authoritative en→hi terminology
+#. (episode→एपिसोड, memory→मेमोरी, fact→तथ्य, session→सत्र,
+#. subscription→सब्सक्रिप्शन, relationship→संबंध vs edge→एज)
+msgid ""
+msgstr ""
+"Language: hi\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: next-intl\n"
+"X-Crowdin-SourceKey: msgstr\n"
+
+msgctxt "audit"
+msgid "autoRefresh"
+msgstr "ऑटो-रिफ्रेश"
+
+msgctxt "audit"
+msgid "autoRefreshing"
+msgstr "हर 10 सेकंड में ऑटो-रिफ्रेश हो रहा है"
+
+msgctxt "audit"
+msgid "description"
+msgstr "सभी सिस्टम कार्यों का अपरिवर्तनीय रिकॉर्ड"
+
+msgctxt "audit"
+msgid "emptyDescription"
+msgstr "कार्य होते ही ऑडिट प्रविष्टियाँ यहाँ दिखाई देंगी"
+
+msgctxt "audit"
+msgid "emptyTitle"
+msgstr "कोई ऑडिट प्रविष्टि नहीं मिली"
+
+msgctxt "audit"
+msgid "emptyWithFilters"
+msgstr "अपने फ़िल्टर समायोजित करने का प्रयास करें"
+
+msgctxt "audit.filter"
+msgid "action"
+msgstr "कार्रवाई"
+
+msgctxt "audit.filter"
+msgid "actionPlaceholder"
+msgstr "जैसे session.create"
+
+msgctxt "audit.filter"
+msgid "actorType"
+msgstr "कर्ता प्रकार"
+
+msgctxt "audit.filter"
+msgid "all"
+msgstr "सभी"
+
+msgctxt "audit.filter"
+msgid "apiKey"
+msgstr "एपीआई कुंजी"
+
+msgctxt "audit.filter"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "audit.filter"
+msgid "system"
+msgstr "सिस्टम"
+
+msgctxt "audit.filter"
+msgid "user"
+msgstr "उपयोगकर्ता"
+
+msgctxt "audit"
+msgid "guideBody"
+msgstr "सभी सिस्टम कार्यों का अपरिवर्तनीय रिकॉर्ड देखें — सत्र निर्माण, संदेश प्रोसेसिंग, कॉन्फ़िगरेशन परिवर्तन और बहुत कुछ। गतिविधि की जाँच के लिए कार्रवाई प्रकार, संसाधन या कर्ता के अनुसार फ़िल्टर करें।"
+
+msgctxt "audit"
+msgid "guideTitle"
+msgstr "ऑडिट लॉग"
+
+msgctxt "audit"
+msgid "loadError"
+msgstr "ऑडिट लॉग लोड करने में विफल"
+
+msgctxt "audit.table"
+msgid "action"
+msgstr "कार्रवाई"
+
+msgctxt "audit.table"
+msgid "actor"
+msgstr "कर्ता"
+
+msgctxt "audit.table"
+msgid "ip"
+msgstr "आईपी"
+
+msgctxt "audit.table"
+msgid "method"
+msgstr "विधि"
+
+msgctxt "audit.table"
+msgid "path"
+msgstr "पथ"
+
+msgctxt "audit.table"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "audit.table"
+msgid "time"
+msgstr "समय"
+
+msgctxt "audit.table"
+msgid "type"
+msgstr "प्रकार"
+
+msgctxt "audit"
+msgid "title"
+msgstr "ऑडिट लॉग"
+
+msgctxt "audit"
+msgid "toggleAutoRefresh"
+msgstr "ऑटो-रिफ्रेश टॉगल करें"
+
+msgctxt "audit"
+msgid "updated"
+msgstr "{time} पर अपडेट हुआ"
+
+msgctxt "auth.brand.features"
+msgid "feature1"
+msgstr "स्थायी, क्वेरी करने योग्य एजेंट मेमोरी"
+
+msgctxt "auth.brand.features"
+msgid "feature2"
+msgstr "मल्टी-प्रोवाइडर LLM सपोर्ट (BYOK)"
+
+msgctxt "auth.brand.features"
+msgid "feature3"
+msgstr "हाइब्रिड खोज के साथ नॉलेज ग्राफ़"
+
+msgctxt "auth.brand.features"
+msgid "feature4"
+msgstr "एसिंक्रोनस एनरिचमेंट पाइपलाइन"
+
+msgctxt "auth.brand"
+msgid "hero"
+msgstr "स्थायी एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+msgctxt "auth.brand.stats"
+msgid "graphBackends"
+msgstr "ग्राफ बैकएंड"
+
+msgctxt "auth.brand.stats"
+msgid "llmProviders"
+msgstr "LLM प्रोवाइडर"
+
+msgctxt "auth.brand.stats"
+msgid "scale"
+msgstr "स्केल"
+
+msgctxt "auth.brand"
+msgid "tagline"
+msgstr "एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+msgctxt "auth.changePassword"
+msgid "changedMind"
+msgstr "अपना मन बदल लिया?"
+
+msgctxt "auth.changePassword"
+msgid "currentPassword"
+msgstr "वर्तमान पासवर्ड"
+
+msgctxt "auth.changePassword"
+msgid "currentPasswordPlaceholder"
+msgstr "अपना वर्तमान पासवर्ड दर्ज करें"
+
+msgctxt "auth.changePassword"
+msgid "failed"
+msgstr "पासवर्ड बदलने में विफल। कृपया फिर से प्रयास करें।"
+
+msgctxt "auth.changePassword"
+msgid "hero"
+msgstr "आगे बढ़ने से पहले अपने खाते को सुरक्षित करें"
+
+msgctxt "auth.changePassword"
+msgid "min8Chars"
+msgstr "न्यूनतम 8 अक्षर"
+
+msgctxt "auth.changePassword"
+msgid "newPassword"
+msgstr "नया पासवर्ड"
+
+msgctxt "auth.changePassword"
+msgid "passwordStrength"
+msgstr "पासवर्ड की मज़बूती"
+
+msgctxt "auth.changePassword"
+msgid "returnDashboard"
+msgstr "डैशबोर्ड पर लौटें"
+
+msgctxt "auth.changePassword"
+msgid "subtitle"
+msgstr "आगे बढ़ने से पहले आपका पासवर्ड अपडेट किया जाना आवश्यक है"
+
+msgctxt "auth.changePassword"
+msgid "title"
+msgstr "पासवर्ड बदलें"
+
+msgctxt "auth.changePassword"
+msgid "updatePassword"
+msgstr "पासवर्ड अपडेट करें"
+
+msgctxt "auth.common"
+msgid "connectionError"
+msgstr "कनेक्शन त्रुटि। कृपया फिर से प्रयास करें।"
+
+msgctxt "auth.common"
+msgid "email"
+msgstr "ईमेल"
+
+msgctxt "auth.common"
+msgid "emailPlaceholder"
+msgstr "you@example.com"
+
+msgctxt "auth.common"
+msgid "password"
+msgstr "पासवर्ड"
+
+msgctxt "auth.common"
+msgid "passwordPlaceholder"
+msgstr "अपना पासवर्ड दर्ज करें"
+
+msgctxt "auth.forgot"
+msgid "backToLogin"
+msgstr "लॉगिन पर वापस जाएं"
+
+msgctxt "auth.forgot"
+msgid "brandTagline"
+msgstr "एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+msgctxt "auth.forgot"
+msgid "checkEmail"
+msgstr "अपना ईमेल जाँचें"
+
+msgctxt "auth.forgot"
+msgid "connectionError"
+msgstr "कनेक्शन त्रुटि।"
+
+msgctxt "auth.forgot"
+msgid "emailLabel"
+msgstr "ईमेल"
+
+msgctxt "auth.forgot"
+msgid "emailPlaceholder"
+msgstr "you@example.com"
+
+msgctxt "auth.forgot"
+msgid "enterResetCode"
+msgstr "रीसेट कोड दर्ज करें"
+
+msgctxt "auth.forgot"
+msgid "failedGeneric"
+msgstr "कुछ गलत हो गया। कृपया फिर से प्रयास करें।"
+
+msgctxt "auth.forgot"
+msgid "heroTitle"
+msgstr "अपना पासवर्ड रीसेट करें"
+
+msgctxt "auth.forgot"
+msgid "sendResetCode"
+msgstr "रीसेट कोड भेजें"
+
+msgctxt "auth.forgot"
+msgid "sentBody"
+msgstr "यदि <strong>{email}</strong> के लिए कोई खाता मौजूद है, तो आपको जल्द ही पासवर्ड रीसेट कोड प्राप्त होगा।"
+
+msgctxt "auth.forgot"
+msgid "sentTitle"
+msgstr "पासवर्ड रीसेट भेज दिया गया"
+
+msgctxt "auth.forgot"
+msgid "spamHint"
+msgstr "नहीं मिला? अपना स्पैम फ़ोल्डर जाँचें।"
+
+msgctxt "auth.forgot"
+msgid "subtitle"
+msgstr "अपना ईमेल दर्ज करें और हम आपको रीसेट कोड भेजेंगे।"
+
+msgctxt "auth.forgot"
+msgid "title"
+msgstr "पासवर्ड भूल गए?"
+
+msgctxt "auth.loadingScreen"
+msgid "loading"
+msgstr "आपका वर्कस्पेस लोड हो रहा है…"
+
+msgctxt "auth.loadingScreen"
+msgid "tagline"
+msgstr "एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+msgctxt "auth.login"
+msgid "forgotPassword"
+msgstr "पासवर्ड भूल गए?"
+
+msgctxt "auth.login"
+msgid "invalidCredentials"
+msgstr "अमान्य ईमेल या पासवर्ड।"
+
+msgctxt "auth.login"
+msgid "magicCode"
+msgstr "मैजिक कोड से साइन इन करें"
+
+msgctxt "auth.login"
+msgid "noAccount"
+msgstr "खाता नहीं है?"
+
+msgctxt "auth.login"
+msgid "noticeBody"
+msgstr "डैशबोर्ड तक पहुँचने के लिए कृपया साइन इन करें।"
+
+msgctxt "auth.login"
+msgid "noticeTitle"
+msgstr "साइन इन आवश्यक है"
+
+msgctxt "auth.login"
+msgid "or"
+msgstr "या"
+
+msgctxt "auth.login"
+msgid "signIn"
+msgstr "साइन इन करें"
+
+msgctxt "auth.login"
+msgid "signUp"
+msgstr "साइन अप करें"
+
+msgctxt "auth.login"
+msgid "subtitle"
+msgstr "अपने संगठन डैशबोर्ड में साइन इन करें"
+
+msgctxt "auth.login"
+msgid "welcome"
+msgstr "वापसी पर स्वागत है"
+
+msgctxt "auth.mfa"
+msgid "again"
+msgstr "फिर से"
+
+msgctxt "auth.mfa"
+msgid "authCode"
+msgstr "प्रमाणीकरण कोड"
+
+msgctxt "auth.mfa"
+msgid "backToLogin"
+msgstr "लॉगिन पर वापस जाएं"
+
+msgctxt "auth.mfa"
+msgid "brandHero"
+msgstr "स्थायी एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+msgctxt "auth.mfa"
+msgid "brandStatGraphBackends"
+msgstr "ग्राफ बैकएंड"
+
+msgctxt "auth.mfa"
+msgid "brandStatLlmProviders"
+msgstr "LLM प्रोवाइडर"
+
+msgctxt "auth.mfa"
+msgid "brandStatScale"
+msgstr "स्केल"
+
+msgctxt "auth.mfa"
+msgid "brandTagline"
+msgstr "एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+msgctxt "auth.mfa"
+msgid "connectionError"
+msgstr "कनेक्शन त्रुटि। कृपया फिर से प्रयास करें।"
+
+msgctxt "auth.mfa"
+msgid "desc"
+msgstr "इस पर भेजा गया एमएफए कोड दर्ज करें"
+
+msgctxt "auth.mfa"
+msgid "invalidCode"
+msgstr "अमान्य या समाप्त हो चुका सत्यापन कोड।"
+
+msgctxt "auth.mfa"
+msgid "missingSession"
+msgstr "सत्र की जानकारी उपलब्ध नहीं है। कृपया"
+
+msgctxt "auth.mfa"
+msgid "noCode"
+msgstr "कोड नहीं मिला? नया कोड माँगने के लिए फिर से साइन इन करें।"
+
+msgctxt "auth.mfa"
+msgid "otpPlaceholder"
+msgstr "000000"
+
+msgctxt "auth.mfa"
+msgid "signInLink"
+msgstr "साइन इन करें"
+
+msgctxt "auth.mfa"
+msgid "title"
+msgstr "अपनी पहचान सत्यापित करें"
+
+msgctxt "auth.mfa"
+msgid "verify"
+msgstr "सत्यापित करें"
+
+msgctxt "auth.onboarding"
+msgid "anthropicApiKey"
+msgstr "Anthropic एपीआई कुंजी"
+
+msgctxt "auth.onboarding"
+msgid "apiKeyRequired"
+msgstr "प्लेटफ़ॉर्म का उपयोग करने के लिए कम से कम एक LLM एपीआई कुंजी आवश्यक है। नीचे अपने चुने हुए प्रोवाइडर की कुंजी भरें।"
+
+msgctxt "auth.onboarding"
+msgid "apiKeysDesc"
+msgstr "LLM प्रोवाइडर के लिए क्रेडेंशियल — अपने चुने हुए प्रोवाइडर की कुंजी भरें"
+
+msgctxt "auth.onboarding"
+msgid "apiKeysTitle"
+msgstr "एपीआई कुंजियाँ"
+
+msgctxt "auth.onboarding"
+msgid "auditLogResponseBody"
+msgstr "ऑडिट लॉग रिस्पॉन्स बॉडी"
+
+msgctxt "auth.onboarding"
+msgid "auditLogResponseBodyHint"
+msgstr "ऑडिट लॉग में रिस्पॉन्स बॉडी की सामग्री शामिल करें"
+
+msgctxt "auth.onboarding"
+msgid "azureApiKey"
+msgstr "Azure OpenAI एपीआई कुंजी"
+
+msgctxt "auth.onboarding"
+msgid "azureApiKeyPlaceholder"
+msgstr "Azure एपीआई कुंजी"
+
+msgctxt "auth.onboarding"
+msgid "azureEndpoint"
+msgstr "Azure OpenAI एंडपॉइंट"
+
+msgctxt "auth.onboarding"
+msgid "azureEndpointPlaceholder"
+msgstr "https://my-resource.openai.azure.com"
+
+msgctxt "auth.onboarding"
+msgid "back"
+msgstr "वापस"
+
+msgctxt "auth.onboarding"
+msgid "backendProvider"
+msgstr "बैकएंड प्रोवाइडर"
+
+msgctxt "auth.onboarding"
+msgid "behaviourDesc"
+msgstr "कैशिंग और ऑडिट व्यवहार"
+
+msgctxt "auth.onboarding"
+msgid "behaviourTitle"
+msgstr "व्यवहार"
+
+msgctxt "auth.onboarding"
+msgid "contextCacheTtl"
+msgstr "संदर्भ कैश TTL (सेकंड)"
+
+msgctxt "auth.onboarding"
+msgid "contextCacheTtlHint"
+msgstr "संदर्भ डेटा पुनः प्राप्त करने से पहले Redis में कितनी देर कैश रहता है (0 = कोई कैशिंग नहीं)"
+
+msgctxt "auth.onboarding"
+msgid "embeddingApiKey"
+msgstr "एम्बेडिंग एपीआई कुंजी"
+
+msgctxt "auth.onboarding"
+msgid "embeddingApiKeyPlaceholder"
+msgstr "एम्बेडिंग प्रोवाइडर एपीआई कुंजी"
+
+msgctxt "auth.onboarding"
+msgid "embeddingDimensions"
+msgstr "एम्बेडिंग आयाम"
+
+msgctxt "auth.onboarding"
+msgid "embeddingModelPlaceholder"
+msgstr "text-embedding-3-small, ..."
+
+msgctxt "auth.onboarding"
+msgid "embeddingsDesc"
+msgstr "वेक्टर एम्बेडिंग मॉडल कॉन्फ़िगरेशन"
+
+msgctxt "auth.onboarding"
+msgid "embeddingsTitle"
+msgstr "एम्बेडिंग"
+
+msgctxt "auth.onboarding"
+msgid "falkordbUrl"
+msgstr "FalkorDB URL"
+
+msgctxt "auth.onboarding"
+msgid "falkordbUrlHint"
+msgstr "FalkorDB बैकएंड का उपयोग करते समय और कोई सिस्टम-स्तरीय कॉन्फ़िगरेशन न होने पर आवश्यक। यदि FalkorDB सिस्टम स्तर पर कॉन्फ़िगर है, तो यह फ़ील्ड अनदेखा कर दी जाती है।"
+
+msgctxt "auth.onboarding"
+msgid "falkordbUrlPlaceholder"
+msgstr "redis://falkordb:6379"
+
+msgctxt "auth.onboarding"
+msgid "graphBackend"
+msgstr "ग्राफ बैकएंड"
+
+msgctxt "auth.onboarding"
+msgid "graphBackendNone"
+msgstr "कोई ग्राफ बैकएंड नहीं"
+
+msgctxt "auth.onboarding"
+msgid "graphDesc"
+msgstr "ग्राफ बैकएंड, खोज और ट्रैवर्सल सेटिंग्स"
+
+msgctxt "auth.onboarding"
+msgid "graphTitle"
+msgstr "नॉलेज ग्राफ़"
+
+msgctxt "auth.onboarding"
+msgid "llmSectionDesc"
+msgstr "प्राथमिक भाषा मॉडल प्रोवाइडर"
+
+msgctxt "auth.onboarding"
+msgid "llmSectionTitle"
+msgstr "LLM कॉन्फ़िगरेशन"
+
+msgctxt "auth.onboarding"
+msgid "loadDefaultsError"
+msgstr "डिफ़ॉल्ट कॉन्फ़िगरेशन लोड करने में विफल"
+
+msgctxt "auth.onboarding"
+msgid "loadDefaultsFallback"
+msgstr "कॉन्फ़िगरेशन डिफ़ॉल्ट लोड करने में विफल"
+
+msgctxt "auth.onboarding"
+msgid "loading"
+msgstr "कॉन्फ़िगरेशन डिफ़ॉल्ट लोड हो रहे हैं..."
+
+msgctxt "auth.onboarding"
+msgid "maxTokens"
+msgstr "अधिकतम टोकन"
+
+msgctxt "auth.onboarding"
+msgid "maxTraversalDepth"
+msgstr "अधिकतम ट्रैवर्सल गहराई"
+
+msgctxt "auth.onboarding"
+msgid "maxTraversalDepthHint"
+msgstr "ग्राफ ट्रैवर्सल कितने हॉप तक जाएगा (1–10)"
+
+msgctxt "auth.onboarding"
+msgid "model"
+msgstr "मॉडल"
+
+msgctxt "auth.onboarding"
+msgid "modelPlaceholder"
+msgstr "gpt-4o-mini, claude-sonnet-4, ..."
+
+msgctxt "auth.onboarding"
+msgid "next"
+msgstr "आगे"
+
+msgctxt "auth.onboarding"
+msgid "ollamaBaseUrl"
+msgstr "Ollama बेस URL"
+
+msgctxt "auth.onboarding"
+msgid "ollamaBaseUrlPlaceholder"
+msgstr "http://localhost:11434"
+
+msgctxt "auth.onboarding"
+msgid "openaiApiKey"
+msgstr "OpenAI एपीआई कुंजी"
+
+msgctxt "auth.onboarding"
+msgid "openrouterApiKey"
+msgstr "OpenRouter एपीआई कुंजी"
+
+msgctxt "auth.onboarding"
+msgid "providerName"
+msgstr "प्रोवाइडर का नाम"
+
+msgctxt "auth.onboarding"
+msgid "providerNamePlaceholder"
+msgstr "openai, azure, ..."
+
+msgctxt "auth.onboarding.review"
+msgid "anthropicApiKey"
+msgstr "Anthropic एपीआई कुंजी"
+
+msgctxt "auth.onboarding.review"
+msgid "auditLogResponseBody"
+msgstr "ऑडिट लॉग रिस्पॉन्स बॉडी"
+
+msgctxt "auth.onboarding.review"
+msgid "azureApiKey"
+msgstr "Azure OpenAI एपीआई कुंजी"
+
+msgctxt "auth.onboarding.review"
+msgid "azureEndpoint"
+msgstr "Azure एंडपॉइंट"
+
+msgctxt "auth.onboarding.review"
+msgid "contextCacheTtl"
+msgstr "संदर्भ कैश TTL"
+
+msgctxt "auth.onboarding.review"
+msgid "disabled"
+msgstr "अक्षम"
+
+msgctxt "auth.onboarding.review"
+msgid "embeddingBackend"
+msgstr "एम्बेडिंग बैकएंड"
+
+msgctxt "auth.onboarding.review"
+msgid "embeddingModel"
+msgstr "एम्बेडिंग मॉडल"
+
+msgctxt "auth.onboarding.review"
+msgid "embeddingProvider"
+msgstr "एम्बेडिंग प्रोवाइडर"
+
+msgctxt "auth.onboarding.review"
+msgid "enabled"
+msgstr "सक्षम"
+
+msgctxt "auth.onboarding.review"
+msgid "falkordbUrl"
+msgstr "FalkorDB URL"
+
+msgctxt "auth.onboarding.review"
+msgid "graphBackend"
+msgstr "ग्राफ बैकएंड"
+
+msgctxt "auth.onboarding.review"
+msgid "llmBackend"
+msgstr "LLM बैकएंड"
+
+msgctxt "auth.onboarding.review"
+msgid "llmModel"
+msgstr "LLM मॉडल"
+
+msgctxt "auth.onboarding.review"
+msgid "maxTokens"
+msgstr "अधिकतम टोकन"
+
+msgctxt "auth.onboarding.review"
+msgid "maxTraversalDepth"
+msgstr "अधिकतम ट्रैवर्सल गहराई"
+
+msgctxt "auth.onboarding.review"
+msgid "notSet"
+msgstr "सेट नहीं"
+
+msgctxt "auth.onboarding.review"
+msgid "ollamaBaseUrl"
+msgstr "Ollama बेस URL"
+
+msgctxt "auth.onboarding.review"
+msgid "openaiApiKey"
+msgstr "OpenAI एपीआई कुंजी"
+
+msgctxt "auth.onboarding.review"
+msgid "openrouterApiKey"
+msgstr "OpenRouter एपीआई कुंजी"
+
+msgctxt "auth.onboarding.review"
+msgid "searchType"
+msgstr "खोज प्रकार"
+
+msgctxt "auth.onboarding.review"
+msgid "set"
+msgstr "सेट करें"
+
+msgctxt "auth.onboarding.review"
+msgid "surrealdbUrl"
+msgstr "SurrealDB URL"
+
+msgctxt "auth.onboarding.review"
+msgid "temperature"
+msgstr "टेम्परेचर"
+
+msgctxt "auth.onboarding"
+msgid "reviewDesc"
+msgstr "सहेजने से पहले अपने कॉन्फ़िगरेशन की पुष्टि करें"
+
+msgctxt "auth.onboarding"
+msgid "reviewTitle"
+msgstr "समीक्षा करें और सहेजें"
+
+msgctxt "auth.onboarding"
+msgid "saveAndContinue"
+msgstr "सहेजें और आगे बढ़ें"
+
+msgctxt "auth.onboarding"
+msgid "savedToast"
+msgstr "कॉन्फ़िगरेशन सफलतापूर्वक सहेजा गया"
+
+msgctxt "auth.onboarding"
+msgid "saveFailed"
+msgstr "कॉन्फ़िगरेशन सहेजने में विफल"
+
+msgctxt "auth.onboarding"
+msgid "saving"
+msgstr "सहेजा जा रहा है..."
+
+msgctxt "auth.onboarding"
+msgid "searchType"
+msgstr "खोज प्रकार"
+
+msgctxt "auth.onboarding"
+msgid "skipForNow"
+msgstr "अभी के लिए छोड़ें"
+
+msgctxt "auth.onboarding"
+msgid "step1Title"
+msgstr "LLM प्रोवाइडर"
+
+msgctxt "auth.onboarding"
+msgid "step2Title"
+msgstr "एम्बेडिंग और ग्राफ़"
+
+msgctxt "auth.onboarding"
+msgid "step3Title"
+msgstr "समीक्षा करें और सहेजें"
+
+msgctxt "auth.onboarding"
+msgid "subtitle"
+msgstr "अपने संगठन की LLM, एम्बेडिंग, ग्राफ़ और व्यवहार सेटिंग्स कॉन्फ़िगर करें। प्लेटफ़ॉर्म का उपयोग करने से पहले एपीआई कुंजी जैसे रहस्य भरना आवश्यक है।"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbDatabase"
+msgstr "SurrealDB डेटाबेस"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbDatabasePlaceholder"
+msgstr "SurrealDB डेटाबेस"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbNamespace"
+msgstr "SurrealDB नेमस्पेस"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbNamespacePlaceholder"
+msgstr "SurrealDB नेमस्पेस"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbPassword"
+msgstr "SurrealDB पासवर्ड"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbPasswordPlaceholder"
+msgstr "SurrealDB पासवर्ड"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbUrl"
+msgstr "SurrealDB URL"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbUrlHint"
+msgstr "SurrealDB बैकएंड का उपयोग करते समय आवश्यक"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbUrlPlaceholder"
+msgstr "ws://surrealdb:8000/rpc"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbUsername"
+msgstr "SurrealDB उपयोगकर्ता नाम"
+
+msgctxt "auth.onboarding"
+msgid "surrealdbUsernamePlaceholder"
+msgstr "SurrealDB उपयोगकर्ता नाम"
+
+msgctxt "auth.onboarding"
+msgid "temperature"
+msgstr "टेम्परेचर"
+
+msgctxt "auth.onboarding"
+msgid "title"
+msgstr "अपना सेटअप पूरा करें"
+
+msgctxt "auth.otp"
+msgid "backToPasswordLogin"
+msgstr "पासवर्ड लॉगिन पर वापस जाएं"
+
+msgctxt "auth.otp"
+msgid "brandHero"
+msgstr "स्थायी एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+msgctxt "auth.otp"
+msgid "brandStatGraphBackends"
+msgstr "ग्राफ बैकएंड"
+
+msgctxt "auth.otp"
+msgid "brandStatLlmProviders"
+msgstr "LLM प्रोवाइडर"
+
+msgctxt "auth.otp"
+msgid "brandStatScale"
+msgstr "स्केल"
+
+msgctxt "auth.otp"
+msgid "brandTagline"
+msgstr "एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+msgctxt "auth.otp"
+msgid "codeSent"
+msgstr "कोड भेज दिया गया!"
+
+msgctxt "auth.otp"
+msgid "connectionError"
+msgstr "कनेक्शन त्रुटि। कृपया फिर से प्रयास करें।"
+
+msgctxt "auth.otp"
+msgid "descEmail"
+msgstr "हम आपके ईमेल पर वन-टाइम कोड भेजेंगे"
+
+msgctxt "auth.otp"
+msgid "descOtp"
+msgstr "{email} पर भेजा गया"
+
+msgctxt "auth.otp"
+msgid "differentEmail"
+msgstr "कोई अन्य ईमेल उपयोग करें"
+
+msgctxt "auth.otp"
+msgid "emailLabel"
+msgstr "ईमेल"
+
+msgctxt "auth.otp"
+msgid "emailPlaceholder"
+msgstr "you@example.com"
+
+msgctxt "auth.otp"
+msgid "invalidCode"
+msgstr "अमान्य या समाप्त हो चुका कोड।"
+
+msgctxt "auth.otp"
+msgid "newCodeSent"
+msgstr "नया कोड भेज दिया गया है।"
+
+msgctxt "auth.otp"
+msgid "otpPlaceholder"
+msgstr "000000"
+
+msgctxt "auth.otp"
+msgid "resend"
+msgstr "कोड फिर से भेजें"
+
+msgctxt "auth.otp"
+msgid "resendFailed"
+msgstr "कोड फिर से भेजने में विफल।"
+
+msgctxt "auth.otp"
+msgid "resendIn"
+msgstr "{count} सेकंड में फिर से भेजें"
+
+msgctxt "auth.otp"
+msgid "sendFailed"
+msgstr "लॉगिन कोड भेजने में विफल।"
+
+msgctxt "auth.otp"
+msgid "sending"
+msgstr "भेजा जा रहा है..."
+
+msgctxt "auth.otp"
+msgid "sendLoginCode"
+msgstr "लॉगिन कोड भेजें"
+
+msgctxt "auth.otp"
+msgid "signIn"
+msgstr "साइन इन करें"
+
+msgctxt "auth.otp"
+msgid "titleEmail"
+msgstr "कोड से साइन इन करें"
+
+msgctxt "auth.otp"
+msgid "titleOtp"
+msgstr "कोड दर्ज करें"
+
+msgctxt "auth.otp"
+msgid "verificationCode"
+msgstr "सत्यापन कोड"
+
+msgctxt "auth.reset"
+msgid "backToLogin"
+msgstr "लॉगिन पर वापस जाएं"
+
+msgctxt "auth.reset"
+msgid "brandTagline"
+msgstr "एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+msgctxt "auth.reset"
+msgid "confirmPassword"
+msgstr "पासवर्ड की पुष्टि करें"
+
+msgctxt "auth.reset"
+msgid "connectionError"
+msgstr "कनेक्शन त्रुटि।"
+
+msgctxt "auth.reset"
+msgid "doneBody"
+msgstr "आपको लॉगिन पर भेजा जा रहा है..."
+
+msgctxt "auth.reset"
+msgid "doneTitle"
+msgstr "पासवर्ड रीसेट सफल रहा"
+
+msgctxt "auth.reset"
+msgid "failed"
+msgstr "पासवर्ड रीसेट करने में विफल। कृपया फिर से प्रयास करें।"
+
+msgctxt "auth.reset"
+msgid "forgotPasswordLink"
+msgstr "पासवर्ड भूल गए"
+
+msgctxt "auth.reset"
+msgid "heroTitle"
+msgstr "अपना पासवर्ड रीसेट करें"
+
+msgctxt "auth.reset"
+msgid "min8Chars"
+msgstr "न्यूनतम 8 अक्षर"
+
+msgctxt "auth.reset"
+msgid "mismatch"
+msgstr "पासवर्ड मेल नहीं खाते।"
+
+msgctxt "auth.reset"
+msgid "newPassword"
+msgstr "नया पासवर्ड"
+
+msgctxt "auth.reset"
+msgid "noEmail"
+msgstr "कोई ईमेल प्रदान नहीं किया गया। कृपया इससे शुरुआत करें"
+
+msgctxt "auth.reset"
+msgid "otpPlaceholder"
+msgstr "000000"
+
+msgctxt "auth.reset"
+msgid "page"
+msgstr "पेज"
+
+msgctxt "auth.reset"
+msgid "repeatPassword"
+msgstr "अपना पासवर्ड दोहराएं"
+
+msgctxt "auth.reset"
+msgid "submit"
+msgstr "पासवर्ड रीसेट करें"
+
+msgctxt "auth.reset"
+msgid "subtitle"
+msgstr "<strong>{email}</strong> पर भेजा गया कोड दर्ज करें"
+
+msgctxt "auth.reset"
+msgid "title"
+msgstr "पासवर्ड रीसेट करें"
+
+msgctxt "auth.reset"
+msgid "tooShort"
+msgstr "पासवर्ड कम से कम 8 अक्षरों का होना चाहिए।"
+
+msgctxt "auth.reset"
+msgid "verificationCode"
+msgstr "सत्यापन कोड"
+
+msgctxt "auth.signup"
+msgid "alreadyHaveAccount"
+msgstr "पहले से खाता है?"
+
+msgctxt "auth.signup"
+msgid "brandTagline"
+msgstr "एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+msgctxt "auth.signup"
+msgid "closedBody"
+msgstr "प्लेटफ़ॉर्म एडमिन ने स्व-पंजीकरण अक्षम कर दिया है। यदि आपको निमंत्रण मिला था, तो कृपया निमंत्रण लिंक के लिए अपने संगठन एडमिन से संपर्क करें।"
+
+msgctxt "auth.signup"
+msgid "closedSubtitle"
+msgstr "इस समय नए खाते स्वीकार नहीं किए जा रहे हैं"
+
+msgctxt "auth.signup"
+msgid "closedTitle"
+msgstr "पंजीकरण फ़िलहाल बंद है"
+
+msgctxt "auth.signup"
+msgid "connectionError"
+msgstr "कनेक्शन त्रुटि। कृपया फिर से प्रयास करें।"
+
+msgctxt "auth.signup"
+msgid "createAccount"
+msgstr "खाता बनाएं"
+
+msgctxt "auth.signup"
+msgid "createOrgTab"
+msgstr "संगठन बनाएं"
+
+msgctxt "auth.signup"
+msgid "emailLabel"
+msgstr "ईमेल"
+
+msgctxt "auth.signup"
+msgid "emailPlaceholder"
+msgstr "you@example.com"
+
+msgctxt "auth.signup"
+msgid "feature1"
+msgstr "स्थायी, क्वेरी करने योग्य एजेंट मेमोरी"
+
+msgctxt "auth.signup"
+msgid "feature2"
+msgstr "मल्टी-प्रोवाइडर LLM सपोर्ट (BYOK)"
+
+msgctxt "auth.signup"
+msgid "feature3"
+msgstr "हाइब्रिड खोज के साथ नॉलेज ग्राफ़"
+
+msgctxt "auth.signup"
+msgid "feature4"
+msgstr "एसिंक्रोनस एनरिचमेंट पाइपलाइन"
+
+msgctxt "auth.signup"
+msgid "hero"
+msgstr "एजेंट मेमोरी इंफ्रास्ट्रक्चर के साथ शुरुआत करें"
+
+msgctxt "auth.signup"
+msgid "joinOrganization"
+msgstr "संगठन से जुड़ें"
+
+msgctxt "auth.signup"
+msgid "joinTab"
+msgstr "कोड से जुड़ें"
+
+msgctxt "auth.signup"
+msgid "min8Chars"
+msgstr "न्यूनतम 8 अक्षर"
+
+msgctxt "auth.signup"
+msgid "orgCode"
+msgstr "संगठन कोड"
+
+msgctxt "auth.signup"
+msgid "orgCodePlaceholder"
+msgstr "XXXX-XXXX-XXXX"
+
+msgctxt "auth.signup"
+msgid "orgName"
+msgstr "संगठन का नाम"
+
+msgctxt "auth.signup"
+msgid "orgNamePlaceholder"
+msgstr "मेरा संगठन"
+
+msgctxt "auth.signup"
+msgid "passwordLabel"
+msgstr "पासवर्ड"
+
+msgctxt "auth.signup"
+msgid "passwordStrength"
+msgstr "पासवर्ड की मज़बूती"
+
+msgctxt "auth.signup"
+msgid "requestSubmitted"
+msgstr "अनुमोदन के लिए अनुरोध सबमिट किया गया"
+
+msgctxt "auth.signup"
+msgid "requestSubmittedFallback"
+msgstr "आपका अनुरोध अनुमोदन के लिए सबमिट कर दिया गया है।"
+
+msgctxt "auth.signup"
+msgid "returnToSignIn"
+msgstr "साइन इन पर लौटें"
+
+msgctxt "auth.signup"
+msgid "signIn"
+msgstr "साइन इन करें"
+
+msgctxt "auth.signup"
+msgid "signupFailed"
+msgstr "साइन अप विफल रहा। कृपया फिर से प्रयास करें।"
+
+msgctxt "auth.signup"
+msgid "submitRequest"
+msgstr "अनुरोध सबमिट करें"
+
+msgctxt "auth.signup"
+msgid "subtitleCreate"
+msgstr "अपना OpenZync संगठन सेट करें"
+
+msgctxt "auth.signup"
+msgid "subtitleJoin"
+msgstr "जुड़ने के लिए अपना संगठन कोड दर्ज करें"
+
+msgctxt "auth.signup"
+msgid "subtitleRequest"
+msgstr "समीक्षा के लिए अपने संगठन का विवरण सबमिट करें"
+
+msgctxt "auth.signup"
+msgid "titleCreate"
+msgstr "अपना खाता बनाएं"
+
+msgctxt "auth.signup"
+msgid "titleJoin"
+msgstr "संगठन से जुड़ें"
+
+msgctxt "auth.signup"
+msgid "titleRequest"
+msgstr "OpenZync तक पहुँच का अनुरोध करें"
+
+msgctxt "auth.verifyEmail"
+msgid "backToSignUp"
+msgstr "साइन अप पर वापस जाएं"
+
+msgctxt "auth.verifyEmail"
+msgid "brandTagline"
+msgstr "एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+msgctxt "auth.verifyEmail"
+msgid "desc"
+msgstr "हमने इस पर एक सत्यापन कोड भेजा है"
+
+msgctxt "auth.verifyEmail"
+msgid "didntReceive"
+msgstr "कोड नहीं मिला?"
+
+msgctxt "auth.verifyEmail"
+msgid "feature1"
+msgstr "स्थायी, क्वेरी करने योग्य एजेंट मेमोरी"
+
+msgctxt "auth.verifyEmail"
+msgid "feature2"
+msgstr "मल्टी-प्रोवाइडर LLM सपोर्ट (BYOK)"
+
+msgctxt "auth.verifyEmail"
+msgid "feature3"
+msgstr "हाइब्रिड खोज के साथ नॉलेज ग्राफ़"
+
+msgctxt "auth.verifyEmail"
+msgid "feature4"
+msgstr "एसिंक्रोनस एनरिचमेंट पाइपलाइन"
+
+msgctxt "auth.verifyEmail"
+msgid "first"
+msgstr "पहले"
+
+msgctxt "auth.verifyEmail"
+msgid "hero"
+msgstr "आगे बढ़ने के लिए अपना ईमेल सत्यापित करें"
+
+msgctxt "auth.verifyEmail"
+msgid "invalidCode"
+msgstr "अमान्य या समाप्त हो चुका सत्यापन कोड।"
+
+msgctxt "auth.verifyEmail"
+msgid "newCodeSent"
+msgstr "नया सत्यापन कोड भेज दिया गया है।"
+
+msgctxt "auth.verifyEmail"
+msgid "noEmail"
+msgstr "कोई ईमेल प्रदान नहीं किया गया। कृपया"
+
+msgctxt "auth.verifyEmail"
+msgid "otpPlaceholder"
+msgstr "000000"
+
+msgctxt "auth.verifyEmail"
+msgid "resend"
+msgstr "फिर से भेजें"
+
+msgctxt "auth.verifyEmail"
+msgid "resendFailed"
+msgstr "कोड फिर से भेजने में विफल।"
+
+msgctxt "auth.verifyEmail"
+msgid "resendIn"
+msgstr "{count} सेकंड में फिर से भेजें"
+
+msgctxt "auth.verifyEmail"
+msgid "sending"
+msgstr "भेजा जा रहा है..."
+
+msgctxt "auth.verifyEmail"
+msgid "signUpLink"
+msgstr "साइन अप करें"
+
+msgctxt "auth.verifyEmail"
+msgid "title"
+msgstr "अपना ईमेल जाँचें"
+
+msgctxt "auth.verifyEmail"
+msgid "verificationCode"
+msgstr "सत्यापन कोड"
+
+msgctxt "auth.verifyEmail"
+msgid "verificationFailed"
+msgstr "सत्यापन विफल रहा।"
+
+msgctxt "auth.verifyEmail"
+msgid "verifyEmail"
+msgstr "ईमेल सत्यापित करें"
+
+msgctxt "common"
+msgid "apply"
+msgstr "लागू करें"
+
+msgctxt "common"
+msgid "cancel"
+msgstr "रद्द करें"
+
+msgctxt "common"
+msgid "clear"
+msgstr "साफ़ करें"
+
+#. Meta description for SEO and social sharing.
+msgctxt "common.metadata"
+msgid "description"
+msgstr "OpenZync — एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+#. Document <title> shown in the browser tab.
+msgctxt "common.metadata"
+msgid "title"
+msgstr "OpenZync डैशबोर्ड"
+
+msgctxt "common"
+msgid "nextPage"
+msgstr "अगला पेज"
+
+msgctxt "common"
+msgid "pageOf"
+msgstr "पेज {total} में से {current}"
+
+msgctxt "common"
+msgid "previousPage"
+msgstr "पिछला पेज"
+
+msgctxt "common"
+msgid "retry"
+msgstr "फिर से प्रयास करें"
+
+msgctxt "common"
+msgid "skipToMain"
+msgstr "मुख्य सामग्री पर जाएं"
+
+msgctxt "common"
+msgid "skipToNav"
+msgstr "नेविगेशन पर जाएं"
+
+#. Relative timestamp: {count} is days.
+msgctxt "common.timeAgo"
+msgid "days"
+msgstr "{count} दिन पहले"
+
+#. Relative timestamp: {count} is hours.
+msgctxt "common.timeAgo"
+msgid "hours"
+msgstr "{count} घंटे पहले"
+
+#. Relative timestamp: {count} is minutes.
+msgctxt "common.timeAgo"
+msgid "minutes"
+msgstr "{count} मिनट पहले"
+
+#. Relative timestamp label: less than a minute ago.
+msgctxt "common.timeAgo"
+msgid "now"
+msgstr "अभी अभी"
+
+#. Relative timestamp: {count} is seconds.
+msgctxt "common.timeAgo"
+msgid "seconds"
+msgstr "{count} सेकंड पहले"
+
+msgctxt "common"
+msgid "totalEntries"
+msgstr "{count, plural, =1 {# कुल प्रविष्टि} other {# कुल प्रविष्टियाँ}}"
+
+msgctxt "components.badge"
+msgid "actorApiKey"
+msgstr "एपीआई कुंजी"
+
+msgctxt "components.badge"
+msgid "actorSystem"
+msgstr "सिस्टम"
+
+msgctxt "components.badge"
+msgid "actorUser"
+msgstr "उपयोगकर्ता"
+
+msgctxt "components"
+msgid "breadcrumbLabel"
+msgstr "ब्रेडक्रम्ब"
+
+msgctxt "components.commandPalette.groups"
+msgid "projects"
+msgstr "प्रोजेक्ट"
+
+msgctxt "components.commandPalette.groups"
+msgid "sessions"
+msgstr "सत्र"
+
+msgctxt "components.commandPalette.groups"
+msgid "users"
+msgstr "उपयोगकर्ता"
+
+msgctxt "components.commandPalette.nav"
+msgid "accountSettings"
+msgstr "खाता सेटिंग्स"
+
+msgctxt "components.commandPalette.nav"
+msgid "apiKeys"
+msgstr "एपीआई कुंजियाँ"
+
+msgctxt "components.commandPalette.nav"
+msgid "auditLog"
+msgstr "ऑडिट लॉग"
+
+msgctxt "components.commandPalette.nav"
+msgid "classifications"
+msgstr "वर्गीकरण"
+
+msgctxt "components.commandPalette.nav"
+msgid "configuration"
+msgstr "कॉन्फ़िगरेशन"
+
+msgctxt "components.commandPalette.nav"
+msgid "extractionInstructions"
+msgstr "एक्सट्रैक्शन निर्देश"
+
+msgctxt "components.commandPalette.nav"
+msgid "extractions"
+msgstr "एक्सट्रैक्शन"
+
+msgctxt "components.commandPalette.nav"
+msgid "extractionSchemas"
+msgstr "एक्सट्रैक्शन स्कीमा"
+
+msgctxt "components.commandPalette.nav"
+msgid "monitoring"
+msgstr "निगरानी"
+
+msgctxt "components.commandPalette.nav"
+msgid "overview"
+msgstr "अवलोकन"
+
+msgctxt "components.commandPalette.nav"
+msgid "projects"
+msgstr "प्रोजेक्ट"
+
+msgctxt "components.commandPalette.nav"
+msgid "promptTemplates"
+msgstr "प्रॉम्प्ट टेम्प्लेट"
+
+msgctxt "components.commandPalette.nav"
+msgid "users"
+msgstr "उपयोगकर्ता"
+
+msgctxt "components.commandPalette.nav"
+msgid "webhooks"
+msgstr "वेबहुक"
+
+msgctxt "components.commandPalette"
+msgid "noResults"
+msgstr "कोई परिणाम नहीं मिला।"
+
+msgctxt "components.commandPalette"
+msgid "placeholder"
+msgstr "प्रोजेक्ट, उपयोगकर्ता, सत्र खोजें…"
+
+msgctxt "components.commandPalette"
+msgid "searching"
+msgstr "खोजा जा रहा है…"
+
+msgctxt "components.commandPalette.section"
+msgid "navigation"
+msgstr "नेविगेशन"
+
+msgctxt "components.commandPalette.section"
+msgid "settings"
+msgstr "सेटिंग्स"
+
+msgctxt "components.confirmDialog"
+msgid "cancel"
+msgstr "रद्द करें"
+
+msgctxt "components.confirmDialog"
+msgid "confirm"
+msgstr "पुष्टि करें"
+
+msgctxt "components.dialog"
+msgid "cancel"
+msgstr "रद्द करें"
+
+msgctxt "components.dialog"
+msgid "close"
+msgstr "डायलॉग बंद करें"
+
+msgctxt "components.enrichmentStatus"
+msgid "ariaLabel"
+msgstr "एनरिचमेंट पाइपलाइन स्थिति"
+
+msgctxt "components.enrichmentStatus"
+msgid "episodesQueued"
+msgstr "{count, plural, =1 {# एपिसोड एनरिचमेंट के लिए कतार में} other {# एपिसोड एनरिचमेंट के लिए कतार में}}"
+
+msgctxt "components.enrichmentStatus"
+msgid "job"
+msgstr "जॉब {id}"
+
+msgctxt "components.enrichmentStatus"
+msgid "note"
+msgstr "एनरिचमेंट बैकग्राउंड में चलता है — वर्कर एपिसोड प्रोसेस करते ही इकाइयाँ और तथ्य दिखाई देते हैं।"
+
+msgctxt "components.enrichmentStatus.stages"
+msgid "accepted"
+msgstr "इंगेस्ट स्वीकृत"
+
+msgctxt "components.enrichmentStatus.stages"
+msgid "done"
+msgstr "पूर्ण"
+
+msgctxt "components.enrichmentStatus.stages"
+msgid "processing"
+msgstr "प्रोसेस हो रहा है"
+
+msgctxt "components.enrichmentStatus.stages"
+msgid "queued"
+msgstr "जॉब कतार में"
+
+msgctxt "components.forceGraph"
+msgid "created"
+msgstr "{time} को बनाया गया"
+
+msgctxt "components.forceGraph"
+msgid "empty"
+msgstr "कोई ग्राफ़ इकाई नहीं मिली"
+
+msgctxt "components.forceGraph"
+msgid "emptyHint"
+msgstr "नॉलेज ग्राफ़ भरने के लिए कुछ डेटा इंगेस्ट करें"
+
+msgctxt "components.forceGraph"
+msgid "enterFullscreen"
+msgstr "फुलस्क्रीन में जाएं"
+
+msgctxt "components.forceGraph"
+msgid "entityTypes"
+msgstr "इकाई प्रकार"
+
+msgctxt "components.forceGraph"
+msgid "exitFullscreen"
+msgstr "फुलस्क्रीन से बाहर निकलें (Esc)"
+
+msgctxt "components.forceGraph"
+msgid "filterHint"
+msgstr "कोई अन्य फ़िल्टर शब्द आज़माएं"
+
+msgctxt "components.forceGraph"
+msgid "filterPlaceholder"
+msgstr "नाम या प्रकार से फ़िल्टर करें…"
+
+msgctxt "components.forceGraph.legend"
+msgid "community"
+msgstr "समुदाय"
+
+msgctxt "components.forceGraph.legend"
+msgid "concept"
+msgstr "अवधारणा"
+
+msgctxt "components.forceGraph.legend"
+msgid "event"
+msgstr "घटना"
+
+msgctxt "components.forceGraph.legend"
+msgid "location"
+msgstr "स्थान"
+
+msgctxt "components.forceGraph.legend"
+msgid "organization"
+msgstr "संगठन"
+
+msgctxt "components.forceGraph.legend"
+msgid "person"
+msgstr "व्यक्ति"
+
+msgctxt "components.forceGraph"
+msgid "loading"
+msgstr "ग्राफ़ डेटा लोड हो रहा है…"
+
+msgctxt "components.forceGraph"
+msgid "metadata"
+msgstr "मेटाडेटा"
+
+msgctxt "components.forceGraph"
+msgid "noMatching"
+msgstr "कोई मेल खाती इकाई नहीं"
+
+msgctxt "components.forceGraph"
+msgid "other"
+msgstr "अन्य"
+
+msgctxt "components.forceGraph"
+msgid "relatedTitle"
+msgstr "मेल खाते नोड्स के 1-हॉप पड़ोसी शामिल करें"
+
+msgctxt "components.forceGraph"
+msgid "relationships"
+msgstr "संबंध ({count})"
+
+msgctxt "components.forceGraph"
+msgid "resetZoom"
+msgstr "ज़ूम रीसेट करें"
+
+msgctxt "components.forceGraph"
+msgid "strictTitle"
+msgstr "केवल मेल खाते नोड्स दिखाएं (सख्त)"
+
+msgctxt "components.forceGraph"
+msgid "zoomIn"
+msgstr "ज़ूम इन"
+
+msgctxt "components.forceGraph"
+msgid "zoomOut"
+msgstr "ज़ूम आउट"
+
+msgctxt "components.pageGuide"
+msgid "close"
+msgstr "गाइड बंद करें"
+
+msgctxt "components.pageGuide"
+msgid "learn"
+msgstr "इस पेज के बारे में जानें"
+
+msgctxt "components.secretInput"
+msgid "required"
+msgstr "आवश्यक"
+
+msgctxt "components.stickySaveBar"
+msgid "discard"
+msgstr "छोड़ दें"
+
+msgctxt "components.stickySaveBar"
+msgid "saveChanges"
+msgstr "बदलाव सहेजें"
+
+msgctxt "components.stickySaveBar"
+msgid "saved"
+msgstr "बदलाव सफलतापूर्वक सहेजे गए"
+
+msgctxt "components.stickySaveBar"
+msgid "saving"
+msgstr "सहेजा जा रहा है…"
+
+msgctxt "components.stickySaveBar"
+msgid "unsaved"
+msgstr "आपके पास असहेज किए गए बदलाव हैं"
+
+msgctxt "errors"
+msgid "adminAccessRequired"
+msgstr "एडमिन पहुँच आवश्यक है"
+
+#. Shown to users when an API request fails with HTTP 400.
+msgctxt "errors"
+msgid "http400"
+msgstr "अनुरोध अमान्य था।"
+
+#. Shown to users when an API request fails with HTTP 401.
+msgctxt "errors"
+msgid "http401"
+msgstr "आपका सत्र समाप्त हो गया है। कृपया फिर से साइन इन करें।"
+
+#. Shown to users when an API request fails with HTTP 403.
+msgctxt "errors"
+msgid "http403"
+msgstr "इस कार्रवाई को करने की आपके पास अनुमति नहीं है।"
+
+#. Shown to users when an API request fails with HTTP 404.
+msgctxt "errors"
+msgid "http404"
+msgstr "अनुरोधित संसाधन नहीं मिला।"
+
+#. Shown to users when an API request fails with HTTP 409.
+msgctxt "errors"
+msgid "http409"
+msgstr "अनुरोध संसाधन की वर्तमान स्थिति से टकराता है।"
+
+#. Shown to users when an API request fails with HTTP 413.
+msgctxt "errors"
+msgid "http413"
+msgstr "अपलोड बहुत बड़ा है।"
+
+#. Shown to users when an API request fails with HTTP 422.
+msgctxt "errors"
+msgid "http422"
+msgstr "अनुरोध सत्यापित नहीं किया जा सका।"
+
+#. Shown to users when an API request fails with HTTP 429.
+msgctxt "errors"
+msgid "http429"
+msgstr "बहुत अधिक अनुरोध। कृपया बाद में फिर से प्रयास करें।"
+
+#. Shown to users when an API request fails with HTTP 500.
+msgctxt "errors"
+msgid "http500"
+msgstr "हमारी ओर से कुछ गलत हो गया। कृपया फिर से प्रयास करें।"
+
+msgctxt "errors"
+msgid "requestFailed"
+msgstr "अनुरोध स्थिति {status} के साथ विफल रहा"
+
+msgctxt "graph.communities"
+msgid "emptyDescription"
+msgstr "समुदाय पहचान ग्राफ़ सिंक के बाद एक निर्धारित कार्य के रूप में चलती है।"
+
+msgctxt "graph.communities"
+msgid "emptyTitle"
+msgstr "कोई समुदाय नहीं मिला"
+
+msgctxt "graph.communities"
+msgid "guideBody"
+msgstr "समुदाय ग्राफ़ विश्लेषण के माध्यम से खोजे गए संबंधित इकाइयों के समूह हैं। वे घनी रूप से जुड़ी इकाइयों के समूह दिखाते हैं, जिससे आप अपने डेटा में स्वाभाविक समूहों की पहचान कर सकते हैं।"
+
+msgctxt "graph.communities"
+msgid "guideTitle"
+msgstr "समुदाय"
+
+msgctxt "graph.communities"
+msgid "loadFailed"
+msgstr "समुदाय लोड करने में विफल"
+
+msgctxt "graph.communities"
+msgid "noProjectDescription"
+msgstr "समुदाय देखने के लिए प्रोजेक्ट चुनें"
+
+msgctxt "graph.communities"
+msgid "subtitle"
+msgstr "Label Propagation से समुदाय समूह · {name}"
+
+msgctxt "graph.communities"
+msgid "subtitleGeneric"
+msgstr "Label Propagation से समुदाय समूह"
+
+msgctxt "graph.communities"
+msgid "title"
+msgstr "समुदाय"
+
+msgctxt "graph.explorer"
+msgid "guideBody"
+msgstr "नॉलेज ग्राफ़ को दृश्य रूप से एक्सप्लोर करें। नोड्स इकाइयों — व्यक्तियों, स्थानों, अवधारणाओं — का प्रतिनिधित्व करते हैं, और एज उनके बीच के संबंधों को दर्शाते हैं। अपने डेटा की संरचना समझने के लिए खोजें, फ़िल्टर करें और नेविगेट करें।"
+
+msgctxt "graph.explorer"
+msgid "guideTitle"
+msgstr "ग्राफ़ एक्सप्लोरर"
+
+msgctxt "graph.explorer"
+msgid "limitNotice"
+msgstr "पहली 100 इकाइयाँ दिखाई जा रही हैं — अधिक के लिए फ़िल्टर परिष्कृत करें या क्वेरी करें।"
+
+msgctxt "graph.explorer"
+msgid "loadError"
+msgstr "ग्राफ़ लोड करने में विफल"
+
+msgctxt "graph.explorer"
+msgid "noProjectDescription"
+msgstr "नॉलेज ग्राफ़ एक्सप्लोर करने के लिए प्रोजेक्ट चुनें"
+
+msgctxt "graph.explorer"
+msgid "refresh"
+msgstr "रिफ्रेश करें"
+
+msgctxt "graph.explorer"
+msgid "subtitle"
+msgstr "अपने नॉलेज ग्राफ़ में इकाइयों और संबंधों को एक्सप्लोर करें · {name}"
+
+msgctxt "graph.explorer"
+msgid "subtitleGeneric"
+msgstr "अपने नॉलेज ग्राफ़ में इकाइयों और संबंधों को एक्सप्लोर करें"
+
+msgctxt "graph.explorer"
+msgid "title"
+msgstr "ग्राफ़ एक्सप्लोरर"
+
+msgctxt "graph.session"
+msgid "emptyMessage"
+msgstr "इस सत्र के लिए कोई इकाई नहीं मिली। पहले तथ्य एक्सट्रैक्ट किए जाने चाहिए।"
+
+msgctxt "graph.session"
+msgid "guideBody"
+msgstr "इस विशेष सत्र से निकाले गए नॉलेज ग्राफ़ की कल्पना करें। नोड्स बातचीत में उल्लिखित इकाइयों का प्रतिनिधित्व करते हैं, और एज दिखाते हैं कि वे एक-दूसरे से कैसे संबंधित हैं।"
+
+msgctxt "graph.session"
+msgid "guideTitle"
+msgstr "सत्र ग्राफ़"
+
+msgctxt "graph.session"
+msgid "noProject"
+msgstr "कोई प्रोजेक्ट चयनित नहीं है।"
+
+msgctxt "graph.session"
+msgid "unknownError"
+msgstr "कोई अज्ञात त्रुटि हुई"
+
+msgctxt "invite"
+msgid "brandTagline"
+msgstr "एजेंट मेमोरी इंफ्रास्ट्रक्चर"
+
+msgctxt "invite"
+msgid "brandTitle"
+msgstr "अपने संगठन से जुड़ें"
+
+msgctxt "invite"
+msgid "confirmPasswordLabel"
+msgstr "पासवर्ड की पुष्टि करें"
+
+msgctxt "invite"
+msgid "connectionError"
+msgstr "कनेक्शन त्रुटि। कृपया फिर से प्रयास करें।"
+
+msgctxt "invite"
+msgid "emailLabel"
+msgstr "ईमेल"
+
+msgctxt "invite"
+msgid "feature1"
+msgstr "स्थायी, क्वेरी करने योग्य एजेंट मेमोरी"
+
+msgctxt "invite"
+msgid "feature2"
+msgstr "मल्टी-प्रोवाइडर LLM सपोर्ट (BYOK)"
+
+msgctxt "invite"
+msgid "feature3"
+msgstr "हाइब्रिड खोज के साथ नॉलेज ग्राफ़"
+
+msgctxt "invite"
+msgid "feature4"
+msgstr "एसिंक्रोनस एनरिचमेंट पाइपलाइन"
+
+msgctxt "invite"
+msgid "goToSignIn"
+msgstr "साइन इन पर जाएं"
+
+msgctxt "invite"
+msgid "loading"
+msgstr "आपका निमंत्रण जाँचा जा रहा है…"
+
+msgctxt "invite"
+msgid "mismatch"
+msgstr "पासवर्ड मेल नहीं खाते।"
+
+msgctxt "invite"
+msgid "nameLabel"
+msgstr "नाम"
+
+msgctxt "invite"
+msgid "notFoundBody"
+msgstr "यह निमंत्रण लिंक अमान्य है या समाप्त हो चुका है।"
+
+msgctxt "invite"
+msgid "notFoundTitle"
+msgstr "निमंत्रण नहीं मिला"
+
+msgctxt "invite"
+msgid "passwordLabel"
+msgstr "पासवर्ड"
+
+msgctxt "invite"
+msgid "passwordPlaceholder"
+msgstr "न्यूनतम 8 अक्षर"
+
+msgctxt "invite"
+msgid "passwordStrength"
+msgstr "पासवर्ड की मज़बूती"
+
+msgctxt "invite"
+msgid "repeatPassword"
+msgstr "अपना पासवर्ड दोहराएं"
+
+msgctxt "invite"
+msgid "setPassword"
+msgstr "अपना खाता सक्रिय करने के लिए पासवर्ड सेट करें।"
+
+msgctxt "invite"
+msgid "setPasswordAndJoin"
+msgstr "पासवर्ड सेट करें और जुड़ें"
+
+msgctxt "invite"
+msgid "tooShort"
+msgstr "पासवर्ड कम से कम 8 अक्षरों का होना चाहिए।"
+
+msgctxt "invite"
+msgid "welcomeTitle"
+msgstr "आपको <strong>{org}</strong> से जुड़ने के लिए आमंत्रित किया गया है"
+
+msgctxt "memory.context"
+msgid "fetchFailed"
+msgstr "संदर्भ प्राप्त करने में विफल"
+
+msgctxt "memory.context"
+msgid "limit"
+msgstr "सीमा"
+
+msgctxt "memory.context"
+msgid "queryError"
+msgstr "कृपया एक क्वेरी दर्ज करें"
+
+msgctxt "memory.context"
+msgid "queryLabel"
+msgstr "क्वेरी"
+
+msgctxt "memory.context"
+msgid "queryPlaceholder"
+msgstr "जैसे, उपयोगकर्ता ने अपने प्रोजेक्ट के बारे में क्या कहा?"
+
+msgctxt "memory.context"
+msgid "results"
+msgstr "संदर्भ परिणाम"
+
+msgctxt "memory.context"
+msgid "submit"
+msgstr "संदर्भ प्राप्त करें"
+
+msgctxt "memory.context"
+msgid "title"
+msgstr "क्वेरी संदर्भ"
+
+msgctxt "memory"
+msgid "description"
+msgstr "संदेश इंगेस्ट करें, संदर्भ क्वेरी करें और मेमोरी में खोजें"
+
+msgctxt "memory"
+msgid "descriptionWithProject"
+msgstr "संदेश इंगेस्ट करें, संदर्भ क्वेरी करें और मेमोरी में खोजें · {name}"
+
+msgctxt "memory"
+msgid "guideBody"
+msgstr "मेमोरी सभी सत्रों में संचित ज्ञान संग्रहीत करती है — बातचीत से निकाली गई इकाइयाँ, तथ्य और संबंध। यह स्थायी नॉलेज ग्राफ़ आपके AI को पिछली बातचीत से संदर्भ याद रखने में सक्षम बनाता है।"
+
+msgctxt "memory"
+msgid "guideTitle"
+msgstr "नॉलेज मेमोरी"
+
+msgctxt "memory.ingest"
+msgid "attachments"
+msgstr "अटैचमेंट"
+
+msgctxt "memory.ingest"
+msgid "clickToUpload"
+msgstr "अपलोड करने के लिए क्लिक करें"
+
+msgctxt "memory.ingest"
+msgid "defaultRole"
+msgstr "डिफ़ॉल्ट भूमिका"
+
+msgctxt "memory.ingest"
+msgid "failed"
+msgstr "इंगेस्ट विफल रहा"
+
+msgctxt "memory.ingest"
+msgid "fileTypesHint"
+msgstr "छवियाँ, PDF, दस्तावेज़ — प्रत्येक 50 MB तक"
+
+msgctxt "memory.ingest"
+msgid "loadingSessions"
+msgstr "सत्र लोड हो रहे हैं..."
+
+msgctxt "memory.ingest"
+msgid "messagesError"
+msgstr "कृपया कम से कम एक संदेश दर्ज करें"
+
+msgctxt "memory.ingest"
+msgid "messagesFormatHint"
+msgstr "प्रति पंक्ति एक, प्रारूप: role: content"
+
+msgctxt "memory.ingest"
+msgid "messagesLabel"
+msgstr "संदेश"
+
+msgctxt "memory.ingest"
+msgid "messagesPlaceholder"
+msgstr "user: What is the capital of France?\nassistant: The capital of France is Paris."
+
+msgctxt "memory.ingest"
+msgid "noSessions"
+msgstr "कोई सत्र नहीं मिला"
+
+msgctxt "memory.ingest"
+msgid "optional"
+msgstr "वैकल्पिक"
+
+msgctxt "memory.ingest"
+msgid "orDragDrop"
+msgstr "या खींचकर छोड़ें"
+
+msgctxt "memory.ingest"
+msgid "removeFile"
+msgstr "फ़ाइल हटाएं"
+
+msgctxt "memory.ingest"
+msgid "required"
+msgstr "आवश्यक"
+
+msgctxt "memory.ingest"
+msgid "selectSession"
+msgstr "सत्र चुनें..."
+
+msgctxt "memory.ingest"
+msgid "selectSessionError"
+msgstr "कृपया एक सत्र चुनें"
+
+msgctxt "memory.ingest"
+msgid "sessionHint"
+msgstr "एक सत्र चुनें — मेमोरी केवल मौजूदा सत्र में इंगेस्ट होती है।"
+
+msgctxt "memory.ingest"
+msgid "sessionLabel"
+msgstr "सत्र"
+
+msgctxt "memory.ingest"
+msgid "submit"
+msgstr "इंगेस्ट करें"
+
+msgctxt "memory.ingest"
+msgid "success"
+msgstr "इंगेस्ट सफल रहा"
+
+msgctxt "memory.ingest"
+msgid "title"
+msgstr "संदेश इंगेस्ट करें"
+
+msgctxt "memory"
+msgid "noProject"
+msgstr "मेमोरी सुविधाएँ एक्सेस करने के लिए प्रोजेक्ट चुनें।"
+
+msgctxt "memory.search"
+msgid "failed"
+msgstr "खोज विफल रही"
+
+msgctxt "memory.search"
+msgid "noResults"
+msgstr "इस क्वेरी के लिए कोई परिणाम नहीं मिला।"
+
+msgctxt "memory.search"
+msgid "queryError"
+msgstr "कृपया एक क्वेरी दर्ज करें"
+
+msgctxt "memory.search"
+msgid "queryLabel"
+msgstr "क्वेरी"
+
+msgctxt "memory.search"
+msgid "queryPlaceholder"
+msgstr "एपिसोड, तथ्यों और इकाइयों में खोजें..."
+
+msgctxt "memory.search"
+msgid "results"
+msgstr "परिणाम ({count})"
+
+msgctxt "memory.search"
+msgid "submit"
+msgstr "खोजें"
+
+msgctxt "memory.search.table"
+msgid "content"
+msgstr "सामग्री"
+
+msgctxt "memory.search.table"
+msgid "score"
+msgstr "स्कोर"
+
+msgctxt "memory.search.table"
+msgid "type"
+msgstr "प्रकार"
+
+msgctxt "memory.search"
+msgid "title"
+msgstr "मेमोरी खोजें"
+
+msgctxt "memory.search"
+msgid "typeFilter"
+msgstr "प्रकार फ़िल्टर"
+
+msgctxt "memory.search.types"
+msgid "entities"
+msgstr "इकाइयाँ"
+
+msgctxt "memory.search.types"
+msgid "episodes"
+msgstr "एपिसोड"
+
+msgctxt "memory.search.types"
+msgid "facts"
+msgstr "तथ्य"
+
+msgctxt "memory.search"
+msgid "unknown"
+msgstr "अज्ञात"
+
+msgctxt "memory.tabs"
+msgid "context"
+msgstr "संदर्भ"
+
+msgctxt "memory.tabs"
+msgid "ingest"
+msgstr "इंगेस्ट"
+
+msgctxt "memory.tabs"
+msgid "search"
+msgstr "खोज"
+
+msgctxt "memory"
+msgid "title"
+msgstr "मेमोरी"
+
+msgctxt "monitoring"
+msgid "autoRefreshes"
+msgstr "हर {seconds} सेकंड में ऑटो-रिफ्रेश होता है"
+
+msgctxt "monitoring"
+msgid "description"
+msgstr "रीयल-टाइम प्लेटफ़ॉर्म प्रदर्शन और स्वास्थ्य मेट्रिक्स"
+
+msgctxt "monitoring.enrichment"
+msgid "complete"
+msgstr "{pct}% पूर्ण"
+
+msgctxt "monitoring.enrichment"
+msgid "embedded"
+msgstr "एम्बेडेड"
+
+msgctxt "monitoring.enrichment"
+msgid "enriched"
+msgstr "एनरिचेड"
+
+msgctxt "monitoring.enrichment"
+msgid "inProgress"
+msgstr "{count} प्रगति पर"
+
+msgctxt "monitoring.enrichment"
+msgid "pending"
+msgstr "लंबित"
+
+msgctxt "monitoring.enrichment"
+msgid "title"
+msgstr "एनरिचमेंट प्रगति"
+
+msgctxt "monitoring"
+msgid "errorAdmin"
+msgstr "एडमिन पहुँच आवश्यक है"
+
+msgctxt "monitoring"
+msgid "errorLoad"
+msgstr "निगरानी डेटा प्राप्त करने में असमर्थ"
+
+msgctxt "monitoring"
+msgid "guideBody"
+msgstr "अपने प्लेटफ़ॉर्म के स्वास्थ्य और प्रदर्शन की रीयल-टाइम में निगरानी करें। एनरिचमेंट प्रगति, त्रुटि दर, API विलंबता प्रतिशतक, कतार गहराई और Prometheus स्क्रेप टारगेट ट्रैक करें।"
+
+msgctxt "monitoring"
+msgid "guideTitle"
+msgstr "प्लेटफ़ॉर्म निगरानी"
+
+msgctxt "monitoring.kpi"
+msgid "episodesAdded24h"
+msgstr "जोड़े गए एपिसोड (24 घंटे)"
+
+msgctxt "monitoring.kpi"
+msgid "errorRate"
+msgstr "त्रुटि दर"
+
+msgctxt "monitoring.kpi"
+msgid "queueDepth"
+msgstr "कतार गहराई"
+
+msgctxt "monitoring.latency"
+msgid "context"
+msgstr "संदर्भ असेंबली"
+
+msgctxt "monitoring.latency"
+msgid "empty"
+msgstr "कोई विलंबता डेटा उपलब्ध नहीं"
+
+msgctxt "monitoring.latency"
+msgid "graphSearch"
+msgstr "ग्राफ़ खोज"
+
+msgctxt "monitoring.latency"
+msgid "ms"
+msgstr "{value}ms"
+
+msgctxt "monitoring.latency"
+msgid "overall"
+msgstr "समग्र API"
+
+msgctxt "monitoring.latency"
+msgid "subMs"
+msgstr "<1ms"
+
+msgctxt "monitoring.latency"
+msgid "title"
+msgstr "विलंबता"
+
+msgctxt "monitoring"
+msgid "live"
+msgstr "लाइव"
+
+msgctxt "monitoring.query"
+msgid "description"
+msgstr "एड-हॉक PromQL क्वेरी चलाएं"
+
+msgctxt "monitoring.query"
+msgid "placeholder"
+msgstr "e.g. rate(http_requests_total[5m])"
+
+msgctxt "monitoring.query"
+msgid "queryFailed"
+msgstr "क्वेरी विफल रही"
+
+msgctxt "monitoring.query"
+msgid "run"
+msgstr "चलाएं"
+
+msgctxt "monitoring.query"
+msgid "title"
+msgstr "Prometheus क्वेरी"
+
+msgctxt "monitoring"
+msgid "refreshing"
+msgstr "रिफ्रेश हो रहा है…"
+
+msgctxt "monitoring"
+msgid "refreshNow"
+msgstr "अभी रिफ्रेश करें"
+
+msgctxt "monitoring.status"
+msgid "activeRequests"
+msgstr "सक्रिय अनुरोध: {count}"
+
+msgctxt "monitoring.status"
+msgid "requestRate"
+msgstr "अनुरोध दर: {twoxx} 2xx / {fivexx} 5xx"
+
+msgctxt "monitoring.status"
+msgid "status"
+msgstr "स्थिति: {status}"
+
+msgctxt "monitoring.status"
+msgid "users"
+msgstr "उपयोगकर्ता: {count}"
+
+msgctxt "monitoring.targets"
+msgid "count"
+msgstr "{count, plural, =1 {# टारगेट} other {# टारगेट}}"
+
+msgctxt "monitoring.targets"
+msgid "down"
+msgstr "DOWN"
+
+msgctxt "monitoring.targets"
+msgid "emptyDescription"
+msgstr "Prometheus स्क्रेप जॉब कॉन्फ़िगर होने पर टारगेट दिखाई देंगे।"
+
+msgctxt "monitoring.targets"
+msgid "emptyTitle"
+msgstr "कोई स्क्रेप टारगेट नहीं मिला"
+
+msgctxt "monitoring.targets.table"
+msgid "health"
+msgstr "स्वास्थ्य"
+
+msgctxt "monitoring.targets.table"
+msgid "instance"
+msgstr "इंस्टेंस"
+
+msgctxt "monitoring.targets.table"
+msgid "job"
+msgstr "जॉब"
+
+msgctxt "monitoring.targets.table"
+msgid "lastError"
+msgstr "अंतिम त्रुटि"
+
+msgctxt "monitoring.targets.table"
+msgid "lastScrape"
+msgstr "अंतिम स्क्रेप"
+
+msgctxt "monitoring.targets"
+msgid "title"
+msgstr "स्क्रेप टारगेट"
+
+msgctxt "monitoring.targets"
+msgid "up"
+msgstr "UP"
+
+msgctxt "monitoring"
+msgid "title"
+msgstr "निगरानी"
+
+msgctxt "monitoring"
+msgid "updated"
+msgstr "{time} पर अपडेट हुआ"
+
+msgctxt "nav"
+msgid "accountSettings"
+msgstr "खाता सेटिंग्स"
+
+msgctxt "nav"
+msgid "administration"
+msgstr "प्रशासन"
+
+msgctxt "nav"
+msgid "apiKeys"
+msgstr "एपीआई कुंजियाँ"
+
+msgctxt "nav"
+msgid "approvalRequests"
+msgstr "अनुमोदन अनुरोध"
+
+msgctxt "nav"
+msgid "auditLog"
+msgstr "ऑडिट लॉग"
+
+msgctxt "nav"
+msgid "classifications"
+msgstr "वर्गीकरण"
+
+msgctxt "nav"
+msgid "closeSidebar"
+msgstr "साइडबार बंद करें"
+
+msgctxt "nav"
+msgid "collapseSidebar"
+msgstr "साइडबार संक्षिप्त करें"
+
+msgctxt "nav"
+msgid "communities"
+msgstr "समुदाय"
+
+msgctxt "nav"
+msgid "configuration"
+msgstr "कॉन्फ़िगरेशन"
+
+msgctxt "nav"
+msgid "expandSidebar"
+msgstr "साइडबार विस्तृत करें"
+
+msgctxt "nav"
+msgid "extractionInstructions"
+msgstr "एक्सट्रैक्शन निर्देश"
+
+msgctxt "nav"
+msgid "extractions"
+msgstr "एक्सट्रैक्शन"
+
+msgctxt "nav"
+msgid "extractionSchemas"
+msgstr "एक्सट्रैक्शन स्कीमा"
+
+msgctxt "nav"
+msgid "facts"
+msgstr "तथ्य"
+
+msgctxt "nav"
+msgid "graphExplorer"
+msgstr "ग्राफ़ एक्सप्लोरर"
+
+msgctxt "nav"
+msgid "insights"
+msgstr "अंतर्दृष्टि"
+
+msgctxt "nav"
+msgid "language"
+msgstr "भाषा"
+
+msgctxt "nav"
+msgid "mainNavigation"
+msgstr "मुख्य नेविगेशन"
+
+msgctxt "nav"
+msgid "members"
+msgstr "सदस्य"
+
+msgctxt "nav"
+msgid "memory"
+msgstr "मेमोरी"
+
+msgctxt "nav"
+msgid "messages"
+msgstr "संदेश"
+
+msgctxt "nav"
+msgid "monitoring"
+msgstr "निगरानी"
+
+msgctxt "nav"
+msgid "openSidebar"
+msgstr "साइडबार खोलें"
+
+msgctxt "nav"
+msgid "organizations"
+msgstr "संगठन"
+
+msgctxt "nav"
+msgid "overview"
+msgstr "अवलोकन"
+
+msgctxt "nav"
+msgid "platformAdmin"
+msgstr "प्लेटफ़ॉर्म एडमिन"
+
+msgctxt "nav"
+msgid "project"
+msgstr "प्रोजेक्ट"
+
+msgctxt "nav"
+msgid "projects"
+msgstr "प्रोजेक्ट"
+
+msgctxt "nav"
+msgid "projectSettings"
+msgstr "प्रोजेक्ट सेटिंग्स"
+
+msgctxt "nav"
+msgid "promptTemplates"
+msgstr "प्रॉम्प्ट टेम्प्लेट"
+
+msgctxt "nav"
+msgid "search"
+msgstr "खोजें"
+
+msgctxt "nav"
+msgid "session"
+msgstr "सत्र"
+
+msgctxt "nav"
+msgid "sessions"
+msgstr "सत्र"
+
+msgctxt "nav"
+msgid "settings"
+msgstr "सेटिंग्स"
+
+msgctxt "nav"
+msgid "sidebar"
+msgstr "साइडबार"
+
+msgctxt "nav"
+msgid "signOut"
+msgstr "साइन आउट करें"
+
+msgctxt "nav"
+msgid "system"
+msgstr "सिस्टम"
+
+msgctxt "nav"
+msgid "systemConfiguration"
+msgstr "सिस्टम कॉन्फ़िगरेशन"
+
+msgctxt "nav"
+msgid "users"
+msgstr "उपयोगकर्ता"
+
+msgctxt "nav"
+msgid "viewAllProjects"
+msgstr "सभी प्रोजेक्ट देखें"
+
+msgctxt "nav"
+msgid "webhooks"
+msgstr "वेबहुक"
+
+msgctxt "overview.actions"
+msgid "apiKeyCreate"
+msgstr "एपीआई कुंजी जनरेट हुई"
+
+msgctxt "overview.actions"
+msgid "apiKeyRevoke"
+msgstr "एपीआई कुंजी रद्द की गई"
+
+msgctxt "overview.actions"
+msgid "authLogin"
+msgstr "उपयोगकर्ता ने लॉगिन किया"
+
+msgctxt "overview.actions"
+msgid "authProfileUpdate"
+msgstr "प्रोफ़ाइल अपडेट हुई"
+
+msgctxt "overview.actions"
+msgid "authRefresh"
+msgstr "सत्र रिफ्रेश हुआ"
+
+msgctxt "overview.actions"
+msgid "authSignup"
+msgstr "उपयोगकर्ता ने साइन अप किया"
+
+msgctxt "overview.actions"
+msgid "entityMerge"
+msgstr "इकाइयाँ मर्ज हुईं"
+
+msgctxt "overview.actions"
+msgid "factCreate"
+msgstr "तथ्य एक्सट्रैक्ट हुआ"
+
+msgctxt "overview.actions"
+msgid "graphNodeDelete"
+msgstr "ग्राफ़ इकाई हटाई गई"
+
+msgctxt "overview.actions"
+msgid "memoryIngest"
+msgstr "संदेश इंगेस्ट हुआ"
+
+msgctxt "overview.actions"
+msgid "memoryWipe"
+msgstr "मेमोरी मिटाई गई"
+
+msgctxt "overview.actions"
+msgid "organizationCreate"
+msgstr "संगठन बनाया गया"
+
+msgctxt "overview.actions"
+msgid "schemaCreate"
+msgstr "एक्सट्रैक्शन स्कीमा बनाई गई"
+
+msgctxt "overview.actions"
+msgid "schemaDelete"
+msgstr "एक्सट्रैक्शन स्कीमा हटाई गई"
+
+msgctxt "overview.actions"
+msgid "schemaUpdate"
+msgstr "एक्सट्रैक्शन स्कीमा अपडेट हुई"
+
+msgctxt "overview.actions"
+msgid "sessionCreate"
+msgstr "सत्र बनाया गया"
+
+msgctxt "overview.actions"
+msgid "sessionDelete"
+msgstr "सत्र हटाया गया"
+
+msgctxt "overview.actions"
+msgid "userCreate"
+msgstr "उपयोगकर्ता जोड़ा गया"
+
+msgctxt "overview.actions"
+msgid "userDelete"
+msgstr "उपयोगकर्ता हटाया गया"
+
+msgctxt "overview.actions"
+msgid "userUpdate"
+msgstr "उपयोगकर्ता अपडेट हुआ"
+
+msgctxt "overview.actors"
+msgid "anonymous"
+msgstr "अनाम"
+
+msgctxt "overview.actors"
+msgid "api"
+msgstr "API"
+
+msgctxt "overview.actors"
+msgid "system"
+msgstr "सिस्टम"
+
+msgctxt "overview.actors"
+msgid "user"
+msgstr "उपयोगकर्ता"
+
+msgctxt "overview"
+msgid "chartEmpty"
+msgstr "इस अवधि के लिए कोई उपयोग डेटा उपलब्ध नहीं है।"
+
+msgctxt "overview"
+msgid "chartEmptyHint"
+msgstr "कोई अन्य समय सीमा चुनकर देखें।"
+
+msgctxt "overview"
+msgid "createFirstProject"
+msgstr "अपना पहला प्रोजेक्ट बनाएं"
+
+msgctxt "overview"
+msgid "description"
+msgstr "संगठन डैशबोर्ड — आँकड़े, गतिविधि और उपयोग रुझान"
+
+msgctxt "overview"
+msgid "guideBody"
+msgstr "अपने संगठन के प्रमुख मेट्रिक्स — संदेश, सत्र, तथ्य, उपयोगकर्ता, एपिसोड और एपीआई कुंजियाँ — की निगरानी करें। इंटरैक्टिव चार्ट के साथ हाल की गतिविधि देखें और दैनिक उपयोग रुझान ट्रैक करें।"
+
+msgctxt "overview"
+msgid "guideTitle"
+msgstr "आपका संगठन एक नज़र में"
+
+msgctxt "overview.legend"
+msgid "messages"
+msgstr "संदेश"
+
+msgctxt "overview.legend"
+msgid "sessions"
+msgstr "सत्र"
+
+msgctxt "overview"
+msgid "noActionsAvailable"
+msgstr "कोई कार्रवाई उपलब्ध नहीं"
+
+msgctxt "overview"
+msgid "noRecentActivity"
+msgstr "कोई हाल की गतिविधि नहीं मिली।"
+
+msgctxt "overview"
+msgid "quickActionsTitle"
+msgstr "त्वरित कार्रवाइयाँ"
+
+msgctxt "overview"
+msgid "quickstartBody"
+msgstr "आपका वर्कस्पेस तैयार है — एक प्रोजेक्ट बनाएं, बातचीत इंगेस्ट करें, और नॉलेज ग्राफ़ को रोशन होते देखें।"
+
+msgctxt "overview.quickstartSteps.step1"
+msgid "description"
+msgstr "अपना नॉलेज बेस और बातचीत व्यवस्थित करें।"
+
+msgctxt "overview.quickstartSteps.step1"
+msgid "title"
+msgstr "एक प्रोजेक्ट बनाएं"
+
+msgctxt "overview.quickstartSteps.step2"
+msgid "description"
+msgstr "इकाइयों और तथ्यों को एम्बेड करने के लिए चैट लॉग आयात करें।"
+
+msgctxt "overview.quickstartSteps.step2"
+msgid "title"
+msgstr "बातचीत इंगेस्ट करें"
+
+msgctxt "overview.quickstartSteps.step3"
+msgid "description"
+msgstr "ग्राफ़ बढ़ने पर कनेक्शनों को रोशन होते देखें।"
+
+msgctxt "overview.quickstartSteps.step3"
+msgid "title"
+msgstr "नॉलेज ग्राफ़ एक्सप्लोर करें"
+
+msgctxt "overview"
+msgid "quickstartTitle"
+msgstr "3 चरणों में शुरुआत करें"
+
+msgctxt "overview"
+msgid "recentActivityTitle"
+msgstr "हाल की गतिविधि"
+
+msgctxt "overview.stats"
+msgid "apiKeys"
+msgstr "एपीआई कुंजियाँ"
+
+msgctxt "overview.stats"
+msgid "episodes"
+msgstr "एपिसोड"
+
+msgctxt "overview.stats"
+msgid "facts"
+msgstr "तथ्य"
+
+msgctxt "overview.stats"
+msgid "messages"
+msgstr "संदेश"
+
+msgctxt "overview.stats"
+msgid "sessions"
+msgstr "सत्र"
+
+msgctxt "overview.stats"
+msgid "users"
+msgstr "उपयोगकर्ता"
+
+msgctxt "overview"
+msgid "title"
+msgstr "अवलोकन"
+
+msgctxt "overview.tooltip"
+msgid "messages"
+msgstr "संदेश: {value}"
+
+msgctxt "overview.tooltip"
+msgid "sessions"
+msgstr "सत्र: {value}"
+
+msgctxt "overview"
+msgid "usageTitle"
+msgstr "दैनिक उपयोग"
+
+msgctxt "overview"
+msgid "viewAll"
+msgstr "सभी देखें →"
+
+msgctxt "projects.apiKeys"
+msgid "copyToClipboard"
+msgstr "क्लिपबोर्ड पर कॉपी करें"
+
+msgctxt "projects.apiKeys"
+msgid "create"
+msgstr "बनाएं"
+
+msgctxt "projects.apiKeys"
+msgid "createApiKey"
+msgstr "एपीआई कुंजी बनाएं"
+
+msgctxt "projects.apiKeys"
+msgid "createdToast"
+msgstr "एपीआई कुंजी बन गई"
+
+msgctxt "projects.apiKeys"
+msgid "createFailed"
+msgstr "कुंजी बनाने में विफल"
+
+msgctxt "projects.apiKeys"
+msgid "createKey"
+msgstr "कुंजी बनाएं"
+
+msgctxt "projects.apiKeys"
+msgid "done"
+msgstr "हो गया"
+
+msgctxt "projects.apiKeys"
+msgid "emptyDescription"
+msgstr "इस प्रोजेक्ट तक प्रोग्रामेटिक पहुँच सक्षम करने के लिए एपीआई कुंजी बनाएं"
+
+msgctxt "projects.apiKeys"
+msgid "emptyTitle"
+msgstr "अभी कोई एपीआई कुंजी नहीं"
+
+msgctxt "projects.apiKeys"
+msgid "genericSubtitle"
+msgstr "प्रोग्रामेटिक पहुँच के लिए एपीआई कुंजियाँ प्रबंधित करें"
+
+msgctxt "projects.apiKeys"
+msgid "hide"
+msgstr "छिपाएं"
+
+msgctxt "projects.apiKeys"
+msgid "keyCreated"
+msgstr "कुंजी बन गई"
+
+msgctxt "projects.apiKeys"
+msgid "keyName"
+msgstr "कुंजी का नाम"
+
+msgctxt "projects.apiKeys"
+msgid "keyNamePlaceholder"
+msgstr "जैसे Production CI"
+
+msgctxt "projects.apiKeys"
+msgid "loadFailed"
+msgstr "एपीआई कुंजियाँ लोड करने में विफल"
+
+msgctxt "projects.apiKeys"
+msgid "revoke"
+msgstr "रद्द करें"
+
+msgctxt "projects.apiKeys"
+msgid "revokeApiKey"
+msgstr "एपीआई कुंजी रद्द करें"
+
+msgctxt "projects.apiKeys"
+msgid "revokeConfirm"
+msgstr "क्या आप वाकई \"{name}\" रद्द करना चाहते हैं? यह कार्रवाई पूर्ववत नहीं की जा सकती।"
+
+msgctxt "projects.apiKeys"
+msgid "revokedToast"
+msgstr "एपीआई कुंजी रद्द की गई"
+
+msgctxt "projects.apiKeys"
+msgid "revokeFailed"
+msgstr "कुंजी रद्द करने में विफल"
+
+msgctxt "projects.apiKeys"
+msgid "revokeKey"
+msgstr "कुंजी रद्द करें"
+
+msgctxt "projects.apiKeys"
+msgid "showFullKey"
+msgstr "पूरी कुंजी दिखाएं"
+
+msgctxt "projects.apiKeys"
+msgid "showOnceWarning"
+msgstr "यह कुंजी दोबारा नहीं दिखाई जाएगी। इसे अभी कॉपी करें।"
+
+msgctxt "projects.apiKeys.status"
+msgid "active"
+msgstr "सक्रिय"
+
+msgctxt "projects.apiKeys.status"
+msgid "revoked"
+msgstr "रद्द"
+
+msgctxt "projects.apiKeys"
+msgid "subtitle"
+msgstr "{name} तक प्रोग्रामेटिक पहुँच के लिए एपीआई कुंजियाँ प्रबंधित करें"
+
+msgctxt "projects.apiKeys.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "projects.apiKeys.table"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "projects.apiKeys.table"
+msgid "lastUsed"
+msgstr "अंतिम उपयोग"
+
+msgctxt "projects.apiKeys.table"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "projects.apiKeys.table"
+msgid "prefix"
+msgstr "प्रीफ़िक्स"
+
+msgctxt "projects.apiKeys.table"
+msgid "scopes"
+msgstr "स्कोप"
+
+msgctxt "projects.apiKeys.table"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "projects.apiKeys"
+msgid "title"
+msgstr "एपीआई कुंजियाँ"
+
+msgctxt "projects.apiKeys"
+msgid "yourApiKey"
+msgstr "आपकी एपीआई कुंजी"
+
+msgctxt "projects"
+msgid "create"
+msgstr "बनाएं"
+
+msgctxt "projects"
+msgid "created"
+msgstr "{date} को बनाया गया"
+
+msgctxt "projects"
+msgid "createdToast"
+msgstr "प्रोजेक्ट \"{name}\" बन गया"
+
+msgctxt "projects"
+msgid "createFailed"
+msgstr "प्रोजेक्ट बनाने में विफल"
+
+msgctxt "projects"
+msgid "createProject"
+msgstr "प्रोजेक्ट बनाएं"
+
+msgctxt "projects"
+msgid "description"
+msgstr "मेमोरी और नॉलेज ग्राफ़ डेटा के लिए सहयोगी वर्कस्पेस"
+
+msgctxt "projects"
+msgid "descriptionLabel"
+msgstr "विवरण"
+
+msgctxt "projects"
+msgid "descriptionPlaceholder"
+msgstr "इस प्रोजेक्ट का वैकल्पिक विवरण"
+
+msgctxt "projects"
+msgid "emptyDescription"
+msgstr "सत्र, मेमोरी और नॉलेज ग्राफ़ व्यवस्थित करना शुरू करने के लिए अपना पहला प्रोजेक्ट बनाएं।"
+
+msgctxt "projects"
+msgid "emptyTitle"
+msgstr "अभी कोई प्रोजेक्ट नहीं"
+
+msgctxt "projects"
+msgid "loadError"
+msgstr "प्रोजेक्ट लोड करने में नेटवर्क त्रुटि"
+
+msgctxt "projects"
+msgid "maxPinned"
+msgstr "अधिकतम 3 पिन किए गए प्रोजेक्ट"
+
+msgctxt "projects.members"
+msgid "addedToast"
+msgstr "सदस्य जोड़ा गया"
+
+msgctxt "projects.members"
+msgid "addFailed"
+msgstr "सदस्य जोड़ने में विफल"
+
+msgctxt "projects.members"
+msgid "addMember"
+msgstr "सदस्य जोड़ें"
+
+msgctxt "projects.members"
+msgid "emptyDescription"
+msgstr "इस प्रोजेक्ट पर सहयोग के लिए सदस्य जोड़ें।"
+
+msgctxt "projects.members"
+msgid "emptyTitle"
+msgstr "अभी कोई सदस्य नहीं"
+
+msgctxt "projects.members"
+msgid "genericSubtitle"
+msgstr "प्रोजेक्ट सदस्य प्रबंधन"
+
+msgctxt "projects.members"
+msgid "lastOwner"
+msgstr "अंतिम स्वामी"
+
+msgctxt "projects.members"
+msgid "loadFailed"
+msgstr "सदस्य लोड करने में विफल"
+
+msgctxt "projects.members"
+msgid "loadingDescription"
+msgstr "प्रोजेक्ट सदस्य"
+
+msgctxt "projects.members"
+msgid "noUsers"
+msgstr "कोई उपयोगकर्ता उपलब्ध नहीं"
+
+msgctxt "projects.members"
+msgid "remove"
+msgstr "हटाएं"
+
+msgctxt "projects.members"
+msgid "removeConfirm"
+msgstr "क्या आप वाकई इस सदस्य को प्रोजेक्ट से हटाना चाहते हैं?"
+
+msgctxt "projects.members"
+msgid "removedToast"
+msgstr "सदस्य हटाया गया"
+
+msgctxt "projects.members"
+msgid "removeFailed"
+msgstr "सदस्य हटाने में विफल"
+
+msgctxt "projects.members"
+msgid "removeMember"
+msgstr "सदस्य हटाएं"
+
+msgctxt "projects.members"
+msgid "selectUser"
+msgstr "उपयोगकर्ता चुनें..."
+
+msgctxt "projects.members"
+msgid "subtitle"
+msgstr "प्रबंधित करें कि \"{name}\" तक किसकी पहुँच है"
+
+msgctxt "projects.members.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "projects.members.table"
+msgid "added"
+msgstr "जोड़ा गया"
+
+msgctxt "projects.members.table"
+msgid "role"
+msgstr "भूमिका"
+
+msgctxt "projects.members.table"
+msgid "userId"
+msgstr "उपयोगकर्ता ID"
+
+msgctxt "projects.members"
+msgid "title"
+msgstr "सदस्य"
+
+msgctxt "projects.members"
+msgid "userLabel"
+msgstr "उपयोगकर्ता"
+
+msgctxt "projects.members"
+msgid "userListFailed"
+msgstr "उपयोगकर्ता सूची लोड करने में विफल"
+
+msgctxt "projects"
+msgid "membersCount"
+msgstr "{count, plural, =1 {# सदस्य} other {# सदस्य}}"
+
+msgctxt "projects"
+msgid "nameLabel"
+msgstr "नाम"
+
+msgctxt "projects"
+msgid "namePlaceholder"
+msgstr "जैसे, Customer Support Bot"
+
+msgctxt "projects"
+msgid "nameRequired"
+msgstr "प्रोजेक्ट का नाम आवश्यक है"
+
+msgctxt "projects"
+msgid "pinProject"
+msgstr "प्रोजेक्ट पिन करें"
+
+msgctxt "projects.settings"
+msgid "archive"
+msgstr "संग्रहित करें"
+
+msgctxt "projects.settings"
+msgid "archiveConfirm"
+msgstr "क्या आप वाकई \"{name}\" संग्रहित करना चाहते हैं? सभी संबद्ध डेटा तब तक छिपा रहेगा जब तक एडमिन उसे पुनर्स्थापित नहीं करता।"
+
+msgctxt "projects.settings"
+msgid "archivedToast"
+msgstr "प्रोजेक्ट \"{name}\" संग्रहित हो गया"
+
+msgctxt "projects.settings"
+msgid "archiveFailed"
+msgstr "प्रोजेक्ट संग्रहित करने में विफल"
+
+msgctxt "projects.settings"
+msgid "archiveProject"
+msgstr "प्रोजेक्ट संग्रहित करें"
+
+msgctxt "projects.settings"
+msgid "dangerZone"
+msgstr "खतरनाक क्षेत्र"
+
+msgctxt "projects.settings"
+msgid "dangerZoneBody"
+msgstr "इस प्रोजेक्ट को संग्रहित करने पर यह सॉफ्ट-डिलीट हो जाएगा। सत्र, मेमोरी और ग्राफ़ डेटा सुरक्षित रहेगा लेकिन छिपा दिया जाएगा। इस कार्रवाई को एडमिन द्वारा पूर्ववत किया जा सकता है।"
+
+msgctxt "projects.settings"
+msgid "descriptionLabel"
+msgstr "विवरण"
+
+msgctxt "projects.settings"
+msgid "loadingDescription"
+msgstr "प्रोजेक्ट सेटिंग्स"
+
+msgctxt "projects.settings"
+msgid "nameLabel"
+msgstr "प्रोजेक्ट का नाम"
+
+msgctxt "projects.settings"
+msgid "noDescription"
+msgstr "कोई विवरण नहीं"
+
+msgctxt "projects.settings"
+msgid "notFound"
+msgstr "प्रोजेक्ट नहीं मिला"
+
+msgctxt "projects.settings"
+msgid "saveChanges"
+msgstr "बदलाव सहेजें"
+
+msgctxt "projects.settings"
+msgid "savedToast"
+msgstr "प्रोजेक्ट सेटिंग्स सहेजी गईं"
+
+msgctxt "projects.settings"
+msgid "saveFailed"
+msgstr "सेटिंग्स सहेजने में विफल"
+
+msgctxt "projects.settings"
+msgid "subtitle"
+msgstr "\"{name}\" कॉन्फ़िगर करें"
+
+msgctxt "projects.settings"
+msgid "title"
+msgstr "प्रोजेक्ट सेटिंग्स"
+
+msgctxt "projects"
+msgid "title"
+msgstr "प्रोजेक्ट"
+
+msgctxt "projects"
+msgid "unpinProject"
+msgstr "प्रोजेक्ट अनपिन करें"
+
+msgctxt "sessions.classifications"
+msgid "emptyDescription"
+msgstr "प्रोसेस होने के बाद वर्गीकरण डेटा यहाँ दिखाई देगा।"
+
+msgctxt "sessions.classifications"
+msgid "emptyTitle"
+msgstr "अभी कोई वर्गीकरण उपलब्ध नहीं"
+
+msgctxt "sessions.classifications"
+msgid "guideBody"
+msgstr "वर्गीकरण बातचीत के प्रत्येक टर्न को इरादे, विषय, भावना और प्राथमिकता के आधार पर वर्गीकृत करते हैं। वे संरचित लेबल प्रदान करते हैं जो बातचीत को व्यवस्थित और रूट करने में मदद करते हैं।"
+
+msgctxt "sessions.classifications"
+msgid "guideTitle"
+msgstr "वर्गीकरण"
+
+msgctxt "sessions.classifications"
+msgid "loadFailed"
+msgstr "वर्गीकरण लोड करने में विफल"
+
+msgctxt "sessions.classifications.meta"
+msgid "arousal"
+msgstr "उत्तेजना"
+
+msgctxt "sessions.classifications.meta"
+msgid "emotion"
+msgstr "भावना"
+
+msgctxt "sessions.classifications.meta"
+msgid "intent"
+msgstr "इरादा"
+
+msgctxt "sessions.classifications.meta"
+msgid "valence"
+msgstr "वैलेंस"
+
+msgctxt "sessions.classifications"
+msgid "readMore"
+msgstr "... और पढ़ें"
+
+msgctxt "sessions.classifications"
+msgid "showLess"
+msgstr "कम दिखाएं"
+
+msgctxt "sessions.detail"
+msgid "backToSessions"
+msgstr "सत्रों पर वापस जाएं"
+
+msgctxt "sessions.detail"
+msgid "breadcrumbSessions"
+msgstr "सत्र"
+
+msgctxt "sessions.detail"
+msgid "copyToClipboard"
+msgstr "क्लिपबोर्ड पर कॉपी करें"
+
+msgctxt "sessions.detail"
+msgid "guideBody"
+msgstr "एकल सत्र का सारा डेटा देखें: संदेश, निकाले गए तथ्य, ग्राफ़ संबंध, वर्गीकरण और संरचित एक्सट्रैक्शन। प्रत्येक टैब प्रोसेस की गई बातचीत का एक अलग पहलू दिखाता है।"
+
+msgctxt "sessions.detail"
+msgid "guideTitle"
+msgstr "सत्र विवरण"
+
+msgctxt "sessions.detail.meta"
+msgid "closed"
+msgstr "बंद"
+
+msgctxt "sessions.detail.meta"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "sessions.detail.meta"
+msgid "createdBy"
+msgstr "किसके द्वारा बनाया गया"
+
+msgctxt "sessions.detail.meta"
+msgid "facts"
+msgstr "तथ्य"
+
+msgctxt "sessions.detail.meta"
+msgid "messages"
+msgstr "संदेश"
+
+msgctxt "sessions.detail.meta"
+msgid "observations"
+msgstr "अवलोकन"
+
+msgctxt "sessions.detail.meta"
+msgid "pendingEnrichment"
+msgstr "लंबित एनरिचमेंट"
+
+msgctxt "sessions.detail.meta"
+msgid "sessionId"
+msgstr "सत्र ID"
+
+msgctxt "sessions.detail"
+msgid "networkError"
+msgstr "नेटवर्क त्रुटि। कृपया फिर से प्रयास करें।"
+
+msgctxt "sessions.detail"
+msgid "noProject"
+msgstr "कोई प्रोजेक्ट चयनित नहीं है।"
+
+msgctxt "sessions.detail"
+msgid "noSessionId"
+msgstr "कोई सत्र ID प्रदान नहीं किया गया।"
+
+msgctxt "sessions.detail"
+msgid "notFound"
+msgstr "सत्र नहीं मिला।"
+
+msgctxt "sessions.detail"
+msgid "overviewLabel"
+msgstr "सत्र अवलोकन"
+
+msgctxt "sessions.detail"
+msgid "selectTab"
+msgstr "सत्र डेटा देखने के लिए ऊपर एक टैब चुनें।"
+
+msgctxt "sessions.detail"
+msgid "selectTabHint"
+msgstr "संदेश, तथ्य, ग्राफ़, वर्गीकरण, एक्सट्रैक्शन और अवलोकन।"
+
+msgctxt "sessions.detail.status"
+msgid "active"
+msgstr "सक्रिय"
+
+msgctxt "sessions.detail.status"
+msgid "closed"
+msgstr "बंद"
+
+msgctxt "sessions.detail.tabs"
+msgid "classifications"
+msgstr "वर्गीकरण"
+
+msgctxt "sessions.detail.tabs"
+msgid "extractions"
+msgstr "एक्सट्रैक्शन"
+
+msgctxt "sessions.detail.tabs"
+msgid "facts"
+msgstr "तथ्य"
+
+msgctxt "sessions.detail.tabs"
+msgid "graph"
+msgstr "ग्राफ़"
+
+msgctxt "sessions.detail.tabs"
+msgid "messages"
+msgstr "संदेश"
+
+msgctxt "sessions.detail.tabs"
+msgid "observations"
+msgstr "अवलोकन"
+
+msgctxt "sessions.extractions"
+msgid "emptyDescription"
+msgstr "Settings > Extraction Schemas में JSON स्कीमा कॉन्फ़िगर करें।\nएक स्कीमा परिभाषित करें, फिर एनरिचमेंट पाइपलाइन के माध्यम से नए संदेश प्रोसेस करें।"
+
+msgctxt "sessions.extractions"
+msgid "emptyTitle"
+msgstr "कोई संरचित एक्सट्रैक्शन नहीं मिला"
+
+msgctxt "sessions.extractions"
+msgid "guideBody"
+msgstr "संरचित एक्सट्रैक्शन आपके द्वारा परिभाषित JSON स्कीमा के आधार पर बातचीत से स्वरूपित डेटा निकालते हैं। प्रत्येक एक्सट्रैक्शन एक स्कीमा से मेल खाता है और डाउनस्ट्रीम उपयोग के लिए तैयार स्वच्छ, सत्यापित डेटा प्रदान करता है।"
+
+msgctxt "sessions.extractions"
+msgid "guideTitle"
+msgstr "संरचित एक्सट्रैक्शन"
+
+msgctxt "sessions.extractions"
+msgid "loadFailed"
+msgstr "एक्सट्रैक्शन लोड करने में विफल"
+
+msgctxt "sessions.extractions"
+msgid "schemaLabel"
+msgstr "स्कीमा"
+
+msgctxt "sessions.extractions"
+msgid "schemaNone"
+msgstr "कोई नहीं"
+
+msgctxt "sessions.facts"
+msgid "emptyDescription"
+msgstr "सत्र प्रोसेस होने के बाद तथ्य यहाँ दिखाई देंगे।"
+
+msgctxt "sessions.facts"
+msgid "emptyTitle"
+msgstr "अभी कोई तथ्य एक्सट्रैक्ट नहीं हुआ"
+
+msgctxt "sessions.facts"
+msgid "guideBody"
+msgstr "तथ्य बातचीत के संदेशों से निकाली गई जानकारी के अलग-अलग टुकड़े हैं — इकाइयों के बारे में कथन, विशेषताएँ और संबंध। प्रत्येक तथ्य सत्यापित होकर नॉलेज ग्राफ़ में संग्रहीत होता है।"
+
+msgctxt "sessions.facts"
+msgid "guideTitle"
+msgstr "निकाले गए तथ्य"
+
+msgctxt "sessions.facts"
+msgid "loadFailed"
+msgstr "तथ्य लोड करने में विफल"
+
+msgctxt "sessions.facts"
+msgid "loadMore"
+msgstr "और लोड करें"
+
+msgctxt "sessions.facts"
+msgid "loadMoreFailed"
+msgstr "अधिक तथ्य लोड करने में विफल"
+
+msgctxt "sessions.facts.table"
+msgid "confidence"
+msgstr "विश्वास"
+
+msgctxt "sessions.facts.table"
+msgid "content"
+msgstr "सामग्री"
+
+msgctxt "sessions.facts.table"
+msgid "extracted"
+msgstr "एक्सट्रैक्ट किया गया"
+
+msgctxt "sessions.facts.table"
+msgid "triple"
+msgstr "ट्रिपल"
+
+msgctxt "sessions.list"
+msgid "create"
+msgstr "बनाएं"
+
+msgctxt "sessions.list"
+msgid "createdToast"
+msgstr "सत्र \"{id}\" बन गया"
+
+msgctxt "sessions.list"
+msgid "createSession"
+msgstr "सत्र बनाएं"
+
+msgctxt "sessions.list"
+msgid "delete"
+msgstr "हटाएं"
+
+msgctxt "sessions.list"
+msgid "deleteConfirm"
+msgstr "क्या आप वाकई सत्र \"{id}\" हटाना चाहते हैं? सभी संबद्ध संदेश, तथ्य और निकाला गया डेटा स्थायी रूप से हटा दिया जाएगा।"
+
+msgctxt "sessions.list"
+msgid "deletedToast"
+msgstr "सत्र \"{id}\" हटा दिया गया"
+
+msgctxt "sessions.list"
+msgid "deleteFailed"
+msgstr "सत्र हटाने में विफल"
+
+msgctxt "sessions.list"
+msgid "deleteSession"
+msgstr "सत्र हटाएं"
+
+msgctxt "sessions.list"
+msgid "emptyDescription"
+msgstr "मेमोरी और ज्ञान एक्सट्रैक्ट करना शुरू करने के लिए एक सत्र बनाएं।"
+
+msgctxt "sessions.list"
+msgid "emptyTitle"
+msgstr "अभी कोई सत्र नहीं"
+
+msgctxt "sessions.list"
+msgid "externalIdHint"
+msgstr "प्रोजेक्ट के भीतर इस सत्र के लिए एक अद्वितीय पहचानकर्ता।"
+
+msgctxt "sessions.list"
+msgid "externalIdLabel"
+msgstr "बाहरी ID"
+
+msgctxt "sessions.list"
+msgid "externalIdPlaceholder"
+msgstr "जैसे, conversation-123"
+
+msgctxt "sessions.list"
+msgid "externalIdRequired"
+msgstr "बाहरी ID आवश्यक है"
+
+msgctxt "sessions.list"
+msgid "guideBody"
+msgstr "सत्र उपयोगकर्ताओं और AI एजेंटों के बीच बातचीत के थ्रेड हैं। प्रत्येक सत्र पूरी बातचीत, निकाले गए तथ्य, वर्गीकरण और संरचित डेटा कैप्चर करता है — आपके एप्लिकेशन के लिए स्थायी मेमोरी का निर्माण करता है।"
+
+msgctxt "sessions.list"
+msgid "guideTitle"
+msgstr "सत्र प्रबंधन"
+
+msgctxt "sessions.list"
+msgid "loadError"
+msgstr "सत्र लोड करने में नेटवर्क त्रुटि"
+
+msgctxt "sessions.list"
+msgid "loadingProject"
+msgstr "प्रोजेक्ट लोड हो रहा है..."
+
+msgctxt "sessions.list"
+msgid "loadMore"
+msgstr "और लोड करें"
+
+msgctxt "sessions.list"
+msgid "networkError"
+msgstr "नेटवर्क त्रुटि। कृपया फिर से प्रयास करें।"
+
+msgctxt "sessions.list"
+msgid "projectNotFound"
+msgstr "प्रोजेक्ट नहीं मिला"
+
+msgctxt "sessions.list.status"
+msgid "active"
+msgstr "सक्रिय"
+
+msgctxt "sessions.list.status"
+msgid "closed"
+msgstr "बंद"
+
+msgctxt "sessions.list"
+msgid "subtitle"
+msgstr "निकाली गई मेमोरी के साथ बातचीत सत्र · {name}"
+
+msgctxt "sessions.list"
+msgid "subtitleGeneric"
+msgstr "निकाली गई मेमोरी के साथ बातचीत सत्र"
+
+msgctxt "sessions.list.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "sessions.list.table"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "sessions.list.table"
+msgid "externalId"
+msgstr "बाहरी ID"
+
+msgctxt "sessions.list.table"
+msgid "facts"
+msgstr "तथ्य"
+
+msgctxt "sessions.list.table"
+msgid "messages"
+msgstr "संदेश"
+
+msgctxt "sessions.list.table"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "sessions.list"
+msgid "title"
+msgstr "सत्र"
+
+msgctxt "sessions.list"
+msgid "viewSession"
+msgstr "सत्र देखें"
+
+msgctxt "sessions.messages"
+msgid "allLoaded"
+msgstr "सभी संदेश लोड हो गए"
+
+msgctxt "sessions.messages"
+msgid "emptyDescription"
+msgstr "बातचीत शुरू होते ही संदेश दिखाई देंगे।"
+
+msgctxt "sessions.messages"
+msgid "emptyTitle"
+msgstr "इस सत्र में अभी कोई संदेश नहीं"
+
+msgctxt "sessions.messages"
+msgid "guideBody"
+msgstr "इस सत्र के सभी संदेश कालानुक्रमिक क्रम में देखें। संदेश वह कच्चा इनपुट हैं जिसे एनरिचमेंट पाइपलाइन इकाइयाँ, तथ्य, वर्गीकरण और संरचित डेटा निकालने के लिए प्रोसेस करती है।"
+
+msgctxt "sessions.messages"
+msgid "guideTitle"
+msgstr "बातचीत के संदेश"
+
+msgctxt "sessions.messages"
+msgid "latest"
+msgstr "नवीनतम"
+
+msgctxt "sessions.messages"
+msgid "loadFailed"
+msgstr "संदेश लोड करने में विफल"
+
+msgctxt "sessions.messages"
+msgid "loading"
+msgstr "लोड हो रहा है..."
+
+msgctxt "sessions.messages"
+msgid "loadingMessages"
+msgstr "संदेश लोड हो रहे हैं..."
+
+msgctxt "sessions.messages"
+msgid "loadOlder"
+msgstr "पुराने संदेश लोड करें"
+
+msgctxt "sessions.messages"
+msgid "noProjectDescription"
+msgstr "संदेश देखने के लिए प्रोजेक्ट चुनें।"
+
+msgctxt "sessions.messages"
+msgid "noProjectTitle"
+msgstr "कोई प्रोजेक्ट चयनित नहीं"
+
+msgctxt "sessions.messages"
+msgid "scrollToBottom"
+msgstr "नीचे तक स्क्रॉल करें"
+
+msgctxt "sessions.messages"
+msgid "sessionLabel"
+msgstr "सत्र:"
+
+msgctxt "sessions.messages"
+msgid "subtitle"
+msgstr "इस सत्र के बातचीत संदेश"
+
+msgctxt "sessions.messages"
+msgid "title"
+msgstr "संदेश"
+
+msgctxt "sessions.messages"
+msgid "tokens"
+msgstr "टोकन"
+
+msgctxt "sessions.observations"
+msgid "emptyDescription"
+msgstr "अवलोकन पर्याप्त संदेश प्रोसेस होने के बाद तैयार किए जाते हैं। बैकग्राउंड विश्लेषण पूरा होते ही वे यहाँ दिखाई देंगे।"
+
+msgctxt "sessions.observations"
+msgid "emptyTitle"
+msgstr "अभी कोई अवलोकन उपलब्ध नहीं"
+
+msgctxt "sessions.observations"
+msgid "guideBody"
+msgstr "अवलोकन सत्रों में इकाई व्यवहार का विश्लेषण करने से प्राप्त अंतर्दृष्टि हैं — सह-घटना पैटर्न, अस्थायी अनुक्रम और व्यवहारिक रुझान। वे बताते हैं कि इकाइयाँ समय के साथ कैसे परस्पर क्रिया करती हैं।"
+
+msgctxt "sessions.observations"
+msgid "guideTitle"
+msgstr "अवलोकन"
+
+msgctxt "sessions.observations"
+msgid "loadFailed"
+msgstr "अवलोकन लोड करने में विफल"
+
+msgctxt "sessions.observations.type"
+msgid "behavioralPattern"
+msgstr "व्यवहारिक पैटर्न"
+
+msgctxt "sessions.observations.type"
+msgid "coOccurrence"
+msgstr "सह-घटना"
+
+msgctxt "sessions.observations.type"
+msgid "temporalPattern"
+msgstr "अस्थायी पैटर्न"
+
+msgctxt "settings.account"
+msgid "connectionError"
+msgstr "कनेक्शन त्रुटि। कृपया फिर से प्रयास करें।"
+
+msgctxt "settings.account"
+msgid "currentPasswordLabel"
+msgstr "वर्तमान पासवर्ड"
+
+msgctxt "settings.account"
+msgid "currentPasswordPlaceholder"
+msgstr "वर्तमान पासवर्ड दर्ज करें"
+
+msgctxt "settings.account"
+msgid "currentPasswordRequired"
+msgstr "वर्तमान पासवर्ड आवश्यक है"
+
+msgctxt "settings.account"
+msgid "emailLabel"
+msgstr "ईमेल"
+
+msgctxt "settings.account"
+msgid "emailPlaceholder"
+msgstr "your@email.com"
+
+msgctxt "settings.account"
+msgid "guideBody"
+msgstr "अपनी व्यक्तिगत खाता सेटिंग्स प्रबंधित करें — प्रोफ़ाइल नाम और ईमेल अपडेट करें, पासवर्ड बदलें, और बेहतर सुरक्षा के लिए मल्टी-फैक्टर प्रमाणीकरण कॉन्फ़िगर करें।"
+
+msgctxt "settings.account"
+msgid "guideTitle"
+msgstr "खाता सेटिंग्स"
+
+msgctxt "settings.account"
+msgid "mfaCodeLabel"
+msgstr "एमएफए कोड"
+
+msgctxt "settings.account"
+msgid "mfaCodeRequired"
+msgstr "एक मान्य 6-अंकीय एमएफए कोड आवश्यक है"
+
+msgctxt "settings.account"
+msgid "mfaDisable"
+msgstr "एमएफए अक्षम करें"
+
+msgctxt "settings.account"
+msgid "mfaDisableDesc"
+msgstr "अक्षम करने के लिए अपना पासवर्ड और अपने ईमेल से प्राप्त एमएफए कोड दर्ज करें।"
+
+msgctxt "settings.account"
+msgid "mfaDisabledHint"
+msgstr "अपने खाते में सुरक्षा की एक अतिरिक्त परत जोड़ें"
+
+msgctxt "settings.account"
+msgid "mfaDisabledToast"
+msgstr "एमएफए अक्षम कर दिया गया है"
+
+msgctxt "settings.account"
+msgid "mfaDisableFailed"
+msgstr "एमएफए अक्षम करने में विफल"
+
+msgctxt "settings.account"
+msgid "mfaEnable"
+msgstr "एमएफए सक्षम करें"
+
+msgctxt "settings.account"
+msgid "mfaEnabled"
+msgstr "सक्षम"
+
+msgctxt "settings.account"
+msgid "mfaEnableDesc"
+msgstr "ईमेल-आधारित एमएफए सक्षम करने के लिए अपना पासवर्ड दर्ज करें।"
+
+msgctxt "settings.account"
+msgid "mfaEnabledHint"
+msgstr "आपका खाता ईमेल-आधारित एमएफए से सुरक्षित है"
+
+msgctxt "settings.account"
+msgid "mfaEnabledToast"
+msgstr "एमएफए सक्षम कर दिया गया है"
+
+msgctxt "settings.account"
+msgid "mfaEnableFailed"
+msgstr "एमएफए सक्षम करने में विफल"
+
+msgctxt "settings.account"
+msgid "mfaTitle"
+msgstr "मल्टी-फैक्टर प्रमाणीकरण"
+
+msgctxt "settings.account"
+msgid "nameLabel"
+msgstr "नाम"
+
+msgctxt "settings.account"
+msgid "namePlaceholder"
+msgstr "आपका नाम"
+
+msgctxt "settings.account"
+msgid "newPasswordLabel"
+msgstr "नया पासवर्ड"
+
+msgctxt "settings.account"
+msgid "newPasswordPlaceholder"
+msgstr "नया पासवर्ड दर्ज करें (न्यूनतम 8 अक्षर)"
+
+msgctxt "settings.account"
+msgid "newPasswordRequired"
+msgstr "नया पासवर्ड आवश्यक है"
+
+msgctxt "settings.account"
+msgid "newPasswordTooShort"
+msgstr "नया पासवर्ड कम से कम 8 अक्षरों का होना चाहिए"
+
+msgctxt "settings.account"
+msgid "passwordDescription"
+msgstr "अपना खाता पासवर्ड अपडेट करें"
+
+msgctxt "settings.account"
+msgid "passwordMeetsMin"
+msgstr "पासवर्ड न्यूनतम लंबाई की आवश्यकता पूरी करता है"
+
+msgctxt "settings.account"
+msgid "passwordTitle"
+msgstr "पासवर्ड बदलें"
+
+msgctxt "settings.account"
+msgid "passwordTooShort"
+msgstr "पासवर्ड कम से कम 8 अक्षरों का होना चाहिए ({count}/8)"
+
+msgctxt "settings.account"
+msgid "passwordUpdatedToast"
+msgstr "पासवर्ड सफलतापूर्वक अपडेट हुआ"
+
+msgctxt "settings.account"
+msgid "passwordUpdateFailed"
+msgstr "पासवर्ड अपडेट करने में विफल"
+
+msgctxt "settings.account"
+msgid "profileDescription"
+msgstr "आपकी व्यक्तिगत जानकारी"
+
+msgctxt "settings.account"
+msgid "profileTitle"
+msgstr "प्रोफ़ाइल"
+
+msgctxt "settings.account"
+msgid "profileUpdatedToast"
+msgstr "प्रोफ़ाइल सफलतापूर्वक अपडेट हुई"
+
+msgctxt "settings.account"
+msgid "profileUpdateFailed"
+msgstr "प्रोफ़ाइल अपडेट करने में विफल"
+
+msgctxt "settings.account"
+msgid "roleHint"
+msgstr "भूमिका आपके संगठन एडमिन द्वारा निर्धारित की जाती है।"
+
+msgctxt "settings.account"
+msgid "roleLabel"
+msgstr "भूमिका"
+
+msgctxt "settings.account"
+msgid "saveChanges"
+msgstr "बदलाव सहेजें"
+
+msgctxt "settings.account"
+msgid "saving"
+msgstr "सहेजा जा रहा है..."
+
+msgctxt "settings.account"
+msgid "subtitle"
+msgstr "अपनी प्रोफ़ाइल और संगठन प्रबंधित करें"
+
+msgctxt "settings.account"
+msgid "title"
+msgstr "सेटिंग्स"
+
+msgctxt "settings.account"
+msgid "updatePassword"
+msgstr "पासवर्ड अपडेट करें"
+
+msgctxt "settings.account"
+msgid "updating"
+msgstr "अपडेट हो रहा है..."
+
+msgctxt "settings.classifications"
+msgid "close"
+msgstr "बंद करें"
+
+msgctxt "settings.classifications"
+msgid "description"
+msgstr "बातचीत वर्गीकरण स्कीमा और परिणाम"
+
+msgctxt "settings.classifications"
+msgid "emptyDescription"
+msgstr "वर्गीकरण स्कीमा कॉन्फ़िगर करें ताकि वे यहाँ दिखाई दें"
+
+msgctxt "settings.classifications"
+msgid "emptyTitle"
+msgstr "कोई वर्गीकरण स्कीमा नहीं मिली"
+
+msgctxt "settings.classifications"
+msgid "loadFailed"
+msgstr "वर्गीकरण स्कीमा लोड करने में विफल"
+
+msgctxt "settings.classifications.status"
+msgid "active"
+msgstr "सक्रिय"
+
+msgctxt "settings.classifications.status"
+msgid "inactive"
+msgstr "निष्क्रिय"
+
+msgctxt "settings.classifications.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "settings.classifications.table"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "settings.classifications.table"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "settings.classifications.table"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "settings.classifications.table"
+msgid "template"
+msgstr "टेम्प्लेट"
+
+msgctxt "settings.classifications"
+msgid "title"
+msgstr "वर्गीकरण"
+
+msgctxt "settings.classifications.view"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "settings.classifications.view"
+msgid "id"
+msgstr "ID"
+
+msgctxt "settings.classifications.view"
+msgid "jsonSchema"
+msgstr "JSON स्कीमा"
+
+msgctxt "settings.classifications.view"
+msgid "promptTemplate"
+msgstr "प्रॉम्प्ट टेम्प्लेट"
+
+msgctxt "settings.classifications.view"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "settings.classifications.view"
+msgid "type"
+msgstr "प्रकार"
+
+msgctxt "settings.classifications"
+msgid "viewSchema"
+msgstr "स्कीमा देखें"
+
+msgctxt "settings.classifications"
+msgid "yes"
+msgstr "हाँ"
+
+msgctxt "settings.extractionInstructions"
+msgid "add"
+msgstr "जोड़ें"
+
+msgctxt "settings.extractionInstructions"
+msgid "addInstruction"
+msgstr "निर्देश जोड़ें"
+
+msgctxt "settings.extractionInstructions"
+msgid "cancel"
+msgstr "रद्द करें"
+
+msgctxt "settings.extractionInstructions"
+msgid "createdToast"
+msgstr "निर्देश बन गया"
+
+msgctxt "settings.extractionInstructions"
+msgid "delete"
+msgstr "हटाएं"
+
+msgctxt "settings.extractionInstructions"
+msgid "deleteConfirm"
+msgstr "क्या आप वाकई \"{name}\" हटाना चाहते हैं?"
+
+msgctxt "settings.extractionInstructions"
+msgid "deletedToast"
+msgstr "निर्देश हटा दिया गया"
+
+msgctxt "settings.extractionInstructions"
+msgid "deleteFailed"
+msgstr "निर्देश हटाने में विफल"
+
+msgctxt "settings.extractionInstructions"
+msgid "deleteInstruction"
+msgstr "निर्देश हटाएं"
+
+msgctxt "settings.extractionInstructions"
+msgid "deleteTitle"
+msgstr "निर्देश हटाएं"
+
+msgctxt "settings.extractionInstructions"
+msgid "description"
+msgstr "एक्सट्रैक्शन व्यवहार के लिए कस्टम निर्देश"
+
+msgctxt "settings.extractionInstructions"
+msgid "editInstruction"
+msgstr "निर्देश संपादित करें"
+
+msgctxt "settings.extractionInstructions"
+msgid "emptyDescription"
+msgstr "एक्सट्रैक्शन व्यवहार का मार्गदर्शन करने के लिए कस्टम निर्देश जोड़ें"
+
+msgctxt "settings.extractionInstructions"
+msgid "emptyTitle"
+msgstr "अभी कोई निर्देश नहीं"
+
+msgctxt "settings.extractionInstructions.fields"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "settings.extractionInstructions.fields"
+msgid "namePlaceholder"
+msgstr "जैसे financial_data"
+
+msgctxt "settings.extractionInstructions.fields"
+msgid "text"
+msgstr "निर्देश पाठ"
+
+msgctxt "settings.extractionInstructions.fields"
+msgid "textPlaceholder"
+msgstr "बताएं कि क्या और कैसे एक्सट्रैक्ट करना है..."
+
+msgctxt "settings.extractionInstructions"
+msgid "guideBody"
+msgstr "कस्टम निर्देश स्ट्रिंग बनाएं जो एक्सट्रैक्शन व्यवहार का मार्गदर्शन करें। ये निर्देश एक्सट्रैक्शन प्रॉम्प्ट में डाले जाते हैं ताकि सिस्टम बातचीत से डेटा कैसे प्रोसेस और एक्सट्रैक्ट करता है, उसे अनुकूलित किया जा सके।"
+
+msgctxt "settings.extractionInstructions"
+msgid "guideTitle"
+msgstr "एक्सट्रैक्शन निर्देश"
+
+msgctxt "settings.extractionInstructions"
+msgid "loadFailed"
+msgstr "निर्देश लोड करने में विफल"
+
+msgctxt "settings.extractionInstructions"
+msgid "saveChanges"
+msgstr "बदलाव सहेजें"
+
+msgctxt "settings.extractionInstructions"
+msgid "saveFailed"
+msgstr "निर्देश सहेजने में विफल"
+
+msgctxt "settings.extractionInstructions.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "settings.extractionInstructions.table"
+msgid "instruction"
+msgstr "निर्देश"
+
+msgctxt "settings.extractionInstructions.table"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "settings.extractionInstructions"
+msgid "title"
+msgstr "एक्सट्रैक्शन निर्देश"
+
+msgctxt "settings.extractionInstructions"
+msgid "updatedToast"
+msgstr "निर्देश अपडेट हुआ"
+
+msgctxt "settings.extractions"
+msgid "close"
+msgstr "बंद करें"
+
+msgctxt "settings.extractions"
+msgid "description"
+msgstr "संरचित एक्सट्रैक्शन स्कीमा और परिणाम"
+
+msgctxt "settings.extractions"
+msgid "emptyDescription"
+msgstr "एक्सट्रैक्शन स्कीमा कॉन्फ़िगर करें ताकि वे यहाँ दिखाई दें"
+
+msgctxt "settings.extractions"
+msgid "emptyTitle"
+msgstr "कोई एक्सट्रैक्शन स्कीमा नहीं मिली"
+
+msgctxt "settings.extractions"
+msgid "loadFailed"
+msgstr "एक्सट्रैक्शन स्कीमा लोड करने में विफल"
+
+msgctxt "settings.extractions.status"
+msgid "active"
+msgstr "सक्रिय"
+
+msgctxt "settings.extractions.status"
+msgid "inactive"
+msgstr "निष्क्रिय"
+
+msgctxt "settings.extractions.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "settings.extractions.table"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "settings.extractions.table"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "settings.extractions.table"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "settings.extractions.table"
+msgid "template"
+msgstr "टेम्प्लेट"
+
+msgctxt "settings.extractions"
+msgid "title"
+msgstr "एक्सट्रैक्शन"
+
+msgctxt "settings.extractions.view"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "settings.extractions.view"
+msgid "id"
+msgstr "ID"
+
+msgctxt "settings.extractions.view"
+msgid "jsonSchema"
+msgstr "JSON स्कीमा"
+
+msgctxt "settings.extractions.view"
+msgid "promptTemplate"
+msgstr "प्रॉम्प्ट टेम्प्लेट"
+
+msgctxt "settings.extractions.view"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "settings.extractions.view"
+msgid "type"
+msgstr "प्रकार"
+
+msgctxt "settings.extractions"
+msgid "viewSchema"
+msgstr "स्कीमा देखें"
+
+msgctxt "settings.extractions"
+msgid "yes"
+msgstr "हाँ"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "description"
+msgstr "कैशिंग और ऑडिट व्यवहार"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "disabled"
+msgstr "अक्षम"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "enabled"
+msgstr "सक्षम"
+
+msgctxt "settings.orgConfig.behaviour.fields"
+msgid "auditLogHint"
+msgstr "ऑडिट लॉग में रिस्पॉन्स बॉडी की सामग्री शामिल करें"
+
+msgctxt "settings.orgConfig.behaviour.fields"
+msgid "auditLogResponseBody"
+msgstr "ऑडिट लॉग रिस्पॉन्स बॉडी"
+
+msgctxt "settings.orgConfig.behaviour.fields"
+msgid "cacheTtl"
+msgstr "संदर्भ कैश TTL (सेकंड)"
+
+msgctxt "settings.orgConfig.behaviour.fields"
+msgid "cacheTtlHint"
+msgstr "संदर्भ डेटा पुनः प्राप्त करने से पहले Redis में कितनी देर कैश रहता है (0 = कोई कैशिंग नहीं)"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "loadFailed"
+msgstr "कॉन्फ़िगरेशन लोड करने में विफल"
+
+msgctxt "settings.orgConfig.behaviour.reset"
+msgid "auditLogging"
+msgstr "ऑडिट लॉगिंग को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.behaviour.reset"
+msgid "cacheTtl"
+msgstr "कैश TTL को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "savedToast"
+msgstr "व्यवहार कॉन्फ़िगरेशन सफलतापूर्वक सहेजा गया"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "saveFailed"
+msgstr "कॉन्फ़िगरेशन सहेजने में विफल"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "title"
+msgstr "व्यवहार सेटिंग्स"
+
+msgctxt "settings.orgConfig.behaviour"
+msgid "willResetOnSave"
+msgstr "सहेजने पर डिफ़ॉल्ट पर रीसेट हो जाएगा"
+
+msgctxt "settings.orgConfig.blobStorage"
+msgid "description"
+msgstr "फ़ाइल अटैचमेंट और छवि एक्सट्रैक्शन के लिए S3-संगत स्टोरेज"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "accessKeyId"
+msgstr "S3 एक्सेस कुंजी ID"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "backend"
+msgstr "स्टोरेज बैकएंड"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "backendHint"
+msgstr "फ़ाइल अटैचमेंट संग्रहीत करने के लिए उपयोग किया जाने वाला बैकएंड। \"none\" फ़ाइल अपलोड अक्षम कर देता है।"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "bucketName"
+msgstr "बकेट का नाम"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "bucketNameHint"
+msgstr "S3 बकेट जहाँ ब्लॉब संग्रहीत होते हैं।"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "endpointUrl"
+msgstr "S3 एंडपॉइंट URL"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "endpointUrlHint"
+msgstr "अपने S3-संगत ऑब्जेक्ट स्टोर के लिए एंडपॉइंट URL (जैसे MinIO, AWS S3, GCS)।"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "endpointUrlPlaceholder"
+msgstr "http://minio:9000"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "imageExtraction"
+msgstr "छवि पाठ एक्सट्रैक्शन"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "imageExtractionDetail"
+msgstr "<strong>{ocr}</strong> स्थानीय रूप से Tesseract का उपयोग करता है (मुफ़्त)। <strong>{vision}</strong> जटिल छवियों पर अधिक सटीकता के लिए आपके कॉन्फ़िगर किए गए LLM प्रोवाइडर का उपयोग करता है। वर्कर पर Tesseract स्थापित होना आवश्यक है।"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "imageExtractionHint"
+msgstr "OCR या विज़न LLM का उपयोग करके छवियों से पाठ निकालें"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "maxBlobSize"
+msgstr "अधिकतम ब्लॉब आकार (MB)"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "maxBlobSizeHint"
+msgstr "प्रति अपलोड अनुमत अधिकतम फ़ाइल आकार (1–500 MB)।"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "region"
+msgstr "S3 क्षेत्र"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "regionHint"
+msgstr "AWS क्षेत्र (MinIO के लिए \"auto\" उपयोग करें)।"
+
+msgctxt "settings.orgConfig.blobStorage.fields"
+msgid "secretAccessKey"
+msgstr "S3 सीक्रेट एक्सेस कुंजी"
+
+msgctxt "settings.orgConfig.blobStorage"
+msgid "loadFailed"
+msgstr "कॉन्फ़िगरेशन लोड करने में विफल"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "disabled"
+msgstr "अक्षम"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "extractionNone"
+msgstr "अक्षम (केवल संग्रहीत करें)"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "extractionOcr"
+msgstr "OCR (Tesseract)"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "extractionOcrShort"
+msgstr "OCR"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "extractionVision"
+msgstr "विज़न API (LLM)"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "extractionVisionShort"
+msgstr "विज़न API"
+
+msgctxt "settings.orgConfig.blobStorage.options"
+msgid "s3"
+msgstr "S3-संगत"
+
+msgctxt "settings.orgConfig.blobStorage.reset"
+msgid "backend"
+msgstr "स्टोरेज बैकएंड को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.blobStorage.reset"
+msgid "bucketName"
+msgstr "S3 बकेट का नाम डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.blobStorage.reset"
+msgid "endpointUrl"
+msgstr "S3 एंडपॉइंट URL को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.blobStorage.reset"
+msgid "imageExtraction"
+msgstr "छवि एक्सट्रैक्शन को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.blobStorage.reset"
+msgid "maxBlobSize"
+msgstr "अधिकतम ब्लॉब आकार को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.blobStorage.reset"
+msgid "region"
+msgstr "S3 क्षेत्र को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.blobStorage"
+msgid "resetQueued"
+msgstr "रीसेट कतार में — सहेजने पर लागू होगा"
+
+msgctxt "settings.orgConfig.blobStorage"
+msgid "savedToast"
+msgstr "ब्लॉब स्टोरेज कॉन्फ़िगरेशन सफलतापूर्वक सहेजा गया"
+
+msgctxt "settings.orgConfig.blobStorage"
+msgid "saveFailed"
+msgstr "कॉन्फ़िगरेशन सहेजने में विफल"
+
+msgctxt "settings.orgConfig.blobStorage"
+msgid "title"
+msgstr "ब्लॉब स्टोरेज सेटिंग्स"
+
+msgctxt "settings.orgConfig"
+msgid "discardConfirm"
+msgstr "आपके पास असहेज किए गए बदलाव हैं। उन्हें छोड़कर बाहर जाएं?"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "apiKey"
+msgstr "एपीआई कुंजी"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "apiKeyPlaceholder"
+msgstr "एम्बेडिंग प्रोवाइडर एपीआई कुंजी"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "backendProvider"
+msgstr "बैकएंड प्रोवाइडर"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "dimensions"
+msgstr "एम्बेडिंग आयाम"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "model"
+msgstr "मॉडल"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "modelPlaceholder"
+msgstr "text-embedding-3-small, ..."
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "providerName"
+msgstr "प्रोवाइडर का नाम"
+
+msgctxt "settings.orgConfig.embeddings.fields"
+msgid "providerNamePlaceholder"
+msgstr "openai, azure, ..."
+
+msgctxt "settings.orgConfig.embeddings"
+msgid "loadFailed"
+msgstr "कॉन्फ़िगरेशन लोड करने में विफल"
+
+msgctxt "settings.orgConfig.embeddings"
+msgid "providerDescription"
+msgstr "वेक्टर एम्बेडिंग मॉडल कॉन्फ़िगरेशन"
+
+msgctxt "settings.orgConfig.embeddings"
+msgid "providerTitle"
+msgstr "एम्बेडिंग प्रोवाइडर"
+
+msgctxt "settings.orgConfig.embeddings.reset"
+msgid "apiKey"
+msgstr "एपीआई कुंजी को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.embeddings.reset"
+msgid "backend"
+msgstr "एम्बेडिंग बैकएंड को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.embeddings.reset"
+msgid "dimensions"
+msgstr "एम्बेडिंग आयामों को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.embeddings.reset"
+msgid "model"
+msgstr "एम्बेडिंग मॉडल को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.embeddings.reset"
+msgid "provider"
+msgstr "प्रोवाइडर को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.embeddings"
+msgid "savedToast"
+msgstr "एम्बेडिंग कॉन्फ़िगरेशन सफलतापूर्वक सहेजा गया"
+
+msgctxt "settings.orgConfig.embeddings"
+msgid "saveFailed"
+msgstr "कॉन्फ़िगरेशन सहेजने में विफल"
+
+msgctxt "settings.orgConfig.embeddings"
+msgid "willResetOnSave"
+msgstr "सहेजने पर रीसेट हो जाएगा"
+
+msgctxt "settings.orgConfig.graph"
+msgid "description"
+msgstr "नॉलेज ग्राफ़ खोज और ट्रैवर्सल"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "falkordbUrl"
+msgstr "FalkorDB URL"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "falkordbUrlHint"
+msgstr "FalkorDB बैकएंड का उपयोग करते समय और कोई सिस्टम-स्तरीय कॉन्फ़िगरेशन न होने पर आवश्यक"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "falkordbUrlPlaceholder"
+msgstr "redis://falkordb:6379"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "graphBackend"
+msgstr "ग्राफ बैकएंड"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "maxTraversalDepth"
+msgstr "अधिकतम ट्रैवर्सल गहराई"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "maxTraversalDepthHint"
+msgstr "ग्राफ ट्रैवर्सल कितने हॉप तक जाएगा (1–10)"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "searchType"
+msgstr "खोज प्रकार"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbDatabase"
+msgstr "SurrealDB डेटाबेस"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbDatabasePlaceholder"
+msgstr "SurrealDB डेटाबेस"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbNamespace"
+msgstr "SurrealDB नेमस्पेस"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbNamespacePlaceholder"
+msgstr "SurrealDB नेमस्पेस"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbPassword"
+msgstr "SurrealDB पासवर्ड"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbPasswordPlaceholder"
+msgstr "SurrealDB पासवर्ड"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbUrl"
+msgstr "SurrealDB URL"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbUrlHint"
+msgstr "SurrealDB बैकएंड का उपयोग करते समय आवश्यक"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbUrlPlaceholder"
+msgstr "ws://surrealdb:8000/rpc"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbUsername"
+msgstr "SurrealDB उपयोगकर्ता नाम"
+
+msgctxt "settings.orgConfig.graph.fields"
+msgid "surrealdbUsernamePlaceholder"
+msgstr "SurrealDB उपयोगकर्ता नाम"
+
+msgctxt "settings.orgConfig.graph"
+msgid "graphBackendNone"
+msgstr "कोई ग्राफ बैकएंड नहीं"
+
+msgctxt "settings.orgConfig.graph"
+msgid "loadFailed"
+msgstr "कॉन्फ़िगरेशन लोड करने में विफल"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "backend"
+msgstr "ग्राफ बैकएंड को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "falkordbUrl"
+msgstr "FalkorDB URL को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "maxTraversalDepth"
+msgstr "अधिकतम ट्रैवर्सल गहराई को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "searchType"
+msgstr "खोज प्रकार को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "surrealdbDatabase"
+msgstr "SurrealDB डेटाबेस को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "surrealdbNamespace"
+msgstr "SurrealDB नेमस्पेस को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "surrealdbPassword"
+msgstr "SurrealDB पासवर्ड को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "surrealdbUrl"
+msgstr "SurrealDB URL को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.graph.reset"
+msgid "surrealdbUsername"
+msgstr "SurrealDB उपयोगकर्ता नाम को डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.orgConfig.graph"
+msgid "resetFieldTitle"
+msgstr "संग्रहीत मान हटाएं — सहेजने पर डिफ़ॉल्ट लागू होगा"
+
+msgctxt "settings.orgConfig.graph"
+msgid "savedToast"
+msgstr "ग्राफ़ कॉन्फ़िगरेशन सफलतापूर्वक सहेजा गया"
+
+msgctxt "settings.orgConfig.graph"
+msgid "saveFailed"
+msgstr "कॉन्फ़िगरेशन सहेजने में विफल"
+
+msgctxt "settings.orgConfig.graph"
+msgid "systemManagedHint"
+msgstr "सिस्टम स्तर पर कॉन्फ़िगर किया गया। कनेक्शन विवरण आपके एडमिन द्वारा प्रबंधित किए जाते हैं।"
+
+msgctxt "settings.orgConfig.graph"
+msgid "title"
+msgstr "ग्राफ़ सेटिंग्स"
+
+msgctxt "settings.orgConfig.graph"
+msgid "willResetOnSave"
+msgstr "सहेजने पर रीसेट हो जाएगा"
+
+msgctxt "settings.orgConfig"
+msgid "guideBody"
+msgstr "अपने संगठन का LLM बैकएंड, एम्बेडिंग मॉडल, ग्राफ़ डेटाबेस, व्यवहार सेटिंग्स और ब्लॉब स्टोरेज कॉन्फ़िगर करें। ये सेटिंग्स नियंत्रित करती हैं कि सिस्टम सभी प्रोजेक्ट में डेटा कैसे प्रोसेस, एनरिच और संग्रहीत करता है।"
+
+msgctxt "settings.orgConfig"
+msgid "guideTitle"
+msgstr "संगठन कॉन्फ़िगरेशन"
+
+msgctxt "settings.orgConfig.llm"
+msgid "backendDescription"
+msgstr "प्राथमिक भाषा मॉडल प्रोवाइडर"
+
+msgctxt "settings.orgConfig.llm"
+msgid "backendTitle"
+msgstr "LLM बैकएंड"
+
+msgctxt "settings.orgConfig.llm.fieldLabels"
+msgid "anthropicApiKey"
+msgstr "Anthropic एपीआई कुंजी"
+
+msgctxt "settings.orgConfig.llm.fieldLabels"
+msgid "azureApiKey"
+msgstr "एपीआई कुंजी"
+
+msgctxt "settings.orgConfig.llm.fieldLabels"
+msgid "baseUrl"
+msgstr "बेस URL"
+
+msgctxt "settings.orgConfig.llm.fieldLabels"
+msgid "endpointUrl"
+msgstr "एंडपॉइंट URL"
+
+msgctxt "settings.orgConfig.llm.fieldLabels"
+msgid "openaiApiKey"
+msgstr "OpenAI एपीआई कुंजी"
+
+msgctxt "settings.orgConfig.llm.fieldLabels"
+msgid "openrouterApiKey"
+msgstr "OpenRouter एपीआई कुंजी"
+
+msgctxt "settings.orgConfig.llm.fields"
+msgid "backendProvider"
+msgstr "बैकएंड प्रोवाइडर"
+
+msgctxt "settings.orgConfig.llm.fields"
+msgid "maxTokens"
+msgstr "अधिकतम टोकन"
+
+msgctxt "settings.orgConfig.llm.fields"
+msgid "model"
+msgstr "मॉडल"
+
+msgctxt "settings.orgConfig.llm.fields"
+msgid "modelPlaceholder"
+msgstr "gpt-4o, claude-sonnet-4, ..."
+
+msgctxt "settings.orgConfig.llm.fields"
+msgid "temperature"
+msgstr "टेम्परेचर"
+
+msgctxt "settings.orgConfig.llm"
+msgid "loadFailed"
+msgstr "कॉन्फ़िगरेशन लोड करने में विफल"
+
+msgctxt "settings.orgConfig.llm.providerDescriptions"
+msgid "anthropic"
+msgstr "Anthropic मॉडल के लिए एपीआई कुंजी"
+
+msgctxt "settings.orgConfig.llm.providerDescriptions"
+msgid "azure"
+msgstr "Azure OpenAI एंडपॉइंट और क्रेडेंशियल"
+
+msgctxt "settings.orgConfig.llm.providerDescriptions"
+msgid "ollama"
+msgstr "स्थानीय LLM प्रोवाइडर कॉन्फ़िगरेशन"
+
+msgctxt "settings.orgConfig.llm.providerDescriptions"
+msgid "openai"
+msgstr "OpenAI मॉडल के लिए एपीआई कुंजी"
+
+msgctxt "settings.orgConfig.llm.providerDescriptions"
+msgid "openaiLike"
+msgstr "किसी अतिरिक्त प्रोवाइडर-विशिष्ट कॉन्फ़िगरेशन की आवश्यकता नहीं"
+
+msgctxt "settings.orgConfig.llm.providerDescriptions"
+msgid "openrouter"
+msgstr "OpenRouter के लिए एपीआई कुंजी"
+
+msgctxt "settings.orgConfig.llm.providerTitles"
+msgid "anthropic"
+msgstr "Anthropic सेटिंग्स"
+
+msgctxt "settings.orgConfig.llm.providerTitles"
+msgid "azure"
+msgstr "Azure OpenAI सेटिंग्स"
+
+msgctxt "settings.orgConfig.llm.providerTitles"
+msgid "ollama"
+msgstr "Ollama सेटिंग्स"
+
+msgctxt "settings.orgConfig.llm.providerTitles"
+msgid "openai"
+msgstr "OpenAI सेटिंग्स"
+
+msgctxt "settings.orgConfig.llm.providerTitles"
+msgid "openaiLike"
+msgstr "प्रोवाइडर सेटिंग्स"
+
+msgctxt "settings.orgConfig.llm.providerTitles"
+msgid "openrouter"
+msgstr "OpenRouter सेटिंग्स"
+
+msgctxt "settings.orgConfig.llm"
+msgid "resetFieldTitle"
+msgstr "संग्रहीत मान हटाएं — सहेजने पर डिफ़ॉल्ट लागू होगा"
+
+msgctxt "settings.orgConfig.llm"
+msgid "savedToast"
+msgstr "LLM कॉन्फ़िगरेशन सफलतापूर्वक सहेजा गया"
+
+msgctxt "settings.orgConfig.llm"
+msgid "saveFailed"
+msgstr "कॉन्फ़िगरेशन सहेजने में विफल"
+
+msgctxt "settings.orgConfig.llm"
+msgid "willResetOnSave"
+msgstr "सहेजने पर रीसेट हो जाएगा"
+
+msgctxt "settings.orgConfig.organization"
+msgid "adminRequired"
+msgstr "एडमिन पहुँच आवश्यक है"
+
+msgctxt "settings.orgConfig.organization"
+msgid "codeDescription"
+msgstr "यह कोड उन लोगों के साथ साझा करें जिन्हें आप आमंत्रित करना चाहते हैं — वे साइनअप पेज (\"कोड से जुड़ें\") से आपके संगठन से जुड़ सकते हैं।"
+
+msgctxt "settings.orgConfig.organization"
+msgid "codeTitle"
+msgstr "संगठन कोड"
+
+msgctxt "settings.orgConfig.organization"
+msgid "copied"
+msgstr "कॉपी हो गया"
+
+msgctxt "settings.orgConfig.organization"
+msgid "copy"
+msgstr "कॉपी करें"
+
+msgctxt "settings.orgConfig.organization"
+msgid "copyFailed"
+msgstr "कॉपी करने में विफल — क्लिपबोर्ड उपलब्ध नहीं"
+
+msgctxt "settings.orgConfig.organization"
+msgid "joinHint"
+msgstr "बंद होने पर, साइनअप का \"कोड से जुड़ें\" फ़्लो 403 लौटाता है। रोके जाने पर भी कोड पुनः जनरेट करना काम करता है।"
+
+msgctxt "settings.orgConfig.organization"
+msgid "joinLabel"
+msgstr "नए सदस्यों को इस कोड से जुड़ने दें"
+
+msgctxt "settings.orgConfig.organization"
+msgid "joinPausedNotice"
+msgstr "जुड़ना रोका गया है — नए सदस्य अभी इस कोड से नहीं जुड़ सकते।"
+
+msgctxt "settings.orgConfig.organization"
+msgid "joinToggleFailed"
+msgstr "जुड़ने की सेटिंग अपडेट करने में विफल"
+
+msgctxt "settings.orgConfig.organization"
+msgid "loadFailed"
+msgstr "संगठन कोड लोड करने में विफल"
+
+msgctxt "settings.orgConfig.organization"
+msgid "loadingCode"
+msgstr "संगठन कोड लोड हो रहा है…"
+
+msgctxt "settings.orgConfig.organization"
+msgid "regenerate"
+msgstr "पुनः जनरेट करें"
+
+msgctxt "settings.orgConfig.organization"
+msgid "regenerateConfirm"
+msgstr "वर्तमान संगठन कोड तुरंत काम करना बंद कर देगा। पुराना कोड रखने वाले किसी भी व्यक्ति को जुड़ने के लिए नए कोड की आवश्यकता होगी। आगे बढ़ें?"
+
+msgctxt "settings.orgConfig.organization"
+msgid "regenerateFailed"
+msgstr "कोड पुनः जनरेट करने में विफल"
+
+msgctxt "settings.orgConfig.organization"
+msgid "regenerateHint"
+msgstr "पुनः जनरेट करने पर पिछला कोड अमान्य हो जाता है — मौजूदा सदस्य प्रभावित नहीं होते।"
+
+msgctxt "settings.orgConfig.organization"
+msgid "regenerateTitle"
+msgstr "संगठन कोड पुनः जनरेट करें?"
+
+msgctxt "settings.orgConfig.organization"
+msgid "registrationDescription"
+msgstr "नियंत्रित करें कि लोग इस कोड से आपके संगठन से जुड़ सकते हैं या नहीं।"
+
+msgctxt "settings.orgConfig.organization"
+msgid "registrationTitle"
+msgstr "स्व-पंजीकरण"
+
+msgctxt "settings.orgConfig"
+msgid "subtitle"
+msgstr "LLM, एम्बेडिंग, ग्राफ़ और व्यवहार के लिए सेटिंग्स प्रबंधित करें"
+
+msgctxt "settings.orgConfig.tabs"
+msgid "behaviour"
+msgstr "व्यवहार"
+
+msgctxt "settings.orgConfig.tabs"
+msgid "blobStorage"
+msgstr "ब्लॉब स्टोरेज"
+
+msgctxt "settings.orgConfig.tabs"
+msgid "embeddings"
+msgstr "एम्बेडिंग"
+
+msgctxt "settings.orgConfig.tabs"
+msgid "graph"
+msgstr "ग्राफ़"
+
+msgctxt "settings.orgConfig.tabs"
+msgid "llm"
+msgstr "LLM"
+
+msgctxt "settings.orgConfig.tabs"
+msgid "organization"
+msgstr "संगठन"
+
+msgctxt "settings.orgConfig"
+msgid "title"
+msgstr "संगठन कॉन्फ़िगरेशन"
+
+msgctxt "settings.prompts"
+msgid "active"
+msgstr "सक्रिय"
+
+msgctxt "settings.prompts"
+msgid "activeDefault"
+msgstr "सक्रिय डिफ़ॉल्ट"
+
+msgctxt "settings.prompts"
+msgid "browseSystem"
+msgstr "सिस्टम प्रॉम्प्ट ब्राउज़ करें"
+
+msgctxt "settings.prompts"
+msgid "browseSystemDescription"
+msgstr "सिस्टम-डिफ़ॉल्ट प्रॉम्प्ट टेम्प्लेट अपने संगठन में आयात करें"
+
+msgctxt "settings.prompts"
+msgid "cancel"
+msgstr "रद्द करें"
+
+msgctxt "settings.prompts"
+msgid "cannotUndo"
+msgstr "यह कार्रवाई पूर्ववत नहीं की जा सकती।"
+
+msgctxt "settings.prompts"
+msgid "close"
+msgstr "बंद करें"
+
+msgctxt "settings.prompts"
+msgid "confirm"
+msgstr "पुष्टि करें"
+
+msgctxt "settings.prompts"
+msgid "createTemplate"
+msgstr "टेम्प्लेट बनाएं"
+
+msgctxt "settings.prompts"
+msgid "createWarning"
+msgstr "गलत Jinja2 सिंटैक्स एक्सट्रैक्शन विफलताओं का कारण बन सकता है। संदर्भ के लिए मौजूदा टेम्प्लेट का उपयोग करें।"
+
+msgctxt "settings.prompts"
+msgid "creating"
+msgstr "बनाया जा रहा है..."
+
+msgctxt "settings.prompts"
+msgid "currentlyActive"
+msgstr "वर्तमान में सक्रिय"
+
+msgctxt "settings.prompts"
+msgid "customWarning"
+msgstr "कस्टम प्रॉम्प्ट सिस्टम डिफ़ॉल्ट को ओवरराइड करते हैं। गलत Jinja2 सिंटैक्स एक्सट्रैक्शन विफलताओं का कारण बन सकता है।"
+
+msgctxt "settings.prompts"
+msgid "default"
+msgstr "डिफ़ॉल्ट"
+
+msgctxt "settings.prompts"
+msgid "delete"
+msgstr "हटाएं"
+
+msgctxt "settings.prompts"
+msgid "deleteConfirmHint"
+msgstr "सभी कस्टम संस्करण हटा दिए जाएंगे। संगठन सिस्टम डिफ़ॉल्ट पर वापस आ जाएगा।"
+
+msgctxt "settings.prompts"
+msgid "deleteConfirmPrefix"
+msgstr "क्या आप वाकई हटाना चाहते हैं"
+
+msgctxt "settings.prompts"
+msgid "deleteTemplate"
+msgstr "टेम्प्लेट हटाएं"
+
+msgctxt "settings.prompts"
+msgid "deleteTitle"
+msgstr "टेम्प्लेट हटाएं"
+
+msgctxt "settings.prompts"
+msgid "deleting"
+msgstr "हटाया जा रहा है..."
+
+msgctxt "settings.prompts"
+msgid "description"
+msgstr "एक्सट्रैक्शन वर्कर के लिए Jinja2 प्रॉम्प्ट टेम्प्लेट प्रबंधित करें। संस्करण इतिहास और रोलबैक सपोर्ट के साथ प्रकार के अनुसार व्यवस्थित।"
+
+msgctxt "settings.prompts"
+msgid "editTemplate"
+msgstr "टेम्प्लेट संपादित करें"
+
+msgctxt "settings.prompts"
+msgid "emptyDescription"
+msgstr "प्रॉम्प्ट टेम्प्लेट सर्वर से लोड होते हैं"
+
+msgctxt "settings.prompts"
+msgid "emptyTitle"
+msgstr "कोई प्रॉम्प्ट टेम्प्लेट उपलब्ध नहीं"
+
+msgctxt "settings.prompts.errors"
+msgid "createFailed"
+msgstr "टेम्प्लेट बनाने में विफल"
+
+msgctxt "settings.prompts.errors"
+msgid "deleteFailed"
+msgstr "टेम्प्लेट हटाने में विफल"
+
+msgctxt "settings.prompts.errors"
+msgid "importFailed"
+msgstr "टेम्प्लेट आयात करने में विफल"
+
+msgctxt "settings.prompts.errors"
+msgid "loadFailed"
+msgstr "प्रॉम्प्ट टेम्प्लेट लोड करने में विफल"
+
+msgctxt "settings.prompts.errors"
+msgid "loadHistoryFailed"
+msgstr "संस्करण इतिहास लोड करने में विफल"
+
+msgctxt "settings.prompts.errors"
+msgid "loadSystemFailed"
+msgstr "सिस्टम प्रॉम्प्ट लोड करने में विफल"
+
+msgctxt "settings.prompts.errors"
+msgid "nameRequired"
+msgstr "टेम्प्लेट का नाम आवश्यक है"
+
+msgctxt "settings.prompts.errors"
+msgid "promoteFailed"
+msgstr "टेम्प्लेट प्रमोट करने में विफल"
+
+msgctxt "settings.prompts.errors"
+msgid "resetFailed"
+msgstr "टेम्प्लेट रीसेट करने में विफल"
+
+msgctxt "settings.prompts.errors"
+msgid "rollbackFailed"
+msgstr "टेम्प्लेट रोलबैक करने में विफल"
+
+msgctxt "settings.prompts.errors"
+msgid "saveFailed"
+msgstr "टेम्प्लेट सहेजने में विफल"
+
+msgctxt "settings.prompts.errors"
+msgid "setDefaultFailed"
+msgstr "डिफ़ॉल्ट के रूप में सेट करने में विफल"
+
+msgctxt "settings.prompts.errors"
+msgid "templateEmpty"
+msgstr "टेम्प्लेट पाठ खाली नहीं हो सकता"
+
+msgctxt "settings.prompts.errors"
+msgid "typeRequired"
+msgstr "टेम्प्लेट प्रकार आवश्यक है"
+
+msgctxt "settings.prompts.fields"
+msgid "description"
+msgstr "विवरण"
+
+msgctxt "settings.prompts.fields"
+msgid "descriptionPlaceholder"
+msgstr "बताएं कि यह टेम्प्लेट क्या करता है"
+
+msgctxt "settings.prompts.fields"
+msgid "jinjaHint"
+msgstr "Jinja2 टेम्प्लेट सिंटैक्स। डायनामिक सामग्री के लिए {{ variables }} और {% tags %} का उपयोग करें।"
+
+msgctxt "settings.prompts.fields"
+msgid "template"
+msgstr "टेम्प्लेट"
+
+msgctxt "settings.prompts.fields"
+msgid "templateName"
+msgstr "टेम्प्लेट का नाम"
+
+msgctxt "settings.prompts.fields"
+msgid "templateNameHint"
+msgstr "अद्वितीय पहचानकर्ता जो सिस्टम में टेम्प्लेट कुंजी के रूप में उपयोग होता है।"
+
+msgctxt "settings.prompts.fields"
+msgid "templateNamePlaceholder"
+msgstr "जैसे my_custom_ner_v1"
+
+msgctxt "settings.prompts.fields"
+msgid "type"
+msgstr "प्रकार"
+
+msgctxt "settings.prompts"
+msgid "globalDefaultConfirm"
+msgstr "वैश्विक डिफ़ॉल्ट के रूप में सेट करें?"
+
+msgctxt "settings.prompts"
+msgid "guideBody"
+msgstr "एक्सट्रैक्शन वर्कर द्वारा उपयोग किए जाने वाले Jinja2 प्रॉम्प्ट टेम्प्लेट प्रबंधित करें। सिस्टम-प्रदत्त टेम्प्लेट ब्राउज़ करें, कस्टम संस्करण बनाएं, संस्करण इतिहास ट्रैक करें और ज़रूरत पड़ने पर बदलाव रोलबैक करें।"
+
+msgctxt "settings.prompts"
+msgid "guideTitle"
+msgstr "प्रॉम्प्ट टेम्प्लेट"
+
+msgctxt "settings.prompts"
+msgid "import"
+msgstr "आयात करें"
+
+msgctxt "settings.prompts"
+msgid "imported"
+msgstr "आयातित"
+
+msgctxt "settings.prompts"
+msgid "importing"
+msgstr "आयात हो रहा है..."
+
+msgctxt "settings.prompts"
+msgid "inactive"
+msgstr "निष्क्रिय"
+
+msgctxt "settings.prompts"
+msgid "newTemplate"
+msgstr "नया टेम्प्लेट"
+
+msgctxt "settings.prompts"
+msgid "newTemplateDescription"
+msgstr "अपने संगठन के लिए कस्टम प्रॉम्प्ट टेम्प्लेट बनाएं"
+
+msgctxt "settings.prompts"
+msgid "noDescription"
+msgstr "कोई विवरण नहीं"
+
+msgctxt "settings.prompts"
+msgid "noSystemPrompts"
+msgstr "कोई सिस्टम प्रॉम्प्ट उपलब्ध नहीं"
+
+msgctxt "settings.prompts"
+msgid "noVersions"
+msgstr "कोई संस्करण नहीं मिला"
+
+msgctxt "settings.prompts"
+msgid "optional"
+msgstr "वैकल्पिक"
+
+msgctxt "settings.prompts"
+msgid "other"
+msgstr "अन्य"
+
+msgctxt "settings.prompts"
+msgid "promoting"
+msgstr "प्रमोट हो रहा है..."
+
+msgctxt "settings.prompts"
+msgid "resetConfirm"
+msgstr "डिफ़ॉल्ट पर रीसेट करें?"
+
+msgctxt "settings.prompts"
+msgid "resetting"
+msgstr "रीसेट हो रहा है..."
+
+msgctxt "settings.prompts"
+msgid "resetToDefault"
+msgstr "डिफ़ॉल्ट पर रीसेट करें"
+
+msgctxt "settings.prompts"
+msgid "rollbackTo"
+msgstr "v{version} पर रोलबैक करें"
+
+msgctxt "settings.prompts"
+msgid "rollingBack"
+msgstr "रोलबैक हो रहा है..."
+
+msgctxt "settings.prompts"
+msgid "saveAsNewVersion"
+msgstr "नए संस्करण के रूप में सहेजें"
+
+msgctxt "settings.prompts"
+msgid "saving"
+msgstr "सहेजा जा रहा है..."
+
+msgctxt "settings.prompts"
+msgid "selectType"
+msgstr "एक प्रकार चुनें…"
+
+msgctxt "settings.prompts"
+msgid "selectVersion"
+msgstr "पूर्वावलोकन के लिए एक संस्करण चुनें"
+
+msgctxt "settings.prompts"
+msgid "setAsDefault"
+msgstr "डिफ़ॉल्ट के रूप में सेट करें"
+
+msgctxt "settings.prompts"
+msgid "setAsSystemDefault"
+msgstr "सिस्टम डिफ़ॉल्ट के रूप में सेट करें"
+
+msgctxt "settings.prompts"
+msgid "setDefaultTitle"
+msgstr "इस प्रकार के लिए डिफ़ॉल्ट के रूप में सेट करें"
+
+msgctxt "settings.prompts"
+msgid "systemDefault"
+msgstr "सिस्टम डिफ़ॉल्ट"
+
+msgctxt "settings.prompts.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "settings.prompts.table"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "settings.prompts.table"
+msgid "type"
+msgstr "प्रकार"
+
+msgctxt "settings.prompts.table"
+msgid "updated"
+msgstr "अपडेट हुआ"
+
+msgctxt "settings.prompts.table"
+msgid "version"
+msgstr "संस्करण"
+
+msgctxt "settings.prompts"
+msgid "title"
+msgstr "प्रॉम्प्ट टेम्प्लेट"
+
+msgctxt "settings.prompts.toasts"
+msgid "created"
+msgstr "टेम्प्लेट \"{name}\" बन गया"
+
+msgctxt "settings.prompts.toasts"
+msgid "default"
+msgstr "\"{name}\" अब अपने प्रकार के लिए डिफ़ॉल्ट है"
+
+msgctxt "settings.prompts.toasts"
+msgid "imported"
+msgstr "\"{name}\" सफलतापूर्वक आयात हुआ"
+
+msgctxt "settings.prompts.toasts"
+msgid "promoted"
+msgstr "\"{name}\" का संस्करण {version} अब सिस्टम डिफ़ॉल्ट है"
+
+msgctxt "settings.prompts.toasts"
+msgid "reset"
+msgstr "टेम्प्लेट \"{name}\" डिफ़ॉल्ट पर रीसेट हुआ"
+
+msgctxt "settings.prompts.toasts"
+msgid "reverted"
+msgstr "\"{name}\" सिस्टम डिफ़ॉल्ट पर वापस आ गया"
+
+msgctxt "settings.prompts.toasts"
+msgid "rolledBack"
+msgstr "टेम्प्लेट \"{name}\" संस्करण {version} पर रोलबैक हुआ"
+
+msgctxt "settings.prompts.toasts"
+msgid "savedVersion"
+msgstr "टेम्प्लेट \"{name}\" नए संस्करण के रूप में सहेजा गया"
+
+msgctxt "settings.prompts"
+msgid "version"
+msgstr "संस्करण {version}"
+
+msgctxt "settings.prompts"
+msgid "versionHistory"
+msgstr "संस्करण इतिहास"
+
+msgctxt "settings.prompts"
+msgid "viewHistory"
+msgstr "संस्करण इतिहास देखें"
+
+msgctxt "settings.schemas"
+msgid "cancel"
+msgstr "रद्द करें"
+
+msgctxt "settings.schemas"
+msgid "close"
+msgstr "बंद करें"
+
+msgctxt "settings.schemas"
+msgid "create"
+msgstr "बनाएं"
+
+msgctxt "settings.schemas"
+msgid "createdToast"
+msgstr "स्कीमा बन गई"
+
+msgctxt "settings.schemas"
+msgid "createFailed"
+msgstr "स्कीमा बनाने में विफल"
+
+msgctxt "settings.schemas"
+msgid "createSchema"
+msgstr "स्कीमा बनाएं"
+
+msgctxt "settings.schemas"
+msgid "delete"
+msgstr "हटाएं"
+
+msgctxt "settings.schemas"
+msgid "deleteConfirm"
+msgstr "क्या आप वाकई \"{name}\" हटाना चाहते हैं? यह कार्रवाई पूर्ववत नहीं की जा सकती।"
+
+msgctxt "settings.schemas"
+msgid "deletedToast"
+msgstr "स्कीमा हटा दी गई"
+
+msgctxt "settings.schemas"
+msgid "deleteFailed"
+msgstr "स्कीमा हटाने में विफल"
+
+msgctxt "settings.schemas"
+msgid "deleteSchema"
+msgstr "स्कीमा हटाएं"
+
+msgctxt "settings.schemas"
+msgid "description"
+msgstr "संरचित एक्सट्रैक्शन और वर्गीकरण के लिए स्कीमा परिभाषित करें"
+
+msgctxt "settings.schemas"
+msgid "emptyDescription"
+msgstr "अपनी पहली एक्सट्रैक्शन स्कीमा बनाएं"
+
+msgctxt "settings.schemas"
+msgid "emptyTitle"
+msgstr "अभी कोई स्कीमा नहीं"
+
+msgctxt "settings.schemas.fields"
+msgid "jsonSchema"
+msgstr "JSON स्कीमा"
+
+msgctxt "settings.schemas.fields"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "settings.schemas.fields"
+msgid "namePlaceholder"
+msgstr "जैसे invoice_data"
+
+msgctxt "settings.schemas.fields"
+msgid "promptTemplate"
+msgstr "प्रॉम्प्ट टेम्प्लेट"
+
+msgctxt "settings.schemas.fields"
+msgid "type"
+msgstr "प्रकार"
+
+msgctxt "settings.schemas"
+msgid "guideBody"
+msgstr "JSON स्कीमा परिभाषित करें जो नियंत्रित करती हैं कि बातचीत से संरचित डेटा और वर्गीकरण कैसे निकाले जाते हैं। प्रत्येक स्कीमा निकाले गए डेटा का आकार निर्धारित करती है और वैकल्पिक रूप से कस्टम प्रॉम्प्ट टेम्प्लेट के साथ जोड़ी जा सकती है।"
+
+msgctxt "settings.schemas"
+msgid "guideTitle"
+msgstr "एक्सट्रैक्शन स्कीमा"
+
+msgctxt "settings.schemas"
+msgid "invalidJson"
+msgstr "अमान्य JSON स्कीमा"
+
+msgctxt "settings.schemas"
+msgid "loadFailed"
+msgstr "स्कीमा लोड करने में विफल"
+
+msgctxt "settings.schemas"
+msgid "optional"
+msgstr "वैकल्पिक"
+
+msgctxt "settings.schemas.status"
+msgid "active"
+msgstr "सक्रिय"
+
+msgctxt "settings.schemas.status"
+msgid "inactive"
+msgstr "निष्क्रिय"
+
+msgctxt "settings.schemas.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "settings.schemas.table"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "settings.schemas.table"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "settings.schemas.table"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "settings.schemas.table"
+msgid "template"
+msgstr "टेम्प्लेट"
+
+msgctxt "settings.schemas.table"
+msgid "type"
+msgstr "प्रकार"
+
+msgctxt "settings.schemas"
+msgid "title"
+msgstr "एक्सट्रैक्शन स्कीमा"
+
+msgctxt "settings.schemas.types"
+msgid "classification"
+msgstr "वर्गीकरण"
+
+msgctxt "settings.schemas.types"
+msgid "structured"
+msgstr "संरचित"
+
+msgctxt "settings.schemas.view"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "settings.schemas.view"
+msgid "id"
+msgstr "ID"
+
+msgctxt "settings.schemas.view"
+msgid "jsonSchema"
+msgstr "JSON स्कीमा"
+
+msgctxt "settings.schemas.view"
+msgid "promptTemplate"
+msgstr "प्रॉम्प्ट टेम्प्लेट"
+
+msgctxt "settings.schemas.view"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "settings.schemas.view"
+msgid "type"
+msgstr "प्रकार"
+
+msgctxt "settings.schemas"
+msgid "viewSchema"
+msgstr "स्कीमा देखें"
+
+msgctxt "settings.schemas"
+msgid "yes"
+msgstr "हाँ"
+
+msgctxt "settings.webhooks"
+msgid "all"
+msgstr "सभी"
+
+msgctxt "settings.webhooks"
+msgid "cancel"
+msgstr "रद्द करें"
+
+msgctxt "settings.webhooks"
+msgid "createdTitle"
+msgstr "एंडपॉइंट बन गया"
+
+msgctxt "settings.webhooks"
+msgid "createdToast"
+msgstr "वेबहुक एंडपॉइंट बन गया"
+
+msgctxt "settings.webhooks"
+msgid "createEndpoint"
+msgstr "एंडपॉइंट बनाएं"
+
+msgctxt "settings.webhooks"
+msgid "createTitle"
+msgstr "वेबहुक एंडपॉइंट बनाएं"
+
+msgctxt "settings.webhooks"
+msgid "delete"
+msgstr "हटाएं"
+
+msgctxt "settings.webhooks"
+msgid "deleteConfirm"
+msgstr "क्या आप वाकई \"{name}\" हटाना चाहते हैं? इस वेबहुक URL का उपयोग करने वाली कोई भी सेवा तुरंत इवेंट प्राप्त करना बंद कर देगी।"
+
+msgctxt "settings.webhooks"
+msgid "deletedToast"
+msgstr "वेबहुक एंडपॉइंट हटा दिया गया"
+
+msgctxt "settings.webhooks"
+msgid "deleteEndpoint"
+msgstr "एंडपॉइंट हटाएं"
+
+msgctxt "settings.webhooks"
+msgid "deleteFailed"
+msgstr "वेबहुक हटाने में विफल"
+
+msgctxt "settings.webhooks"
+msgid "deleteTitle"
+msgstr "वेबहुक हटाएं"
+
+msgctxt "settings.webhooks"
+msgid "description"
+msgstr "अपने OpenZync इंस्टेंस से रीयल-टाइम इवेंट प्राप्त करने के लिए HTTP एंडपॉइंट कॉन्फ़िगर करें"
+
+msgctxt "settings.webhooks"
+msgid "done"
+msgstr "हो गया"
+
+msgctxt "settings.webhooks"
+msgid "emptyDescription"
+msgstr "वेबहुक इवेंट प्राप्त करना शुरू करने के लिए एक एंडपॉइंट बनाएं"
+
+msgctxt "settings.webhooks"
+msgid "emptyTitle"
+msgstr "कोई वेबहुक एंडपॉइंट कॉन्फ़िगर नहीं"
+
+msgctxt "settings.webhooks.errors"
+msgid "createFailed"
+msgstr "एंडपॉइंट बनाने में विफल"
+
+msgctxt "settings.webhooks.errors"
+msgid "nameRequired"
+msgstr "एंडपॉइंट का नाम आवश्यक है"
+
+msgctxt "settings.webhooks.errors"
+msgid "urlProtocol"
+msgstr "URL http:// या https:// से शुरू होना चाहिए"
+
+msgctxt "settings.webhooks.errors"
+msgid "urlRequired"
+msgstr "एंडपॉइंट URL आवश्यक है"
+
+msgctxt "settings.webhooks.fields"
+msgid "endpointName"
+msgstr "एंडपॉइंट का नाम"
+
+msgctxt "settings.webhooks.fields"
+msgid "endpointNameHint"
+msgstr "इस वेबहुक एंडपॉइंट के लिए एक पठनीय लेबल।"
+
+msgctxt "settings.webhooks.fields"
+msgid "endpointNamePlaceholder"
+msgstr "जैसे Production Slack Notifier"
+
+msgctxt "settings.webhooks.fields"
+msgid "endpointUrl"
+msgstr "एंडपॉइंट URL"
+
+msgctxt "settings.webhooks.fields"
+msgid "endpointUrlHint"
+msgstr "HTTPS URL जो वेबहुक पेलोड के साथ POST अनुरोध प्राप्त करता है।"
+
+msgctxt "settings.webhooks.fields"
+msgid "endpointUrlPlaceholder"
+msgstr "https://hooks.example.com/webhooks/openzync"
+
+msgctxt "settings.webhooks.fields"
+msgid "events"
+msgstr "सब्सक्राइब किए गए इवेंट"
+
+msgctxt "settings.webhooks.fields"
+msgid "eventsHint"
+msgstr "डिफ़ॉल्ट रूप से सभी इवेंट चयनित होते हैं। जो इवेंट आप प्राप्त नहीं करना चाहते, उन्हें अनचेक करें।"
+
+msgctxt "settings.webhooks"
+msgid "guideBody"
+msgstr "OpenZync से रीयल-टाइम इवेंट प्राप्त करने के लिए HTTP एंडपॉइंट कॉन्फ़िगर करें। बाहरी सिस्टम से एकीकृत करने के लिए सत्र, संदेश, ग्राफ़, तथ्य, वर्गीकरण, एक्सट्रैक्शन और उपयोगकर्ता इवेंट सब्सक्राइब करें।"
+
+msgctxt "settings.webhooks"
+msgid "guideTitle"
+msgstr "वेबहुक एंडपॉइंट"
+
+msgctxt "settings.webhooks"
+msgid "hideSecret"
+msgstr "सीक्रेट छिपाएं"
+
+msgctxt "settings.webhooks"
+msgid "loadFailed"
+msgstr "वेबहुक लोड करने में विफल"
+
+msgctxt "settings.webhooks"
+msgid "nameLabel"
+msgstr "नाम"
+
+msgctxt "settings.webhooks"
+msgid "secretFormat"
+msgstr "सीक्रेट प्रारूप"
+
+msgctxt "settings.webhooks"
+msgid "secretNotice"
+msgstr "साइनिंग सीक्रेट अभी कॉपी करें। आप इसे दोबारा नहीं देख पाएंगे।"
+
+msgctxt "settings.webhooks"
+msgid "showSecret"
+msgstr "सीक्रेट दिखाएं"
+
+msgctxt "settings.webhooks.status"
+msgid "active"
+msgstr "सक्रिय"
+
+msgctxt "settings.webhooks.status"
+msgid "disabled"
+msgstr "अक्षम"
+
+msgctxt "settings.webhooks.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "settings.webhooks.table"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "settings.webhooks.table"
+msgid "events"
+msgstr "इवेंट"
+
+msgctxt "settings.webhooks.table"
+msgid "lastDelivery"
+msgstr "अंतिम डिलीवरी"
+
+msgctxt "settings.webhooks.table"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "settings.webhooks.table"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "settings.webhooks.table"
+msgid "url"
+msgstr "URL"
+
+msgctxt "settings.webhooks"
+msgid "title"
+msgstr "वेबहुक"
+
+msgctxt "settings.webhooks"
+msgid "urlLabel"
+msgstr "URL"
+
+msgctxt "superadmin.config"
+msgid "defaultsDescription"
+msgstr "नए बनाए गए संगठनों पर लागू होने वाले गैर-सीक्रेट डिफ़ॉल्ट"
+
+msgctxt "superadmin.config"
+msgid "defaultsTitle"
+msgstr "सिस्टम डिफ़ॉल्ट"
+
+msgctxt "superadmin.config"
+msgid "hide"
+msgstr "छिपाएं"
+
+msgctxt "superadmin.config"
+msgid "loadFailed"
+msgstr "सिस्टम कॉन्फ़िगरेशन लोड करने में विफल"
+
+msgctxt "superadmin.config"
+msgid "notSet"
+msgstr "सेट नहीं"
+
+msgctxt "superadmin.config.policies.approvals"
+msgid "description"
+msgstr "नए संगठन लंबित अनुरोधों के रूप में बनते हैं, जिनकी समीक्षा आप यहाँ करते हैं।"
+
+msgctxt "superadmin.config.policies.approvals"
+msgid "label"
+msgstr "अनुमोदन आवश्यक"
+
+msgctxt "superadmin.config.policies.closed"
+msgid "description"
+msgstr "साइनअप और संगठन-कोड जुड़ना पूरे प्लेटफ़ॉर्म पर अक्षम हैं।"
+
+msgctxt "superadmin.config.policies.closed"
+msgid "label"
+msgstr "पंजीकरण बंद"
+
+msgctxt "superadmin.config.policies.open"
+msgid "description"
+msgstr "कोई भी व्यक्ति संगठन बना सकता है या कोड से जुड़ सकता है।"
+
+msgctxt "superadmin.config.policies.open"
+msgid "label"
+msgstr "खुला पंजीकरण"
+
+msgctxt "superadmin.config"
+msgid "policyDescription"
+msgstr "नियंत्रित करता है कि कौन संगठन बना या जुड़ सकता है"
+
+msgctxt "superadmin.config"
+msgid "policyLegend"
+msgstr "संगठन निर्माण नीति"
+
+msgctxt "superadmin.config"
+msgid "policyTitle"
+msgstr "पंजीकरण नीति"
+
+msgctxt "superadmin.config"
+msgid "reveal"
+msgstr "दिखाएं"
+
+msgctxt "superadmin.config"
+msgid "revealFailed"
+msgstr "सेटिंग दिखाने में विफल"
+
+msgctxt "superadmin.config"
+msgid "saveChanges"
+msgstr "बदलाव सहेजें"
+
+msgctxt "superadmin.config"
+msgid "saved"
+msgstr "सहेजा गया"
+
+msgctxt "superadmin.config"
+msgid "savedToast"
+msgstr "सिस्टम कॉन्फ़िगरेशन सहेजा गया"
+
+msgctxt "superadmin.config"
+msgid "saveFailed"
+msgstr "कॉन्फ़िगरेशन सहेजने में विफल"
+
+msgctxt "superadmin.config"
+msgid "scopeHintApprovals"
+msgstr "जहाँ संगठन अनुरोध समीक्षा के लिए स्वीकार किए जाते हैं।"
+
+msgctxt "superadmin.config"
+msgid "scopeHintOther"
+msgstr "केवल तब लागू होता है जब अनुमोदन आवश्यक हो — वर्तमान नीति के अंतर्गत अनदेखा किया जाता है।"
+
+msgctxt "superadmin.config"
+msgid "scopeLabel"
+msgstr "अनुमोदन दायरा"
+
+msgctxt "superadmin.config.scopes"
+msgid "both"
+msgstr "इन-ऐप अनुरोध और सार्वजनिक साइनअप दोनों"
+
+msgctxt "superadmin.config.scopes"
+msgid "inApp"
+msgstr "केवल इन-ऐप अनुरोध"
+
+msgctxt "superadmin.config.scopes"
+msgid "publicSignup"
+msgstr "केवल सार्वजनिक साइनअप"
+
+msgctxt "superadmin.config"
+msgid "settingsDescription"
+msgstr "सीक्रेट बैकएंड से प्लेटफ़ॉर्म रनटाइम कॉन्फ़िगरेशन — केवल पढ़ने के लिए"
+
+msgctxt "superadmin.config"
+msgid "settingsLoadFailed"
+msgstr "सिस्टम सेटिंग्स लोड करने में विफल"
+
+msgctxt "superadmin.config"
+msgid "settingsTitle"
+msgstr "सिस्टम सेटिंग्स (रनटाइम)"
+
+msgctxt "superadmin.configFields.fields"
+msgid "contextCacheTtl"
+msgstr "संदर्भ कैश TTL (सेकंड)"
+
+msgctxt "superadmin.configFields.fields"
+msgid "embeddingBackend"
+msgstr "एम्बेडिंग बैकएंड"
+
+msgctxt "superadmin.configFields.fields"
+msgid "embeddingDimensions"
+msgstr "एम्बेडिंग आयाम"
+
+msgctxt "superadmin.configFields.fields"
+msgid "embeddingModel"
+msgstr "एम्बेडिंग मॉडल"
+
+msgctxt "superadmin.configFields.fields"
+msgid "graphBackend"
+msgstr "ग्राफ बैकएंड"
+
+msgctxt "superadmin.configFields.fields"
+msgid "graphMaxTraversalDepth"
+msgstr "ग्राफ़ अधिकतम ट्रैवर्सल गहराई"
+
+msgctxt "superadmin.configFields.fields"
+msgid "graphSearchType"
+msgstr "ग्राफ़ खोज प्रकार"
+
+msgctxt "superadmin.configFields.fields"
+msgid "llmBackend"
+msgstr "LLM बैकएंड"
+
+msgctxt "superadmin.configFields.fields"
+msgid "llmMaxTokens"
+msgstr "LLM अधिकतम टोकन"
+
+msgctxt "superadmin.configFields.fields"
+msgid "llmModel"
+msgstr "LLM मॉडल"
+
+msgctxt "superadmin.configFields.fields"
+msgid "llmTemperature"
+msgstr "LLM टेम्परेचर"
+
+msgctxt "superadmin.configFields.fields"
+msgid "rerankerBackend"
+msgstr "रीरैंकर बैकएंड"
+
+msgctxt "superadmin.configFields.fields"
+msgid "rerankerModel"
+msgstr "रीरैंकर मॉडल"
+
+msgctxt "superadmin.configFields.hints"
+msgid "contextCacheTtl"
+msgstr "संदर्भ डेटा कितनी देर कैश रहता है (0 = कोई कैशिंग नहीं)"
+
+msgctxt "superadmin.configFields.hints"
+msgid "llmTemperature"
+msgstr "0–2 सैम्पलिंग टेम्परेचर"
+
+msgctxt "superadmin.configFields.options"
+msgid "noGraphBackend"
+msgstr "कोई ग्राफ बैकएंड नहीं"
+
+msgctxt "superadmin.configFields.options"
+msgid "noneDisabled"
+msgstr "कोई नहीं (अक्षम)"
+
+msgctxt "superadmin.layout"
+msgid "organizations"
+msgstr "संगठन"
+
+msgctxt "superadmin.layout"
+msgid "requests"
+msgstr "अनुरोध"
+
+msgctxt "superadmin.layout"
+msgid "subtitle"
+msgstr "पंजीकरण नीति, संगठन अनुमोदन और सिस्टम डिफ़ॉल्ट"
+
+msgctxt "superadmin.layout"
+msgid "systemConfiguration"
+msgstr "सिस्टम कॉन्फ़िगरेशन"
+
+msgctxt "superadmin.layout"
+msgid "title"
+msgstr "प्लेटफ़ॉर्म प्रशासन"
+
+msgctxt "superadmin.orgConfig"
+msgid "backToOrgs"
+msgstr "संगठनों पर वापस जाएं"
+
+msgctxt "superadmin.orgConfig"
+msgid "defaultsDescription"
+msgstr "संगठन-कॉन्फ़िगर पेजों के समान फ़ील्ड, प्लेटफ़ॉर्म स्तर पर प्रबंधित"
+
+msgctxt "superadmin.orgConfig"
+msgid "defaultsTitle"
+msgstr "गैर-सीक्रेट डिफ़ॉल्ट"
+
+msgctxt "superadmin.orgConfig"
+msgid "loadFailed"
+msgstr "संगठन कॉन्फ़िगरेशन लोड करने में विफल"
+
+msgctxt "superadmin.orgConfig"
+msgid "saveChanges"
+msgstr "बदलाव सहेजें"
+
+msgctxt "superadmin.orgConfig"
+msgid "saved"
+msgstr "सहेजा गया"
+
+msgctxt "superadmin.orgConfig"
+msgid "savedToast"
+msgstr "संगठन कॉन्फ़िगरेशन सहेजा गया"
+
+msgctxt "superadmin.orgConfig"
+msgid "saveFailed"
+msgstr "कॉन्फ़िगरेशन सहेजने में विफल"
+
+msgctxt "superadmin.orgConfig"
+msgid "subtitle"
+msgstr "संगठन {orgId} के लिए क्रॉस-ऑर्ग डिफ़ॉल्ट"
+
+msgctxt "superadmin.orgConfig"
+msgid "title"
+msgstr "संगठन कॉन्फ़िगरेशन"
+
+msgctxt "superadmin.orgMembers"
+msgid "backToOrgs"
+msgstr "संगठनों पर वापस जाएं"
+
+msgctxt "superadmin.orgMembers"
+msgid "emptyDescription"
+msgstr "इस संगठन में अभी कोई सदस्य नहीं है।"
+
+msgctxt "superadmin.orgMembers"
+msgid "emptyTitle"
+msgstr "कोई सदस्य नहीं मिला"
+
+msgctxt "superadmin.orgMembers"
+msgid "loadFailed"
+msgstr "सदस्य लोड करने में विफल"
+
+msgctxt "superadmin.orgMembers"
+msgid "makeAdmin"
+msgstr "एडमिन बनाएं"
+
+msgctxt "superadmin.orgMembers"
+msgid "makeAdminAria"
+msgstr "{name} को एडमिन बनाएं"
+
+msgctxt "superadmin.orgMembers"
+msgid "makeAdminConfirm"
+msgstr "\"{name}\" को एडमिन पहुँच दें? एडमिन संगठन उपयोगकर्ताओं, सेटिंग्स को प्रबंधित कर सकते हैं और निगरानी/ऑडिट डेटा देख सकते हैं।"
+
+msgctxt "superadmin.orgMembers"
+msgid "removeAdmin"
+msgstr "एडमिन हटाएं"
+
+msgctxt "superadmin.orgMembers"
+msgid "removeAdminAria"
+msgstr "{name} से एडमिन हटाएं"
+
+msgctxt "superadmin.orgMembers"
+msgid "removeAdminConfirm"
+msgstr "\"{name}\" से एडमिन पहुँच हटाएं? वे नियमित सदस्य बन जाएंगे।"
+
+msgctxt "superadmin.orgMembers.role"
+msgid "admin"
+msgstr "एडमिन"
+
+msgctxt "superadmin.orgMembers.role"
+msgid "member"
+msgstr "सदस्य"
+
+msgctxt "superadmin.orgMembers"
+msgid "roleChangedToast"
+msgstr "\"{name}\" अब {role} हैं"
+
+msgctxt "superadmin.orgMembers"
+msgid "roleUpdateFailed"
+msgstr "भूमिका अपडेट करने में विफल"
+
+msgctxt "superadmin.orgMembers"
+msgid "subtitle"
+msgstr "संगठन {orgId} के लिए भूमिकाएँ प्रबंधित करें"
+
+msgctxt "superadmin.orgMembers.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "superadmin.orgMembers.table"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "superadmin.orgMembers.table"
+msgid "email"
+msgstr "ईमेल"
+
+msgctxt "superadmin.orgMembers.table"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "superadmin.orgMembers.table"
+msgid "role"
+msgstr "भूमिका"
+
+msgctxt "superadmin.orgMembers"
+msgid "title"
+msgstr "संगठन सदस्य"
+
+msgctxt "superadmin.orgs"
+msgid "approve"
+msgstr "{name} को स्वीकृत करें"
+
+msgctxt "superadmin.orgs"
+msgid "approveConfirm"
+msgstr "\"{name}\" को स्वीकृत करें? इसके सदस्य साइन इन कर सकते हैं और प्लेटफ़ॉर्म का उपयोग शुरू कर सकते हैं।"
+
+msgctxt "superadmin.orgs"
+msgid "approvedToast"
+msgstr "\"{name}\" स्वीकृत हो गया"
+
+msgctxt "superadmin.orgs"
+msgid "approveFailed"
+msgstr "संगठन स्वीकृत करने में विफल"
+
+msgctxt "superadmin.orgs"
+msgid "approveTitle"
+msgstr "संगठन स्वीकृत करें"
+
+msgctxt "superadmin.orgs"
+msgid "cancel"
+msgstr "रद्द करें"
+
+msgctxt "superadmin.orgs"
+msgid "configTitle"
+msgstr "संगठन कॉन्फ़िगरेशन"
+
+msgctxt "superadmin.orgs"
+msgid "createDescription"
+msgstr "संगठन सीधे बनाता है — किसी अनुमोदन की आवश्यकता नहीं।"
+
+msgctxt "superadmin.orgs"
+msgid "createdToast"
+msgstr "संगठन \"{name}\" बन गया"
+
+msgctxt "superadmin.orgs"
+msgid "createOrganization"
+msgstr "संगठन बनाएं"
+
+msgctxt "superadmin.orgs"
+msgid "createTitle"
+msgstr "संगठन बनाएं"
+
+msgctxt "superadmin.orgs"
+msgid "emptyDescription"
+msgstr "संगठन बनते या अनुरोध किए जाते ही यहाँ दिखाई देंगे।"
+
+msgctxt "superadmin.orgs"
+msgid "emptyTitle"
+msgstr "अभी कोई संगठन नहीं"
+
+msgctxt "superadmin.orgs.errors"
+msgid "createFailed"
+msgstr "संगठन बनाने में विफल"
+
+msgctxt "superadmin.orgs.errors"
+msgid "nameRequired"
+msgstr "संगठन का नाम आवश्यक है"
+
+msgctxt "superadmin.orgs.fields"
+msgid "orgName"
+msgstr "संगठन का नाम"
+
+msgctxt "superadmin.orgs.fields"
+msgid "orgNamePlaceholder"
+msgstr "जैसे Acme Corp"
+
+msgctxt "superadmin.orgs"
+msgid "loadFailed"
+msgstr "संगठन लोड करने में विफल"
+
+msgctxt "superadmin.orgs"
+msgid "loadMore"
+msgstr "और लोड करें"
+
+msgctxt "superadmin.orgs"
+msgid "loadMoreFailed"
+msgstr "अधिक संगठन लोड करने में विफल"
+
+msgctxt "superadmin.orgs"
+msgid "membersTitle"
+msgstr "सदस्य"
+
+msgctxt "superadmin.orgs"
+msgid "reject"
+msgstr "{name} को अस्वीकृत करें"
+
+msgctxt "superadmin.orgs"
+msgid "rejectConfirm"
+msgstr "\"{name}\" को अस्वीकृत करें? इससे पंजीकरण अनुरोध अस्वीकृत हो जाता है।"
+
+msgctxt "superadmin.orgs"
+msgid "rejectedToast"
+msgstr "\"{name}\" अस्वीकृत हो गया"
+
+msgctxt "superadmin.orgs"
+msgid "rejectFailed"
+msgstr "संगठन अस्वीकृत करने में विफल"
+
+msgctxt "superadmin.orgs"
+msgid "rejectTitle"
+msgstr "संगठन अस्वीकृत करें"
+
+msgctxt "superadmin.orgs.status"
+msgid "approved"
+msgstr "स्वीकृत"
+
+msgctxt "superadmin.orgs.status"
+msgid "pending"
+msgstr "लंबित"
+
+msgctxt "superadmin.orgs.status"
+msgid "rejected"
+msgstr "अस्वीकृत"
+
+msgctxt "superadmin.orgs.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "superadmin.orgs.table"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "superadmin.orgs.table"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "superadmin.orgs.table"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "superadmin.orgs"
+msgid "title"
+msgstr "सभी संगठन"
+
+msgctxt "superadmin.requests"
+msgid "approve"
+msgstr "{name} को स्वीकृत करें"
+
+msgctxt "superadmin.requests"
+msgid "approveConfirm"
+msgstr "\"{name}\" को स्वीकृत करें? इसके सदस्य साइन इन कर सकते हैं और प्लेटफ़ॉर्म का उपयोग शुरू कर सकते हैं।"
+
+msgctxt "superadmin.requests"
+msgid "approvedToast"
+msgstr "\"{name}\" स्वीकृत हो गया"
+
+msgctxt "superadmin.requests"
+msgid "approveFailed"
+msgstr "संगठन स्वीकृत करने में विफल"
+
+msgctxt "superadmin.requests"
+msgid "approveTitle"
+msgstr "संगठन स्वीकृत करें"
+
+msgctxt "superadmin.requests"
+msgid "emptyDescription"
+msgstr "आप सब पढ़ चुके हैं — नए संगठन अनुरोध यहाँ दिखाई देंगे।"
+
+msgctxt "superadmin.requests"
+msgid "emptyTitle"
+msgstr "कोई लंबित अनुरोध नहीं"
+
+msgctxt "superadmin.requests"
+msgid "loadFailed"
+msgstr "अनुमोदन अनुरोध लोड करने में विफल"
+
+msgctxt "superadmin.requests"
+msgid "pending"
+msgstr "लंबित"
+
+msgctxt "superadmin.requests"
+msgid "pendingCount"
+msgstr "{count} लंबित"
+
+msgctxt "superadmin.requests"
+msgid "reject"
+msgstr "{name} को अस्वीकृत करें"
+
+msgctxt "superadmin.requests"
+msgid "rejectConfirm"
+msgstr "\"{name}\" को अस्वीकृत करें? इससे पंजीकरण अनुरोध अस्वीकृत हो जाता है।"
+
+msgctxt "superadmin.requests"
+msgid "rejectedToast"
+msgstr "\"{name}\" अस्वीकृत हो गया"
+
+msgctxt "superadmin.requests"
+msgid "rejectFailed"
+msgstr "संगठन अस्वीकृत करने में विफल"
+
+msgctxt "superadmin.requests"
+msgid "rejectTitle"
+msgstr "संगठन अस्वीकृत करें"
+
+msgctxt "superadmin.requests"
+msgid "subtitle"
+msgstr "आपके निर्णय की प्रतीक्षा कर रहे संगठन"
+
+msgctxt "superadmin.requests.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "superadmin.requests.table"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "superadmin.requests.table"
+msgid "requested"
+msgstr "अनुरोधित"
+
+msgctxt "superadmin.requests.table"
+msgid "status"
+msgstr "स्थिति"
+
+msgctxt "superadmin.requests"
+msgid "title"
+msgstr "अनुमोदन अनुरोध"
+
+msgctxt "users"
+msgid "adminRequired"
+msgstr "एडमिन पहुँच आवश्यक है"
+
+msgctxt "users"
+msgid "cancel"
+msgstr "रद्द करें"
+
+msgctxt "users"
+msgid "copyFailed"
+msgstr "कॉपी करने में विफल"
+
+msgctxt "users"
+msgid "copyUserId"
+msgstr "उपयोगकर्ता ID कॉपी करें"
+
+msgctxt "users"
+msgid "createUser"
+msgstr "उपयोगकर्ता बनाएं"
+
+msgctxt "users"
+msgid "delete"
+msgstr "हटाएं"
+
+msgctxt "users"
+msgid "deleteConfirm"
+msgstr "क्या आप वाकई उपयोगकर्ता \"{name}\" हटाना चाहते हैं? यह कार्रवाई पूर्ववत नहीं की जा सकती।"
+
+msgctxt "users"
+msgid "deleteFailed"
+msgstr "उपयोगकर्ता हटाने में विफल"
+
+msgctxt "users"
+msgid "deleteUser"
+msgstr "उपयोगकर्ता हटाएं"
+
+msgctxt "users"
+msgid "description"
+msgstr "अपने संगठन के भीतर अंतिम-उपयोगकर्ता प्रबंधित करें"
+
+msgctxt "users.detail"
+msgid "adding"
+msgstr "जोड़ा जा रहा है..."
+
+msgctxt "users.detail"
+msgid "addInstruction"
+msgstr "निर्देश जोड़ें"
+
+msgctxt "users.detail"
+msgid "addInstructionTitle"
+msgstr "सारांश निर्देश जोड़ें"
+
+msgctxt "users.detail"
+msgid "backToUsers"
+msgstr "उपयोगकर्ताओं पर वापस जाएं"
+
+msgctxt "users.detail"
+msgid "cancel"
+msgstr "रद्द करें"
+
+msgctxt "users.detail"
+msgid "cannotUndo"
+msgstr "यह कार्रवाई पूर्ववत नहीं की जा सकती।"
+
+msgctxt "users.detail"
+msgid "copyToClipboard"
+msgstr "क्लिपबोर्ड पर कॉपी करें"
+
+msgctxt "users.detail"
+msgid "delete"
+msgstr "हटाएं"
+
+msgctxt "users.detail"
+msgid "deleteConfirmHint"
+msgstr "उपयोगकर्ता सारांश जनरेट करते समय यह निर्देश अब उपयोग नहीं होगा।"
+
+msgctxt "users.detail"
+msgid "deleteConfirmPrefix"
+msgstr "क्या आप वाकई निर्देश हटाना चाहते हैं"
+
+msgctxt "users.detail"
+msgid "deleteInstruction"
+msgstr "निर्देश हटाएं"
+
+msgctxt "users.detail"
+msgid "deleteInstructionTitle"
+msgstr "निर्देश हटाएं"
+
+msgctxt "users.detail"
+msgid "deleting"
+msgstr "हटाया जा रहा है..."
+
+msgctxt "users.detail"
+msgid "editInstruction"
+msgstr "निर्देश संपादित करें"
+
+msgctxt "users.detail"
+msgid "editInstructionTitle"
+msgstr "सारांश निर्देश संपादित करें"
+
+msgctxt "users.detail.errors"
+msgid "adminRequired"
+msgstr "एडमिन पहुँच आवश्यक है"
+
+msgctxt "users.detail.errors"
+msgid "createFailed"
+msgstr "निर्देश बनाने में विफल"
+
+msgctxt "users.detail.errors"
+msgid "instructionsFailed"
+msgstr "निर्देश अपडेट करने में विफल"
+
+msgctxt "users.detail.errors"
+msgid "loadFailed"
+msgstr "उपयोगकर्ता डेटा लोड करने में विफल"
+
+msgctxt "users.detail.errors"
+msgid "nameRequired"
+msgstr "निर्देश का नाम आवश्यक है"
+
+msgctxt "users.detail.errors"
+msgid "roleUpdateFailed"
+msgstr "भूमिका अपडेट करने में विफल"
+
+msgctxt "users.detail.errors"
+msgid "summaryFailed"
+msgstr "सारांश जनरेट करने में विफल"
+
+msgctxt "users.detail.errors"
+msgid "textRequired"
+msgstr "निर्देश पाठ आवश्यक है"
+
+msgctxt "users.detail.errors"
+msgid "updateFailed"
+msgstr "निर्देश अपडेट करने में विफल"
+
+msgctxt "users.detail.fields"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "users.detail.fields"
+msgid "nameHint"
+msgstr "इस निर्देश के लिए एक लेबल।"
+
+msgctxt "users.detail.fields"
+msgid "namePlaceholder"
+msgstr "जैसे Tone & Voice"
+
+msgctxt "users.detail.fields"
+msgid "text"
+msgstr "निर्देश पाठ"
+
+msgctxt "users.detail.fields"
+msgid "textHint"
+msgstr "सारांश जनरेट करते समय LLM को दिया जाने वाला निर्देश।"
+
+msgctxt "users.detail.fields"
+msgid "textPlaceholder"
+msgstr "जैसे, उपयोगकर्ता के स्वर, संचार शैली और पसंदीदा शब्दावली का सारांश दें।"
+
+msgctxt "users.detail.instructions"
+msgid "emptyHint"
+msgstr "उपयोगकर्ता सारांश कैसे जनरेट होता है, इसका मार्गदर्शन करने के लिए कस्टम निर्देश जोड़ें।"
+
+msgctxt "users.detail.instructions"
+msgid "emptyTitle"
+msgstr "कोई सारांश निर्देश नहीं"
+
+msgctxt "users.detail.instructions"
+msgid "subtitle"
+msgstr "उपयोगकर्ता सारांश जनरेट करते समय उपयोग किए जाने वाले कस्टम निर्देश"
+
+msgctxt "users.detail.instructions"
+msgid "title"
+msgstr "सारांश निर्देश"
+
+msgctxt "users.detail"
+msgid "makeAdmin"
+msgstr "एडमिन बनाएं"
+
+msgctxt "users.detail"
+msgid "makeAdminConfirm"
+msgstr "\"{name}\" को एडमिन पहुँच दें? एडमिन संगठन उपयोगकर्ताओं, सेटिंग्स को प्रबंधित कर सकते हैं और निगरानी/ऑडिट डेटा देख सकते हैं।"
+
+msgctxt "users.detail.meta"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "users.detail.meta"
+msgid "email"
+msgstr "ईमेल"
+
+msgctxt "users.detail.meta"
+msgid "externalId"
+msgstr "बाहरी ID"
+
+msgctxt "users.detail.meta"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "users.detail.meta"
+msgid "role"
+msgstr "भूमिका"
+
+msgctxt "users.detail.meta"
+msgid "userId"
+msgstr "उपयोगकर्ता ID"
+
+msgctxt "users.detail"
+msgid "removeAdmin"
+msgstr "एडमिन हटाएं"
+
+msgctxt "users.detail"
+msgid "removeAdminConfirm"
+msgstr "\"{name}\" से एडमिन पहुँच हटाएं? वे नियमित सदस्य बन जाएंगे।"
+
+msgctxt "users.detail.role"
+msgid "admin"
+msgstr "एडमिन"
+
+msgctxt "users.detail.role"
+msgid "member"
+msgstr "सदस्य"
+
+msgctxt "users.detail"
+msgid "saveChanges"
+msgstr "बदलाव सहेजें"
+
+msgctxt "users.detail"
+msgid "saving"
+msgstr "सहेजा जा रहा है..."
+
+msgctxt "users.detail"
+msgid "sessions"
+msgstr "सत्र"
+
+msgctxt "users.detail.stats"
+msgid "facts"
+msgstr "तथ्य"
+
+msgctxt "users.detail.stats"
+msgid "messages"
+msgstr "संदेश"
+
+msgctxt "users.detail.stats"
+msgid "sessions"
+msgstr "सत्र"
+
+msgctxt "users.detail.summary"
+msgid "emptyHint"
+msgstr "इस उपयोगकर्ता की बातचीत इतिहास के आधार पर प्रोफ़ाइल बनाने के लिए \"सारांश जनरेट करें\" पर क्लिक करें।"
+
+msgctxt "users.detail.summary"
+msgid "emptyTitle"
+msgstr "अभी कोई सारांश जनरेट नहीं हुआ"
+
+msgctxt "users.detail.summary"
+msgid "generate"
+msgstr "सारांश जनरेट करें"
+
+msgctxt "users.detail.summary"
+msgid "generating"
+msgstr "जनरेट हो रहा है..."
+
+msgctxt "users.detail.summary"
+msgid "lastGenerated"
+msgstr "अंतिम जनरेट: {date}"
+
+msgctxt "users.detail.summary"
+msgid "notGenerated"
+msgstr "अभी जनरेट नहीं हुआ"
+
+msgctxt "users.detail.summary"
+msgid "refreshing"
+msgstr "रिफ्रेश हो रहा है..."
+
+msgctxt "users.detail.summary"
+msgid "title"
+msgstr "उपयोगकर्ता सारांश"
+
+msgctxt "users.detail.toasts"
+msgid "instructionAdded"
+msgstr "निर्देश \"{name}\" सफलतापूर्वक जोड़ा गया"
+
+msgctxt "users.detail.toasts"
+msgid "instructionDeleted"
+msgstr "निर्देश \"{name}\" हटा दिया गया"
+
+msgctxt "users.detail.toasts"
+msgid "instructionUpdated"
+msgstr "निर्देश \"{name}\" सफलतापूर्वक अपडेट हुआ"
+
+msgctxt "users.detail.toasts"
+msgid "roleAdmin"
+msgstr "उपयोगकर्ता अब एडमिन है"
+
+msgctxt "users.detail.toasts"
+msgid "roleMember"
+msgstr "उपयोगकर्ता अब सदस्य है"
+
+msgctxt "users.detail.toasts"
+msgid "summaryCooldown"
+msgstr "कृपया दो सारांश जनरेशन के बीच 5 मिनट प्रतीक्षा करें।"
+
+msgctxt "users.detail.toasts"
+msgid "summarySlow"
+msgstr "सारांश जनरेशन में अपेक्षा से अधिक समय लग रहा है। जाँचने के लिए पेज रिफ्रेश करें।"
+
+msgctxt "users.detail.toasts"
+msgid "summaryStarted"
+msgstr "सारांश जनरेशन शुरू हो गया। कुछ क्षणों में वापस देखें।"
+
+msgctxt "users.detail.toasts"
+msgid "userNotFound"
+msgstr "उपयोगकर्ता नहीं मिला"
+
+msgctxt "users.detail"
+msgid "userOverview"
+msgstr "उपयोगकर्ता अवलोकन"
+
+msgctxt "users.detail"
+msgid "you"
+msgstr "आप"
+
+msgctxt "users"
+msgid "editUser"
+msgstr "उपयोगकर्ता संपादित करें"
+
+msgctxt "users"
+msgid "emptyDescription"
+msgstr "शुरुआत करने के लिए अपना पहला उपयोगकर्ता बनाएं"
+
+msgctxt "users"
+msgid "emptyTitle"
+msgstr "कोई उपयोगकर्ता नहीं मिला"
+
+msgctxt "users.errors"
+msgid "adminRequired"
+msgstr "एडमिन पहुँच आवश्यक है"
+
+msgctxt "users.errors"
+msgid "copyFailed"
+msgstr "कॉपी करने में विफल"
+
+msgctxt "users.errors"
+msgid "deleteFailed"
+msgstr "उपयोगकर्ता हटाने में विफल"
+
+msgctxt "users.errors"
+msgid "externalIdRequired"
+msgstr "बाहरी ID आवश्यक है"
+
+msgctxt "users.errors"
+msgid "inviteFailed"
+msgstr "निमंत्रण भेजने में विफल"
+
+msgctxt "users.errors"
+msgid "inviteRequired"
+msgstr "ईमेल और नाम आवश्यक हैं"
+
+msgctxt "users.errors"
+msgid "loadFailed"
+msgstr "उपयोगकर्ता लोड करने में विफल"
+
+msgctxt "users.errors"
+msgid "loadMoreFailed"
+msgstr "अधिक उपयोगकर्ता लोड करने में विफल"
+
+msgctxt "users.errors"
+msgid "revokeFailed"
+msgstr "निमंत्रण रद्द करने में विफल"
+
+msgctxt "users.errors"
+msgid "roleUpdateFailed"
+msgstr "भूमिका अपडेट करने में विफल"
+
+msgctxt "users.fields"
+msgid "email"
+msgstr "ईमेल"
+
+msgctxt "users.fields"
+msgid "emailPlaceholder"
+msgstr "जैसे john@acme.com"
+
+msgctxt "users.fields"
+msgid "externalId"
+msgstr "बाहरी ID"
+
+msgctxt "users.fields"
+msgid "externalIdPlaceholder"
+msgstr "जैसे user-abc-123"
+
+msgctxt "users.fields"
+msgid "inviteEmailPlaceholder"
+msgstr "जैसे jane@acme.com"
+
+msgctxt "users.fields"
+msgid "inviteNamePlaceholder"
+msgstr "जैसे Jane Doe"
+
+msgctxt "users.fields"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "users.fields"
+msgid "namePlaceholder"
+msgstr "जैसे John Doe"
+
+msgctxt "users"
+msgid "guideBody"
+msgstr "संगठन उपयोगकर्ताओं को देखें और प्रबंधित करें। उपयोगकर्ता गतिविधि की निगरानी करें, भूमिकाएँ निर्दिष्ट करें और संगठन संसाधनों तक पहुँच नियंत्रित करें।"
+
+msgctxt "users"
+msgid "guideTitle"
+msgstr "उपयोगकर्ता प्रबंधन"
+
+msgctxt "users"
+msgid "inviteDescription"
+msgstr "उन्हें पासवर्ड सेट करने के लिंक वाला ईमेल प्राप्त होगा।"
+
+msgctxt "users"
+msgid "inviteFailed"
+msgstr "निमंत्रण भेजने में विफल"
+
+msgctxt "users"
+msgid "inviteMember"
+msgstr "सदस्य आमंत्रित करें"
+
+msgctxt "users"
+msgid "loadFailed"
+msgstr "उपयोगकर्ता लोड करने में विफल"
+
+msgctxt "users"
+msgid "loading"
+msgstr "लोड हो रहा है..."
+
+msgctxt "users"
+msgid "loadMore"
+msgstr "और लोड करें"
+
+msgctxt "users"
+msgid "loadMoreFailed"
+msgstr "अधिक उपयोगकर्ता लोड करने में विफल"
+
+msgctxt "users"
+msgid "makeAdmin"
+msgstr "एडमिन बनाएं"
+
+msgctxt "users"
+msgid "makeAdminAria"
+msgstr "{id} को एडमिन बनाएं"
+
+msgctxt "users"
+msgid "makeAdminConfirm"
+msgstr "\"{name}\" को एडमिन पहुँच दें? एडमिन संगठन उपयोगकर्ताओं, सेटिंग्स को प्रबंधित कर सकते हैं और निगरानी/ऑडिट डेटा देख सकते हैं।"
+
+msgctxt "users"
+msgid "pending"
+msgstr "लंबित"
+
+msgctxt "users"
+msgid "removeAdmin"
+msgstr "एडमिन हटाएं"
+
+msgctxt "users"
+msgid "removeAdminAria"
+msgstr "{id} से एडमिन हटाएं"
+
+msgctxt "users"
+msgid "removeAdminConfirm"
+msgstr "\"{name}\" से एडमिन पहुँच हटाएं? वे नियमित सदस्य बन जाएंगे।"
+
+msgctxt "users"
+msgid "revoke"
+msgstr "रद्द करें"
+
+msgctxt "users"
+msgid "revokeConfirm"
+msgstr "\"{name}\" के लिए निमंत्रण रद्द करें? उन्हें नए निमंत्रण की आवश्यकता होगी।"
+
+msgctxt "users"
+msgid "revokeFailed"
+msgstr "निमंत्रण रद्द करने में विफल"
+
+msgctxt "users"
+msgid "revokeInvitation"
+msgstr "निमंत्रण रद्द करें"
+
+msgctxt "users"
+msgid "revokeInviteAria"
+msgstr "{id} के लिए निमंत्रण रद्द करें"
+
+msgctxt "users.role"
+msgid "admin"
+msgstr "एडमिन"
+
+msgctxt "users.role"
+msgid "member"
+msgstr "सदस्य"
+
+msgctxt "users"
+msgid "roleUpdateFailed"
+msgstr "भूमिका अपडेट करने में विफल"
+
+msgctxt "users"
+msgid "saveChanges"
+msgstr "बदलाव सहेजें"
+
+msgctxt "users"
+msgid "sendInvite"
+msgstr "निमंत्रण भेजें"
+
+msgctxt "users.table"
+msgid "actions"
+msgstr "कार्रवाई"
+
+msgctxt "users.table"
+msgid "created"
+msgstr "बनाया गया"
+
+msgctxt "users.table"
+msgid "email"
+msgstr "ईमेल"
+
+msgctxt "users.table"
+msgid "externalId"
+msgstr "बाहरी ID"
+
+msgctxt "users.table"
+msgid "name"
+msgstr "नाम"
+
+msgctxt "users.table"
+msgid "role"
+msgstr "भूमिका"
+
+msgctxt "users"
+msgid "title"
+msgstr "उपयोगकर्ता"
+
+msgctxt "users.toasts"
+msgid "copiedId"
+msgstr "उपयोगकर्ता ID क्लिपबोर्ड पर कॉपी हो गया"
+
+msgctxt "users.toasts"
+msgid "created"
+msgstr "उपयोगकर्ता \"{id}\" सफलतापूर्वक बन गया"
+
+msgctxt "users.toasts"
+msgid "deleted"
+msgstr "उपयोगकर्ता \"{id}\" हटा दिया गया"
+
+msgctxt "users.toasts"
+msgid "inviteRevoked"
+msgstr "{name} के लिए निमंत्रण रद्द कर दिया गया"
+
+msgctxt "users.toasts"
+msgid "inviteSent"
+msgstr "{email} को निमंत्रण भेजा गया"
+
+msgctxt "users.toasts"
+msgid "roleChanged"
+msgstr "उपयोगकर्ता \"{id}\" अब {role} हैं"
+
+msgctxt "users.toasts"
+msgid "updated"
+msgstr "उपयोगकर्ता \"{id}\" सफलतापूर्वक अपडेट हुआ"
+
+msgctxt "users"
+msgid "viewUser"
+msgstr "उपयोगकर्ता देखें"
+
+msgctxt "users"
+msgid "you"
+msgstr "आप"

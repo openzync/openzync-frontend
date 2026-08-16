@@ -6,7 +6,7 @@
 // `locales` and drop a `<locale>.json` catalog next to en.json.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const locales = ["en"] as const;
+export const locales = ["en", "hi"] as const;
 export type Locale = (typeof locales)[number];
 
 export const defaultLocale: Locale = "en";
@@ -21,6 +21,7 @@ export const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 /** Human-readable labels for the language switcher dropdown. */
 export const LOCALE_LABELS: Record<string, string> = {
   en: "English",
+  hi: "हिन्दी",
 };
 
 /** BCP-47 RTL script locales — extend when N locales beyond en arrive. */

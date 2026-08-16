@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
-import messages from "@/messages/en.json";
+import messages from "@/messages/en.po";
 import { LanguageSwitcher } from "@/components/shared/language-switcher";
 import { LOCALE_COOKIE, LOCALE_LABELS, locales } from "@/i18n/config";
 

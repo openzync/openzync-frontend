@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { vi } from "vitest";
 import { NextIntlClientProvider } from "next-intl";
-import messages from "@/messages/en.json";
+import messages from "@/messages/en.po";
 
 const renderWithProvider = (ui: React.ReactElement) =>
   React.createElement(
@@ -18,7 +18,7 @@ const renderWithProvider = (ui: React.ReactElement) =>
  * Global test render wrapper: every `render()` in the suite gets a
  * NextIntlClientProvider so components using useTranslations/useFormatter
  * work without per-file boilerplate. Locale is fixed to en; the catalog is
- * the real en.json, so extracted strings are asserted verbatim in tests.
+ * the real en.po catalog, so extracted strings are asserted verbatim in tests.
  *
  * `rerender` is wrapped too — RTL's default re-renders into the same
  * container, which would drop the provider and change the tree root (tests

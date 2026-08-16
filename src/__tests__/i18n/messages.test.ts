@@ -1,8 +1,23 @@
 import { describe, it, expect } from "vitest";
-import en from "@/messages/en.json";
+import poRaw from "@/messages/en.po?raw";
+import poParser from "po-parser";
 import { locales, defaultLocale } from "@/i18n/config";
 
-type Messages = Record<string, unknown>;
+/** A single catalog entry: full dotted key + string value. */
+type Entry = { id: string; message: string };
+
+/** Parse the raw PO text into flat id → message entries (msgctxt.msgid = id,
+ *  msgstr = value — the next-intl/eloqnt PO convention). */
+function parseCatalog(raw: string): Entry[] {
+  const catalog = poParser.parse(raw);
+  const entries: Entry[] = [];
+  for (const msg of catalog.messages ?? []) {
+    if (!msg.msgid) continue; // header entry
+    const id = msg.msgctxt ? `${msg.msgctxt}.${msg.msgid}` : msg.msgid;
+    entries.push({ id, message: msg.msgstr });
+  }
+  return entries;
+}
 
 /** The 16 namespaces the dashboard shell and pages consume. */
 const KNOWN_NAMESPACES = [
@@ -38,20 +53,6 @@ const HTML_TAG_RE = /<\/?[a-zA-Z][^>]*>/;
  */
 const DANGEROUS_HTML_RE = /<script|<\s*\w+[^>]*\son\w+\s*=|href\s*=\s*["']\s*javascript:/i;
 
-/** Recursively assert every catalog value is a non-empty string. */
-function collectLeafKeys(node: Messages, prefix: string, out: string[]): void {
-  for (const [key, value] of Object.entries(node)) {
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (typeof value === "string") {
-      out.push(path);
-    } else if (value && typeof value === "object") {
-      collectLeafKeys(value as Messages, path, out);
-    } else {
-      throw new Error(`Catalog key ${path} is not a string (got ${typeof value})`);
-    }
-  }
-}
-
 /** Crude ICU brace-balance check — eloqnt lint does the real validation. */
 function icuBracesBalanced(value: string): boolean {
   let depth = 0;
@@ -63,86 +64,63 @@ function icuBracesBalanced(value: string): boolean {
   return depth === 0;
 }
 
-describe("message catalog", () => {
-  it("parses as a plain object with the expected top-level namespaces", () => {
-    expect(typeof en).toBe("object");
-    expect(en).not.toBeNull();
-    expect(Object.keys(en).length).toBeGreaterThan(0);
+const entries = parseCatalog(poRaw);
+const ids = entries.map((e) => e.id);
+
+describe("message catalog (en.po)", () => {
+  it("parses as PO with the full pre-migration key count (1595 — losslessness pin)", () => {
+    expect(entries.length).toBe(1595);
+    expect(poRaw.trim().length).toBeGreaterThan(0);
   });
 
   it("top-level namespaces match the known set exactly", () => {
-    const actual = Object.keys(en).sort();
+    const actual = [...new Set(ids.map((id) => id.split(".")[0]!))].sort();
     const expected = [...KNOWN_NAMESPACES].sort();
     expect(actual).toEqual(expected);
   });
 
   it("every key path is dot-separated lowercase-alnum segments — no source-language keys", () => {
-    const keys: string[] = [];
-    collectLeafKeys(en as Messages, "", keys);
     // Rejects: spaces ("Hello world"), leading uppercase ("Overview"),
     // underscores, dashes, or any non-alnum segment.
-    const offenders = keys.filter((k) => !KEY_PATH_RE.test(k));
-    expect(offenders).toEqual([]);
+    expect(ids.filter((k) => !KEY_PATH_RE.test(k))).toEqual([]);
   });
 
   it("contains no dangerous HTML in any message value", () => {
-    const check = (node: Messages, prefix: string) => {
-      for (const [key, value] of Object.entries(node)) {
-        if (typeof value === "string") {
-          expect(DANGEROUS_HTML_RE.test(value), `${prefix}.${key}`).toBe(false);
-          // Rich-text tags are allowed, but every open tag must be closed
-          // (balanced) so the tree never renders stray markup.
-          if (HTML_TAG_RE.test(value)) {
-            const opens = value.match(/<([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g) ?? [];
-            const closes = value.match(/<\/([a-zA-Z][a-zA-Z0-9]*)\s*>/g) ?? [];
-            expect(opens.length, `${prefix}.${key} (unclosed tag)`).toBe(
-              closes.length,
-            );
-          }
-        } else if (value && typeof value === "object") {
-          check(value as Messages, `${prefix}.${key}`);
-        }
+    for (const { id, message } of entries) {
+      expect(DANGEROUS_HTML_RE.test(message), id).toBe(false);
+      // Rich-text tags are allowed, but every open tag must be closed
+      // (balanced) so the tree never renders stray markup.
+      if (HTML_TAG_RE.test(message)) {
+        const opens = message.match(/<([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g) ?? [];
+        const closes = message.match(/<\/([a-zA-Z][a-zA-Z0-9]*)\s*>/g) ?? [];
+        expect(opens.length, `${id} (unclosed tag)`).toBe(closes.length);
       }
-    };
-    check(en as Messages, "");
+    }
   });
 
   it("config is coherent — default locale is a supported locale", () => {
     expect(locales).toContain(defaultLocale);
-    // en catalog is imported as the source locale; adding a locale means
-    // adding both a `locales` entry and a matching <locale>.json catalog.
-    expect(Object.keys(en).length).toBeGreaterThan(0);
+    expect(entries.length).toBeGreaterThan(0);
   });
 
-  it("has no leftover placeholder keys and every leaf is a string", () => {
-    const keys: string[] = [];
-    collectLeafKeys(en as Messages, "", keys);
-    expect(keys.length).toBeGreaterThan(20);
-    for (const key of keys) {
-      expect(key).not.toContain("__pending__");
+  it("has no leftover placeholder keys and every msgstr is a non-empty string", () => {
+    for (const { id, message } of entries) {
+      expect(id).not.toContain("__pending__");
+      expect(message.length, `${id} (empty msgstr)`).toBeGreaterThan(0);
     }
   });
 
   it("has balanced ICU braces in every message value", () => {
-    const check = (node: Messages, prefix: string) => {
-      for (const [key, value] of Object.entries(node)) {
-        if (typeof value === "string") {
-          expect(icuBracesBalanced(value), `${prefix}.${key}`).toBe(true);
-        } else if (value && typeof value === "object") {
-          check(value as Messages, `${prefix}.${key}`);
-        }
-      }
-    };
-    check(en as Messages, "");
+    for (const { id, message } of entries) {
+      expect(icuBracesBalanced(message), id).toBe(true);
+    }
   });
 
   it("uses key-based ids — no message value equals its key path", () => {
-    const keys: string[] = [];
-    collectLeafKeys(en as Messages, "", keys);
-    const get = (path: string): unknown =>
-      path.split(".").reduce<unknown>((acc, part) => (acc as Messages)?.[part], en);
-    for (const key of keys) {
-      expect(get(key), key).not.toBe(key);
+    const byId = new Map(entries.map((e) => [e.id, e.message]));
+    for (const { id, message } of entries) {
+      expect(byId.get(id), id).toBe(message);
+      expect(message, id).not.toBe(id);
     }
   });
 });
