@@ -14,6 +14,8 @@ interface ConfirmDialogProps {
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Optional extra content (e.g. an input) rendered between the message and the action buttons. */
+  children?: React.ReactNode;
 }
 
 /**
@@ -34,6 +36,7 @@ export function ConfirmDialog({
   loading = false,
   onConfirm,
   onCancel,
+  children,
 }: ConfirmDialogProps) {
   return (
     <AlertDialogPrimitive.Root
@@ -72,6 +75,7 @@ export function ConfirmDialog({
           <AlertDialogPrimitive.Description className="mt-2 text-sm text-surface-400">
             {message}
           </AlertDialogPrimitive.Description>
+          {children}
           <div className="mt-6 flex justify-end gap-3">
             <AlertDialogPrimitive.Cancel asChild>
               <Button variant="secondary" disabled={loading}>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { Brain, Eye, RotateCcw } from "lucide-react";
+import { Brain, Eye, RotateCcw, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
 import { ErrorState } from "@/components/shared/error-state";
@@ -33,6 +33,9 @@ type FormState = {
   ollama_base_url: string;
   azure_openai_endpoint: string;
   azure_openai_key: string;
+  prompt_caching_enabled: boolean;
+  prompt_caching_anthropic_min_tokens: number;
+  prompt_caching_anthropic_cache_ttl: "5m" | "1h";
 };
 
 /** One provider-specific field (api key, endpoint, base url, …). */
@@ -66,7 +69,21 @@ const LLM_FIELDS: readonly (keyof FormState)[] = [
   "ollama_base_url",
   "azure_openai_endpoint",
   "azure_openai_key",
+  "prompt_caching_enabled",
+  "prompt_caching_anthropic_min_tokens",
+  "prompt_caching_anthropic_cache_ttl",
 ];
+
+/**
+ * The three flat form fields that map to the backend's nested
+ * `prompt_caching` object. Kept separate from `LLM_FIELDS` so the save
+ * transform can collapse them into the nested payload shape.
+ */
+const PROMPT_CACHING_FIELDS = [
+  "prompt_caching_enabled",
+  "prompt_caching_anthropic_min_tokens",
+  "prompt_caching_anthropic_cache_ttl",
+] as const;
 
 /**
  * Single source of truth for provider selection (order = select order) and the
@@ -142,6 +159,9 @@ export default function LlmConfigPage() {
     ollama_base_url: "",
     azure_openai_endpoint: "",
     azure_openai_key: "",
+    prompt_caching_enabled: true,
+    prompt_caching_anthropic_min_tokens: 1024,
+    prompt_caching_anthropic_cache_ttl: "5m",
   });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
   const [stored, setStored] = useState<Record<string, unknown>>({});
@@ -194,7 +214,8 @@ export default function LlmConfigPage() {
     try {
       const data = await get<OrgConfigResponse>("/admin/org/config");
       const stored = data.stored as Record<string, unknown>;
-      const hasAnyStored = LLM_FIELDS.some((f) => stored[f] != null);
+      const hasAnyStored =
+        LLM_FIELDS.some((f) => stored[f] != null) || stored.prompt_caching != null;
 
       // If no stored values exist for this tab, pull onboarding defaults from API
       let defaults: Record<string, unknown> = {};
@@ -209,6 +230,12 @@ export default function LlmConfigPage() {
       const val = (field: string, fallback: unknown) =>
         (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
 
+      // prompt_caching is nested on the backend — read the three flat form
+      // fields from stored.prompt_caching, falling back to the platform
+      // default per key when the object or a key is null/absent
+      const pc = stored.prompt_caching as Record<string, unknown> | null | undefined;
+      const pcVal = (key: string, fallback: unknown) => (pc?.[key] as unknown) ?? fallback;
+
       setForm({
         llm_backend: val("llm_backend", "openai") as LlmBackend,
         llm_model: val("llm_model", "") as string,
@@ -220,6 +247,9 @@ export default function LlmConfigPage() {
         ollama_base_url: val("ollama_base_url", "") as string,
         azure_openai_endpoint: val("azure_openai_endpoint", "") as string,
         azure_openai_key: val("azure_openai_key", "") as string,
+        prompt_caching_enabled: pcVal("enabled", true) as boolean,
+        prompt_caching_anthropic_min_tokens: pcVal("anthropic_min_tokens", 1024) as number,
+        prompt_caching_anthropic_cache_ttl: pcVal("anthropic_cache_ttl", "5m") as "5m" | "1h",
       });
       setInitialForm({
         llm_backend: val("llm_backend", "openai") as LlmBackend,
@@ -232,6 +262,9 @@ export default function LlmConfigPage() {
         ollama_base_url: val("ollama_base_url", "") as string,
         azure_openai_endpoint: val("azure_openai_endpoint", "") as string,
         azure_openai_key: val("azure_openai_key", "") as string,
+        prompt_caching_enabled: pcVal("enabled", true) as boolean,
+        prompt_caching_anthropic_min_tokens: pcVal("anthropic_min_tokens", 1024) as number,
+        prompt_caching_anthropic_cache_ttl: pcVal("anthropic_cache_ttl", "5m") as "5m" | "1h",
       });
       setStored(data.stored ?? {});
       setError(null);
@@ -251,6 +284,11 @@ export default function LlmConfigPage() {
   // ── Field helpers ─────────────────────────────────────────────────────────
 
   function isFieldSet(field: keyof FormState): boolean {
+    // prompt_caching is stored nested on the backend — the three flat form
+    // fields count as set when the nested object exists
+    if ((PROMPT_CACHING_FIELDS as readonly string[]).includes(field)) {
+      return stored.prompt_caching != null;
+    }
     return field in stored;
   }
 
@@ -272,7 +310,14 @@ export default function LlmConfigPage() {
   // ── Stage reset field (applied on save) ────────────────────────────────────
 
   function handleStageReset(field: keyof FormState) {
-    stageReset(field, typeof initialForm[field] === "number" ? 0 : "");
+    stageReset(
+      field,
+      typeof initialForm[field] === "number"
+        ? 0
+        : typeof initialForm[field] === "boolean"
+          ? false
+          : "",
+    );
     setDirty(true);
   }
 
@@ -281,6 +326,35 @@ export default function LlmConfigPage() {
   async function handleSave() {
     const payload = getSavePayload(form);
     if (Object.keys(payload).length === 0) return;
+
+    // prompt_caching is a nested backend object — collapse the three flat form
+    // fields into it. A staged reset (flat null from getSavePayload) becomes a
+    // null inside the object so the backend falls back to that field's platform
+    // default; resetting all three sends {} so the backend clears every field.
+    // Never send prompt_caching: null — the backend treats null as "don't
+    // touch", which would silently keep the old values.
+    const pcTouched =
+      PROMPT_CACHING_FIELDS.some((f) => f in payload) ||
+      PROMPT_CACHING_FIELDS.some((f) => pendingResets.has(f));
+    if (pcTouched) {
+      if (PROMPT_CACHING_FIELDS.every((f) => pendingResets.has(f))) {
+        payload["prompt_caching"] = {};
+      } else {
+        payload["prompt_caching"] = {
+          enabled: pendingResets.has("prompt_caching_enabled")
+            ? null
+            : form.prompt_caching_enabled,
+          anthropic_min_tokens: pendingResets.has("prompt_caching_anthropic_min_tokens")
+            ? null
+            : form.prompt_caching_anthropic_min_tokens,
+          anthropic_cache_ttl: pendingResets.has("prompt_caching_anthropic_cache_ttl")
+            ? null
+            : form.prompt_caching_anthropic_cache_ttl,
+        };
+      }
+      for (const f of PROMPT_CACHING_FIELDS) delete payload[f];
+    }
+
     setSaving(true);
     setError(null);
 
@@ -523,6 +597,130 @@ export default function LlmConfigPage() {
                 )}
               </Fragment>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Prompt Caching Card ──────────────────────────────────────────────── */}
+      {!loading && (
+        <div className="card-base p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
+              <Zap size={20} className="text-brand-300" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold">Prompt Caching</h2>
+              <p className="text-xs text-surface-400">Anthropic prompt caching</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 max-w-md">
+            {/* prompt_caching_enabled — checkbox toggle */}
+            <div>
+              <div className="flex items-start justify-between">
+                <div>
+                  <label className="block text-sm font-medium text-surface-300 mb-1">
+                    Enable prompt caching
+                  </label>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="rounded border-surface-600 bg-surface-800 text-brand-500"
+                      checked={form.prompt_caching_enabled}
+                      onChange={(e) => updateField("prompt_caching_enabled", e.target.checked)}
+                    />
+                    <span className="text-sm text-surface-300">
+                      {form.prompt_caching_enabled ? "Enabled" : "Disabled"}
+                    </span>
+                  </label>
+                  {isFieldSet("prompt_caching_enabled") && (
+                    <Button
+                      onClick={() => handleStageReset("prompt_caching_enabled")}
+                      variant="ghost" size="sm"
+                      className="rounded-md text-surface-400 hover:text-brand-300"
+                      title="Remove stored value — default will apply on save"
+                    >
+                      <RotateCcw size={14} />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {pendingResets.has("prompt_caching_enabled") && (
+                <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+              )}
+            </div>
+
+            {/* prompt_caching_anthropic_min_tokens */}
+            <div>
+              <label className="block text-sm font-medium text-surface-300 mb-1">
+                Minimum input tokens
+              </label>
+              <div className="flex gap-2 items-start">
+                <input
+                  className="input-base flex-1"
+                  type="number"
+                  min="512"
+                  value={form.prompt_caching_anthropic_min_tokens}
+                  onChange={(e) =>
+                    updateField(
+                      "prompt_caching_anthropic_min_tokens",
+                      Math.max(512, parseInt(e.target.value) || 0),
+                    )
+                  }
+                />
+                {isFieldSet("prompt_caching_anthropic_min_tokens") && (
+                  <Button
+                    onClick={() => handleStageReset("prompt_caching_anthropic_min_tokens")}
+                    variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                    title="Remove stored value — default will apply on save"
+                  >
+                    <RotateCcw size={14} />
+                  </Button>
+                )}
+              </div>
+              {pendingResets.has("prompt_caching_anthropic_min_tokens") && (
+                <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+              )}
+              <p className="text-xs text-surface-500 mt-1">
+                Only cache prompts with at least this many input tokens (min 512)
+              </p>
+            </div>
+
+            {/* prompt_caching_anthropic_cache_ttl */}
+            <div>
+              <label className="block text-sm font-medium text-surface-300 mb-1">
+                Cache TTL
+              </label>
+              <div className="flex gap-2 items-start">
+                <select
+                  className="input-base flex-1"
+                  value={form.prompt_caching_anthropic_cache_ttl}
+                  onChange={(e) =>
+                    updateField("prompt_caching_anthropic_cache_ttl", e.target.value as "5m" | "1h")
+                  }
+                >
+                  <option value="5m">5m — 1.25× write cost</option>
+                  <option value="1h">1h — 2× write cost</option>
+                </select>
+                {isFieldSet("prompt_caching_anthropic_cache_ttl") && (
+                  <Button
+                    onClick={() => handleStageReset("prompt_caching_anthropic_cache_ttl")}
+                    variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                    title="Remove stored value — default will apply on save"
+                  >
+                    <RotateCcw size={14} />
+                  </Button>
+                )}
+              </div>
+              {pendingResets.has("prompt_caching_anthropic_cache_ttl") && (
+                <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+              )}
+              <p className="text-xs text-surface-500 mt-1">
+                Cached reads are 0.1× of the output token price
+              </p>
+            </div>
           </div>
         </div>
       )}

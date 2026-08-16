@@ -1,9 +1,9 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FileText } from "lucide-react";
-import { get, ApiError } from "@/lib/api-client";
+import { apiErrorMessage, get, post, ApiError } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { useProject } from "@/stores/project-context";
 import { toast } from "sonner";
@@ -11,9 +11,11 @@ import SessionTabs from "../tabs";
 import { PageGuide, GuideData } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TableSkeleton } from "@/components/shared/skeleton";
+import { Dialog } from "@/components/ui/dialog";
+import { Skeleton, TableSkeleton } from "@/components/shared/skeleton";
 
 interface FactRow {
   id: string;
@@ -23,12 +25,29 @@ interface FactRow {
   object: string | null;
   confidence: number;
   created_at: string;
+  valid_to: string | null;
+  invalid_at: string | null;
 }
 
 interface FactsResponse {
   data: FactRow[];
   next_cursor: string | null;
   has_more: boolean;
+}
+
+interface FactHistoryEvent {
+  id: string;
+  old_fact_id: string | null;
+  new_fact_id: string | null;
+  kind: "superseded" | "retracted";
+  reason: string | null;
+  at_time: string;
+  source_episode_id: string | null;
+}
+
+interface FactHistoryResponse {
+  fact: FactRow;
+  events: FactHistoryEvent[];
 }
 
 function confidenceVariant(score: number): "success" | "warning" | "error" {
@@ -50,10 +69,21 @@ export default function SessionFactsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  useEffect(() => {
-    if (!projectId) return;
-    async function fetchFacts() {
-      setLoading(true);
+  // Retract state
+  const [retractTarget, setRetractTarget] = useState<FactRow | null>(null);
+  const [retractReason, setRetractReason] = useState("");
+  const [retracting, setRetracting] = useState(false);
+
+  // History state
+  const [historyTarget, setHistoryTarget] = useState<FactRow | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [historyData, setHistoryData] = useState<FactHistoryResponse | null>(null);
+
+  const loadFacts = useCallback(
+    async (showSpinner = true) => {
+      if (!projectId) return;
+      if (showSpinner) setLoading(true);
       setError("");
       try {
         const json = await get<FactsResponse>(
@@ -66,11 +96,15 @@ export default function SessionFactsPage() {
         setError(err instanceof ApiError ? err.message : "Failed to load facts");
         setFacts([]);
       } finally {
-        setLoading(false);
+        if (showSpinner) setLoading(false);
       }
-    }
-    fetchFacts();
-  }, [projectId, sessionId]);
+    },
+    [projectId, sessionId],
+  );
+
+  useEffect(() => {
+    loadFacts();
+  }, [loadFacts]);
 
   async function loadMore() {
     if (!projectId || !cursor || loadingMore) return;
@@ -87,6 +121,53 @@ export default function SessionFactsPage() {
     } finally {
       setLoadingMore(false);
     }
+  }
+
+  async function handleRetract() {
+    if (!retractTarget || !projectId) return;
+    setRetracting(true);
+    try {
+      await post(`/v1/projects/${projectId}/facts/${retractTarget.id}/retract`, {
+        reason: retractReason.trim() || null,
+      });
+      toast.success("Fact retracted");
+      setRetractTarget(null);
+      setRetractReason("");
+      await loadFacts(false);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Failed to retract fact"));
+    } finally {
+      setRetracting(false);
+    }
+  }
+
+  function cancelRetract() {
+    setRetractTarget(null);
+    setRetractReason("");
+  }
+
+  async function openHistory(fact: FactRow) {
+    if (!projectId) return;
+    setHistoryTarget(fact);
+    setHistoryLoading(true);
+    setHistoryError("");
+    setHistoryData(null);
+    try {
+      const json = await get<FactHistoryResponse>(
+        `/v1/projects/${projectId}/facts/${fact.id}/history`,
+      );
+      setHistoryData(json);
+    } catch (err) {
+      setHistoryError(apiErrorMessage(err, "Failed to load fact history"));
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function closeHistory() {
+    setHistoryTarget(null);
+    setHistoryData(null);
+    setHistoryError("");
   }
 
   return (
@@ -111,6 +192,7 @@ export default function SessionFactsPage() {
                 <th className="px-4 py-3 text-left">Triple</th>
                 <th className="px-4 py-3 text-center">Confidence</th>
                 <th className="px-4 py-3 text-right">Extracted</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-800">
@@ -130,6 +212,23 @@ export default function SessionFactsPage() {
                   <td className="px-4 py-3 text-right text-sm text-surface-400 whitespace-nowrap">
                     {formatDate(fact.created_at)}
                   </td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => openHistory(fact)}>
+                        History
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setRetractTarget(fact);
+                          setRetractReason("");
+                        }}
+                      >
+                        Retract
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -143,6 +242,96 @@ export default function SessionFactsPage() {
           )}
         </div>
       )}
+
+      {/* ── Retract confirm dialog ─────────────────────────────────────────── */}
+      <ConfirmDialog
+        open={!!retractTarget}
+        title="Retract fact"
+        message={
+          retractTarget
+            ? `Are you sure you want to retract "${retractTarget.content}"? It will be removed from the facts list.`
+            : ""
+        }
+        confirmLabel="Retract"
+        variant="danger"
+        loading={retracting}
+        onConfirm={handleRetract}
+        onCancel={cancelRetract}
+      >
+        <div className="mt-4">
+          <label htmlFor="retract-reason" className="block text-sm font-medium text-surface-300 mb-1.5">
+            Reason (optional)
+          </label>
+          <input
+            id="retract-reason"
+            type="text"
+            value={retractReason}
+            onChange={(e) => setRetractReason(e.target.value)}
+            placeholder="Reason (optional)"
+            className="input-base w-full"
+            disabled={retracting}
+          />
+        </div>
+      </ConfirmDialog>
+
+      {/* ── History dialog ─────────────────────────────────────────────────── */}
+      <Dialog
+        open={!!historyTarget}
+        onOpenChange={(open) => {
+          if (!open) closeHistory();
+        }}
+        title="Fact history"
+        size="lg"
+      >
+        {historyTarget && (
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-surface-200">{historyTarget.content}</p>
+              <p className="text-sm text-surface-400 mt-1">
+                {historyTarget.subject && historyTarget.predicate && historyTarget.object
+                  ? `${historyTarget.subject} → ${historyTarget.predicate} → ${historyTarget.object}`
+                  : "—"}
+              </p>
+            </div>
+            {historyLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            ) : historyError ? (
+              <ErrorState
+                message={historyError}
+                onRetry={() => openHistory(historyTarget)}
+              />
+            ) : historyData && historyData.events.length === 0 ? (
+              <p className="text-sm text-surface-400">No history events for this fact</p>
+            ) : (
+              <ul className="space-y-4">
+                {historyData?.events.map((ev) => (
+                  <li key={ev.id} className="flex items-start gap-3">
+                    <Badge
+                      variant={ev.kind === "retracted" ? "error" : "warning"}
+                      size="sm"
+                      className="mt-0.5 shrink-0"
+                    >
+                      {ev.kind === "retracted" ? "Retracted" : "Superseded"}
+                    </Badge>
+                    <div className="min-w-0">
+                      <p className="text-xs text-surface-400">{formatDate(ev.at_time, true)}</p>
+                      <p className="text-sm text-surface-200 mt-0.5">{ev.reason || "No reason given"}</p>
+                      {ev.new_fact_id && (
+                        <p className="text-xs text-surface-400 mt-0.5">
+                          Replaced by fact {ev.new_fact_id}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 }
