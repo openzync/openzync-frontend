@@ -434,6 +434,28 @@
       "system": "System",
       "user": "User",
       "anonymous": "Anonymous"
+    },
+    "actions": {
+      "authSignup": "User signed up",
+      "authLogin": "User logged in",
+      "authRefresh": "Session refreshed",
+      "authProfileUpdate": "Profile updated",
+      "organizationCreate": "Organization created",
+      "schemaCreate": "Extraction schema created",
+      "schemaUpdate": "Extraction schema updated",
+      "schemaDelete": "Extraction schema deleted",
+      "apiKeyCreate": "API key generated",
+      "apiKeyRevoke": "API key revoked",
+      "userCreate": "User added",
+      "userUpdate": "User updated",
+      "userDelete": "User removed",
+      "sessionCreate": "Session created",
+      "sessionDelete": "Session deleted",
+      "memoryIngest": "Message ingested",
+      "memoryWipe": "Memory wiped",
+      "factCreate": "Fact extracted",
+      "graphNodeDelete": "Graph entity removed",
+      "entityMerge": "Entities merged"
     }
   },
   "projects": {

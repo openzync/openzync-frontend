@@ -41,6 +41,9 @@ export function middleware(request: NextRequest) {
     maxAge: LOCALE_COOKIE_MAX_AGE,
     httpOnly: false, // client JS (language switcher) must read/write it
     sameSite: "lax",
+    // Secure only in prod — browsers drop secure cookies on plain http
+    // (localhost dev); NODE_ENV is inlined at build by Next.js.
+    secure: process.env.NODE_ENV === "production",
   });
   return response;
 }

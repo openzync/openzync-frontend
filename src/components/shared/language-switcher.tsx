@@ -30,7 +30,10 @@ export function LanguageSwitcher() {
 
   const selectLocale = (next: string) => {
     if (next === locale) return;
-    document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax`;
+    // Mirrors the middleware cookie shape; secure only in prod (browsers drop
+    // secure cookies on plain http://localhost dev). NODE_ENV is build-inlined.
+    const secure = process.env.NODE_ENV === "production" ? "; secure" : "";
+    document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax${secure}`;
     // Fire-and-forget server-side persistence — the cookie still applies.
     patch("/v1/auth/me", { locale: next }).catch((err) => {
       console.warn("Failed to persist locale preference", err);

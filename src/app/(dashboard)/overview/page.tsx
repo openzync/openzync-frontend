@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get } from "@/lib/api-client";
-import { actionLabel } from "@/lib/utils";
 import { useTimeAgo } from "@/hooks/use-time-ago";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
@@ -143,6 +142,36 @@ export default function OverviewPage() {
         return t("actors.user");
       default:
         return t("actors.anonymous");
+    }
+  };
+
+  // Action label for the recent-activity list — mirrors actorLabel: literal
+  // t() calls so the i18n extractor statically resolves the catalog keys.
+  // Unknown actions fall back to a canonical formatted form of the raw string.
+  const actionLabel = (action: string): string => {
+    switch (action) {
+      case "auth.signup": return t("actions.authSignup");
+      case "auth.login": return t("actions.authLogin");
+      case "auth.refresh": return t("actions.authRefresh");
+      case "auth.profile.update": return t("actions.authProfileUpdate");
+      case "organization.create": return t("actions.organizationCreate");
+      case "schema.create": return t("actions.schemaCreate");
+      case "schema.update": return t("actions.schemaUpdate");
+      case "schema.delete": return t("actions.schemaDelete");
+      case "api_key.create": return t("actions.apiKeyCreate");
+      case "api_key.revoke": return t("actions.apiKeyRevoke");
+      case "user.create": return t("actions.userCreate");
+      case "user.update": return t("actions.userUpdate");
+      case "user.delete": return t("actions.userDelete");
+      case "session.create": return t("actions.sessionCreate");
+      case "session.delete": return t("actions.sessionDelete");
+      case "memory.ingest": return t("actions.memoryIngest");
+      case "memory.wipe": return t("actions.memoryWipe");
+      case "fact.create": return t("actions.factCreate");
+      case "graph.node.delete": return t("actions.graphNodeDelete");
+      case "entity.merge": return t("actions.entityMerge");
+      default:
+        return action.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     }
   };
 

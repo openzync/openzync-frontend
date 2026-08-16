@@ -6,7 +6,6 @@ import {
   smartTimestamp,
   truncateId,
   copyToClipboard,
-  actionLabel,
   formatNumber,
   formatFileSize,
   mimeToIcon,
@@ -116,16 +115,6 @@ describe("copyToClipboard", () => {
     });
     const result = await copyToClipboard("hello");
     expect(result).toBe(false);
-  });
-});
-
-describe("actionLabel", () => {
-  it("returns known labels", () => {
-    expect(actionLabel("session.create")).toBe("Session created");
-    expect(actionLabel("auth.login")).toBe("User logged in");
-  });
-  it("falls back to formatted action for unknown keys", () => {
-    expect(actionLabel("foo.bar_baz")).toBe("Foo.Bar Baz");
   });
 });
 
