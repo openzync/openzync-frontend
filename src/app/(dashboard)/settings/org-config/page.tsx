@@ -16,10 +16,13 @@ interface OrgCodeResponse {
 
 /**
  * Organization code card — the invite code members use to join this org
- * via POST /v1/auth/join. Admin-only (GET/POST both 403 for members).
+ * via POST /v1/auth/join. Read-gated on configuration:read; regenerate/join
+ * toggles additionally require configuration:write.
  */
 export default function OrgConfigIndexPage() {
-  const { isAdmin, loading: roleLoading } = useUser();
+  const { can, loading: roleLoading } = useUser();
+  const canRead = can("configuration:read");
+  const canWrite = can("configuration:write");
   const [orgCode, setOrgCode] = useState<string | null>(null);
   const [joinEnabled, setJoinEnabled] = useState(true);
   const [togglingJoin, setTogglingJoin] = useState(false);
@@ -31,7 +34,7 @@ export default function OrgConfigIndexPage() {
   const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!canRead) return;
     let cancelled = false;
     (async () => {
       try {
@@ -49,7 +52,7 @@ export default function OrgConfigIndexPage() {
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, retryKey]);
+  }, [canRead, retryKey]);
 
   const handleRetry = () => {
     setError(null);
@@ -110,9 +113,12 @@ export default function OrgConfigIndexPage() {
     );
   }
 
-  // Member (or role fetch failed → unknown treated as member): no code, no fetch.
-  if (!isAdmin) {
-    return <ErrorState message="Admin access required" />;
+  // No read permission (or role fetch failed → unknown treated as denied):
+  // no code, no fetch — mirror the backend's 403 message.
+  if (!canRead) {
+    return (
+      <ErrorState message="This action requires the 'configuration:read' permission." />
+    );
   }
 
   return (
@@ -151,15 +157,17 @@ export default function OrgConfigIndexPage() {
                     {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
                     {copied ? "Copied" : "Copy"}
                   </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setShowRegenerate(true)}
-                    className="gap-1.5"
-                  >
-                    <RefreshCw size={14} />
-                    Regenerate
-                  </Button>
+                  {canWrite && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowRegenerate(true)}
+                      className="gap-1.5"
+                    >
+                      <RefreshCw size={14} />
+                      Regenerate
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -200,9 +208,16 @@ export default function OrgConfigIndexPage() {
               id="join-enabled"
               checked={joinEnabled}
               onCheckedChange={handleToggleJoin}
-              disabled={togglingJoin}
+              disabled={togglingJoin || !canWrite}
             />
           </div>
+
+          {!canWrite && (
+            <p className="mt-2 text-xs text-surface-500">
+              You need the &lsquo;configuration:write&rsquo; permission to change this
+              setting.
+            </p>
+          )}
 
           {!joinEnabled && (
             <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">

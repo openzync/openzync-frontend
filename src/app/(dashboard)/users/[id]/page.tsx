@@ -29,12 +29,11 @@ import {
   BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { API_BASE, safeJsonParse, patch as apiPatch, ApiError } from "@/lib/api-client";
+import { API_BASE, safeJsonParse, patch as apiPatch, ApiError, errorDetail } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ErrorState } from "@/components/shared/error-state";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { useUser } from "@/contexts/user-context";
+import { useUser, ALL_PERMISSIONS } from "@/contexts/user-context";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -45,6 +44,7 @@ interface UserWithStats {
   name: string | null;
   email: string | null;
   role: string;
+  permissions: string[];
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -512,18 +512,19 @@ export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
   const userId = params.id as string;
-  const { isAdmin, user: me } = useUser();
+  const { can, user: me, loading: roleLoading } = useUser();
+  const canWriteMembers = can("members:write");
 
   // ── Data state ────────────────────────────────────────────────────────────
   const [user, setUser] = useState<UserWithStats | null>(null);
   const [summary, setSummary] = useState<UserSummaryResponse | null>(null);
   const [instructions, setInstructions] = useState<CustomInstruction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [forbidden, setForbidden] = useState(false);
+  const [forbidden, setForbidden] = useState<string | null>(null);
 
-  // ── Role-change state ─────────────────────────────────────────────────────
-  const [roleChangeOpen, setRoleChangeOpen] = useState(false);
-  const [roleChanging, setRoleChanging] = useState(false);
+  // ── Permissions-editor state (PATCH replaces the whole set) ──────────────
+  const [editPermissions, setEditPermissions] = useState<string[] | null>(null);
+  const [savingPermissions, setSavingPermissions] = useState(false);
 
   // ── Summary generation state ──────────────────────────────────────────────
   const [generating, setGenerating] = useState(false);
@@ -574,7 +575,8 @@ export default function UserDetailPage() {
           return;
         }
         if (userRes.status === 403) {
-          setForbidden(true);
+          // Surface the backend's RFC 7807 detail (e.g. which permission is missing).
+          setForbidden(await errorDetail(userRes));
           setLoading(false);
           return;
         }
@@ -605,24 +607,35 @@ export default function UserDetailPage() {
     fetchData();
   }, [fetchData]);
 
-  // ── Role management ────────────────────────────────────────────────────────
+  // ── Permissions management ────────────────────────────────────────────────
 
-  const handleRoleChange = async () => {
-    if (!user) return;
-    const to: "admin" | "member" = user.role === "admin" ? "member" : "admin";
-    setRoleChanging(true);
+  /**
+   * PATCH /v1/users/{id} with `{"permissions": [...]}` replaces the set — the
+   * new backend no longer grants org access via a single admin role toggle.
+   */
+  const handleSavePermissions = async () => {
+    if (!user || editPermissions === null) return;
+    setSavingPermissions(true);
     try {
-      const updated = await apiPatch<{ role?: string }>(`/v1/users/${user.id}`, { role: to });
-      setUser((prev) =>
-        prev ? { ...prev, role: (updated.role ?? to) as "admin" | "member" } : prev,
+      const updated = await apiPatch<{ permissions?: string[] }>(
+        `/v1/users/${user.id}`,
+        { permissions: editPermissions },
       );
-      setRoleChangeOpen(false);
-      showToast(to === "admin" ? "User is now an admin" : "User is now a member", "success");
+      setUser((prev) =>
+        prev
+          ? { ...prev, permissions: updated.permissions ?? editPermissions }
+          : prev,
+      );
+      setEditPermissions(null);
+      showToast("Permissions updated", "success");
     } catch (err) {
-      if (err instanceof ApiError && err.isForbidden) showToast("Admin access required", "error");
-      else showToast(err instanceof Error ? err.message : "Failed to update role", "error");
+      if (err instanceof ApiError && err.isForbidden) {
+        showToast("This action requires the 'members:write' permission.", "error");
+      } else {
+        showToast(err instanceof Error ? err.message : "Failed to update permissions", "error");
+      }
     } finally {
-      setRoleChanging(false);
+      setSavingPermissions(false);
     }
   };
 
@@ -740,7 +753,7 @@ export default function UserDetailPage() {
           <ArrowLeft size={14} />
           Back to Users
         </Button>
-        <ErrorState message="Admin access required" />
+        <ErrorState message={forbidden} />
       </div>
     );
   }
@@ -826,17 +839,8 @@ export default function UserDetailPage() {
                   User overview
                 </p>
               </div>
-              {/* Link to sessions list for this user + role management */}
+              {/* Link to sessions list for this user */}
               <div className="flex items-center gap-2">
-                {isAdmin && me?.id !== user.id && (
-                  <Button
-                    variant={user.role === "admin" ? "secondary" : "primary"}
-                    size="sm"
-                    onClick={() => setRoleChangeOpen(true)}
-                  >
-                    {user.role === "admin" ? "Remove Admin" : "Make Admin"}
-                  </Button>
-                )}
                 <Link href={`/sessions?userId=${encodeURIComponent(user.id)}`}>
                   <Button variant="ghost" size="sm" className="text-surface-400 hover:text-white gap-1.5">
                     <ArrowUpRight size={14} />
@@ -902,6 +906,24 @@ export default function UserDetailPage() {
                 )}
               </MetadataRow>
 
+              {/* Permissions (read-only) — admin role = wildcard; empty list ≠ admin */}
+              <MetadataRow
+                icon={<Shield size={16} />}
+                label="Permissions"
+              >
+                {user.role === "admin" ? (
+                  <Badge variant="brand" size="sm">Full access (admin)</Badge>
+                ) : user.permissions.length === 0 ? (
+                  <span className="text-surface-500 italic">—</span>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {user.permissions.map((permission) => (
+                      <Badge key={permission} variant="info" size="sm">{permission}</Badge>
+                    ))}
+                  </div>
+                )}
+              </MetadataRow>
+
               {/* Created */}
               <MetadataRow
                 icon={<Calendar size={16} />}
@@ -932,6 +954,75 @@ export default function UserDetailPage() {
           </>
         )}
       </div>
+
+      {/* ═══ Permissions editor (members:write only — admins are wildcard, self excluded) ═══ */}
+      {user && canWriteMembers && me?.id !== user.id && user.role !== "admin" && (
+        <div className="card-base p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Shield size={18} className="text-surface-400" />
+              Edit Permissions
+            </h2>
+            <p className="text-xs text-surface-500 mt-0.5">
+              Saving replaces the member&rsquo;s full permission set. Toggle each
+              permission to grant or revoke it.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {ALL_PERMISSIONS.map((permission) => {
+              const active = (editPermissions ?? user.permissions).includes(
+                permission,
+              );
+              return (
+                <button
+                  key={permission}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() =>
+                    setEditPermissions((prev) => {
+                      const current = prev ?? user.permissions;
+                      return active
+                        ? current.filter((p) => p !== permission)
+                        : [...current, permission];
+                    })
+                  }
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    active
+                      ? "border-brand-500/40 bg-brand-500/10 text-brand-300"
+                      : "border-surface-700 bg-surface-900 text-surface-400 hover:text-surface-200",
+                  )}
+                >
+                  {permission}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-3 mt-5 pt-4 border-t border-surface-800">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSavePermissions}
+              loading={savingPermissions}
+              disabled={editPermissions === null}
+            >
+              Save Permissions
+            </Button>
+            {editPermissions !== null && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditPermissions(null)}
+                disabled={savingPermissions}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ═══ Section B: Summary card ═══ */}
       <div className="card-base p-6">
@@ -1090,22 +1181,6 @@ export default function UserDetailPage() {
           onConfirm={handleDeleteInstruction}
         />
       )}
-
-      {/* Role change ConfirmDialog */}
-      <ConfirmDialog
-        open={roleChangeOpen}
-        title={user?.role === "admin" ? "Remove Admin" : "Make Admin"}
-        message={
-          user?.role === "admin"
-            ? `Remove admin access from "${user.name || user.external_id}"? They will become a regular member.`
-            : `Grant admin access to "${user?.name || user?.external_id}"? Admins can manage org users, settings, and view monitoring/audit data.`
-        }
-        confirmLabel={user?.role === "admin" ? "Remove Admin" : "Make Admin"}
-        variant={user?.role === "admin" ? "danger" : "primary"}
-        loading={roleChanging}
-        onConfirm={handleRoleChange}
-        onCancel={() => setRoleChangeOpen(false)}
-      />
 
       {/* ═══ Toast ═══ */}
       <Toast toast={toast} onDismiss={dismissToast} />

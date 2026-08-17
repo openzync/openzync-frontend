@@ -144,7 +144,8 @@ export default function SettingsPage() {
       id: (data.id as string) ?? "",
       name: (data.name as string) ?? null,
       email: (data.email as string) ?? null,
-      role: (data.role as string) ?? "admin",
+      // Fail closed: an unknown role must never display as admin.
+      role: (data.role as string) ?? "member",
       mfa_enabled: (data.mfa_enabled as boolean) ?? false,
     };
     setProfile(p);
@@ -378,7 +379,7 @@ export default function SettingsPage() {
               <div className="relative">
                 <input
                   className="input-base pr-10 cursor-not-allowed opacity-60"
-                  value={profile?.role ?? "admin"}
+                  value={profile?.role ?? "member"}
                   disabled
                   readOnly
                 />

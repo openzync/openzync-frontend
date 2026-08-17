@@ -196,7 +196,9 @@ function InviteMemberDialog({
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function UsersPage() {
-  const { isAdmin, user: me } = useUser();
+  const { can, user: me, loading: roleLoading } = useUser();
+  const canRead = can("members:read");
+  const canWrite = can("members:write");
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -248,7 +250,7 @@ export default function UsersPage() {
     } finally { setLoadingMore(false); }
   }, [nextCursor, loadingMore, fetchUsers]);
 
-  useEffect(() => { loadUsers(); }, [loadUsers]);
+  useEffect(() => { if (canRead) loadUsers(); }, [loadUsers, canRead]);
 
   // ── CRUD ───────────────────────────────────────────────────────────────────
 
@@ -328,13 +330,29 @@ export default function UsersPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  // Role still loading — avoid flashing a 403 at members who have read access.
+  if (roleLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="card-base overflow-hidden">
+          <TableSkeleton rows={5} cols={6} colWidths={["w-32", "w-24", "w-36", "w-20", "w-28", "w-40"]} />
+        </div>
+      </div>
+    );
+  }
+
+  // Page itself is members:read-gated — mirror the backend's 403 message.
+  if (!canRead) {
+    return <ErrorState message="This action requires the 'members:read' permission." />;
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Users"
         description="Manage end-users within your organization"
         actions={
-          isAdmin && (
+          canWrite && (
             <div className="flex items-center gap-2">
               <Button variant="secondary" size="sm" icon={<UserPlus size={14} />} onClick={() => setShowInvite(true)}>
                 Invite Member
@@ -407,7 +425,7 @@ export default function UsersPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {isAdmin && !isSelf && (
+                          {canWrite && !isSelf && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -421,11 +439,11 @@ export default function UsersPage() {
                           )}
                           <Link href={`/users/${user.id}`}><Button variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-white" title="View User"><Eye size={14} /></Button></Link>
                           <Button variant="ghost" size="sm" onClick={() => handleCopyId(user.id)} className="rounded-md text-surface-400 hover:text-white" title="Copy User ID"><Copy size={14} /></Button>
-                          {/* Edit/Delete are destructive mutations — org-admin only, same as Make/Remove Admin */}
-                          {isAdmin && (
+                          {/* Edit/Delete are destructive mutations — members:write only */}
+                          {canWrite && (
                             <Button variant="ghost" size="sm" onClick={() => setEditTarget(user)} className="rounded-md text-surface-400 hover:text-white" title="Edit User"><Edit size={14} /></Button>
                           )}
-                          {isAdmin && (user.is_pending_invite ? (
+                          {canWrite && (user.is_pending_invite ? (
                             // Pending invites have no account to delete — revoke the invite instead.
                             <Button variant="ghost" size="sm" onClick={() => setRevokeTarget(user)} className="rounded-md text-surface-400 hover:text-error" title="Revoke Invitation" aria-label={`Revoke invite for ${user.external_id}`}><Ban size={14} /></Button>
                           ) : (

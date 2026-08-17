@@ -51,19 +51,39 @@ function renderLayout() {
 }
 
 // The sidebar renders twice (mobile + desktop, CSS-hidden in jsdom), so
-// admin-only labels appear twice for admins and zero times for members.
-const ADMIN_ONLY_LABELS = ["Users", "Monitoring", "Audit Log", "Configuration", "Extraction Schemas", "Webhooks", "Extraction Instructions", "Prompt Templates"];
+// visible labels appear twice for who can see them and zero times otherwise.
+const CONFIG_READ_LABELS = ["Configuration", "Extraction Schemas", "Webhooks", "Extraction Instructions", "Prompt Templates"];
+const MEMBERS_READ_LABELS = ["Users", "Monitoring", "Audit Log"];
+const ADMIN_ONLY_LABELS = [...MEMBERS_READ_LABELS, ...CONFIG_READ_LABELS];
+
+function adminMock() {
+  return {
+    user: { id: "u1", email: "admin@acme.com", name: "Admin", role: "admin", permissions: [] },
+    role: "admin",
+    isAdmin: true,
+    isSuperadmin: false,
+    can: () => true,
+    loading: false,
+  };
+}
+
+function memberMock(permissions: string[]) {
+  return {
+    user: { id: "u2", email: "member@acme.com", name: "Member", role: "member", permissions },
+    role: "member",
+    isAdmin: false,
+    isSuperadmin: false,
+    // Wildcard applies to admins only — members match against the list.
+    can: (p: string) => permissions.includes(p),
+    loading: false,
+  };
+}
 
 describe("DashboardLayout nav gating", () => {
   beforeEach(() => {
     mockUseUser.mockReset();
     // Default: an org admin whose role is fully resolved.
-    mockUseUser.mockReturnValue({
-      user: { id: "u1", email: "admin@acme.com", name: "Admin", role: "admin" },
-      role: "admin",
-      isAdmin: true,
-      loading: false,
-    });
+    mockUseUser.mockReturnValue(adminMock());
   });
 
   it("renders page content", () => {
@@ -71,7 +91,7 @@ describe("DashboardLayout nav gating", () => {
     expect(screen.getByText("page content")).toBeInTheDocument();
   });
 
-  it("shows admin-only nav items for an org admin", () => {
+  it("shows admin-only nav items for an org admin (wildcard)", () => {
     renderLayout();
 
     for (const label of ADMIN_ONLY_LABELS) {
@@ -79,17 +99,27 @@ describe("DashboardLayout nav gating", () => {
     }
   });
 
-  it("hides admin-only nav items for an org member", () => {
-    mockUseUser.mockReturnValue({
-      user: { id: "u2", email: "member@acme.com", name: "Member", role: "member" },
-      role: "member",
-      isAdmin: false,
-      loading: false,
-    });
+  it("hides admin-only nav items for a member with only member defaults", () => {
+    // Member defaults are {project:read, project:write} — no org-admin surface.
+    mockUseUser.mockReturnValue(memberMock(["project:read", "project:write"]));
 
     renderLayout();
 
     for (const label of ADMIN_ONLY_LABELS) {
+      expect(screen.queryAllByText(label).length).toBe(0);
+    }
+  });
+
+  it("shows configuration surfaces for a member granted configuration:read", () => {
+    mockUseUser.mockReturnValue(memberMock(["configuration:read"]));
+
+    renderLayout();
+
+    for (const label of CONFIG_READ_LABELS) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
+    // But no members:read surfaces (Users/Monitoring/Audit Log).
+    for (const label of MEMBERS_READ_LABELS) {
       expect(screen.queryAllByText(label).length).toBe(0);
     }
   });
@@ -99,6 +129,8 @@ describe("DashboardLayout nav gating", () => {
       user: null,
       role: null,
       isAdmin: false,
+      isSuperadmin: false,
+      can: () => false,
       loading: false,
     });
 
@@ -112,12 +144,7 @@ describe("DashboardLayout nav gating", () => {
   });
 
   it("keeps shared (non-admin) navigation for members", () => {
-    mockUseUser.mockReturnValue({
-      user: { id: "u2", email: "member@acme.com", name: "Member", role: "member" },
-      role: "member",
-      isAdmin: false,
-      loading: false,
-    });
+    mockUseUser.mockReturnValue(memberMock(["project:read", "project:write"]));
 
     renderLayout();
 

@@ -72,7 +72,7 @@ function Sidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAdmin, isSuperadmin } = useUser();
+  const { can, isSuperadmin } = useUser();
 
   const inProject = isInProject(pathname);
   const onProjectList = isOnProjectList(pathname);
@@ -178,8 +178,8 @@ function Sidebar({
             <div className="space-y-0.5">
               {[
                 { label: "Overview", href: "/overview", icon: <LayoutDashboard size={18} /> },
-                // Monitoring is org-admin only — hidden from members
-                ...(isAdmin
+                // Monitoring is gated on members:read (org-level read access)
+                ...(can("members:read")
                   ? [{ label: "Monitoring", href: "/monitoring", icon: <Activity size={18} /> }]
                   : []),
               ].map((item) => {
@@ -295,8 +295,9 @@ function Sidebar({
           </div>
         </div>
 
-        {/* ── Project Settings (only visible inside a project) ── */}
-        {inProject && (
+        {/* ── Project Settings (only visible inside a project, project:manage) ── */}
+        {/* Members without project:manage 403 on every tab — hide the whole section. */}
+        {inProject && can("project:manage") && (
           <div>
             <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
               {collapsed ? (
@@ -336,51 +337,56 @@ function Sidebar({
           </div>
         )}
 
-        {/* ── Administration (org-admin only, hidden inside project pages) ── */}
-        {!inProject && isAdmin && (
-          <div>
-            <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
-              {collapsed ? (
-                <div className="h-px bg-surface-700" />
-              ) : (
-                <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
-                  Administration
-                </h2>
-              )}
-            </div>
-            <div className="space-y-0.5">
-              {[
-                // Every item in this section is org-admin only — hidden from members.
-                // The section header collapses with it so members never see a bare header.
-                { label: "Users", href: "/users", icon: <Users size={18} /> },
-                { label: "Extraction Schemas", href: "/settings/schemas", icon: <FileJson size={18} /> },
-                { label: "Webhooks", href: "/settings/webhooks", icon: <Webhook size={18} /> },
-                { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: <FileText size={18} /> },
-                { label: "Prompt Templates", href: "/settings/prompts", icon: <FileCode size={18} /> },
-                { label: "Configuration", href: "/settings/org-config", icon: <SlidersHorizontal size={18} /> },
-              ].map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <button
-                    key={item.href}
-                    onClick={() => { router.push(item.href); onClose?.(); }}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                      active
-                        ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                        : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
-                    )}
-                  >
-                    <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
-                      {item.icon}
-                    </span>
-                    <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* ── Administration (permission-gated, hidden inside project pages) ── */}
+        {!inProject &&
+          (() => {
+            // Users/org member management → members:read; config surfaces → configuration:read.
+            // The section header collapses with the items so members never see a bare header.
+            const adminItems = [
+              { label: "Users", href: "/users", icon: <Users size={18} />, show: can("members:read") },
+              { label: "Extraction Schemas", href: "/settings/schemas", icon: <FileJson size={18} />, show: can("configuration:read") },
+              { label: "Webhooks", href: "/settings/webhooks", icon: <Webhook size={18} />, show: can("configuration:read") },
+              { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: <FileText size={18} />, show: can("configuration:read") },
+              { label: "Prompt Templates", href: "/settings/prompts", icon: <FileCode size={18} />, show: can("configuration:read") },
+              { label: "Configuration", href: "/settings/org-config", icon: <SlidersHorizontal size={18} />, show: can("configuration:read") },
+            ].filter((item) => item.show);
+            if (adminItems.length === 0) return null;
+            return (
+              <div>
+                <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
+                  {collapsed ? (
+                    <div className="h-px bg-surface-700" />
+                  ) : (
+                    <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
+                      Administration
+                    </h2>
+                  )}
+                </div>
+                <div className="space-y-0.5">
+                  {adminItems.map((item) => {
+                    const active = isActive(item.href);
+                    return (
+                      <button
+                        key={item.href}
+                        onClick={() => { router.push(item.href); onClose?.(); }}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
+                          active
+                            ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
+                            : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
+                        )}
+                      >
+                        <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
+                          {item.icon}
+                        </span>
+                        <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
         {/* ── System (hidden inside project pages) ── */}
         {!inProject && (
@@ -396,8 +402,8 @@ function Sidebar({
             </div>
             <div className="space-y-0.5">
               {[
-                // Audit Log is org-admin only — hidden from members
-                ...(isAdmin
+                // Audit Log is gated on members:read (org-level read access)
+                ...(can("members:read")
                   ? [{ label: "Audit Log", href: "/audit", icon: <Shield size={18} /> }]
                   : []),
                 // Platform Admin is root/superadmin only — the platform console.

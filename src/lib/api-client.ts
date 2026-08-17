@@ -143,13 +143,20 @@ export class ApiError extends Error {
  * Build a human-readable message from an API error body (FastAPI/RFC 7807).
  * FastAPI 422 `detail` is an array of { loc, msg, type } — flatten it into
  * `messages.0.content: Field required` style text instead of rendering
- * `[object Object]`.
+ * `[object Object]`. Permission denials come back as a NESTED detail object
+ * (`{"detail": {"detail": "This action requires the 'x' permission."}}`) —
+ * unwrap that too.
  */
 function parseApiErrorMessage(body: unknown, status: number): string {
   if (!body || typeof body !== "object") return `Request failed with status ${status}`;
   const b = body as Record<string, unknown>;
   if (typeof b.message === "string") return b.message;
   if (typeof b.detail === "string") return b.detail;
+  if (b.detail && typeof b.detail === "object") {
+    const d = b.detail as Record<string, unknown>;
+    if (typeof d.detail === "string") return d.detail;
+    if (typeof d.message === "string") return d.message;
+  }
   if (Array.isArray(b.detail)) {
     const parts = b.detail.slice(0, 3).map((item) => {
       if (!item || typeof item !== "object") return String(item);
@@ -184,6 +191,18 @@ export function apiErrorMessage(err: unknown, fallback: string): string {
     return err.isForbidden ? "Admin access required" : err.message;
   }
   return fallback;
+}
+
+/**
+ * Extract a readable message from an error Response, unwrapping the RFC 7807
+ * `detail` (flat string, nested object, or 422 array). Used by pages that
+ * fetch raw (outside `request`) so a 403 permission denial surfaces the
+ * backend's exact message — e.g. "This action requires the
+ * 'configuration:read' permission." — instead of a generic error.
+ */
+export async function errorDetail(resp: Response): Promise<string> {
+  const body = await resp.json().catch(() => null);
+  return parseApiErrorMessage(body, resp.status);
 }
 
 // ─── Core request helper ──────────────────────────────────────────────────────

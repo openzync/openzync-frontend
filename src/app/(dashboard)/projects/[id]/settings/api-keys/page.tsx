@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { get, post, del, ApiError } from "@/lib/api-client";
 import { timeAgo, formatDate, copyToClipboard } from "@/lib/utils";
 import { useProject } from "@/stores/project-context";
+import { useUser, ALL_PERMISSIONS } from "@/contexts/user-context";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -30,7 +31,7 @@ interface ApiKey {
   name: string;
   prefix: string;
   project_id: string;
-  scopes: string[];
+  permissions: string[];
   is_revoked: boolean;
   last_used_at: string | null;
   created_at: string;
@@ -41,6 +42,7 @@ interface ApiKeyCreateResponse {
   name: string;
   prefix: string;
   project_id: string;
+  permissions: string[];
   raw_key: string;
   message: string;
 }
@@ -49,6 +51,8 @@ interface ApiKeyCreateResponse {
 
 export default function ProjectApiKeysPage() {
   const { project, loading: projectLoading } = useProject();
+  const { can, loading: roleLoading } = useUser();
+  const canManage = can("project:manage");
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +60,12 @@ export default function ProjectApiKeysPage() {
   // Create dialog
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
+  // Pre-check the member defaults; sent explicitly — the server does NOT
+  // default an empty list to admin/full access.
+  const [newPermissions, setNewPermissions] = useState<string[]>([
+    "project:read",
+    "project:write",
+  ]);
   const [creating, setCreating] = useState(false);
   const [createdKey, setCreatedKey] = useState<ApiKeyCreateResponse | null>(null);
   const [showRawKey, setShowRawKey] = useState(false);
@@ -84,8 +94,8 @@ export default function ProjectApiKeysPage() {
   }, [project?.id]);
 
   useEffect(() => {
-    if (project?.id) fetchKeys();
-  }, [project?.id, fetchKeys]);
+    if (project?.id && canManage) fetchKeys();
+  }, [project?.id, fetchKeys, canManage]);
 
   // ── Create key ─────────────────────────────────────────────────────────────
 
@@ -95,7 +105,7 @@ export default function ProjectApiKeysPage() {
     try {
       const result = await post<ApiKeyCreateResponse>(
         `/v1/projects/${project.id}/api-keys`,
-        { name: newName.trim() }
+        { name: newName.trim(), permissions: newPermissions }
       );
       setCreatedKey(result);
       toast.success("API key created");
@@ -107,9 +117,19 @@ export default function ProjectApiKeysPage() {
     }
   };
 
+  const openCreate = () => {
+    setNewName("");
+    setNewPermissions(["project:read", "project:write"]);
+    setCreatedKey(null);
+    setShowRawKey(false);
+    setCopied(false);
+    setShowCreate(true);
+  };
+
   const closeCreate = () => {
     setShowCreate(false);
     setNewName("");
+    setNewPermissions(["project:read", "project:write"]);
     setCreating(false);
     setCreatedKey(null);
     setShowRawKey(false);
@@ -149,6 +169,24 @@ export default function ProjectApiKeysPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  // Role still loading — avoid flashing the 403 at project managers.
+  if (roleLoading || projectLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="API Keys" description="Manage API keys for programmatic access" />
+        <div className="card-base overflow-hidden">
+          <TableSkeleton rows={4} cols={7} colWidths={["w-32", "w-20", "w-28", "w-20", "w-24", "w-16", "w-16"]} />
+        </div>
+      </div>
+    );
+  }
+
+  // Every action here (create, revoke, even listing) is project:manage — a
+  // member without it 403s on every call. Fail the page, mirror the backend.
+  if (!canManage) {
+    return <ErrorState message="This action requires the 'project:manage' permission." />;
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -159,53 +197,45 @@ export default function ProjectApiKeysPage() {
             : "Manage API keys for programmatic access"
         }
         actions={
-          <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>
+          <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={openCreate}>
             Create Key
           </Button>
         }
       />
 
-      {/* Loading state (project not yet loaded) */}
-      {projectLoading && (
-        <div className="card-base overflow-hidden">
-          <TableSkeleton rows={4} cols={7} colWidths={["w-32", "w-20", "w-28", "w-20", "w-24", "w-16", "w-16"]} />
-        </div>
-      )}
-
       {/* Error */}
       {error && <ErrorState message={error} onRetry={fetchKeys} />}
 
       {/* Table */}
-      {!projectLoading && (
-        <div className="card-base overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-surface-800">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Prefix</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Scopes</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Last Used</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Created</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400">Status</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400 w-20">Actions</th>
+      <div className="card-base overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-surface-800">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Prefix</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Permissions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Last Used</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Created</th>
+                <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400">Status</th>
+                <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400 w-20">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-800">
+              {loading ? (
+                <TableSkeleton rows={4} cols={7} colWidths={["w-32", "w-20", "w-28", "w-20", "w-24", "w-16", "w-16"]} />
+              ) : keys.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    <EmptyState
+                      icon={Key}
+                      title="No API keys yet"
+                      description="Create an API key to enable programmatic access to this project"
+                      action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={openCreate}>Create Key</Button>}
+                    />
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-800">
-                {loading ? (
-                  <TableSkeleton rows={4} cols={7} colWidths={["w-32", "w-20", "w-28", "w-20", "w-24", "w-16", "w-16"]} />
-                ) : keys.length === 0 ? (
-                  <tr>
-                    <td colSpan={7}>
-                      <EmptyState
-                        icon={Key}
-                        title="No API keys yet"
-                        description="Create an API key to enable programmatic access to this project"
-                        action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>Create Key</Button>}
-                      />
-                    </td>
-                  </tr>
-                ) : (
+              ) : (
                   keys.map((key, idx) => (
                     <tr
                       key={key.id}
@@ -219,11 +249,11 @@ export default function ProjectApiKeysPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
-                          {key.scopes.length === 0 ? (
-                            <span className="text-surface-500 text-xs">—</span>
+                          {key.permissions.length === 0 ? (
+                            <Badge variant="default" size="sm">No permissions</Badge>
                           ) : (
-                            key.scopes.map((scope) => (
-                              <Badge key={scope} variant="info" size="sm">{scope}</Badge>
+                            key.permissions.map((permission) => (
+                              <Badge key={permission} variant="info" size="sm">{permission}</Badge>
                             ))
                           )}
                         </div>
@@ -259,7 +289,6 @@ export default function ProjectApiKeysPage() {
             </table>
           </div>
         </div>
-      )}
 
       {/* ── Create Dialog ──────────────────────────────────────────────────────── */}
       <Dialog
@@ -283,16 +312,55 @@ export default function ProjectApiKeysPage() {
         }
       >
         {!createdKey ? (
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1.5">Key Name</label>
-            <input
-              className="input-base w-full"
-              placeholder="e.g. Production CI"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-              autoFocus
-            />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-surface-300 mb-1.5">Key Name</label>
+              <input
+                className="input-base w-full"
+                placeholder="e.g. Production CI"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+                autoFocus
+              />
+            </div>
+
+            {/* Permission picker — the checked list is sent verbatim. The server
+                does NOT default an empty selection to admin/full access. */}
+            <div>
+              <span className="block text-sm font-medium text-surface-300 mb-1.5">
+                Permissions
+              </span>
+              <div className="space-y-1.5 rounded-lg border border-surface-800 bg-surface-950/50 p-3">
+                {ALL_PERMISSIONS.map((permission) => {
+                  const checked = newPermissions.includes(permission);
+                  return (
+                    <label
+                      key={permission}
+                      className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-surface-200 hover:bg-surface-800/50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          setNewPermissions((prev) =>
+                            checked
+                              ? prev.filter((p) => p !== permission)
+                              : [...prev, permission],
+                          )
+                        }
+                        className="rounded border-surface-600 bg-surface-800 text-brand-500"
+                      />
+                      <span className="font-mono text-xs">{permission}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-surface-500 mt-1.5">
+                The checked permissions are granted explicitly — an empty selection
+                means no access, not full admin access.
+              </p>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">

@@ -149,12 +149,26 @@ function mockUsersList(users: typeof SELF[]) {
 
 function renderAsAdmin() {
   mockUseUser.mockReturnValue({
-    user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin" },
+    user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin", permissions: [] },
     role: "admin",
     isAdmin: true,
+    can: () => true,
     loading: false,
   });
   mockUsersList([SELF, OTHER_ADMIN, MEMBER]);
+  return render(<UsersPage />);
+}
+
+/** Viewer with members:read (page gate passes) but no members:write (mutations hidden). */
+function renderAsReadOnlyMember(users: typeof SELF[] = [SELF, OTHER_ADMIN, MEMBER]) {
+  mockUseUser.mockReturnValue({
+    user: { id: MEMBER.id, email: MEMBER.email, name: MEMBER.name, role: "member", permissions: ["members:read"] },
+    role: "member",
+    isAdmin: false,
+    can: (p: string) => p === "members:read",
+    loading: false,
+  });
+  mockUsersList(users);
   return render(<UsersPage />);
 }
 
@@ -201,22 +215,31 @@ describe("UsersPage", () => {
   });
 
   it("hides role buttons entirely for a member viewer", async () => {
-    mockUseUser.mockReturnValue({
-      user: { id: MEMBER.id, email: MEMBER.email, name: MEMBER.name, role: "member" },
-      role: "member",
-      isAdmin: false,
-      loading: false,
-    });
-    mockUsersList([SELF, OTHER_ADMIN, MEMBER]);
-    render(<UsersPage />);
+    renderAsReadOnlyMember();
 
     expect(await screen.findByText("Bob")).toBeInTheDocument();
     expect(screen.queryByLabelText(/Make .* an admin/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Remove admin from/)).not.toBeInTheDocument();
-    // Members do not see the create button either.
+    // Members without members:write do not see the create button either.
     expect(
       screen.queryByRole("button", { name: "Create User" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows a 403-style error and fetches nothing without members:read", async () => {
+    mockUseUser.mockReturnValue({
+      user: { id: MEMBER.id, email: MEMBER.email, name: MEMBER.name, role: "member", permissions: ["project:read", "project:write"] },
+      role: "member",
+      isAdmin: false,
+      can: () => false,
+      loading: false,
+    });
+    render(<UsersPage />);
+
+    expect(
+      await screen.findByText("This action requires the 'members:read' permission."),
+    ).toBeInTheDocument();
+    expect(mockGet).not.toHaveBeenCalled();
   });
 
   it("PATCHes the correct role when making a user an admin", async () => {
@@ -257,11 +280,12 @@ describe("UsersPage", () => {
 
   // ── Invite flows ───────────────────────────────────────────────────────
 
-  it("shows the Invite Member button to admins only", async () => {
+  it("shows the Invite Member button to members:write holders only", async () => {
     mockUseUser.mockReturnValue({
-      user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin" },
+      user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin", permissions: [] },
       role: "admin",
       isAdmin: true,
+      can: () => true,
       loading: false,
     });
     mockUsersList([SELF, MEMBER, PENDING]);
@@ -272,11 +296,12 @@ describe("UsersPage", () => {
     ).toBeInTheDocument();
     adminView.unmount();
 
-    // Member viewer does not see it.
+    // Read-only member viewer does not see it.
     mockUseUser.mockReturnValue({
-      user: { id: MEMBER.id, email: MEMBER.email, name: MEMBER.name, role: "member" },
+      user: { id: MEMBER.id, email: MEMBER.email, name: MEMBER.name, role: "member", permissions: ["members:read"] },
       role: "member",
       isAdmin: false,
+      can: (p: string) => p === "members:read",
       loading: false,
     });
     mockUsersList([SELF, MEMBER, PENDING]);
@@ -288,9 +313,10 @@ describe("UsersPage", () => {
 
   it("renders a Pending badge for pending invite rows only", async () => {
     mockUseUser.mockReturnValue({
-      user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin" },
+      user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin", permissions: [] },
       role: "admin",
       isAdmin: true,
+      can: () => true,
       loading: false,
     });
     mockUsersList([SELF, MEMBER, PENDING]);
@@ -301,11 +327,12 @@ describe("UsersPage", () => {
     expect(screen.getAllByText("Pending")).toHaveLength(1);
   });
 
-  it("shows the Revoke action for pending rows to admins", async () => {
+  it("shows the Revoke action for pending rows to members:write holders", async () => {
     mockUseUser.mockReturnValue({
-      user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin" },
+      user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin", permissions: [] },
       role: "admin",
       isAdmin: true,
+      can: () => true,
       loading: false,
     });
     mockUsersList([SELF, MEMBER, PENDING]);
@@ -320,15 +347,8 @@ describe("UsersPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("hides the Revoke action from member viewers", async () => {
-    mockUseUser.mockReturnValue({
-      user: { id: MEMBER.id, email: MEMBER.email, name: MEMBER.name, role: "member" },
-      role: "member",
-      isAdmin: false,
-      loading: false,
-    });
-    mockUsersList([SELF, MEMBER, PENDING]);
-    render(<UsersPage />);
+  it("hides the Revoke action from read-only member viewers", async () => {
+    renderAsReadOnlyMember([SELF, MEMBER, PENDING]);
 
     expect(await screen.findByText("Dave")).toBeInTheDocument();
     expect(
@@ -340,9 +360,10 @@ describe("UsersPage", () => {
     const user = userEvent.setup();
     mockRevokeInvite.mockResolvedValue({});
     mockUseUser.mockReturnValue({
-      user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin" },
+      user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin", permissions: [] },
       role: "admin",
       isAdmin: true,
+      can: () => true,
       loading: false,
     });
     mockUsersList([SELF, MEMBER, PENDING]);

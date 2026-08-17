@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Settings, Save, Archive, AlertTriangle } from "lucide-react";
 import { patch, del, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
+import { useUser } from "@/contexts/user-context";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,8 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 export default function ProjectSettingsPage() {
   const router = useRouter();
   const { project, loading, refetch } = useProject();
+  const { can, loading: roleLoading } = useUser();
+  const canManage = can("project:manage");
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -66,7 +69,7 @@ export default function ProjectSettingsPage() {
     }
   }
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
         <div className="space-y-6">
           <PageHeader title="Settings" description="Project settings" />
@@ -133,10 +136,16 @@ export default function ProjectSettingsPage() {
             icon={<Save size={14} />}
             onClick={handleSave}
             loading={saving}
-            disabled={!name.trim()}
+            disabled={!name.trim() || !canManage}
           >
             Save Changes
           </Button>
+          {!canManage && (
+            <p className="text-xs text-surface-500 mt-2">
+              You need the &lsquo;project:manage&rsquo; permission to change project
+              settings.
+            </p>
+          )}
         </div>
 
         {/* Danger zone */}
@@ -155,6 +164,7 @@ export default function ProjectSettingsPage() {
             size="sm"
             icon={<Archive size={14} />}
             onClick={() => setShowArchiveConfirm(true)}
+            disabled={!canManage}
           >
             Archive Project
           </Button>

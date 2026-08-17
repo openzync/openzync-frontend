@@ -13,6 +13,7 @@ import {
   clearTokens,
   API_BASE,
   uploadWithBlobs,
+  errorDetail,
 } from "@/lib/api-client";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────────
@@ -343,11 +344,87 @@ describe("apiErrorMessage via request helpers", () => {
     await expect(get("/v1/test")).rejects.toThrow("Rate limited");
   });
 
+  it("unwraps the nested detail object on permission denials (403)", async () => {
+    // FastAPI permission errors arrive as {"detail": {"detail": "..."}}.
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          detail: {
+            detail: "This action requires the 'configuration:read' permission.",
+          },
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+    await expect(get("/v1/test")).rejects.toThrow(
+      "This action requires the 'configuration:read' permission.",
+    );
+  });
+
+  it("unwraps a nested detail.message too", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ detail: { message: "nested message" } }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+    await expect(get("/v1/test")).rejects.toThrow("nested message");
+  });
+
   it("falls back to status text for non-JSON error bodies", async () => {
     mockFetch.mockResolvedValueOnce(new Response("bad gateway", { status: 502 }));
     await expect(get("/v1/test")).rejects.toThrow(
       "Request failed with status 502",
     );
+  });
+});
+
+// ─── errorDetail (raw-fetch pages: graph, prompts, onboarding) ─────────────────
+
+describe("errorDetail", () => {
+  it("unwraps the nested RFC 7807 detail on permission denials", async () => {
+    const res = new Response(
+      JSON.stringify({
+        detail: {
+          detail: "This action requires the 'project:manage' permission.",
+        },
+      }),
+      { status: 403, headers: { "Content-Type": "application/json" } },
+    );
+    await expect(errorDetail(res)).resolves.toBe(
+      "This action requires the 'project:manage' permission.",
+    );
+  });
+
+  it("passes through a flat string detail", async () => {
+    const res = new Response(JSON.stringify({ detail: "Invite expired" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+    await expect(errorDetail(res)).resolves.toBe("Invite expired");
+  });
+
+  it("flattens a 422 validation array like the typed client", async () => {
+    const res = new Response(
+      JSON.stringify({
+        detail: [
+          { loc: ["body", "name"], msg: "Field required", type: "missing" },
+        ],
+      }),
+      { status: 422, headers: { "Content-Type": "application/json" } },
+    );
+    await expect(errorDetail(res)).resolves.toBe("name: Field required");
+  });
+
+  it("falls back to the status message on a non-JSON body", async () => {
+    const res = new Response("bad gateway", { status: 502 });
+    await expect(errorDetail(res)).resolves.toBe("Request failed with status 502");
   });
 });
 

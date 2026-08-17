@@ -62,12 +62,24 @@ const NEW_CODE = "ZZZ2Q9X4";
 
 function renderAsAdmin() {
   mockUseUser.mockReturnValue({
-    user: { id: "u1", email: "admin@acme.com", name: "Admin", role: "admin" },
+    user: { id: "u1", email: "admin@acme.com", name: "Admin", role: "admin", permissions: [] },
     role: "admin",
     isAdmin: true,
+    can: () => true,
     loading: false,
   });
   mockGet.mockResolvedValue({ org_code: OLD_CODE, join_enabled: true });
+  return render(<OrgConfigIndexPage />);
+}
+
+function renderAsMember(permissions: string[]) {
+  mockUseUser.mockReturnValue({
+    user: { id: "u2", email: "member@acme.com", name: "Member", role: "member", permissions },
+    role: "member",
+    isAdmin: false,
+    can: (p: string) => permissions.includes(p),
+    loading: false,
+  });
   return render(<OrgConfigIndexPage />);
 }
 
@@ -106,38 +118,53 @@ describe("OrgConfigIndexPage (org code card)", () => {
     expect(screen.queryByText(OLD_CODE)).not.toBeInTheDocument();
   });
 
-  it("does not fetch the code for a non-admin", () => {
-    mockUseUser.mockReturnValue({
-      user: { id: "u2", email: "member@acme.com", name: "Member", role: "member" },
-      role: "member",
-      isAdmin: false,
-      loading: false,
-    });
-    render(<OrgConfigIndexPage />);
+  it("does not fetch the code without configuration:read", () => {
+    renderAsMember(["project:read", "project:write"]);
 
-    expect(screen.getByText("Admin access required")).toBeInTheDocument();
+    expect(
+      screen.getByText("This action requires the 'configuration:read' permission."),
+    ).toBeInTheDocument();
     expect(mockGet).not.toHaveBeenCalled();
   });
 
-  it("shows Admin access required when the role fetch failed (fail closed)", () => {
+  it("shows the permission error when the role fetch failed (fail closed)", () => {
     // role: null — an unknown role must never reveal the code.
     mockUseUser.mockReturnValue({
       user: null,
       role: null,
       isAdmin: false,
+      can: () => false,
       loading: false,
     });
     render(<OrgConfigIndexPage />);
 
-    expect(screen.getByText("Admin access required")).toBeInTheDocument();
+    expect(
+      screen.getByText("This action requires the 'configuration:read' permission."),
+    ).toBeInTheDocument();
     expect(mockGet).not.toHaveBeenCalled();
+  });
+
+  it("shows the code but hides write actions with configuration:read only", async () => {
+    // configuration:read unlocks the page; configuration:write gates mutations.
+    mockGet.mockResolvedValue({ org_code: OLD_CODE, join_enabled: true });
+    renderAsMember(["configuration:read"]);
+
+    expect(await screen.findByText(OLD_CODE)).toBeInTheDocument();
+    // Regenerate is a write — hidden.
+    expect(screen.queryByRole("button", { name: "Regenerate" })).not.toBeInTheDocument();
+    // The join switch is a write — disabled with an explanatory hint.
+    expect(screen.getByRole("switch")).toBeDisabled();
+    expect(
+      screen.getByText(/configuration:write/),
+    ).toBeInTheDocument();
   });
 
   it("shows the error state with retry when the code fetch fails", async () => {
     mockUseUser.mockReturnValue({
-      user: { id: "u1", email: "admin@acme.com", name: "Admin", role: "admin" },
+      user: { id: "u1", email: "admin@acme.com", name: "Admin", role: "admin", permissions: [] },
       role: "admin",
       isAdmin: true,
+      can: () => true,
       loading: false,
     });
     mockGet.mockRejectedValue(new Error("Failed to load organization code"));
@@ -193,9 +220,10 @@ describe("OrgConfigIndexPage (org code card)", () => {
 
   it("shows the paused banner on load when joining is disabled", async () => {
     mockUseUser.mockReturnValue({
-      user: { id: "u1", email: "admin@acme.com", name: "Admin", role: "admin" },
+      user: { id: "u1", email: "admin@acme.com", name: "Admin", role: "admin", permissions: [] },
       role: "admin",
       isAdmin: true,
+      can: () => true,
       loading: false,
     });
     mockGet.mockResolvedValue({ org_code: OLD_CODE, join_enabled: false });

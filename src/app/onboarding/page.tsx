@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { API_BASE, safeJsonParse } from "@/lib/api-client";
+import { API_BASE, errorDetail } from "@/lib/api-client";
 import { SecretInput } from "@/components/ui/secret-input";
 import { Button } from "@/components/ui/button";
 
@@ -183,7 +183,7 @@ export default function OnboardingPage() {
 
         // Fetch onboarding defaults (no auth required)
         const res = await fetch(`${API_BASE}/admin/org/config/defaults`);
-        if (!res.ok) throw new Error("Failed to load default configuration");
+        if (!res.ok) throw new Error(await errorDetail(res));
         const data: UpdateOrgConfigRequest = await res.json();
 
         // Check if the org already has stored config — if so, redirect to dashboard
@@ -222,8 +222,8 @@ export default function OnboardingPage() {
       });
 
       if (!res.ok) {
-        const body = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(body?.detail ?? "Failed to save configuration");
+        // Surface the RFC 7807 detail (e.g. a missing permission on config save).
+        throw new Error(await errorDetail(res));
       }
 
       toast.success("Configuration saved successfully");

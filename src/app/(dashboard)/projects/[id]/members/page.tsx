@@ -16,6 +16,7 @@ import {
   extractList,
 } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
+import { useUser } from "@/contexts/user-context";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -51,6 +52,8 @@ function getUserLabel(user: UserItem): string {
 
 export default function ProjectMembersPage() {
   const { project, loading: projectLoading } = useProject();
+  const { can, loading: roleLoading } = useUser();
+  const canManage = can("project:manage");
   const projectId = project?.id;
 
   const [members, setMembers] = useState<Member[]>([]);
@@ -150,7 +153,7 @@ export default function ProjectMembersPage() {
   const isOwner = (role: string) => role === "owner";
   const ownerCount = members.filter((m) => isOwner(m.role)).length;
 
-  if (projectLoading) {
+  if (projectLoading || roleLoading) {
     return (
         <div className="space-y-6">
           <PageHeader title="Members" description="Project members" />
@@ -169,14 +172,16 @@ export default function ProjectMembersPage() {
               : "Project member management"
           }
           actions={
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<Plus size={14} />}
-              onClick={handleOpenAdd}
-            >
-              Add Member
-            </Button>
+            canManage && (
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<Plus size={14} />}
+                onClick={handleOpenAdd}
+              >
+                Add Member
+              </Button>
+            )
           }
         />
 
@@ -200,14 +205,16 @@ export default function ProjectMembersPage() {
             title="No members yet"
             description="Add members to collaborate on this project."
             action={
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<Plus size={14} />}
-                onClick={handleOpenAdd}
-              >
-                Add Member
-              </Button>
+              canManage && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<Plus size={14} />}
+                  onClick={handleOpenAdd}
+                >
+                  Add Member
+                </Button>
+              )
             }
           />
         ) : (
@@ -255,7 +262,7 @@ export default function ProjectMembersPage() {
                       {new Date(member.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {!isOwner(member.role) && (
+                      {canManage && !isOwner(member.role) && (
                         <Button
                           variant="ghost"
                           size="sm"

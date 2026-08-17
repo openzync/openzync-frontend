@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get } from "@/lib/api-client";
+import { useUser } from "@/contexts/user-context";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -44,6 +45,8 @@ interface NavItem {
   href: string;
   icon: LucideIcon;
   section: string;
+  /** Permission required to see this entry — undefined = visible to all. */
+  permission?: string;
 }
 
 interface CommandPaletteProps {
@@ -53,21 +56,23 @@ interface CommandPaletteProps {
 
 // ─── Navigation items ──────────────────────────────────────────────────────
 
+// Keep in lockstep with the sidebar gates in app/(dashboard)/layout.tsx:
+// admin-only org surfaces map to members:read / configuration:read.
 const NAV_ITEMS: NavItem[] = [
   { label: "Overview", href: "/overview", icon: LayoutDashboard, section: "Navigation" },
-  { label: "Monitoring", href: "/monitoring", icon: Activity, section: "Navigation" },
+  { label: "Monitoring", href: "/monitoring", icon: Activity, section: "Navigation", permission: "members:read" },
   { label: "Projects", href: "/projects", icon: FolderKanban, section: "Navigation" },
-  { label: "Users", href: "/users", icon: Users, section: "Navigation" },
-  { label: "Audit Log", href: "/audit", icon: Shield, section: "Navigation" },
+  { label: "Users", href: "/users", icon: Users, section: "Navigation", permission: "members:read" },
+  { label: "Audit Log", href: "/audit", icon: Shield, section: "Navigation", permission: "members:read" },
   { label: "Account Settings", href: "/settings", icon: Settings, section: "Navigation" },
-  { label: "API Keys", href: "/settings/api-keys", icon: Key, section: "Settings" },
-  { label: "Extraction Schemas", href: "/settings/schemas", icon: FileJson, section: "Settings" },
-  { label: "Classifications", href: "/settings/classifications", icon: FileCode, section: "Settings" },
-  { label: "Extractions", href: "/settings/extractions", icon: SlidersHorizontal, section: "Settings" },
-  { label: "Webhooks", href: "/settings/webhooks", icon: Webhook, section: "Settings" },
-  { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: FileText, section: "Settings" },
-  { label: "Prompt Templates", href: "/settings/prompts", icon: MessageSquare, section: "Settings" },
-  { label: "Configuration", href: "/settings/org-config", icon: Settings, section: "Settings" },
+  { label: "API Keys", href: "/settings/api-keys", icon: Key, section: "Settings", permission: "configuration:read" },
+  { label: "Extraction Schemas", href: "/settings/schemas", icon: FileJson, section: "Settings", permission: "configuration:read" },
+  { label: "Classifications", href: "/settings/classifications", icon: FileCode, section: "Settings", permission: "configuration:read" },
+  { label: "Extractions", href: "/settings/extractions", icon: SlidersHorizontal, section: "Settings", permission: "configuration:read" },
+  { label: "Webhooks", href: "/settings/webhooks", icon: Webhook, section: "Settings", permission: "configuration:read" },
+  { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: FileText, section: "Settings", permission: "configuration:read" },
+  { label: "Prompt Templates", href: "/settings/prompts", icon: MessageSquare, section: "Settings", permission: "configuration:read" },
+  { label: "Configuration", href: "/settings/org-config", icon: Settings, section: "Settings", permission: "configuration:read" },
 ];
 
 // ─── Icons for search result types ─────────────────────────────────────────
@@ -84,6 +89,7 @@ const defaultIcon = FolderKanban;
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
+  const { can } = useUser();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -118,15 +124,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Filter navigation items locally
-  const filteredNav =
-    query.length < 1
-      ? NAV_ITEMS
-      : NAV_ITEMS.filter(
-          (item) =>
-            item.label.toLowerCase().includes(query.toLowerCase()) ||
-            item.section.toLowerCase().includes(query.toLowerCase()),
-        );
+  // Filter navigation items locally: permission-gated entries first, then query.
+  const filteredNav = NAV_ITEMS.filter(
+    (item) => item.permission === undefined || can(item.permission),
+  ).filter(
+    (item) =>
+      query.length < 1 ||
+      item.label.toLowerCase().includes(query.toLowerCase()) ||
+      item.section.toLowerCase().includes(query.toLowerCase()),
+  );
 
   const handleSelect = useCallback(
     (href: string) => {

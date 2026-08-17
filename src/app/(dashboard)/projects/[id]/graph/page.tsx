@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { RotateCcw, Info } from "lucide-react";
 import { ForceGraph, type GraphNodeData, type GraphEdgeData } from "@/components/force-graph";
 import { PageGuide, GuideGraph } from "@/components/guides";
-import { get, API_BASE, getAccessToken } from "@/lib/api-client";
+import { get, API_BASE, getAccessToken, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -36,12 +36,12 @@ export default function GraphExplorerPage() {
 
   const [graphData, setGraphData] = useState<{ nodes: GraphNodeData[]; edges: GraphEdgeData[] } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!projectId) return;
-    setLoading(true); setHasError(false);
+    setLoading(true); setError(null);
     try {
       const nodesData = await get<NodesApiResponse>(`/v1/projects/${projectId}/graph/nodes?limit=100`);
       const nodes: GraphNodeData[] = nodesData.data?.items ?? [];
@@ -61,8 +61,14 @@ export default function GraphExplorerPage() {
       );
       setGraphData({ nodes, edges: allEdges });
       setHasMore(hasMore);
-    } catch { setHasError(true); }
-    finally { setLoading(false); }
+    } catch (err) {
+      // Surface the backend's RFC 7807 detail (e.g. a missing permission).
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Failed to load graph",
+      );
+    } finally { setLoading(false); }
   }, [projectId]);
 
   useEffect(() => { if (projectId) loadData(); }, [projectId, loadData]);
@@ -102,7 +108,7 @@ export default function GraphExplorerPage() {
           nodes={graphData?.nodes ?? []}
           edges={graphData?.edges ?? []}
           loading={loading}
-          error={hasError ? "Failed to load graph" : null}
+          error={error}
           onRetry={loadData}
           apiConfig={{ baseUrl: API_BASE, projectId, headers: authHeaders() }}
           showFilter showControls showLegend
