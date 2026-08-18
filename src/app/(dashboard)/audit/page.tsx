@@ -42,6 +42,8 @@ interface AuditResponse {
   total: number;
 }
 
+interface ActorOption { id: string; label: string; group: string }
+
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 25;
@@ -58,6 +60,8 @@ export default function AuditLogPage() {
   const [filterAction, setFilterAction] = useState("");
   const [filterActorType, setFilterActorType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterActorId, setFilterActorId] = useState("");
+  const [availableActors, setAvailableActors] = useState<ActorOption[]>([]);
 
   // Pagination
   const [offset, setOffset] = useState(0);
@@ -82,6 +86,7 @@ export default function AuditLogPage() {
       });
       if (filterAction.trim()) params.set("action", filterAction.trim());
       if (filterActorType !== "all") params.set("actor_type", filterActorType);
+      if (filterActorId.trim()) params.set("actor_id", filterActorId.trim());
       if (filterStatus !== "all") {
         if (filterStatus === "2xx") params.set("status_code", "2");
         else if (filterStatus === "4xx") params.set("status_code", "4");
@@ -97,9 +102,54 @@ export default function AuditLogPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterAction, filterActorType, filterStatus]);
+  }, [filterAction, filterActorType, filterActorId, filterStatus]);
 
   useEffect(() => { fetchLogs(offset); }, [offset, fetchLogs]);
+
+  // ── Fetch available actors for the dropdown ─────────────────────────────────
+  useEffect(() => {
+    if (filterActorType === "all") {
+      setAvailableActors([]);
+      setFilterActorId("");
+      return;
+    }
+
+    const fetchActors = async () => {
+      try {
+        if (filterActorType === "user") {
+          const data = await get<{ data: Array<{ id: string; name: string | null; email: string | null }> }>("/v1/users");
+          setAvailableActors(
+            (data.data ?? []).map((u) => ({
+              id: u.id,
+              label: u.name || u.email || u.id.slice(0, 12) + "…",
+              group: "Users",
+            }))
+          );
+        } else if (filterActorType === "api_key") {
+          const projects = await get<Array<{ id: string }>>("/v1/projects");
+          const allKeys: ActorOption[] = [];
+          for (const p of projects) {
+            const res = await get<{ data: Array<{ id: string; name: string | null; prefix: string }> }>(
+              `/v1/projects/${p.id}/api-keys`
+            );
+            for (const k of res.data ?? []) {
+              allKeys.push({
+                id: k.id,
+                label: `${k.prefix}${k.name ? " — " + k.name : ""}`,
+                group: "API Keys",
+              });
+            }
+          }
+          setAvailableActors(allKeys);
+        } else if (filterActorType === "system") {
+          setAvailableActors([{ id: "system", label: "System", group: "System" }]);
+        }
+      } catch {
+        setAvailableActors([]);
+      }
+    };
+    fetchActors();
+  }, [filterActorType, setFilterActorId]);
 
   // Auto-refresh
   useEffect(() => {
@@ -118,11 +168,12 @@ export default function AuditLogPage() {
   const clearFilters = () => {
     setFilterAction("");
     setFilterActorType("all");
+    setFilterActorId("");
     setFilterStatus("all");
     setOffset(0);
   };
 
-  const hasActiveFilters = filterAction.trim() || filterActorType !== "all" || filterStatus !== "all";
+  const hasActiveFilters = filterAction.trim() || filterActorId.trim() || filterActorType !== "all" || filterStatus !== "all";
 
   const goToPrevious = () => setOffset((prev) => Math.max(0, prev - PAGE_SIZE));
   const goToNext = () => setOffset((prev) => (prev + PAGE_SIZE < total ? prev + PAGE_SIZE : prev));
@@ -156,6 +207,37 @@ export default function AuditLogPage() {
               />
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-surface-500 pointer-events-none" />
             </div>
+          </div>
+
+          {/* Actor ID filter */}
+          <div className="w-64">
+            <label className="block text-xs font-medium text-surface-400 mb-1">Actor ID</label>
+            <select
+              className="input-base appearance-none cursor-pointer text-sm"
+              value={filterActorId}
+              onChange={(e) => setFilterActorId(e.target.value)}
+              disabled={filterActorType === "all"}
+            >
+              <option value="">All actors</option>
+              {filterActorType === "all" ? (
+                availableActors.map((a) => (
+                  <option key={`${a.group}-${a.id}`} value={a.id}>{a.label}</option>
+                ))
+              ) : (
+                Object.entries(
+                  availableActors.reduce<Record<string, ActorOption[]>>((acc, a) => {
+                    (acc[a.group] ??= []).push(a);
+                    return acc;
+                  }, {})
+                ).map(([group, actors]) => (
+                  <optgroup key={group} label={group}>
+                    {actors.map((a) => (
+                      <option key={a.id} value={a.id}>{a.label}</option>
+                    ))}
+                  </optgroup>
+                ))
+              )}
+            </select>
           </div>
 
           {/* Actor Type filter */}
