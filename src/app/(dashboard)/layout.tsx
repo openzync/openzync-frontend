@@ -410,7 +410,6 @@ function Sidebar({
                 ...(isSuperadmin
                   ? [{ label: "Platform Admin", href: "/superadmin/orgs", icon: <ShieldCheck size={18} /> }]
                   : []),
-                { label: "Account Settings", href: "/settings", icon: <Settings size={18} /> },
               ].map((item) => {
                 const active = isActive(item.href);
                 return (

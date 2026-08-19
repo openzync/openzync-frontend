@@ -41,6 +41,9 @@ interface UsagePoint {
   date: string;
   message_count: number;
   session_count: number;
+  episode_count: number;
+  user_count: number;
+  entity_count: number;
 }
 
 interface AuditEntry {
@@ -131,6 +134,144 @@ function niceMax(value: number): number {
 function cssVar(name: string): string {
   if (typeof window === "undefined") return "#14488C";
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#14488C";
+}
+
+// ─── Area Chart (reusable, inline) ─────────────────────────────────────────────
+
+interface AreaChartProps {
+  data: UsagePoint[];
+  dataKey: keyof UsagePoint;
+  color: string;
+  label: string;
+}
+
+function AreaChart({ data, dataKey, color, label }: AreaChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  const [hover, setHover] = useState<{ index: number; value: number; date: string; x: number } | null>(null);
+
+  useEffect(() => {
+    function measure() { if (containerRef.current) setWidth(containerRef.current.clientWidth); }
+    const raf = requestAnimationFrame(measure);
+    window.addEventListener("resize", measure);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", measure); };
+  }, []);
+
+  const HEIGHT = 200;
+  const PAD = { top: 16, right: 12, bottom: 36, left: 44 };
+  const dw = Math.max(width - PAD.left - PAD.right, 60);
+  const dh = HEIGHT - PAD.top - PAD.bottom;
+
+  const values = data.map((p) => (p[dataKey] as number) ?? 0);
+  const rawMax = values.length > 0 ? Math.max(...values) : 0;
+  const yMax = niceMax(rawMax);
+  const yTicks = [0, Math.round(yMax / 2), yMax];
+  const n = data.length;
+  const slotW = n > 0 ? dw / n : 0;
+  const maxLabels = Math.floor(dw / 55);
+  const labelStep = n > 0 ? Math.max(1, Math.ceil(n / Math.max(maxLabels, 1))) : 1;
+
+  const resolveColor = cssVar(color);
+
+  // Build SVG path strings for line + area
+  function buildPaths() {
+    if (n === 0 || dw <= 0) return { line: "", area: "" };
+    const pts = values.map((v, i) => ({
+      x: PAD.left + i * slotW + slotW / 2,
+      y: PAD.top + dh - (v / yMax) * dh,
+    }));
+    // Smooth curve via cardinal spline approximation (simple catmull-rom)
+    let line = `M ${pts[0].x},${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(i - 1, 0)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(i + 2, pts.length - 1)];
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      line += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+    }
+    const area = line + ` L ${pts[pts.length - 1].x},${PAD.top + dh} L ${pts[0].x},${PAD.top + dh} Z`;
+    return { line, area };
+  }
+
+  const { line: linePath, area: areaPath } = buildPaths();
+  const gradId = `area-grad-${dataKey}`;
+
+  if (width === 0) return <div ref={containerRef} className="h-[200px]" />;
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <svg viewBox={`0 0 ${width} ${HEIGHT}`} className="w-full overflow-visible" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={resolveColor} stopOpacity={0.3} />
+            <stop offset="100%" stopColor={resolveColor} stopOpacity={0.02} />
+          </linearGradient>
+        </defs>
+        {yTicks.map((tick) => {
+          const y = PAD.top + dh - (tick / yMax) * dh;
+          return (
+            <g key={tick}>
+              <line x1={PAD.left} y1={y} x2={PAD.left + dw} y2={y} stroke={cssVar("--color-surface-800")} strokeWidth={1} />
+              <text x={PAD.left - 6} y={y + 4} textAnchor="end" fill={cssVar("--color-surface-500")} fontSize={10} fontFamily="var(--font-mono)">
+                {tick >= 1000 ? `${(tick / 1000).toFixed(1)}k` : tick.toLocaleString()}
+              </text>
+            </g>
+          );
+        })}
+        <line x1={PAD.left} y1={PAD.top + dh} x2={PAD.left + dw} y2={PAD.top + dh} stroke={cssVar("--color-surface-600")} strokeWidth={1} />
+        {areaPath && <path d={areaPath} fill={`url(#${gradId})`} />}
+        {linePath && <path d={linePath} fill="none" stroke={resolveColor} strokeWidth={2} strokeLinecap="round" />}
+        {/* Hover dots + invisible hit areas */}
+        {values.map((v, i) => {
+          const cx = PAD.left + i * slotW + slotW / 2;
+          const cy = PAD.top + dh - (v / yMax) * dh;
+          const isHovered = hover?.index === i;
+          return (
+            <g key={data[i].date}>
+              <rect x={PAD.left + i * slotW} y={PAD.top} width={slotW} height={dh}
+                fill="transparent" className="cursor-pointer"
+                onMouseEnter={() => setHover({ index: i, value: v, date: data[i].date, x: cx })}
+                onMouseLeave={() => setHover(null)} />
+              {(isHovered || hover === null) && v > 0 && (
+                <circle cx={cx} cy={cy} r={isHovered ? 4 : 2.5} fill={resolveColor}
+                  stroke={cssVar("--color-surface-950")} strokeWidth={isHovered ? 2 : 1.5}
+                  className="transition-all duration-150" />
+              )}
+            </g>
+          );
+        })}
+        {data.map((point, i) => {
+          if (i % labelStep !== 0) return null;
+          const x = PAD.left + i * slotW + slotW / 2;
+          return (
+            <text key={point.date} x={x} y={HEIGHT - 6} textAnchor="end"
+              transform={`rotate(-35, ${x}, ${HEIGHT - 6})`}
+              fill={cssVar("--color-surface-500")} fontSize={9} fontFamily="var(--font-sans)">
+              {abbrevDate(point.date)}
+            </text>
+          );
+        })}
+      </svg>
+      {hover !== null && width > 0 && (
+        <div className="absolute pointer-events-none z-10 animate-fade-in"
+          style={{ left: Math.max(0, Math.min(hover.x - 56, width - 120)), top: PAD.top - 4 }}>
+          <div className="card-base p-2 shadow-lg shadow-black/40 text-xs min-w-[112px]">
+            <p className="text-surface-400 font-medium border-b border-surface-800 pb-1 mb-1">
+              {new Date(hover.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: resolveColor }} />
+              <span className="text-surface-200">{label}: <span className="font-semibold font-mono">{hover.value.toLocaleString()}</span></span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
@@ -445,6 +586,26 @@ export default function OverviewPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Trend mini-charts — Episodes, Users, Graph Activity */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {([
+          { dataKey: "episode_count" as const, color: "--color-accent-300", label: "Episodes" },
+          { dataKey: "user_count" as const, color: "--color-success", label: "Users" },
+          { dataKey: "entity_count" as const, color: "--color-brand-500", label: "Graph Entities" },
+        ]).map((cfg) => (
+          <div key={cfg.dataKey} className="card-base p-4">
+            <h3 className="text-xs font-medium text-surface-400 mb-2">{cfg.label}</h3>
+            {usageLoading && usage.length === 0 ? (
+              <div className="h-[200px] rounded bg-surface-800 animate-pulse" />
+            ) : usage.length === 0 ? (
+              <div className="flex items-center justify-center h-[200px] text-surface-500 text-xs">No data</div>
+            ) : (
+              <AreaChart data={usage} dataKey={cfg.dataKey} color={cfg.color} label={cfg.label} />
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Daily Usage chart */}
