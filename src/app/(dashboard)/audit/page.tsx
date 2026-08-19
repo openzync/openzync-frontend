@@ -108,9 +108,10 @@ export default function AuditLogPage() {
 
   // ── Fetch available actors for the dropdown ─────────────────────────────────
   useEffect(() => {
+    // Always clear selection when type changes — stale ID from previous type is meaningless
+    setFilterActorId("");
     if (filterActorType === "all") {
       setAvailableActors([]);
-      setFilterActorId("");
       return;
     }
 
