@@ -29,6 +29,7 @@ import {
   MapPin,
   X,
   ShieldCheck,
+  Terminal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get, getAccessToken } from "@/lib/api-client";
@@ -180,7 +181,10 @@ function Sidebar({
                 { label: "Overview", href: "/overview", icon: <LayoutDashboard size={18} /> },
                 // Monitoring is gated on members:read (org-level read access)
                 ...(can("members:read")
-                  ? [{ label: "Monitoring", href: "/monitoring", icon: <Activity size={18} /> }]
+                  ? [
+                      { label: "Monitoring", href: "/monitoring", icon: <Activity size={18} /> },
+                      { label: "Query Playground", href: "/monitoring/query", icon: <Terminal size={18} /> },
+                    ]
                   : []),
               ].map((item) => {
                 const active = isActive(item.href);
@@ -586,7 +590,10 @@ export default function DashboardLayout({
     // Non-project pages
     if (pathname === "/projects") return [{ label: "Projects" }];
     if (pathname === "/overview") return [{ label: "Insights" }, { label: "Overview" }];
-    if (pathname.startsWith("/monitoring")) return [{ label: "Insights" }, { label: "Monitoring" }];
+    if (pathname.startsWith("/monitoring")) {
+      if (pathname.includes("/query")) return [{ label: "Insights" }, { label: "Monitoring" }, { label: "Query Playground" }];
+      return [{ label: "Insights" }, { label: "Monitoring" }];
+    }
     if (pathname.startsWith("/superadmin")) {
       if (pathname.endsWith("/requests")) return [{ label: "Platform Admin" }, { label: "Approval Requests" }];
       if (pathname.endsWith("/config")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Configuration" }];
