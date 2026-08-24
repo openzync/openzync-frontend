@@ -29,7 +29,6 @@ import {
   MapPin,
   X,
   ShieldCheck,
-  Terminal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get, getAccessToken } from "@/lib/api-client";
@@ -181,10 +180,7 @@ function Sidebar({
                 { label: "Overview", href: "/overview", icon: <LayoutDashboard size={18} /> },
                 // Monitoring is gated on members:read (org-level read access)
                 ...(can("members:read")
-                  ? [
-                      { label: "Monitoring", href: "/monitoring", icon: <Activity size={18} /> },
-                      { label: "Query Playground", href: "/monitoring/query", icon: <Terminal size={18} /> },
-                    ]
+                  ? [{ label: "Monitoring", href: "/monitoring", icon: <Activity size={18} /> }]
                   : []),
               ].map((item) => {
                 const active = isActive(item.href);

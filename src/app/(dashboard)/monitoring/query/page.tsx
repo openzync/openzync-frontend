@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Play, AlertTriangle, Database, TableIcon, Code } from "lucide-react";
+import { Play, Database, TableIcon, Code } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
 import { PageHeader } from "@/components/shared/page-header";
 import { ErrorState } from "@/components/shared/error-state";
@@ -27,7 +27,6 @@ interface QueryResult {
   rows: (string | number)[][];
   total: number;
   parameters: Record<string, number>;
-  warning?: string;
 }
 
 type SortDirection = "asc" | "desc";
@@ -182,7 +181,6 @@ export default function QueryPlaygroundPage() {
   };
 
   const selectedParams = selectedQuery?.params ?? [];
-  const isPerformance = selectedQuery?.category === "performance";
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -257,17 +255,10 @@ export default function QueryPlaygroundPage() {
                 </div>
                 <p className="text-xs text-surface-400 leading-relaxed">{q.description}</p>
                 <div className="flex items-center gap-2 pt-0.5">
-                  {q.org_scoped ? (
-                    <Badge variant="success" size="sm">
-                      <Database size={10} className="mr-1" />
-                      Org Scoped
-                    </Badge>
-                  ) : (
-                    <Badge variant="warning" size="sm">
-                      <AlertTriangle size={10} className="mr-1" />
-                      Global
-                    </Badge>
-                  )}
+                  <Badge variant="success" size="sm">
+                    <Database size={10} className="mr-1" />
+                    Org Scoped
+                  </Badge>
                   {q.params.length > 0 && (
                     <span className="text-[10px] text-surface-500">
                       {q.params.length} param{q.params.length > 1 ? "s" : ""}
@@ -336,14 +327,6 @@ export default function QueryPlaygroundPage() {
         </div>
       )}
 
-      {/* Performance warning */}
-      {isPerformance && result && (
-        <div className="flex items-center gap-2 rounded-md bg-warning/10 border border-warning/30 px-4 py-2.5 text-xs text-warning">
-          <AlertTriangle size={14} className="shrink-0" />
-          Global metric &mdash; not scoped to your organization
-        </div>
-      )}
-
       {/* Error */}
       {error && <ErrorState message={error} onRetry={handleRun} />}
 
@@ -364,11 +347,7 @@ export default function QueryPlaygroundPage() {
                 {humanizeQueryName(result.query)}
               </span>
               <span>{result.total} row{result.total !== 1 ? "s" : ""}</span>
-              {result.org_scoped && (
-                <Badge variant="success" size="sm">
-                  Org Scoped
-                </Badge>
-              )}
+              <Badge variant="success" size="sm">Org Scoped</Badge>
             </div>
             <button
               onClick={() => setShowRaw(!showRaw)}
@@ -378,13 +357,6 @@ export default function QueryPlaygroundPage() {
               {showRaw ? "Show Table" : "Show Raw JSON"}
             </button>
           </div>
-
-          {result.warning && (
-            <div className="flex items-center gap-2 rounded-md bg-warning/10 border border-warning/30 px-3 py-2 text-xs text-warning">
-              <AlertTriangle size={12} className="shrink-0" />
-              {result.warning}
-            </div>
-          )}
 
           {showRaw ? (
             <div className="card-base p-4 overflow-auto max-h-[32rem]">

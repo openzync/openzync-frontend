@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Database,
   BarChart2,
+  Terminal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get, ApiError, apiErrorMessage } from "@/lib/api-client";
@@ -442,6 +443,10 @@ export default function MonitoringPage() {
         description="Real-time platform performance and health metrics"
         actions={
           <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => window.location.href = "/monitoring/query"}
+              className="rounded-md text-surface-400 hover:text-white" title="Open Query Playground">
+              <Terminal size={14} className="mr-1.5" />Query
+            </Button>
             <span className="flex items-center gap-1.5 text-xs text-success font-medium">
               <span className="h-2 w-2 rounded-full bg-success animate-pulse-dot" />Live
             </span>
