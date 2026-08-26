@@ -60,6 +60,48 @@ function isOnProjectList(pathname: string): boolean {
 
 // ─── Sidebar ───────────────────────────────────────────────────────────────────
 
+/**
+ * Real <Link> for every sidebar destination — right-click / open-in-new-tab
+ * work, and screen readers announce navigation. `onClick` still fires (used by
+ * the mobile drawer to close itself alongside navigation).
+ */
+function SidebarLink({
+  href,
+  active,
+  collapsed,
+  centerCollapsed,
+  title,
+  onClick,
+  children,
+}: {
+  href: string;
+  active?: boolean;
+  collapsed?: boolean;
+  /** Center the icon when collapsed (matches the previous per-section styling). */
+  centerCollapsed?: boolean;
+  title?: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      title={title}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
+        centerCollapsed && collapsed && "justify-center px-0",
+        active
+          ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
+          : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
 function Sidebar({
   collapsed,
   onToggle,
@@ -181,21 +223,17 @@ function Sidebar({
               ].map((item) => {
                 const active = isActive(item.href);
                 return (
-                  <button
+                  <SidebarLink
                     key={item.href}
-                    onClick={() => { router.push(item.href); onClose?.(); }}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                      active
-                        ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                        : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
-                    )}
+                    href={item.href}
+                    active={active}
+                    onClick={onClose}
                   >
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
                       {item.icon}
                     </span>
                     <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
-                  </button>
+                  </SidebarLink>
                 );
               })}
             </div>
@@ -218,42 +256,36 @@ function Sidebar({
             {(inProject ? pinned.filter((p) => p.id !== projectId) : pinned).map((p) => {
               const isActiveProject = pathname.startsWith(`/projects/${p.id}`);
               return (
-                <button
+                <SidebarLink
                   key={p.id}
-                  onClick={() => { router.push(`/projects/${p.id}/sessions`); onClose?.(); }}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                    collapsed && "justify-center px-0",
-                    isActiveProject
-                      ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                      : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
-                  )}
+                  href={`/projects/${p.id}/sessions`}
+                  active={isActiveProject}
+                  collapsed={collapsed}
+                  centerCollapsed
+                  onClick={onClose}
                 >
                   <span className={cn("shrink-0", isActiveProject ? "text-brand-300" : "text-surface-400")}>
                     <MapPin size={18} />
                   </span>
                   <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{p.name}</span>
-                </button>
+                </SidebarLink>
               );
             })}
 
             {/* View all projects — hidden inside a project, shown in bottom section instead */}
             {!inProject && (
-              <button
-                onClick={() => { router.push("/projects"); onClose?.(); }}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                  collapsed && "justify-center px-0",
-                  onProjectList
-                    ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                    : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
-                )}
+              <SidebarLink
+                href="/projects"
+                active={onProjectList}
+                collapsed={collapsed}
+                centerCollapsed
+                onClick={onClose}
               >
                 <span className="shrink-0 text-surface-400">
                   <FolderKanban size={18} />
                 </span>
                 <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>View all projects</span>
-              </button>
+              </SidebarLink>
             )}
 
             {/* Project-scoped nav items (only inside a project) */}
@@ -268,22 +300,19 @@ function Sidebar({
                 ].map((item) => {
                   const active = isActive(item.href);
                   return (
-                    <button
+                    <SidebarLink
                       key={item.href}
-                      onClick={() => { router.push(item.href); onClose?.(); }}
-                      className={cn(
-                        "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                        collapsed && "justify-center px-0",
-                        active
-                          ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                          : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
-                      )}
+                      href={item.href}
+                      active={active}
+                      collapsed={collapsed}
+                      centerCollapsed
+                      onClick={onClose}
                     >
                       <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
                         {item.icon}
                       </span>
                       {!collapsed && <span className="truncate">{item.label}</span>}
-                    </button>
+                    </SidebarLink>
                   );
                 })}
               </>
@@ -312,21 +341,17 @@ function Sidebar({
               ].map((item) => {
                 const active = isActive(item.href);
                 return (
-                  <button
+                  <SidebarLink
                     key={item.href}
-                    onClick={() => { router.push(item.href); onClose?.(); }}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                      active
-                        ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                        : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
-                    )}
+                    href={item.href}
+                    active={active}
+                    onClick={onClose}
                   >
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
                       {item.icon}
                     </span>
                     <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
-                  </button>
+                  </SidebarLink>
                 );
               })}
             </div>
@@ -362,21 +387,17 @@ function Sidebar({
                   {adminItems.map((item) => {
                     const active = isActive(item.href);
                     return (
-                      <button
+                      <SidebarLink
                         key={item.href}
-                        onClick={() => { router.push(item.href); onClose?.(); }}
-                        className={cn(
-                          "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                          active
-                            ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                            : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
-                        )}
+                        href={item.href}
+                        active={active}
+                        onClick={onClose}
                       >
                         <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
                           {item.icon}
                         </span>
                         <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
-                      </button>
+                      </SidebarLink>
                     );
                   })}
                 </div>
@@ -409,21 +430,17 @@ function Sidebar({
               ].map((item) => {
                 const active = isActive(item.href);
                 return (
-                  <button
+                  <SidebarLink
                     key={item.href}
-                    onClick={() => { router.push(item.href); onClose?.(); }}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                      active
-                        ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-                        : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
-                    )}
+                    href={item.href}
+                    active={active}
+                    onClick={onClose}
                   >
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
                       {item.icon}
                     </span>
                     <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
-                  </button>
+                  </SidebarLink>
                 );
               })}
             </div>
@@ -435,14 +452,15 @@ function Sidebar({
       <div className="mt-auto border-t border-surface-800 p-2 space-y-1">
         {/* View all projects — bottom section when inside a project */}
         {inProject && (
-          <button
-            onClick={() => { router.push("/projects"); onClose?.(); }}
+          <Link
+            href="/projects"
+            onClick={onClose}
             className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
             title={collapsed ? "View all projects" : undefined}
           >
             <FolderKanban size={18} />
             <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>View all projects</span>
-          </button>
+          </Link>
         )}
 
         {/* Search — opens command palette */}
@@ -475,16 +493,14 @@ function Sidebar({
                 <div className="px-2 py-1.5 text-sm text-surface-400 border-b border-surface-800 mb-1">
                   {currentUserLabel}
                 </div>
-                <button
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    router.push("/settings");
-                  }}
+                <Link
+                  href="/settings"
+                  onClick={() => setUserMenuOpen(false)}
                   className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-surface-200 hover:bg-surface-800"
                 >
                   <Settings size={14} />
                   Settings
-                </button>
+                </Link>
                 <hr className="my-1 border-surface-800" />
                 <button
                   onClick={() => {

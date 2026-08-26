@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AlertCircle, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
 import { changePassword } from "@/lib/api-client";
 import { getPasswordStrength } from "@/lib/password-strength";
+import { AuthLayout } from "@/components/shared/auth-layout";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -44,24 +45,8 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left brand panel */}
-      <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-brand-500 to-surface-950">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(143,175,217,0.08)_0%,transparent_50%),radial-gradient(circle_at_25%_30%,rgba(20,72,140,0.12)_0%,transparent_50%)]" />
-        <div className="relative z-10 text-center px-8">
-          <h1 className="text-5xl font-extrabold text-text-primary tracking-tight mb-2">
-            OpenZync
-          </h1>
-          <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">
-            Secure your account before continuing
-          </p>
-        </div>
-      </div>
-
-      {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <div className="card-base p-6">
+    <AuthLayout variant="plain" tagline="Secure your account before continuing" mobileBrand={false}>
+      <div className="card-base p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
                 <KeyRound size={20} className="text-brand-300" />
@@ -158,8 +143,6 @@ export default function ChangePasswordPage() {
               </Link>
             </p>
           </div>
-        </div>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }

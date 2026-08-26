@@ -15,13 +15,14 @@ import {
   RefreshCw,
   Eye,
   User as UserIcon,
-  ExternalLink,
 } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
 import { smartTimestamp, truncateId, copyToClipboard } from "@/lib/utils";
 import { useProject } from "@/stores/project-context";
 import { ErrorState } from "@/components/shared/error-state";
 import { PageGuide, GuideConversation } from "@/components/guides";
+import SessionTabs, { SESSION_TABS, type SessionTab } from "./tabs";
+import { SessionMessages } from "./session-messages";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -39,22 +40,6 @@ interface SessionDetail {
   created_at: string;
   closed_at?: string | null;
 }
-
-// ─── Tab configuration ─────────────────────────────────────────────────────────
-
-interface Tab {
-  label: string;
-  path: string;
-}
-
-const TABS: Tab[] = [
-  { label: "Messages", path: "messages" },
-  { label: "Facts", path: "facts" },
-  { label: "Graph", path: "graph" },
-  { label: "Classifications", path: "classifications" },
-  { label: "Extractions", path: "extractions" },
-  { label: "Observations", path: "observations" },
-];
 
 // ─── Copy Button ───────────────────────────────────────────────────────────────
 
@@ -117,13 +102,13 @@ export default function SessionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Determine active tab from current path
+  // Determine active tab from current path (null = detail landing → Messages inline)
   const activeTab = (() => {
-    for (const tab of TABS) {
-      if (pathname.endsWith(`/${tab.path}`)) return tab.path;
+    for (const tab of SESSION_TABS) {
+      if (pathname.endsWith(`/${tab.href}`)) return tab.id;
     }
     return null;
-  })();
+  })() satisfies SessionTab["id"] | null;
 
   // Fetch session
   useEffect(() => {
@@ -155,11 +140,6 @@ export default function SessionDetailPage() {
 
     fetchSession();
   }, [sessionId, projectId]);
-
-  // Build tab href
-  function tabHref(tab: Tab): string {
-    return `/projects/${projectId}/sessions/${sessionId}/${tab.path}`;
-  }
 
   // Breadcrumb
   function Breadcrumb() {
@@ -303,39 +283,12 @@ export default function SessionDetailPage() {
         ) : null}
       </div>
 
-      {/* Tab navigation */}
-      {session && (
-        <div className="border-b border-surface-800">
-          <nav className="flex gap-6 -mb-px">
-            {TABS.map((tab) => {
-              const isActive = activeTab === tab.path;
-              return (
-                <Link
-                  key={tab.path}
-                  href={tabHref(tab)}
-                  className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                    isActive
-                      ? "text-brand-500 border-brand-500"
-                      : "text-surface-400 border-transparent hover:text-surface-200 hover:border-surface-600"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      )}
+      {/* Tab navigation — shared with the subtab pages */}
+      {session && <SessionTabs sessionId={sessionId} activeTab={activeTab} />}
 
-      {/* Tab content placeholder */}
+      {/* Default landing — Messages rendered inline instead of a dead-end placeholder */}
       {session && !activeTab && (
-        <div className="card-base p-6 flex flex-col items-center justify-center py-12 text-surface-500">
-          <ExternalLink size={32} className="mb-3 text-surface-600" />
-          <p className="text-sm">Select a tab above to view session data.</p>
-          <p className="text-xs mt-1">
-            Messages, facts, graph, classifications, extractions, and observations.
-          </p>
-        </div>
+        <SessionMessages sessionId={sessionId} embedded />
       )}
     </div>
   );

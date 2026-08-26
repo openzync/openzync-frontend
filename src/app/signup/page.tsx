@@ -7,6 +7,7 @@ import { CheckCircle2, Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { post, join, getRegistrationStatus, type RegistrationStatus } from "@/lib/api-client";
 import { getPasswordStrength } from "@/lib/password-strength";
 import { cn } from "@/lib/utils";
+import { AuthLayout } from "@/components/shared/auth-layout";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -97,46 +98,11 @@ export default function SignupPage() {
     }
   };
 
-  // ── Shared brand panel (left side) ─────────────────────────────────────────
-  const brandPanel = (
-    <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-brand-500 to-surface-950">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(143,175,217,0.08)_0%,transparent_50%),radial-gradient(circle_at_25%_30%,rgba(20,72,140,0.12)_0%,transparent_50%)]" />
-      <div className="relative z-10 text-center px-8">
-        <h1 className="text-5xl font-extrabold text-text-primary tracking-tight mb-2">
-          OpenZync
-        </h1>
-        <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">
-          Get started with agent memory infrastructure
-        </p>
-        <div className="text-left max-w-xs mx-auto space-y-3">
-          {[
-            "Persistent, queryable agent memory",
-            "Multi-provider LLM support (BYOK)",
-            "Knowledge graph with hybrid search",
-            "Async enrichment pipeline",
-          ].map((feature, i) => (
-            <div key={i} className="flex items-start gap-2.5">
-              <div className="mt-1.5 h-2 w-2 rounded-full bg-accent-300 shrink-0" />
-              <span className="text-sm text-surface-300">{feature}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
   // ── reject_all — no form, registration is closed ───────────────────────────
   if (policy === "reject_all") {
     return (
-      <div className="flex min-h-screen">
-        {brandPanel}
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full max-w-sm">
-            <div className="md:hidden text-center mb-8">
-              <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-              <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
-            </div>
-            <div className="card-base p-6">
+      <AuthLayout variant="features" tagline="Get started with agent memory infrastructure">
+        <div className="card-base p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning/10">
                   <Lock size={20} className="text-warning" />
@@ -160,20 +126,15 @@ export default function SignupPage() {
                 </Link>
               </p>
             </div>
-          </div>
-        </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   // ── Pending-approval confirmation state ────────────────────────────────────
   if (submittedMessage) {
     return (
-      <div className="flex min-h-screen">
-        {brandPanel}
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full max-w-sm">
-            <div className="card-base p-6">
+      <AuthLayout variant="features" tagline="Get started with agent memory infrastructure">
+        <div className="card-base p-6">
               <div className="flex flex-col items-center text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/10 mb-4">
                   <CheckCircle2 size={24} className="text-success" />
@@ -190,27 +151,14 @@ export default function SignupPage() {
                 </Link>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   // ── Normal form (allow_all, or approvals without public scope) ─────────────
   return (
-    <div className="flex min-h-screen">
-      {brandPanel}
-
-      {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          {/* Mobile brand */}
-          <div className="md:hidden text-center mb-8">
-            <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-            <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
-          </div>
-
-          <div className="card-base p-6">
+    <AuthLayout variant="features" tagline="Get started with agent memory infrastructure">
+      <div className="card-base p-6">
             <h2 className="text-xl font-semibold mb-1">
               {approvalsPublic
                 ? "Request access to OpenZync"
@@ -380,8 +328,6 @@ export default function SignupPage() {
               </Link>
             </p>
           </div>
-        </div>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }

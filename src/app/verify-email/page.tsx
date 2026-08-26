@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Mail, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AuthLayout } from "@/components/shared/auth-layout";
 import { post, storeTokens } from "@/lib/api-client";
 
 function VerifyEmailForm() {
@@ -65,45 +66,8 @@ function VerifyEmailForm() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left brand panel — same as signup page */}
-      <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-brand-500 to-surface-950">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(143,175,217,0.08)_0%,transparent_50%),radial-gradient(circle_at_25%_30%,rgba(20,72,140,0.12)_0%,transparent_50%)]" />
-        <div className="relative z-10 text-center px-8">
-          <h1 className="text-5xl font-extrabold text-text-primary tracking-tight mb-2">
-            OpenZync
-          </h1>
-          <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">
-            Verify your email to continue
-          </p>
-          <div className="text-left max-w-xs mx-auto space-y-3">
-            {[
-              "Persistent, queryable agent memory",
-              "Multi-provider LLM support (BYOK)",
-              "Knowledge graph with hybrid search",
-              "Async enrichment pipeline",
-            ].map((feature, i) => (
-              <div key={i} className="flex items-start gap-2.5">
-                <div className="mt-1.5 h-2 w-2 rounded-full bg-accent-300 shrink-0" />
-                <span className="text-sm text-surface-300">{feature}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          {/* Mobile brand */}
-          <div className="md:hidden text-center mb-8">
-            <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-            <p className="text-xs text-surface-400">
-              Agent Memory Infrastructure
-            </p>
-          </div>
-
-          <div className="card-base p-6">
+    <AuthLayout variant="features" tagline="Verify your email to continue">
+      <div className="card-base p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-300/10">
                 <Mail size={20} className="text-accent-300" />
@@ -198,9 +162,7 @@ function VerifyEmailForm() {
               </Link>
             </p>
           </div>
-        </div>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }
 

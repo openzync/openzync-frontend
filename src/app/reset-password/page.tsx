@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AuthLayout } from "@/components/shared/auth-layout";
 import { post } from "@/lib/api-client";
 
 function ResetPasswordForm() {
@@ -53,21 +54,8 @@ function ResetPasswordForm() {
 
   if (done) {
     return (
-      <div className="flex min-h-screen">
-        <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-brand-500 to-surface-950">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(143,175,217,0.08)_0%,transparent_50%),radial-gradient(circle_at_25%_30%,rgba(20,72,140,0.12)_0%,transparent_50%)]" />
-          <div className="relative z-10 text-center px-8">
-            <h1 className="text-5xl font-extrabold text-text-primary tracking-tight mb-2">OpenZync</h1>
-            <p className="text-lg text-surface-300 max-w-sm mx-auto">Password reset successful</p>
-          </div>
-        </div>
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full max-w-sm">
-            <div className="md:hidden text-center mb-8">
-              <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-              <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
-            </div>
-            <div className="card-base p-6 text-center">
+      <AuthLayout variant="plain" tagline="Password reset successful">
+        <div className="card-base p-6 text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/10 mb-4">
                 <CheckCircle size={24} className="text-success" />
               </div>
@@ -76,33 +64,13 @@ function ResetPasswordForm() {
                 Redirecting you to login...
               </p>
             </div>
-          </div>
-        </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left brand panel */}
-      <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-brand-500 to-surface-950">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(143,175,217,0.08)_0%,transparent_50%),radial-gradient(circle_at_25%_30%,rgba(20,72,140,0.12)_0%,transparent_50%)]" />
-        <div className="relative z-10 text-center px-8">
-          <h1 className="text-5xl font-extrabold text-text-primary tracking-tight mb-2">OpenZync</h1>
-          <p className="text-lg text-surface-300 max-w-sm mx-auto mb-8">Reset your password</p>
-        </div>
-      </div>
-
-      {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          {/* Mobile brand */}
-          <div className="md:hidden text-center mb-8">
-            <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-            <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
-          </div>
-
-          <div className="card-base p-6">
+    <AuthLayout variant="plain" tagline="Reset your password">
+      <div className="card-base p-6">
             <h2 className="text-xl font-semibold mb-1">Reset password</h2>
             <p className="text-sm text-surface-400 mb-6">
               Enter the code sent to <strong className="text-surface-300">{email}</strong>
@@ -205,9 +173,7 @@ function ResetPasswordForm() {
               </Link>
             </p>
           </div>
-        </div>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }
 

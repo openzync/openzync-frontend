@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import Link from "next/link";
 import {
   Activity,
   Timer,
@@ -445,10 +446,12 @@ export default function MonitoringPage() {
         description="Real-time platform performance and health metrics"
         actions={
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => window.location.href = "/monitoring/query"}
-              className="rounded-md text-surface-400 hover:text-white" title="Open Query Playground">
-              <Terminal size={14} className="mr-1.5" />Query
-            </Button>
+            <Link href="/monitoring/query">
+              <Button variant="ghost" size="sm"
+                className="rounded-md text-surface-400 hover:text-white" title="Open Query Playground">
+                <Terminal size={14} className="mr-1.5" />Query
+              </Button>
+            </Link>
             <span className="flex items-center gap-1.5 text-xs text-success font-medium">
               <span className="h-2 w-2 rounded-full bg-success animate-pulse-dot" />Live
             </span>
@@ -496,9 +499,11 @@ export default function MonitoringPage() {
                   className="h-full rounded-full transition-all duration-500 ease-out"
                   style={{
                     width: `${Math.min(summary.episodes.fully_enriched_pct, 100)}%`,
-                    backgroundColor: summary.episodes.fully_enriched_pct >= 80 ? '#22c55e'
-                      : summary.episodes.fully_enriched_pct >= 50 ? '#eab308'
-                      : '#ef4444',
+                    backgroundColor: summary.episodes.fully_enriched_pct >= 80
+                      ? "var(--color-success-500)"
+                      : summary.episodes.fully_enriched_pct >= 50
+                        ? "var(--color-warning-500)"
+                        : "var(--color-error-500)",
                   }}
                 />
               </div>

@@ -164,10 +164,18 @@ export default function ProjectsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map((project) => (
-              <button
+              <div
                 key={project.id}
+                role="link"
+                tabIndex={0}
                 onClick={() => router.push(`/projects/${project.id}/sessions`)}
-                className="card-interactive p-5 text-left group"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(`/projects/${project.id}/sessions`);
+                  }
+                }}
+                className="card-interactive p-5 text-left group cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -224,7 +232,7 @@ export default function ProjectsPage() {
                   </span>
                   <span>Created {formatDate(project.created_at)}</span>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}

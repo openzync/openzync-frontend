@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2, LogIn, Mail } from "lucide-react";
 import { post, storeTokens } from "@/lib/api-client";
+import { AuthLayout } from "@/components/shared/auth-layout";
 import { Button } from "@/components/ui/button";
 
 function LoginNotice() {
@@ -75,42 +76,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left brand panel */}
-      <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-brand-500 to-surface-950">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_50%,rgba(143,175,217,0.08)_0%,transparent_50%),radial-gradient(circle_at_75%_30%,rgba(20,72,140,0.12)_0%,transparent_50%)]" />
-        <div className="relative z-10 text-center px-8">
-          <h1 className="text-5xl font-extrabold text-text-primary tracking-tight mb-2">
-            OpenZync
-          </h1>
-          <p className="text-lg text-surface-300 max-w-sm mx-auto">
-            Persistent Agent Memory Infrastructure
-          </p>
-          <div className="mt-8 flex gap-6 justify-center">
-            {[
-              { value: "3", label: "Graph Backends" },
-              { value: "5", label: "LLM Providers" },
-              { value: "∞", label: "Scale" },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-3xl font-bold text-accent-300">{stat.value}</div>
-                <div className="text-xs text-surface-500 mt-1">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          {/* Mobile brand */}
-          <div className="md:hidden text-center mb-8">
-            <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
-            <p className="text-xs text-surface-400">Agent Memory Infrastructure</p>
-          </div>
-
-          <div className="card-base p-6 shadow-glow-sm">
+    <AuthLayout variant="stats">
+      <div className="card-base p-6 shadow-glow-sm">
             <h2 className="text-xl font-semibold mb-1">Welcome back</h2>
             <p className="text-sm text-surface-400 mb-6">
               Sign in to your organization dashboard
@@ -225,8 +192,6 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
-        </div>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }

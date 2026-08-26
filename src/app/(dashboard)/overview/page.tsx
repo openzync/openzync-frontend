@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -23,6 +23,7 @@ import { get } from "@/lib/api-client";
 import { timeAgo, actionLabel, formatNumber } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
+import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { PageGuide, GuideDashboard } from "@/components/guides";
 
@@ -283,6 +284,12 @@ export default function OverviewPage() {
   const [quickActions, setQuickActions] = useState<QuickActionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Per-section error flags — a failed fetch must never masquerade as
+  // "no data" (the old bare catch{} blocks rendered misleading empty states).
+  const [statsError, setStatsError] = useState(false);
+  const [activitiesError, setActivitiesError] = useState(false);
+  const [quickActionsError, setQuickActionsError] = useState(false);
+
   // Chart state
   const [usage, setUsage] = useState<UsagePoint[]>([]);
   const [usageLoading, setUsageLoading] = useState(false);
@@ -301,28 +308,43 @@ export default function OverviewPage() {
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", measure); };
   }, []);
 
-  // Fetch org stats, audit logs, and quick actions
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const statsRes = await get<OrgStats>("/v1/admin/stats/org");
-        setStats(statsRes);
-      } catch { /* non-critical */ }
-
-      try {
-        const auditRes = await get<{ items: AuditEntry[] }>("/v1/admin/audit-logs?limit=5");
-        setActivities(auditRes.items ?? []);
-      } catch { /* non-critical */ }
-
-      try {
-        const qaRes = await get<QuickActionsResponse>("/v1/admin/quick-actions");
-        setQuickActions(qaRes.actions);
-      } catch { /* non-critical */ }
-
-      setLoading(false);
+  // Fetch org stats, audit logs, and quick actions — each section fails
+  // independently so one bad endpoint doesn't blank the whole dashboard.
+  const fetchStats = useCallback(async () => {
+    setStatsError(false);
+    try {
+      const statsRes = await get<OrgStats>("/v1/admin/stats/org");
+      setStats(statsRes);
+    } catch {
+      setStatsError(true);
     }
-    fetchData();
   }, []);
+
+  const fetchActivities = useCallback(async () => {
+    setActivitiesError(false);
+    try {
+      const auditRes = await get<{ items: AuditEntry[] }>("/v1/admin/audit-logs?limit=5");
+      setActivities(auditRes.items ?? []);
+    } catch {
+      setActivitiesError(true);
+    }
+  }, []);
+
+  const fetchQuickActions = useCallback(async () => {
+    setQuickActionsError(false);
+    try {
+      const qaRes = await get<QuickActionsResponse>("/v1/admin/quick-actions");
+      setQuickActions(qaRes.actions);
+    } catch {
+      setQuickActionsError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    Promise.all([fetchStats(), fetchActivities(), fetchQuickActions()]).finally(() =>
+      setLoading(false),
+    );
+  }, [fetchStats, fetchActivities, fetchQuickActions]);
 
   // Fetch usage data for the chart
   useEffect(() => {
@@ -359,12 +381,17 @@ export default function OverviewPage() {
   const maxLabelSlots = Math.floor(drawWidth / 55);
   const labelStep = dataCount > 0 ? Math.max(1, Math.ceil(dataCount / Math.max(maxLabelSlots, 1))) : 1;
 
+  // Deterministic skeleton heights — Math.random() here re-randomised on every
+  // render, making the skeleton flicker whenever any state changed.
+  const SKELETON_HEIGHTS = [64, 48, 72, 40, 58, 80, 35, 66, 50, 74, 44, 62, 38, 70, 52, 46, 68, 42, 56, 60];
+  const SKELETON_OPACITIES = [0.5, 0.8, 0.65, 0.9, 0.55, 0.75, 0.85, 0.6];
+
   function renderChartSkeleton() {
     return (
       <div className="flex items-end gap-1 h-[260px] pt-5">
         {Array.from({ length: 20 }, (_, i) => (
           <div key={i} className="flex-1 rounded-t bg-surface-800 animate-pulse"
-            style={{ height: `${30 + Math.random() * 70}%`, opacity: 0.3 + Math.random() * 0.7 }} />
+            style={{ height: `${SKELETON_HEIGHTS[i % SKELETON_HEIGHTS.length]}%`, opacity: SKELETON_OPACITIES[i % SKELETON_OPACITIES.length] }} />
         ))}
       </div>
     );
@@ -502,18 +529,25 @@ export default function OverviewPage() {
       )}
 
       {/* Stat cards — all 6 in a single row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        {STAT_CARDS.map((card) => (
-          <StatCard
-            key={card.key}
-            label={card.label}
-            value={stats?.[card.key] ?? null}
-            icon={card.icon}
-            color={card.color}
-            loading={loading}
-          />
-        ))}
-      </div>
+      {statsError && !loading ? (
+        <ErrorState
+          message="Couldn't load organization stats."
+          onRetry={fetchStats}
+        />
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {STAT_CARDS.map((card) => (
+            <StatCard
+              key={card.key}
+              label={card.label}
+              value={stats?.[card.key] ?? null}
+              icon={card.icon}
+              color={card.color}
+              loading={loading}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Quick actions + Recent Activity */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -525,6 +559,11 @@ export default function OverviewPage() {
                 <div key={i} className="h-9 rounded bg-surface-800 animate-pulse" />
               ))}
             </div>
+          ) : quickActionsError ? (
+            <ErrorState
+              message="Couldn't load quick actions."
+              onRetry={fetchQuickActions}
+            />
           ) : quickActions.length === 0 ? (
             <div className="text-sm text-surface-500 py-4 text-center">
               No actions available
@@ -561,17 +600,22 @@ export default function OverviewPage() {
               View all &rarr;
             </button>
           </div>
-          {activities.length === 0 ? (
+          {loading ? (
             <div className="text-sm text-surface-500 py-4 text-center">
-              {loading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-8 rounded bg-surface-800 animate-pulse" />
-                  ))}
-                </div>
-              ) : (
-                "No recent activity found."
-              )}
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-8 rounded bg-surface-800 animate-pulse" />
+                ))}
+              </div>
+            </div>
+          ) : activitiesError ? (
+            <ErrorState
+              message="Couldn't load recent activity."
+              onRetry={fetchActivities}
+            />
+          ) : activities.length === 0 ? (
+            <div className="text-sm text-surface-500 py-4 text-center">
+              No recent activity found.
             </div>
           ) : (
             <div className="space-y-2">

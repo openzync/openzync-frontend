@@ -3,10 +3,8 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   ArrowLeft,
-  ArrowUpRight,
   Copy,
   Check,
   Calendar,
@@ -712,15 +710,7 @@ export default function UserDetailPage() {
                   User overview
                 </p>
               </div>
-              {/* Link to sessions list for this user */}
-              <div className="flex items-center gap-2">
-                <Link href={`/sessions?userId=${encodeURIComponent(user.id)}`}>
-                  <Button variant="ghost" size="sm" className="text-surface-400 hover:text-white gap-1.5">
-                    <ArrowUpRight size={14} />
-                    Sessions
-                  </Button>
-                </Link>
-              </div>
+              {/* note: no org-level sessions index exists yet — no sessions affordance here */}
             </div>
 
             {/* Metadata grid */}
