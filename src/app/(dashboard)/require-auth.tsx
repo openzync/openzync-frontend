@@ -36,7 +36,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    // sessionStorage is sync — the check is instant, so no artificial
+    // localStorage is sync — the check is instant, so no artificial
     // loading delay or redirect pause; bounce straight to login when stale.
     if (isTokenExpired()) {
       clearTokens();

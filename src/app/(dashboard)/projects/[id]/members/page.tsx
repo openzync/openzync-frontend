@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import {
   Users,
   Plus,
@@ -15,6 +15,7 @@ import {
   ApiError,
   extractList,
 } from "@/lib/api-client";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useProject } from "@/stores/project-context";
 import { useUser } from "@/contexts/user-context";
 import { toast } from "sonner";
@@ -56,9 +57,15 @@ export default function ProjectMembersPage() {
   const canManage = can("project:manage");
   const projectId = project?.id;
 
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState("");
+  const membersQuery = useApiQuery<Member[] | { data: Member[] }>(
+    () => get<Member[] | { data: Member[] }>(`/v1/projects/${projectId}/members`),
+    { enabled: !!projectId },
+  );
+  // Optimistic removal writes a local override; server data wins on refetch.
+  const [override, setOverride] = useState<Member[] | null>(null);
+  const members = override ?? extractList<Member>(membersQuery.data);
+  const loading = membersQuery.isLoading;
+  const fetchError = membersQuery.error;
 
   // Add member
   const [showAdd, setShowAdd] = useState(false);
@@ -71,28 +78,6 @@ export default function ProjectMembersPage() {
   // Remove member
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
   const [removing, setRemoving] = useState(false);
-
-  const fetchMembers = useCallback(async () => {
-    if (!projectId) return;
-    setLoading(true);
-    setFetchError("");
-    try {
-      const json = await get<Member[] | { data: Member[] }>(
-        `/v1/projects/${projectId}/members`,
-      );
-      setMembers(extractList<Member>(json));
-    } catch (err) {
-      setFetchError(
-        err instanceof ApiError ? err.message : "Failed to load members",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    fetchMembers();
-  }, [fetchMembers]);
 
   async function handleOpenAdd() {
     setAddError("");
@@ -121,7 +106,7 @@ export default function ProjectMembersPage() {
       });
       setShowAdd(false);
       toast.success("Member added");
-      fetchMembers();
+      membersQuery.refetch();
     } catch (err) {
       setAddError(
         err instanceof ApiError ? err.message : "Failed to add member",
@@ -138,7 +123,7 @@ export default function ProjectMembersPage() {
       await apiDel(
         `/v1/projects/${projectId}/members/${removeTarget.user_id}`,
       );
-      setMembers((prev) => prev.filter((m) => m.id !== removeTarget.id));
+      setOverride(members.filter((m) => m.id !== removeTarget.id));
       setRemoveTarget(null);
       toast.success("Member removed");
     } catch (err) {
@@ -195,7 +180,7 @@ export default function ProjectMembersPage() {
           <div className="card-base p-12 flex flex-col items-center justify-center">
             <AlertTriangle size={36} className="text-error mb-3" />
             <p className="text-sm text-surface-300 mb-4">{fetchError}</p>
-            <Button variant="secondary" size="sm" onClick={fetchMembers}>
+            <Button variant="secondary" size="sm" onClick={membersQuery.refetch}>
               Retry
             </Button>
           </div>

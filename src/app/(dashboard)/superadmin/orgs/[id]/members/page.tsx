@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, ShieldCheck, ShieldOff, UsersIcon } from "lucide-react";
 import { get, patch, apiErrorMessage } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -37,31 +38,14 @@ interface MembersResponse {
  */
 export default function OrgMembersAdminPage() {
   const { id: orgId } = useParams<{ id: string }>();
-  const [members, setMembers] = useState<OrgMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const membersQuery = useApiQuery<MembersResponse>(() =>
+    get<MembersResponse>("/v1/users?limit=50"),
+  );
+  const members = membersQuery.data?.data ?? [];
+  const loading = membersQuery.isLoading;
+  const error = membersQuery.error;
   const [roleTarget, setRoleTarget] = useState<{ user: OrgMember; to: "admin" | "member" } | null>(null);
   const [changingRole, setChangingRole] = useState(false);
-
-  const loadMembers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await get<MembersResponse>("/v1/users?limit=50");
-      setMembers(data.data);
-    } catch (err) {
-      setError(apiErrorMessage(err, "Failed to load members"));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const run = async () => {
-      await loadMembers();
-    };
-    void run();
-  }, [loadMembers]);
 
   const handleRoleChange = async () => {
     if (!roleTarget) return;
@@ -71,7 +55,7 @@ export default function OrgMembersAdminPage() {
       await patch(`/admin/system/orgs/${orgId}/members/${user.id}/role`, { role: to });
       setRoleTarget(null);
       toast.success(`"${user.name ?? user.external_id}" is now ${to === "admin" ? "an admin" : "a member"}`);
-      await loadMembers();
+      membersQuery.refetch();
     } catch (err) {
       toast.error(apiErrorMessage(err, "Failed to update role"));
     } finally {
@@ -99,7 +83,7 @@ export default function OrgMembersAdminPage() {
         </div>
       </div>
 
-      {error && <ErrorState message={error} onRetry={loadMembers} />}
+      {error && <ErrorState message={error} onRetry={membersQuery.refetch} />}
 
       <div className="card-base overflow-hidden">
         <div className="overflow-x-auto">

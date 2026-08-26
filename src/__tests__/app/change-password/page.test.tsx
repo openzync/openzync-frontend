@@ -19,7 +19,7 @@ vi.mock("@/lib/api-client", () => ({
 beforeEach(() => {
   mockReplace.mockReset();
   mockChangePassword.mockReset();
-  sessionStorage.clear();
+  localStorage.clear();
 });
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
@@ -39,8 +39,8 @@ describe("ChangePasswordPage", () => {
     // The real changePassword helper stores the rotated pair (clear → store);
     // simulate that contract here so the page flow is exercised end to end.
     mockChangePassword.mockImplementation(async () => {
-      sessionStorage.setItem("mg_access_token", "new-access");
-      sessionStorage.setItem("mg_refresh_token", "new-refresh");
+      localStorage.setItem("mg_access_token", "new-access");
+      localStorage.setItem("mg_refresh_token", "new-refresh");
       return { access_token: "new-access", refresh_token: "new-refresh" };
     });
 
@@ -52,8 +52,8 @@ describe("ChangePasswordPage", () => {
     await waitFor(() => {
       expect(mockChangePassword).toHaveBeenCalledWith("OldPass1!", "NewPass1!");
     });
-    expect(sessionStorage.getItem("mg_access_token")).toBe("new-access");
-    expect(sessionStorage.getItem("mg_refresh_token")).toBe("new-refresh");
+    expect(localStorage.getItem("mg_access_token")).toBe("new-access");
+    expect(localStorage.getItem("mg_refresh_token")).toBe("new-refresh");
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith("/overview");
     });

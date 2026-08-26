@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Plus,
   FileText,
@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { get, put, ApiError } from "@/lib/api-client";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageGuide, GuideSettings } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -29,9 +30,16 @@ interface CustomInstruction {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ExtractionInstructionsPage() {
-  const [instructions, setInstructions] = useState<CustomInstruction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const instructionsQuery = useApiQuery<{ data: CustomInstruction[] }>(() =>
+    get<{ data: CustomInstruction[] }>("/admin/org/custom-instructions"),
+  );
+  // Optimistic writes replace the list locally; the hook's server data stays
+  // untouched until a real refetch (retry / failed mutation recovery).
+  const [override, setOverride] = useState<CustomInstruction[] | null>(null);
+  const instructions = override ?? instructionsQuery.data?.data ?? [];
+  const loading = instructionsQuery.isLoading;
+  const [actionError, setActionError] = useState<string | null>(null);
+  const error = instructionsQuery.error ?? actionError;
 
   // Create / Edit dialog
   const [showDialog, setShowDialog] = useState(false);
@@ -43,23 +51,6 @@ export default function ExtractionInstructionsPage() {
   // Delete dialog
   const [deleteTarget, setDeleteTarget] = useState<CustomInstruction | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-
-  const fetchInstructions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await get<{ data: CustomInstruction[] }>("/admin/org/custom-instructions");
-      setInstructions(data.data ?? []);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load instructions");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchInstructions(); }, [fetchInstructions]);
 
   // ── Save (create or update) ─────────────────────────────────────────────────
 
@@ -92,14 +83,14 @@ export default function ExtractionInstructionsPage() {
 
     try {
       await put("/admin/org/custom-instructions", { data: updated });
-      setInstructions(updated);
+      setOverride(updated);
       setShowDialog(false);
       toast.success(editingIndex !== null ? "Instruction updated" : "Instruction created");
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to save instructions";
-      setError(msg);
+      setActionError(msg);
       toast.error(msg);
-      fetchInstructions();
+      instructionsQuery.refetch();
     } finally {
       setSaving(false);
     }
@@ -115,14 +106,14 @@ export default function ExtractionInstructionsPage() {
 
     try {
       await put("/admin/org/custom-instructions", { data: updated });
-      setInstructions(updated);
+      setOverride(updated);
       setDeleteTarget(null);
       toast.success("Instruction deleted");
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to delete instruction";
-      setError(msg);
+      setActionError(msg);
       toast.error(msg);
-      fetchInstructions();
+      instructionsQuery.refetch();
     } finally {
       setDeleting(false);
     }
@@ -147,7 +138,7 @@ export default function ExtractionInstructionsPage() {
       </PageGuide>
 
       {/* Error */}
-      {error && <ErrorState message={error} onRetry={fetchInstructions} />}
+      {error && <ErrorState message={error} onRetry={instructionsQuery.refetch} />}
 
       {/* Table */}
       <div className="card-base overflow-hidden">

@@ -22,7 +22,7 @@ beforeEach(() => {
   mockFetch.mockReset();
   mockPush.mockReset();
   mockReplace.mockReset();
-  sessionStorage.clear();
+  localStorage.clear();
 });
 
 afterEach(() => {
@@ -122,8 +122,8 @@ describe("LoginPage", () => {
     await user.click(screen.getByRole("button", { name: "Sign In" }));
 
     expect(mockReplace).toHaveBeenCalledWith("/overview");
-    expect(sessionStorage.getItem("mg_access_token")).toBe("access123");
-    expect(sessionStorage.getItem("mg_refresh_token")).toBe("refresh123");
+    expect(localStorage.getItem("mg_access_token")).toBe("access123");
+    expect(localStorage.getItem("mg_refresh_token")).toBe("refresh123");
   });
 
   it("allows root user to sign in with non-email identifier", async () => {

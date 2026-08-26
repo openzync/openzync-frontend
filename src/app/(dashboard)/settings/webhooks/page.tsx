@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { get, post, del, ApiError } from "@/lib/api-client";
 import { timeAgo, formatDate } from "@/lib/utils";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageGuide, GuideSettings } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -331,9 +332,15 @@ function CreateDialog({
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function WebhooksPage() {
-  const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const endpointsQuery = useApiQuery<{ data: WebhookEndpoint[] }>(() =>
+    get<{ data: WebhookEndpoint[] }>("/v1/admin/webhooks"),
+  );
+  // Optimistic delete removes locally; server data refreshes via refetch.
+  const [override, setOverride] = useState<WebhookEndpoint[] | null>(null);
+  const endpoints = override ?? endpointsQuery.data?.data ?? [];
+  const loading = endpointsQuery.isLoading;
+  const [actionError, setActionError] = useState<string | null>(null);
+  const error = endpointsQuery.error ?? actionError;
   const [showCreate, setShowCreate] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WebhookEndpoint | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -341,7 +348,8 @@ export default function WebhooksPage() {
   const [eventsLoading, setEventsLoading] = useState(true);
 
   // ── Fetch event types ────────────────────────────────────────────────────
-
+  // Falls back to a static catalog on failure — the create dialog must stay
+  // usable even if this non-critical endpoint is down.
   const fetchEvents = useCallback(async () => {
     setEventsLoading(true);
     try {
@@ -354,25 +362,9 @@ export default function WebhooksPage() {
     }
   }, []);
 
-  // ── Fetch endpoints ──────────────────────────────────────────────────────
-
-  const fetchEndpoints = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await get<{ data: WebhookEndpoint[] }>("/v1/admin/webhooks");
-      setEndpoints(data.data ?? []);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load webhooks");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchEvents();
-    fetchEndpoints();
-  }, [fetchEvents, fetchEndpoints]);
+    void fetchEvents();
+  }, [fetchEvents]);
 
   // ── Create ───────────────────────────────────────────────────────────────
 
@@ -384,7 +376,7 @@ export default function WebhooksPage() {
 
   const handleCloseCreate = () => {
     setShowCreate(false);
-    fetchEndpoints();
+    endpointsQuery.refetch();
   };
 
   // ── Delete ───────────────────────────────────────────────────────────────
@@ -394,12 +386,12 @@ export default function WebhooksPage() {
     setDeleting(true);
     try {
       await del(`/v1/admin/webhooks/${deleteTarget.id}`);
-      setEndpoints((prev) => prev.filter((e) => e.id !== deleteTarget.id));
+      setOverride(endpoints.filter((e) => e.id !== deleteTarget.id));
       setDeleteTarget(null);
       toast.success("Webhook endpoint deleted");
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to delete webhook";
-      setError(msg);
+      setActionError(msg);
       toast.error(msg);
     } finally {
       setDeleting(false);
@@ -425,7 +417,7 @@ export default function WebhooksPage() {
       </PageGuide>
 
       {/* Error */}
-      {error && <ErrorState message={error} onRetry={fetchEndpoints} />}
+      {error && <ErrorState message={error} onRetry={endpointsQuery.refetch} />}
 
       {/* Table */}
       <div className="card-base overflow-hidden">

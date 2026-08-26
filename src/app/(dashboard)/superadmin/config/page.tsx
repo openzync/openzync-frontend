@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Check, ServerCog, Settings2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -15,6 +15,7 @@ import {
   type SystemConfigResponse,
   type SystemSettingItem,
 } from "@/lib/api-client";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { ConfigFields, SYSTEM_DEFAULT_FIELDS } from "@/app/(dashboard)/superadmin/_components/config-fields";
@@ -65,59 +66,45 @@ export default function SuperadminConfigPage() {
     defaults: {},
   });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
-  const [settings, setSettings] = useState<SystemSettingItem[]>([]);
-  const [settingsLoading, setSettingsLoading] = useState(true);
-  const [settingsError, setSettingsError] = useState<string | null>(null);
   // key → raw value; presence in this map means the row is revealed.
   const [revealed, setRevealed] = useState<Record<string, string>>({});
   // key currently being fetched by the reveal endpoint.
   const [revealing, setRevealing] = useState<string | null>(null);
 
-  const fetchConfig = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await get<SystemConfigResponse>("/admin/system/config");
-      const defaults = pickDefaults(data);
-      setForm({ policy: data.org_creation_policy, scope: data.approval_scope, defaults });
-      setInitialForm({ policy: data.org_creation_policy, scope: data.approval_scope, defaults: { ...defaults } });
-    } catch (err) {
-      setError(apiErrorMessage(err, "Failed to load system configuration"));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const configQuery = useApiQuery<SystemConfigResponse>(() =>
+    get<SystemConfigResponse>("/admin/system/config"),
+  );
+  const settingsQuery = useApiQuery<{ data: SystemSettingItem[] }>(() =>
+    getSystemSettings(),
+  );
+  const loading = configQuery.isLoading;
+  // Save failures share the banner with load errors; retry re-runs the GET.
+  const error = configQuery.error ?? actionError;
+  const settings = settingsQuery.data?.data ?? [];
+  const settingsLoading = settingsQuery.isLoading;
+  const settingsError = settingsQuery.error;
 
-  useEffect(() => {
-    const run = async () => {
-      await fetchConfig();
-    };
-    void run();
-  }, [fetchConfig]);
-
-  const fetchSettings = useCallback(async () => {
-    setSettingsLoading(true);
-    setSettingsError(null);
-    try {
-      const res = await getSystemSettings();
-      setSettings(res.data);
-    } catch (err) {
-      setSettingsError(apiErrorMessage(err, "Failed to load system settings"));
-    } finally {
-      setSettingsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const run = async () => {
-      await fetchSettings();
-    };
-    void run();
-  }, [fetchSettings]);
+  // Seed the editable form from server data — render-phase adjustment keyed on
+  // response identity (same pattern as settings/page.tsx), so a refetch after
+  // save re-seeds exactly once.
+  const [seededConfig, setSeededConfig] = useState<SystemConfigResponse | null>(null);
+  if (configQuery.data && configQuery.data !== seededConfig) {
+    setSeededConfig(configQuery.data);
+    const defaults = pickDefaults(configQuery.data);
+    setForm({
+      policy: configQuery.data.org_creation_policy,
+      scope: configQuery.data.approval_scope,
+      defaults,
+    });
+    setInitialForm({
+      policy: configQuery.data.org_creation_policy,
+      scope: configQuery.data.approval_scope,
+      defaults: { ...defaults },
+    });
+  }
 
   /** Reveal raw value once; Hide only clears local state — never refetches. */
   const handleToggleReveal = async (item: SystemSettingItem) => {
@@ -159,7 +146,7 @@ export default function SuperadminConfigPage() {
   const handleSave = async () => {
     if (!hasChanged()) return;
     setSaving(true);
-    setError(null);
+    setActionError(null);
     try {
       // Partial PATCH — only what actually changed.
       const payload: Record<string, unknown> = {};
@@ -172,12 +159,12 @@ export default function SuperadminConfigPage() {
       }
       await patch("/admin/system/config", payload);
       toast.success("System configuration saved");
-      await fetchConfig();
+      configQuery.refetch();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to save configuration";
-      setError(message);
+      setActionError(message);
       toast.error(message);
     } finally {
       setSaving(false);
@@ -196,7 +183,7 @@ export default function SuperadminConfigPage() {
 
   return (
     <div className="space-y-4">
-      {error && <ErrorState message={error} onRetry={fetchConfig} />}
+      {error && <ErrorState message={error} onRetry={configQuery.refetch} />}
 
       {/* ── Registration policy ─────────────────────────────────────────────── */}
       <div className="card-base p-6">
@@ -308,7 +295,7 @@ export default function SuperadminConfigPage() {
           </div>
         </div>
 
-        {settingsError && <ErrorState message={settingsError} onRetry={fetchSettings} />}
+        {settingsError && <ErrorState message={settingsError} onRetry={settingsQuery.refetch} />}
 
         {settingsLoading ? (
           <div className="space-y-2">

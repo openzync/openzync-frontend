@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Play, Database, TableIcon, Code } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
@@ -93,9 +94,13 @@ function CardSkeleton() {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function QueryPlaygroundPage() {
-  const [queries, setQueries] = useState<QueryDefinition[]>([]);
-  const [queriesLoading, setQueriesLoading] = useState(true);
-  const [queriesError, setQueriesError] = useState("");
+  const queriesQuery = useApiQuery<{ queries: QueryDefinition[] }>(() =>
+    get<{ queries: QueryDefinition[] }>("/metrics/queries"),
+  );
+  // Memoized: this array feeds useEffect/useMemo dependency lists below.
+  const queries = useMemo(() => queriesQuery.data?.queries ?? [], [queriesQuery.data]);
+  const queriesLoading = queriesQuery.isLoading;
+  const queriesError = queriesQuery.error;
 
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedQuery, setSelectedQuery] = useState<QueryDefinition | null>(null);
@@ -110,16 +115,6 @@ export default function QueryPlaygroundPage() {
   const [sort, setSort] = useState<SortState | null>(null);
   const [page, setPage] = useState(0);
   const [showRaw, setShowRaw] = useState(false);
-
-  // Fetch available queries on mount
-  useEffect(() => {
-    get<{ queries: QueryDefinition[] }>("/metrics/queries")
-      .then((data) => setQueries(data.queries))
-      .catch((err) =>
-        setQueriesError(err instanceof ApiError ? err.message : "Failed to load queries"),
-      )
-      .finally(() => setQueriesLoading(false));
-  }, []);
 
   // Pre-select first query once loaded
   useEffect(() => {

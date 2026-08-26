@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Copy, Check, RefreshCw, KeyRound, Loader2, UserPlus, AlertCircle } from "lucide-react";
 import { get, post, patch, apiErrorMessage } from "@/lib/api-client";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -23,41 +24,34 @@ export default function OrgConfigIndexPage() {
   const { can, loading: roleLoading } = useUser();
   const canRead = can("configuration:read");
   const canWrite = can("configuration:write");
-  const [orgCode, setOrgCode] = useState<string | null>(null);
-  const [joinEnabled, setJoinEnabled] = useState(true);
-  const [togglingJoin, setTogglingJoin] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [retryKey, setRetryKey] = useState(0);
+  const orgCodeQuery = useApiQuery<OrgCodeResponse>(
+    () => get<OrgCodeResponse>("/admin/org/org-code"),
+    { enabled: canRead },
+  );
+  const loading = orgCodeQuery.isLoading;
+  // Mutation failures (regenerate/toggle/copy) share the banner with load
+  // errors; retry re-runs the GET.
+  const [actionError, setActionError] = useState<string | null>(null);
+  const error = orgCodeQuery.error ?? actionError;
   const [copied, setCopied] = useState(false);
   const [showRegenerate, setShowRegenerate] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
 
-  useEffect(() => {
-    if (!canRead) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await get<OrgCodeResponse>("/admin/org/org-code");
-        if (!cancelled) {
-          setOrgCode(data.org_code);
-          setJoinEnabled(data.join_enabled);
-        }
-      } catch (err) {
-        if (!cancelled) setError(apiErrorMessage(err, "Failed to load organization code"));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [canRead, retryKey]);
+  // orgCode/joinEnabled are locally mutable (regenerate/toggle write mutation
+  // responses straight back), so they are seeded from each new server response
+  // via render-phase adjustment keyed on response identity.
+  const [seededCode, setSeededCode] = useState<OrgCodeResponse | null>(null);
+  const [orgCode, setOrgCode] = useState<string | null>(null);
+  const [joinEnabled, setJoinEnabled] = useState(true);
+  const [togglingJoin, setTogglingJoin] = useState(false);
+  if (orgCodeQuery.data && orgCodeQuery.data !== seededCode) {
+    setSeededCode(orgCodeQuery.data);
+    setOrgCode(orgCodeQuery.data.org_code);
+    setJoinEnabled(orgCodeQuery.data.join_enabled);
+  }
 
   const handleRetry = () => {
-    setError(null);
-    setLoading(true);
-    setRetryKey((k) => k + 1);
+    orgCodeQuery.refetch();
   };
 
   const handleCopy = async () => {
@@ -67,7 +61,7 @@ export default function OrgConfigIndexPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      setError("Failed to copy — clipboard unavailable");
+      setActionError("Failed to copy — clipboard unavailable");
     }
   };
 
@@ -76,10 +70,10 @@ export default function OrgConfigIndexPage() {
     try {
       const data = await post<OrgCodeResponse>("/admin/org/org-code/regenerate");
       setOrgCode(data.org_code);
-      setError(null);
+      setActionError(null);
       setShowRegenerate(false);
     } catch (err) {
-      setError(apiErrorMessage(err, "Failed to regenerate code"));
+      setActionError(apiErrorMessage(err, "Failed to regenerate code"));
       setShowRegenerate(false);
     } finally {
       setRegenerating(false);
@@ -95,9 +89,9 @@ export default function OrgConfigIndexPage() {
         join_enabled: newValue,
       });
       setJoinEnabled(data.join_enabled);
-      setError(null);
+      setActionError(null);
     } catch (err) {
-      setError(apiErrorMessage(err, "Failed to update join setting"));
+      setActionError(apiErrorMessage(err, "Failed to update join setting"));
     } finally {
       setTogglingJoin(false);
     }

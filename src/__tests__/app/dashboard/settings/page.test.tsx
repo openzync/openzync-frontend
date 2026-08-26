@@ -67,9 +67,9 @@ vi.mock("@/components/guides", () => ({
 beforeEach(() => {
   mockFetch.mockReset();
   mockPush.mockReset();
-  sessionStorage.clear();
+  localStorage.clear();
   // Set auth token for settings page
-  sessionStorage.setItem("mg_access_token", "test-token");
+  localStorage.setItem("mg_access_token", "test-token");
 });
 
 afterEach(() => {

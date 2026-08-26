@@ -9,8 +9,8 @@ globalThis.fetch = mockFetch;
 
 beforeEach(() => {
   mockFetch.mockReset();
-  sessionStorage.clear();
-  sessionStorage.setItem("mg_access_token", "test-token");
+  localStorage.clear();
+  localStorage.setItem("mg_access_token", "test-token");
 });
 
 afterEach(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -13,6 +13,7 @@ import {
 import { get, post, ApiError, extractList } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -41,9 +42,13 @@ interface ProjectsApiResponse {
 export default function ProjectsPage() {
   const router = useRouter();
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState("");
+  const projectsQuery = useApiQuery<ProjectsApiResponse>(() =>
+    get<ProjectsApiResponse>("/v1/projects"),
+  );
+  // Guarded: data is null until the first response lands.
+  const projects = projectsQuery.data ? extractList<Project>(projectsQuery.data) : [];
+  const loading = projectsQuery.isLoading;
+  const fetchError = projectsQuery.error;
 
   const { togglePin, isPinned, isMaxPinned } = usePinnedProjects();
 
@@ -53,25 +58,6 @@ export default function ProjectsPage() {
   const [newDescription, setNewDescription] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
-
-  const fetchProjects = useCallback(async () => {
-    setLoading(true);
-    setFetchError("");
-    try {
-      const json = await get<ProjectsApiResponse>("/v1/projects");
-      setProjects(extractList<Project>(json));
-    } catch (err) {
-      setFetchError(
-        err instanceof ApiError ? err.message : "Network error loading projects",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
 
   async function handleCreate() {
     const name = newName.trim();
@@ -136,7 +122,7 @@ export default function ProjectsPage() {
           <div className="card-base p-12 flex flex-col items-center justify-center">
             <AlertTriangle size={36} className="text-error mb-3" />
             <p className="text-sm text-surface-300 mb-4">{fetchError}</p>
-            <Button variant="secondary" size="sm" onClick={fetchProjects}>
+            <Button variant="secondary" size="sm" onClick={projectsQuery.refetch}>
               Retry
             </Button>
           </div>

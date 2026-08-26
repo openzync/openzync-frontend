@@ -4,7 +4,7 @@
 //
 // Every API call in the frontend goes through this module.
 //   - Reads NEXT_PUBLIC_API_URL from env (fallback: http://localhost:8000)
-//   - Injects Authorization header from sessionStorage
+//   - Injects Authorization header from localStorage
 //   - Handles 401 → redirect to login
 //   - Provides typed request helpers so every page gets consistent error handling
 //
@@ -51,22 +51,22 @@ async function refreshAndRetry(
 
 function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem("mg_access_token");
+  return localStorage.getItem("mg_access_token");
 }
 
 function getRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem("mg_refresh_token");
+  return localStorage.getItem("mg_refresh_token");
 }
 
 function storeTokens(access: string, refresh: string): void {
-  sessionStorage.setItem("mg_access_token", access);
-  sessionStorage.setItem("mg_refresh_token", refresh);
+  localStorage.setItem("mg_access_token", access);
+  localStorage.setItem("mg_refresh_token", refresh);
 }
 
 function clearTokens(): void {
-  sessionStorage.removeItem("mg_access_token");
-  sessionStorage.removeItem("mg_refresh_token");
+  localStorage.removeItem("mg_access_token");
+  localStorage.removeItem("mg_refresh_token");
 }
 
 /**

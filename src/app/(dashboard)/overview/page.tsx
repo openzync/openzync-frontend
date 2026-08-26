@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { get } from "@/lib/api-client";
 import { timeAgo, actionLabel, formatNumber } from "@/lib/utils";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { ErrorState } from "@/components/shared/error-state";
@@ -279,21 +280,33 @@ function AreaChart({ data, dataKey, color, label }: AreaChartProps) {
 
 export default function OverviewPage() {
   const router = useRouter();
-  const [stats, setStats] = useState<OrgStats | null>(null);
-  const [activities, setActivities] = useState<AuditEntry[]>([]);
-  const [quickActions, setQuickActions] = useState<QuickActionItem[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  // Per-section error flags — a failed fetch must never masquerade as
-  // "no data" (the old bare catch{} blocks rendered misleading empty states).
-  const [statsError, setStatsError] = useState(false);
-  const [activitiesError, setActivitiesError] = useState(false);
-  const [quickActionsError, setQuickActionsError] = useState(false);
+  // Each section fails independently so one bad endpoint doesn't blank the
+  // whole dashboard. Errors clear on success only, so a retry visibly keeps
+  // the error until it actually resolves.
+  const statsQuery = useApiQuery<OrgStats>(() => get<OrgStats>("/v1/admin/stats/org"));
+  const activitiesQuery = useApiQuery<{ items: AuditEntry[] }>(() =>
+    get<{ items: AuditEntry[] }>("/v1/admin/audit-logs?limit=5"),
+  );
+  const quickActionsQuery = useApiQuery<QuickActionsResponse>(() =>
+    get<QuickActionsResponse>("/v1/admin/quick-actions"),
+  );
+  const loading =
+    statsQuery.isLoading || activitiesQuery.isLoading || quickActionsQuery.isLoading;
+
+  const quickActions = quickActionsQuery.data?.actions ?? [];
+  const activities = activitiesQuery.data?.items ?? [];
 
   // Chart state
-  const [usage, setUsage] = useState<UsagePoint[]>([]);
-  const [usageLoading, setUsageLoading] = useState(false);
   const [days, setDays] = useState<DaysOption>(7);
+  const usageQuery = useApiQuery<UsagePoint[] | { data?: UsagePoint[] }>(
+    () => get<UsagePoint[] | { data?: UsagePoint[] }>(`/v1/admin/stats/usage?days=${days}`),
+    { refreshKey: days },
+  );
+  const usage: UsagePoint[] = Array.isArray(usageQuery.data)
+    ? usageQuery.data
+    : usageQuery.data?.data ?? [];
+  const usageLoading = usageQuery.isLoading;
   const chartRef = useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = useState(0);
   const [hoveredBar, setHoveredBar] = useState<{
@@ -307,61 +320,6 @@ export default function OverviewPage() {
     window.addEventListener("resize", measure);
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", measure); };
   }, []);
-
-  // Fetch org stats, audit logs, and quick actions — each section fails
-  // independently so one bad endpoint doesn't blank the whole dashboard.
-  const fetchStats = useCallback(async () => {
-    setStatsError(false);
-    try {
-      const statsRes = await get<OrgStats>("/v1/admin/stats/org");
-      setStats(statsRes);
-    } catch {
-      setStatsError(true);
-    }
-  }, []);
-
-  const fetchActivities = useCallback(async () => {
-    setActivitiesError(false);
-    try {
-      const auditRes = await get<{ items: AuditEntry[] }>("/v1/admin/audit-logs?limit=5");
-      setActivities(auditRes.items ?? []);
-    } catch {
-      setActivitiesError(true);
-    }
-  }, []);
-
-  const fetchQuickActions = useCallback(async () => {
-    setQuickActionsError(false);
-    try {
-      const qaRes = await get<QuickActionsResponse>("/v1/admin/quick-actions");
-      setQuickActions(qaRes.actions);
-    } catch {
-      setQuickActionsError(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    Promise.all([fetchStats(), fetchActivities(), fetchQuickActions()]).finally(() =>
-      setLoading(false),
-    );
-  }, [fetchStats, fetchActivities, fetchQuickActions]);
-
-  // Fetch usage data for the chart
-  useEffect(() => {
-    let cancelled = false;
-    setUsageLoading(true);
-    async function fetchUsage() {
-      try {
-        const data = await get<UsagePoint[] | { data: UsagePoint[] }>(
-          `/v1/admin/stats/usage?days=${days}`
-        );
-        if (!cancelled) setUsage(Array.isArray(data) ? data : (data as { data: UsagePoint[] }).data ?? []);
-      } catch { /* non-critical */ }
-      finally { if (!cancelled) setUsageLoading(false); }
-    }
-    fetchUsage();
-    return () => { cancelled = true; };
-  }, [days]);
 
   // ── Chart computation ──────────────────────────────────────────────────────
 
@@ -486,7 +444,7 @@ export default function OverviewPage() {
       </PageGuide>
 
       {/* Quickstart — only for a brand-new org (no messages yet) */}
-      {!loading && stats && stats.total_messages === 0 && (
+      {!loading && statsQuery.data?.total_messages === 0 && (
         <div className="card-base p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -529,10 +487,10 @@ export default function OverviewPage() {
       )}
 
       {/* Stat cards — all 6 in a single row */}
-      {statsError && !loading ? (
+      {statsQuery.isError && !loading ? (
         <ErrorState
           message="Couldn't load organization stats."
-          onRetry={fetchStats}
+          onRetry={statsQuery.refetch}
         />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -540,7 +498,7 @@ export default function OverviewPage() {
             <StatCard
               key={card.key}
               label={card.label}
-              value={stats?.[card.key] ?? null}
+              value={statsQuery.data?.[card.key] ?? null}
               icon={card.icon}
               color={card.color}
               loading={loading}
@@ -559,10 +517,10 @@ export default function OverviewPage() {
                 <div key={i} className="h-9 rounded bg-surface-800 animate-pulse" />
               ))}
             </div>
-          ) : quickActionsError ? (
+          ) : quickActionsQuery.isError ? (
             <ErrorState
               message="Couldn't load quick actions."
-              onRetry={fetchQuickActions}
+              onRetry={quickActionsQuery.refetch}
             />
           ) : quickActions.length === 0 ? (
             <div className="text-sm text-surface-500 py-4 text-center">
@@ -608,10 +566,10 @@ export default function OverviewPage() {
                 ))}
               </div>
             </div>
-          ) : activitiesError ? (
+          ) : activitiesQuery.isError ? (
             <ErrorState
               message="Couldn't load recent activity."
-              onRetry={fetchActivities}
+              onRetry={activitiesQuery.refetch}
             />
           ) : activities.length === 0 ? (
             <div className="text-sm text-surface-500 py-4 text-center">

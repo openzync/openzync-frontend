@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Plus,
   Eye,
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { get, post, del, ApiError } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageGuide, GuideData } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -37,9 +38,15 @@ interface Schema {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SchemasPage() {
-  const [schemas, setSchemas] = useState<Schema[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const schemasQuery = useApiQuery<{ data: Schema[] }>(() =>
+    get<{ data: Schema[] }>("/v1/admin/schemas"),
+  );
+  const schemas = schemasQuery.data?.data ?? [];
+  const loading = schemasQuery.isLoading;
+  // Mutation failures share the banner with load errors but retry re-runs the
+  // GET (the mutation itself is surfaced by its toast).
+  const [actionError, setActionError] = useState<string | null>(null);
+  const error = schemasQuery.error ?? actionError;
 
   // Create dialog
   const [showCreate, setShowCreate] = useState(false);
@@ -56,23 +63,6 @@ export default function SchemasPage() {
   // Delete dialog
   const [deleteTarget, setDeleteTarget] = useState<Schema | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-
-  const fetchSchemas = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await get<{ data: Schema[] }>("/v1/admin/schemas");
-      setSchemas(data.data ?? []);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load schemas");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchSchemas(); }, [fetchSchemas]);
 
   // ── Create ─────────────────────────────────────────────────────────────────
 
@@ -101,10 +91,10 @@ export default function SchemasPage() {
       setShowCreate(false);
       resetCreateForm();
       toast.success("Schema created");
-      fetchSchemas();
+      schemasQuery.refetch();
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to create schema";
-      setError(msg);
+      setActionError(msg);
       toast.error(msg);
     } finally {
       setCreating(false);
@@ -128,10 +118,10 @@ export default function SchemasPage() {
       await del(`/v1/admin/schemas/${deleteTarget.id}`);
       setDeleteTarget(null);
       toast.success("Schema deleted");
-      fetchSchemas();
+      schemasQuery.refetch();
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to delete schema";
-      setError(msg);
+      setActionError(msg);
       toast.error(msg);
     } finally {
       setDeleting(false);
@@ -157,7 +147,7 @@ export default function SchemasPage() {
       </PageGuide>
 
       {/* Error */}
-      {error && <ErrorState message={error} onRetry={fetchSchemas} />}
+      {error && <ErrorState message={error} onRetry={schemasQuery.refetch} />}
 
       {/* Table */}
       <div className="card-base overflow-hidden">

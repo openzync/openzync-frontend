@@ -47,11 +47,11 @@ globalThis.fetch = mockFetch;
 beforeEach(() => {
   mockReplace.mockReset();
   mockFetch.mockClear();
-  sessionStorage.setItem("mg_access_token", "test-token");
+  localStorage.setItem("mg_access_token", "test-token");
 });
 
 afterEach(() => {
-  sessionStorage.clear();
+  localStorage.clear();
   vi.clearAllMocks();
 });
 

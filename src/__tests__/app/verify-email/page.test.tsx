@@ -23,7 +23,7 @@ beforeEach(() => {
   mockFetch.mockReset();
   mockPush.mockReset();
   mockReplace.mockReset();
-  sessionStorage.clear();
+  localStorage.clear();
 });
 
 afterEach(() => {
@@ -110,8 +110,8 @@ describe("VerifyEmailPage", () => {
     await user.click(screen.getByRole("button", { name: "Verify Email" }));
 
     expect(mockReplace).toHaveBeenCalledWith("/onboarding");
-    expect(sessionStorage.getItem("mg_access_token")).toBe("access-token");
-    expect(sessionStorage.getItem("mg_refresh_token")).toBe("refresh-token");
+    expect(localStorage.getItem("mg_access_token")).toBe("access-token");
+    expect(localStorage.getItem("mg_refresh_token")).toBe("refresh-token");
   });
 
   it("shows error on failed verification", async () => {

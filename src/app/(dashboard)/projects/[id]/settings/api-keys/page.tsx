@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Plus,
   Key,
@@ -15,6 +15,7 @@ import { get, post, del, ApiError } from "@/lib/api-client";
 import { timeAgo, formatDate, copyToClipboard } from "@/lib/utils";
 import { useProject } from "@/stores/project-context";
 import { useUser, ALL_PERMISSIONS } from "@/contexts/user-context";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -53,9 +54,14 @@ export default function ProjectApiKeysPage() {
   const { project, loading: projectLoading } = useProject();
   const { can, loading: roleLoading } = useUser();
   const canManage = can("project:manage");
-  const [keys, setKeys] = useState<ApiKey[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const keysQuery = useApiQuery<{ data: ApiKey[] }>(
+    () => get<{ data: ApiKey[] }>(`/v1/projects/${project?.id}/api-keys`),
+    { enabled: !!project?.id && canManage },
+  );
+  const keys = keysQuery.data?.data ?? [];
+  const loading = keysQuery.isLoading;
+  const [actionError, setActionError] = useState<string | null>(null);
+  const error = keysQuery.error ?? actionError;
 
   // Create dialog
   const [showCreate, setShowCreate] = useState(false);
@@ -75,28 +81,6 @@ export default function ProjectApiKeysPage() {
   const [revokeTarget, setRevokeTarget] = useState<ApiKey | null>(null);
   const [revoking, setRevoking] = useState(false);
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-
-  const fetchKeys = useCallback(async () => {
-    if (!project?.id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await get<{ data: ApiKey[] }>(
-        `/v1/projects/${project.id}/api-keys`
-      );
-      setKeys(data.data ?? []);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load API keys");
-    } finally {
-      setLoading(false);
-    }
-  }, [project?.id]);
-
-  useEffect(() => {
-    if (project?.id && canManage) fetchKeys();
-  }, [project?.id, fetchKeys, canManage]);
-
   // ── Create key ─────────────────────────────────────────────────────────────
 
   const handleCreate = async () => {
@@ -111,7 +95,7 @@ export default function ProjectApiKeysPage() {
       toast.success("API key created");
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to create key";
-      setError(msg);
+      setActionError(msg);
       toast.error(msg);
       setCreating(false);
     }
@@ -134,7 +118,7 @@ export default function ProjectApiKeysPage() {
     setCreatedKey(null);
     setShowRawKey(false);
     setCopied(false);
-    fetchKeys();
+    keysQuery.refetch();
   };
 
   // ── Revoke key ─────────────────────────────────────────────────────────────
@@ -146,10 +130,10 @@ export default function ProjectApiKeysPage() {
       await del(`/v1/projects/${project.id}/api-keys/${revokeTarget.id}`);
       setRevokeTarget(null);
       toast.success("API key revoked");
-      fetchKeys();
+      keysQuery.refetch();
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to revoke key";
-      setError(msg);
+      setActionError(msg);
       toast.error(msg);
     } finally {
       setRevoking(false);
@@ -204,7 +188,7 @@ export default function ProjectApiKeysPage() {
       />
 
       {/* Error */}
-      {error && <ErrorState message={error} onRetry={fetchKeys} />}
+      {error && <ErrorState message={error} onRetry={keysQuery.refetch} />}
 
       {/* Table */}
       <div className="card-base overflow-hidden">

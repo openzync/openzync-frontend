@@ -13,7 +13,8 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock("@/lib/api-client", () => ({
+vi.mock("@/lib/api-client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api-client")>()),
   get: vi.fn(),
   post: vi.fn(),
   ApiError: class ApiError extends Error {
@@ -30,6 +31,7 @@ vi.mock("@/lib/api-client", () => ({
     }
   },
   extractList: vi.fn((response: unknown) => {
+    if (!response || typeof response !== "object") return [];
     if (Array.isArray(response)) return response;
     const obj = response as Record<string, unknown>;
     if (Array.isArray(obj.data)) return obj.data;
@@ -303,5 +305,76 @@ describe("ProjectsPage", () => {
     expect(
       screen.queryByPlaceholderText("e.g., Customer Support Bot"),
     ).not.toBeInTheDocument();
+  });
+
+  // ── Card structure regressions ─────────────────────────────────────────────
+  // The card used to be a <button> containing the pin <button> — invalid HTML
+  // that caused hydration errors and double-activation. It is now a div with
+  // role="link" and the pin button is a sibling interactive element.
+
+  it("renders cards as link roles without nested buttons", async () => {
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: mockProjects,
+    });
+
+    const { container } = render(<ProjectsPage />);
+
+    const card = await screen.findByRole("link", {
+      name: /customer support bot/i,
+    });
+    expect(card).toBeInTheDocument();
+    // Invalid HTML regression: no <button> may be nested inside a <button>.
+    expect(container.querySelector("button button")).toBeNull();
+  });
+
+  it("navigates when the card is clicked", async () => {
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: mockProjects,
+    });
+
+    const user = userEvent.setup();
+    render(<ProjectsPage />);
+
+    const card = await screen.findByRole("link", {
+      name: /customer support bot/i,
+    });
+    await user.click(card);
+
+    expect(mockPush).toHaveBeenCalledWith("/projects/proj-1/sessions");
+  });
+
+  it("navigates when the card is activated with Enter/Space", async () => {
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: mockProjects,
+    });
+
+    const user = userEvent.setup();
+    render(<ProjectsPage />);
+
+    const card = await screen.findByRole("link", {
+      name: /customer support bot/i,
+    });
+    card.focus();
+    await user.keyboard("{Enter}");
+    expect(mockPush).toHaveBeenCalledWith("/projects/proj-1/sessions");
+
+    mockPush.mockClear();
+    await user.keyboard(" ");
+    expect(mockPush).toHaveBeenCalledWith("/projects/proj-1/sessions");
+  });
+
+  it("pin button toggles pinning without navigating", async () => {
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: mockProjects,
+    });
+
+    const user = userEvent.setup();
+    render(<ProjectsPage />);
+
+    // One pin button per project card
+    const pinButtons = await screen.findAllByTitle(/pin project/i);
+    await user.click(pinButtons[0]);
+
+    expect(mockPush).not.toHaveBeenCalled();
   });
 });

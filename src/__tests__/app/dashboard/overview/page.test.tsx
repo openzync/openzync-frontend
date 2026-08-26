@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import OverviewPage from "@/app/(dashboard)/overview/page";
 import { get } from "@/lib/api-client";
 
@@ -14,51 +15,56 @@ vi.mock("next/navigation", () => ({
   useParams: () => ({}),
 }));
 
-vi.mock("@/lib/api-client", () => ({
-  get: vi.fn().mockImplementation((path: string) => {
-    if (path === "/v1/admin/stats/org") {
-      return Promise.resolve({
-        total_users: 10,
-        total_sessions: 100,
-        total_messages: 5000,
-        total_api_keys: 3,
-        total_episodes: 25,
-        total_facts: 200,
-      });
-    }
-    if (path === "/v1/admin/audit-logs?limit=5") {
-      return Promise.resolve({
-        items: [
-          {
-            id: "1",
-            action: "auth.login",
-            actor_id: "user-1",
-            actor_type: "user",
-            created_at: new Date().toISOString(),
-            status_code: 200,
-            display_name: "User logged in",
-          },
-        ],
-      });
-    }
-    if (path === "/v1/admin/quick-actions") {
-      return Promise.resolve({
-        actions: [
-          { label: "View Sessions", href: "/projects", icon: "folder-kanban" },
-          { label: "View Analytics", href: "/analytics", icon: "bar-chart-3" },
-        ],
-      });
-    }
-    if (path === "/v1/admin/stats/usage?days=7") {
-      return Promise.resolve({
-        data: [
-          { date: "2025-07-01", message_count: 100, session_count: 10 },
-          { date: "2025-07-02", message_count: 150, session_count: 12 },
-        ],
-      });
-    }
-    return Promise.resolve({});
-  }),
+// Named base implementation so tests can override `get` and later delegate
+// back to the original behaviour without capturing a previous override.
+const baseGetImpl = (path: string) => {
+  if (path === "/v1/admin/stats/org") {
+    return Promise.resolve({
+      total_users: 10,
+      total_sessions: 100,
+      total_messages: 5000,
+      total_api_keys: 3,
+      total_episodes: 25,
+      total_facts: 200,
+    });
+  }
+  if (path === "/v1/admin/audit-logs?limit=5") {
+    return Promise.resolve({
+      items: [
+        {
+          id: "1",
+          action: "auth.login",
+          actor_id: "user-1",
+          actor_type: "user",
+          created_at: new Date().toISOString(),
+          status_code: 200,
+          display_name: "User logged in",
+        },
+      ],
+    });
+  }
+  if (path === "/v1/admin/quick-actions") {
+    return Promise.resolve({
+      actions: [
+        { label: "View Sessions", href: "/projects", icon: "folder-kanban" },
+        { label: "View Analytics", href: "/analytics", icon: "bar-chart-3" },
+      ],
+    });
+  }
+  if (path === "/v1/admin/stats/usage?days=7") {
+    return Promise.resolve({
+      data: [
+        { date: "2025-07-01", message_count: 100, session_count: 10 },
+        { date: "2025-07-02", message_count: 150, session_count: 12 },
+      ],
+    });
+  }
+  return Promise.resolve({});
+};
+
+vi.mock("@/lib/api-client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api-client")>()),
+  get: vi.fn().mockImplementation((path: string) => baseGetImpl(path)),
 }));
 
 const mockFetch = vi.fn();
@@ -187,5 +193,68 @@ describe("OverviewPage", () => {
     expect(await screen.findByText("Create your first project")).toBeInTheDocument();
     expect(await screen.findByText("Ingest a conversation")).toBeInTheDocument();
     expect(await screen.findByText("Explore the knowledge graph")).toBeInTheDocument();
+  });
+
+  // ── Error-state regressions ──────────────────────────────────────────────────
+  // The three fetches used to swallow errors with bare catch{} blocks, which
+  // rendered a misleading "No recent activity found." on failure.
+
+  it("shows an error state instead of 'No recent activity' when activity fetch fails", async () => {
+    vi.mocked(get).mockImplementation((path: string) =>
+      path === "/v1/admin/audit-logs?limit=5"
+        ? Promise.reject(new Error("network down"))
+        : baseGetImpl(path),
+    );
+
+    render(<OverviewPage />);
+
+    expect(
+      await screen.findByText("Couldn't load recent activity."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No recent activity found.")).not.toBeInTheDocument();
+  });
+
+  it("retry re-invokes the failed activity fetch", async () => {
+    const user = userEvent.setup();
+    let fail = true;
+    vi.mocked(get).mockImplementation((path: string) => {
+      if (path === "/v1/admin/audit-logs?limit=5") {
+        return fail ? Promise.reject(new Error("network down")) : baseGetImpl(path);
+      }
+      return baseGetImpl(path);
+    });
+
+    render(<OverviewPage />);
+    await screen.findByText("Couldn't load recent activity.");
+
+    fail = false;
+    await user.click(screen.getByRole("button", { name: /retry/i }));
+
+    expect(await screen.findByText("User logged in")).toBeInTheDocument();
+  });
+
+  it("shows an error state for quick actions failure", async () => {
+    vi.mocked(get).mockImplementation((path: string) =>
+      path === "/v1/admin/quick-actions"
+        ? Promise.reject(new Error("network down"))
+        : baseGetImpl(path),
+    );
+
+    render(<OverviewPage />);
+    expect(await screen.findByText("Couldn't load quick actions.")).toBeInTheDocument();
+    expect(screen.queryByText("View Sessions")).not.toBeInTheDocument();
+  });
+
+  it("shows an error state for stats failure", async () => {
+    vi.mocked(get).mockImplementation((path: string) =>
+      path === "/v1/admin/stats/org"
+        ? Promise.reject(new Error("network down"))
+        : baseGetImpl(path),
+    );
+
+    render(<OverviewPage />);
+    expect(
+      await screen.findByText("Couldn't load organization stats."),
+    ).toBeInTheDocument();
   });
 });

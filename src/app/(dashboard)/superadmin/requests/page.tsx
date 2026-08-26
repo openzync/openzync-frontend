@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Check, Inbox, X } from "lucide-react";
 import { get, post, apiErrorMessage, type OrgListEntry, type OrgListResponse } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -18,32 +19,17 @@ import { Button } from "@/components/ui/button";
  * move the row out of the queue on the next refetch.
  */
 export default function SuperadminRequestsPage() {
-  const [pending, setPending] = useState<OrgListEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const requestsQuery = useApiQuery<OrgListResponse>(() =>
+    get<OrgListResponse>("/admin/system/orgs?limit=100"),
+  );
+  const pending = (requestsQuery.data?.data ?? []).filter(
+    (org) => org.status === "pending",
+  );
+  const loading = requestsQuery.isLoading;
+  const error = requestsQuery.error;
   const [approveTarget, setApproveTarget] = useState<OrgListEntry | null>(null);
   const [rejectTarget, setRejectTarget] = useState<OrgListEntry | null>(null);
   const [acting, setActing] = useState(false);
-
-  const loadPending = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await get<OrgListResponse>("/admin/system/orgs?limit=100");
-      setPending(data.data.filter((org) => org.status === "pending"));
-    } catch (err) {
-      setError(apiErrorMessage(err, "Failed to load approval requests"));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const run = async () => {
-      await loadPending();
-    };
-    void run();
-  }, [loadPending]);
 
   const handleApprove = async () => {
     if (!approveTarget) return;
@@ -52,7 +38,7 @@ export default function SuperadminRequestsPage() {
       await post(`/admin/system/orgs/${approveTarget.id}/approve`);
       setApproveTarget(null);
       toast.success(`"${approveTarget.name}" approved`);
-      await loadPending();
+      requestsQuery.refetch();
     } catch (err) {
       toast.error(apiErrorMessage(err, "Failed to approve organization"));
     } finally {
@@ -67,7 +53,7 @@ export default function SuperadminRequestsPage() {
       await post(`/admin/system/orgs/${rejectTarget.id}/reject`);
       setRejectTarget(null);
       toast.success(`"${rejectTarget.name}" rejected`);
-      await loadPending();
+      requestsQuery.refetch();
     } catch (err) {
       toast.error(apiErrorMessage(err, "Failed to reject organization"));
     } finally {
@@ -91,7 +77,7 @@ export default function SuperadminRequestsPage() {
         )}
       </div>
 
-      {error && <ErrorState message={error} onRetry={loadPending} />}
+      {error && <ErrorState message={error} onRetry={requestsQuery.refetch} />}
 
       <div className="card-base overflow-hidden">
         <div className="overflow-x-auto">

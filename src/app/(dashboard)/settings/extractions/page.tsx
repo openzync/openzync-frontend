@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { Database, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { get, ApiError } from "@/lib/api-client";
+import { get } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -79,28 +80,19 @@ function ViewDialog({ schema, onClose }: { schema: Schema; onClose: () => void }
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ExtractionsPage() {
-  const [schemas, setSchemas] = useState<Schema[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const schemasQuery = useApiQuery<{ data: Schema[] }>(() =>
+    get<{ data: Schema[] }>("/v1/admin/schemas?type=structured"),
+  );
+  const schemas = schemasQuery.data?.data ?? [];
+  const loading = schemasQuery.isLoading;
+  const error = schemasQuery.error;
   const [viewTarget, setViewTarget] = useState<Schema | null>(null);
-
-  const fetchSchemas = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
-      const data = await get<{ data: Schema[] }>("/v1/admin/schemas?type=structured");
-      setSchemas(data.data ?? []);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load extraction schemas");
-    } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchSchemas(); }, [fetchSchemas]);
 
   return (
     <div className="space-y-6">
       <PageHeader title="Extractions" description="Structured extraction schemas and results" />
 
-      {error && <ErrorState message={error} onRetry={fetchSchemas} />}
+      {error && <ErrorState message={error} onRetry={schemasQuery.refetch} />}
 
       <div className="card-base overflow-hidden">
         <div className="overflow-x-auto">
