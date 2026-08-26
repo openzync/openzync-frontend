@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SettingsPage from "@/app/(dashboard)/settings/page";
+import { UserProvider } from "@/contexts/user-context";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────────
 
@@ -23,12 +24,14 @@ vi.mock("@/components/ui/dialog", () => ({
     description,
     open,
     footer,
+    onOpenChange,
   }: {
     children: React.ReactNode;
     title?: string;
     description?: string;
     open?: boolean;
     footer?: React.ReactNode;
+    onOpenChange?: (open: boolean) => void;
   }) =>
     open ? (
       <div role="dialog">
@@ -36,6 +39,8 @@ vi.mock("@/components/ui/dialog", () => ({
         {description && <p>{description}</p>}
         {children}
         {footer}
+        {/* Simulates Radix user-initiated close (Escape/overlay/Close) */}
+        <button aria-label="close-dialog" onClick={() => onOpenChange?.(false)} />
       </div>
     ) : null,
   DialogCloseButton: ({ disabled }: { disabled?: boolean }) => (
@@ -88,7 +93,7 @@ describe("SettingsPage", () => {
       ),
     );
 
-    render(<SettingsPage />);
+    render(<UserProvider><SettingsPage /></UserProvider>);
 
     expect(await screen.findByText("Settings")).toBeInTheDocument();
     expect(
@@ -110,7 +115,7 @@ describe("SettingsPage", () => {
       ),
     );
 
-    render(<SettingsPage />);
+    render(<UserProvider><SettingsPage /></UserProvider>);
 
     expect(await screen.findByText("Profile")).toBeInTheDocument();
     expect(await screen.findByDisplayValue("Jane Doe")).toBeInTheDocument();
@@ -131,7 +136,7 @@ describe("SettingsPage", () => {
       ),
     );
 
-    render(<SettingsPage />);
+    render(<UserProvider><SettingsPage /></UserProvider>);
 
     expect(
       await screen.findByText("Change Password"),
@@ -161,7 +166,7 @@ describe("SettingsPage", () => {
       ),
     );
 
-    render(<SettingsPage />);
+    render(<UserProvider><SettingsPage /></UserProvider>);
 
     expect(
       await screen.findByText("Multi-Factor Authentication"),
@@ -174,7 +179,7 @@ describe("SettingsPage", () => {
   it("shows loading skeleton while profile loads", () => {
     mockFetch.mockReturnValueOnce(new Promise(() => {}));
 
-    render(<SettingsPage />);
+    render(<UserProvider><SettingsPage /></UserProvider>);
 
     const skeletons = document.querySelectorAll(".animate-pulse");
     expect(skeletons.length).toBeGreaterThan(0);
@@ -202,7 +207,7 @@ describe("SettingsPage", () => {
       );
 
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    render(<UserProvider><SettingsPage /></UserProvider>);
 
     const nameInput = await screen.findByDisplayValue("Old Name");
     await user.clear(nameInput);
@@ -230,7 +235,7 @@ describe("SettingsPage", () => {
     );
 
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    render(<UserProvider><SettingsPage /></UserProvider>);
 
     const newPasswordInput = await screen.findAllByPlaceholderText(
       /new password/i,
@@ -259,7 +264,7 @@ describe("SettingsPage", () => {
     );
 
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    render(<UserProvider><SettingsPage /></UserProvider>);
 
     const newPasswordInput = await screen.findAllByPlaceholderText(
       /new password/i,
@@ -286,7 +291,7 @@ describe("SettingsPage", () => {
       ),
     );
 
-    render(<SettingsPage />);
+    render(<UserProvider><SettingsPage /></UserProvider>);
 
     const roleInput = await screen.findByDisplayValue("admin");
     expect(roleInput).toBeDisabled();
@@ -308,7 +313,7 @@ describe("SettingsPage", () => {
     );
 
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    render(<UserProvider><SettingsPage /></UserProvider>);
 
     const switchBtn = await screen.findByRole("switch");
     await user.click(switchBtn);
@@ -317,5 +322,108 @@ describe("SettingsPage", () => {
     expect(dialog).toBeInTheDocument();
     // "Enable MFA" appears as both dialog title and button — at least one
     expect(screen.getAllByText("Enable MFA").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("flips all MFA display state after successful enable without reload", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: "user-1",
+            name: null,
+            email: null,
+            role: "admin",
+            mfa_enabled: false,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    const user = userEvent.setup();
+    render(<UserProvider><SettingsPage /></UserProvider>);
+
+    // Before enabling: unprotected copy on the MFA card
+    expect(
+      await screen.findByText("Add an extra layer of security to your account"),
+    ).toBeInTheDocument();
+
+    await user.click(await screen.findByRole("switch"));
+    await screen.findByRole("dialog");
+    await user.type(
+      screen.getByPlaceholderText("Enter your current password"),
+      "pw123456",
+    );
+    await user.click(screen.getByRole("button", { name: "Enable MFA" }));
+
+    // After success — no reload: shield copy flips immediately
+    expect(
+      await screen.findByText(
+        "Your account is protected with email-based MFA",
+      ),
+    ).toBeInTheDocument();
+
+    // "Enabled" badge tracks actual state, not dialog intent
+    expect(screen.getByText("Enabled")).toBeInTheDocument();
+
+    // Reopening the toggle offers the disable flow: correct button label
+    // (was stale "Enable MFA") and the OTP code field required to disable.
+    await user.click(screen.getByRole("switch"));
+    await screen.findByRole("dialog");
+    expect(screen.getByRole("button", { name: "Disable MFA" })).toBeInTheDocument();
+    expect(screen.getByText("MFA Code")).toBeInTheDocument();
+
+    // Complete the confirmed disable: password already filled, add the OTP
+    await user.type(screen.getByPlaceholderText("000000"), "123456");
+    await user.click(screen.getByRole("button", { name: "Disable MFA" }));
+
+    // After success — badge gone, shield copy back to unprotected
+    expect(screen.queryByText("Enabled")).not.toBeInTheDocument();
+    expect(
+      await screen.findByText("Add an extra layer of security to your account"),
+    ).toBeInTheDocument();
+  });
+
+  it("reverts the optimistic switch flip when the MFA dialog is cancelled", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          id: "user-1",
+          name: null,
+          email: null,
+          role: "admin",
+          mfa_enabled: true,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const user = userEvent.setup();
+    render(<UserProvider><SettingsPage /></UserProvider>);
+
+    expect(
+      await screen.findByText("Your account is protected with email-based MFA"),
+    ).toBeInTheDocument();
+
+    // Toggle off (optimistic) then cancel via user-initiated dialog close
+    await user.click(await screen.findByRole("switch"));
+    await screen.findByRole("dialog");
+    await user.click(screen.getByRole("button", { name: "close-dialog" }));
+
+    // Reverts to enabled state without reload
+    expect(
+      await screen.findByText("Your account is protected with email-based MFA"),
+    ).toBeInTheDocument();
   });
 });

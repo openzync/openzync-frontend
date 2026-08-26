@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { API_BASE, errorDetail } from "@/lib/api-client";
+import { get, put, getAccessToken } from "@/lib/api-client";
 import { SecretInput } from "@/components/ui/secret-input";
 import { Button } from "@/components/ui/button";
 
@@ -95,15 +95,6 @@ const STEPS = [
   { title: "Review & Save", icon: <CheckCircle size={16} /> },
 ] as const;
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-
-function authHeaders(): Record<string, string> {
-  const token = sessionStorage.getItem("mg_access_token");
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
-}
-
 // ─── Section Header ────────────────────────────────────────────────────────────
 
 function SectionHeader({
@@ -175,27 +166,21 @@ export default function OnboardingPage() {
       setError(null);
       try {
         // Redirect if no JWT (user came here directly without signing up)
-        const token = sessionStorage.getItem("mg_access_token");
-        if (!token) {
+        if (!getAccessToken()) {
           router.replace("/signup");
           return;
         }
 
         // Fetch onboarding defaults (no auth required)
-        const res = await fetch(`${API_BASE}/admin/org/config/defaults`);
-        if (!res.ok) throw new Error(await errorDetail(res));
-        const data: UpdateOrgConfigRequest = await res.json();
+        const data = await get<UpdateOrgConfigRequest>("/admin/org/config/defaults");
 
         // Check if the org already has stored config — if so, redirect to dashboard
-        const configRes = await fetch(`${API_BASE}/admin/org/config`, { headers: authHeaders() });
-        if (configRes.ok) {
-          const configData = await configRes.json();
-          const stored = configData.stored as Record<string, unknown>;
-          const hasAnyStored = Object.values(stored).some((v) => v !== null && v !== undefined);
-          if (hasAnyStored) {
-            router.replace("/overview");
-            return;
-          }
+        const configData = await get<{ stored: Record<string, unknown> }>("/admin/org/config");
+        const stored = configData.stored;
+        const hasAnyStored = Object.values(stored).some((v) => v !== null && v !== undefined);
+        if (hasAnyStored) {
+          router.replace("/overview");
+          return;
         }
 
         setForm(data);
@@ -215,16 +200,9 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/admin/org/config`, {
-        method: "PUT",
-        headers: authHeaders(),
-        body: JSON.stringify(form),
-      });
-
-      if (!res.ok) {
-        // Surface the RFC 7807 detail (e.g. a missing permission on config save).
-        throw new Error(await errorDetail(res));
-      }
+      // Surface the RFC 7807 detail (e.g. a missing permission on config save)
+      // via ApiError.message.
+      await put("/admin/org/config", form);
 
       toast.success("Configuration saved successfully");
 

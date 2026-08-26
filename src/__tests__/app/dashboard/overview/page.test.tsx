@@ -112,18 +112,15 @@ describe("OverviewPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the stat cards", async () => {
+  it("renders the stat cards", () => {
     render(<OverviewPage />);
-    // "Messages" appears in stats and chart legend — use getAllByText
-    const messages = await screen.findAllByText("Messages");
-    expect(messages.length).toBeGreaterThanOrEqual(1);
-    // "Sessions" also appears in stat cards and chart legend
-    const sessions = await screen.findAllByText("Sessions");
-    expect(sessions.length).toBeGreaterThanOrEqual(1);
-    expect(await screen.findByText("Facts")).toBeInTheDocument();
-    expect(await screen.findByText("Users")).toBeInTheDocument();
-    expect(await screen.findByText("Episodes")).toBeInTheDocument();
-    expect(await screen.findByText("API Keys")).toBeInTheDocument();
+    // Stat-card labels repeat elsewhere on the page ("Messages"/"Sessions" in
+    // the chart legend, "Users"/"Episodes" as trend mini-chart headings), so
+    // every label must be queried with getAllByText. Labels are static — they
+    // render synchronously regardless of API state.
+    for (const label of ["Messages", "Sessions", "Facts", "Users", "Episodes", "API Keys"]) {
+      expect(screen.getAllByText(label).length).toBeGreaterThanOrEqual(1);
+    }
   });
 
   it("renders stat values from API", async () => {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Loader2, ArrowLeft, ArrowRight, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { API_BASE, safeJsonParse } from "@/lib/api-client";
+import { post } from "@/lib/api-client";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -18,18 +18,8 @@ export default function ForgotPasswordPage() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(`${API_BASE}/v1/auth/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) {
-        const data = await safeJsonParse(res);
-        throw new Error(
-          (data as Record<string, unknown>)?.detail as string ??
-            "Something went wrong. Please try again."
-        );
-      }
+      // Pre-auth: 401 must surface as an error message, never refresh/redirect.
+      await post("/v1/auth/forgot-password", { email }, { skipAuthRetry: true });
       setSent(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Connection error.");

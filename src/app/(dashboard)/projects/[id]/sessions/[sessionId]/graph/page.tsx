@@ -2,11 +2,25 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { ForceGraph, type GraphNodeData, type GraphEdgeData } from "@/components/force-graph";
+import dynamic from "next/dynamic";
+import type { GraphNodeData, GraphEdgeData } from "@/components/force-graph";
 import { PageGuide, GuideGraph } from "@/components/guides";
-import { get, API_BASE, getAccessToken, ApiError } from "@/lib/api-client";
+import { get, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
 import SessionTabs from "../tabs";
+
+// d3 is heavy and browser-only — load the graph lazily, client-side.
+const ForceGraph = dynamic(
+  () => import("@/components/force-graph").then((m) => m.ForceGraph),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="card-base h-[600px] p-4">
+        <div className="h-full rounded bg-surface-800 animate-pulse" />
+      </div>
+    ),
+  },
+);
 
 interface NodesResponse {
   data: { items: GraphNodeData[] };
@@ -14,13 +28,6 @@ interface NodesResponse {
 
 interface EdgesResponse {
   data: { items: GraphEdgeData[] };
-}
-
-function buildAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const token = getAccessToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
 }
 
 export default function SessionGraphPage() {
@@ -102,11 +109,7 @@ export default function SessionGraphPage() {
         loading={loading}
         error={error}
         onRetry={loadData}
-        apiConfig={{
-          baseUrl: API_BASE,
-          projectId,
-          headers: buildAuthHeaders(),
-        }}
+        apiConfig={{ projectId }}
         showFilter
         showControls
         showLegend

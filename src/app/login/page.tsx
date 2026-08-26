@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2, LogIn, Mail } from "lucide-react";
-import { API_BASE, safeJsonParse } from "@/lib/api-client";
+import { post, storeTokens } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 
 function LoginNotice() {
@@ -44,25 +44,21 @@ export default function LoginPage() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(`${API_BASE}/v1/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) {
-        const data = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(data?.detail ?? "Invalid email or password.");
-      }
-      const data = await res.json();
+      // Pre-auth: a 401 here means wrong credentials — no refresh, no redirect.
+      const data = await post<{
+        requires_mfa?: boolean;
+        mfa_session_token?: string;
+        access_token: string;
+        refresh_token: string;
+      }>("/v1/auth/login", { email, password }, { skipAuthRetry: true });
+
       if (data.requires_mfa) {
         router.replace(
-          `/login/mfa?email=${encodeURIComponent(email)}&session=${encodeURIComponent(data.mfa_session_token)}`
+          `/login/mfa?email=${encodeURIComponent(email)}&session=${encodeURIComponent(data.mfa_session_token ?? "")}`
         );
         return;
       }
-      // Store tokens
-      sessionStorage.setItem("mg_access_token", data.access_token);
-      sessionStorage.setItem("mg_refresh_token", data.refresh_token);
+      storeTokens(data.access_token, data.refresh_token);
       // Forced password rotation is signalled by the /me payload and enforced
       // by MustChangePasswordRedirect in require-auth — LoginResponse has no
       // must_change_password field, so this branch was dead code.

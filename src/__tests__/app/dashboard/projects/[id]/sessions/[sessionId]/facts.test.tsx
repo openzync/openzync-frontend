@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, within, waitFor } from "@testing-library/react";
+import { render, screen, within, act, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SessionFactsPage from "@/app/(dashboard)/projects/[id]/sessions/[sessionId]/facts/page";
 import { get, post } from "@/lib/api-client";
@@ -112,42 +112,57 @@ afterEach(() => {
 // ─── Tests ────────────────────────────────────────────────────────────────────────
 
 describe("SessionFactsPage", () => {
-  it("retracts a fact with a reason, then refetches the list", async () => {
-    const user = userEvent.setup();
-    render(<SessionFactsPage />);
+  // Timeout raised deliberately (last resort): this is the longest sequential
+  // user-event chain in the suite. When all 39 files run in parallel workers on
+  // a saturated box, each dispatch stretches ~30x wall-clock (measured: one
+  // click took 2.7s vs ~80ms in isolation) — not a logic race, pure scheduler
+  // starvation. The chain is already minimized (delay: null, single change
+  // event instead of per-key typing); the explicit ceiling absorbs the tail.
+  it(
+    "retracts a fact with a reason, then refetches the list",
+    async () => {
+      const user = userEvent.setup({ delay: null });
+      render(<SessionFactsPage />);
 
-    expect(
-      await screen.findByText("Paris is the capital of France"),
-    ).toBeInTheDocument();
+      expect(
+        await screen.findByText("Paris is the capital of France"),
+      ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Retract" }));
+      await user.click(screen.getByRole("button", { name: "Retract" }));
 
-    const dialog = await screen.findByRole("alertdialog");
-    expect(
-      within(dialog).getByRole("heading", { name: "Retract fact" }),
-    ).toBeInTheDocument();
+      const dialog = await screen.findByRole("alertdialog");
+      expect(
+        within(dialog).getByRole("heading", { name: "Retract fact" }),
+      ).toBeInTheDocument();
 
-    await user.type(
-      within(dialog).getByPlaceholderText("Reason (optional)"),
-      "duplicate fact",
-    );
-    await user.click(within(dialog).getByRole("button", { name: "Retract" }));
+      fireEvent.change(
+        within(dialog).getByPlaceholderText("Reason (optional)"),
+        { target: { value: "duplicate fact" } },
+      );
+      await user.click(within(dialog).getByRole("button", { name: "Retract" }));
 
-    await waitFor(() => {
+      // The confirm handler calls post() synchronously before its first await,
+      // so the call is already recorded once userEvent's act() scope settles —
+      // no polling needed.
       expect(post).toHaveBeenCalledWith(
         "/v1/projects/project-123/facts/fact-1/retract",
         { reason: "duplicate fact" },
       );
-    });
-    // The list is refetched after a successful retract.
-    await waitFor(() => {
+      // Drain the post→toast→refetch microtask chain deterministically instead
+      // of racing waitFor's wall-clock budget under parallel-worker CPU load.
+      await act(async () => {});
+      await act(async () => {});
+
+      // The list is refetched after a successful retract.
       expect(get).toHaveBeenCalledTimes(2);
-    });
-    expect(get).toHaveBeenCalledWith(
-      "/v1/projects/project-123/sessions/session-1/facts?limit=50",
-    );
-    expect(vi.mocked(toast.success)).toHaveBeenCalledWith("Fact retracted");
-  });
+      expect(get).toHaveBeenNthCalledWith(
+        2,
+        "/v1/projects/project-123/sessions/session-1/facts?limit=50",
+      );
+      expect(vi.mocked(toast.success)).toHaveBeenCalledWith("Fact retracted");
+    },
+    15_000,
+  );
 
   it("opens the history dialog and renders event kind and reason", async () => {
     const user = userEvent.setup();

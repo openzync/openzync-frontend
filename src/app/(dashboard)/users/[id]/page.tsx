@@ -23,15 +23,16 @@ import {
   Plus,
   Edit,
   Trash2,
-  X,
-  CheckCircle,
   AlertCircle,
   BookOpen,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { API_BASE, safeJsonParse, patch as apiPatch, ApiError, errorDetail } from "@/lib/api-client";
+import { get, post, put, patch as apiPatch, ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogCloseButton } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/shared/error-state";
 import { useUser, ALL_PERMISSIONS } from "@/contexts/user-context";
 
@@ -68,36 +69,12 @@ interface InstructionsResponse {
   data: CustomInstruction[];
 }
 
-interface ToastState {
-  visible: boolean;
-  message: string;
-  type: "success" | "error";
-}
-
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
 const POLL_INTERVAL_MS = 5000;
 const POLL_TIMEOUT_MS = 120_000; // 2 minutes
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-
-function authHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (typeof window !== "undefined") {
-    const token = sessionStorage.getItem("mg_access_token");
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-  }
-  return headers;
-}
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 function formatDateTime(dateStr: string): string {
   const d = new Date(dateStr);
@@ -113,61 +90,6 @@ function formatDateTime(dateStr: string): string {
 function shortId(id: string): string {
   if (id.length <= 12) return id;
   return `${id.slice(0, 6)}\u2026${id.slice(-4)}`;
-}
-
-// ─── Spinner ───────────────────────────────────────────────────────────────────
-
-function Spinner({ className }: { className?: string }) {
-  return (
-    <svg
-      className={cn("animate-spin h-4 w-4", className)}
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      />
-    </svg>
-  );
-}
-
-// ─── Toast ─────────────────────────────────────────────────────────────────────
-
-const TOAST_DURATION = 4000;
-
-function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void }) {
-  useEffect(() => {
-    if (!toast.visible) return;
-    const timer = setTimeout(onDismiss, TOAST_DURATION);
-    return () => clearTimeout(timer);
-  }, [toast.visible, onDismiss]);
-
-  if (!toast.visible) return null;
-
-  const isSuccess = toast.type === "success";
-
-  return (
-    <div className="fixed bottom-6 right-6 z-[60] animate-slide-up">
-      <div
-        className={cn(
-          "flex items-center gap-3 rounded-lg px-4 py-3 shadow-lg shadow-black/30 border min-w-[280px] max-w-sm",
-          isSuccess
-            ? "bg-surface-900 border-success/40 text-success"
-            : "bg-surface-900 border-error/40 text-error",
-        )}
-      >
-        {isSuccess ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-        <span className="text-sm text-white flex-1">{toast.message}</span>
-        <button onClick={onDismiss} className="text-surface-400 hover:text-white shrink-0">
-          <X size={14} />
-        </button>
-      </div>
-    </div>
-  );
 }
 
 // ─── Copy Button ───────────────────────────────────────────────────────────────
@@ -253,8 +175,8 @@ function InstructionCreateDialog({ onClose, onCreate }: InstructionCreateDialogP
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: { preventDefault(): void }) => {
+    e?.preventDefault();
     const trimmedName = name.trim();
     const trimmedText = text.trim();
     if (!trimmedName) { setError("Instruction name is required"); return; }
@@ -272,76 +194,73 @@ function InstructionCreateDialog({ onClose, onCreate }: InstructionCreateDialogP
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in" onClick={onClose}>
-      <div
-        className="card-base w-full max-w-lg p-6 shadow-xl shadow-black/40 animate-slide-up"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Add Summary Instruction</h2>
-          <Button variant="ghost" size="sm" onClick={onClose} className="rounded-md text-surface-400 hover:text-white">
-            <X size={18} />
+    <Dialog
+      open
+      onOpenChange={(open) => { if (!open) onClose(); }}
+      title="Add Summary Instruction"
+      footer={
+        <>
+          <DialogCloseButton size="sm" disabled={submitting} />
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => handleSubmit()}
+            disabled={submitting}
+            className="min-w-[140px] justify-center"
+          >
+            {submitting ? (
+              <span className="flex items-center gap-2">
+                <Spinner /> Adding...
+              </span>
+            ) : (
+              "Add Instruction"
+            )}
           </Button>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name */}
+        <div>
+          <label className="block text-sm font-medium text-surface-300 mb-1">
+            Name <span className="text-error">*</span>
+          </label>
+          <input
+            className="input-base"
+            placeholder="e.g. Tone & Voice"
+            value={name}
+            onChange={(e) => { setName(e.target.value); if (error) setError(null); }}
+            autoFocus
+            disabled={submitting}
+          />
+          <p className="text-xs text-surface-500 mt-1">A label for this instruction.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">
-              Name <span className="text-error">*</span>
-            </label>
-            <input
-              className="input-base"
-              placeholder="e.g. Tone & Voice"
-              value={name}
-              onChange={(e) => { setName(e.target.value); if (error) setError(null); }}
-              autoFocus
-              disabled={submitting}
-            />
-            <p className="text-xs text-surface-500 mt-1">A label for this instruction.</p>
-          </div>
+        {/* Text */}
+        <div>
+          <label className="block text-sm font-medium text-surface-300 mb-1">
+            Instruction Text <span className="text-error">*</span>
+          </label>
+          <textarea
+            className="input-base min-h-[120px] resize-y"
+            placeholder="e.g. Summarize the user's tone, communication style, and preferred vocabulary."
+            value={text}
+            onChange={(e) => { setText(e.target.value); if (error) setError(null); }}
+            disabled={submitting}
+          />
+          <p className="text-xs text-surface-500 mt-1">
+            The instruction given to the LLM when generating the summary.
+          </p>
+        </div>
 
-          {/* Text */}
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">
-              Instruction Text <span className="text-error">*</span>
-            </label>
-            <textarea
-              className="input-base min-h-[120px] resize-y"
-              placeholder="e.g. Summarize the user's tone, communication style, and preferred vocabulary."
-              value={text}
-              onChange={(e) => { setText(e.target.value); if (error) setError(null); }}
-              disabled={submitting}
-            />
-            <p className="text-xs text-surface-500 mt-1">
-              The instruction given to the LLM when generating the summary.
-            </p>
+        {error && (
+          <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
+            <AlertCircle size={14} />
+            {error}
           </div>
-
-          {error && (
-            <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
-              <AlertCircle size={14} />
-              {error}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-2 border-t border-surface-800">
-            <Button variant="secondary" size="sm" type="button" onClick={onClose} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" type="submit" disabled={submitting} className="min-w-[140px] justify-center">
-              {submitting ? (
-                <span className="flex items-center gap-2">
-                  <Spinner /> Adding...
-                </span>
-              ) : (
-                "Add Instruction"
-              )}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+        )}
+      </form>
+    </Dialog>
   );
 }
 
@@ -359,8 +278,8 @@ function InstructionEditDialog({ initial, onClose, onSave }: InstructionEditDial
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: { preventDefault(): void }) => {
+    e?.preventDefault();
     const trimmedName = name.trim();
     const trimmedText = text.trim();
     if (!trimmedName) { setError("Instruction name is required"); return; }
@@ -378,71 +297,68 @@ function InstructionEditDialog({ initial, onClose, onSave }: InstructionEditDial
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in" onClick={onClose}>
-      <div
-        className="card-base w-full max-w-lg p-6 shadow-xl shadow-black/40 animate-slide-up"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Edit Summary Instruction</h2>
-          <Button variant="ghost" size="sm" onClick={onClose} className="rounded-md text-surface-400 hover:text-white">
-            <X size={18} />
+    <Dialog
+      open
+      onOpenChange={(open) => { if (!open) onClose(); }}
+      title="Edit Summary Instruction"
+      footer={
+        <>
+          <DialogCloseButton size="sm" disabled={submitting} />
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => handleSubmit()}
+            disabled={submitting}
+            className="min-w-[120px] justify-center"
+          >
+            {submitting ? (
+              <span className="flex items-center gap-2">
+                <Spinner /> Saving...
+              </span>
+            ) : (
+              "Save Changes"
+            )}
           </Button>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name */}
+        <div>
+          <label className="block text-sm font-medium text-surface-300 mb-1">
+            Name <span className="text-error">*</span>
+          </label>
+          <input
+            className="input-base"
+            placeholder="e.g. Tone & Voice"
+            value={name}
+            onChange={(e) => { setName(e.target.value); if (error) setError(null); }}
+            autoFocus
+            disabled={submitting}
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">
-              Name <span className="text-error">*</span>
-            </label>
-            <input
-              className="input-base"
-              placeholder="e.g. Tone & Voice"
-              value={name}
-              onChange={(e) => { setName(e.target.value); if (error) setError(null); }}
-              autoFocus
-              disabled={submitting}
-            />
-          </div>
+        {/* Text */}
+        <div>
+          <label className="block text-sm font-medium text-surface-300 mb-1">
+            Instruction Text <span className="text-error">*</span>
+          </label>
+          <textarea
+            className="input-base min-h-[120px] resize-y"
+            value={text}
+            onChange={(e) => { setText(e.target.value); if (error) setError(null); }}
+            disabled={submitting}
+          />
+        </div>
 
-          {/* Text */}
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">
-              Instruction Text <span className="text-error">*</span>
-            </label>
-            <textarea
-              className="input-base min-h-[120px] resize-y"
-              value={text}
-              onChange={(e) => { setText(e.target.value); if (error) setError(null); }}
-              disabled={submitting}
-            />
+        {error && (
+          <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
+            <AlertCircle size={14} />
+            {error}
           </div>
-
-          {error && (
-            <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
-              <AlertCircle size={14} />
-              {error}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-2 border-t border-surface-800">
-            <Button variant="secondary" size="sm" type="button" onClick={onClose} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" type="submit" disabled={submitting} className="min-w-[120px] justify-center">
-              {submitting ? (
-                <span className="flex items-center gap-2">
-                  <Spinner /> Saving...
-                </span>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+        )}
+      </form>
+    </Dialog>
   );
 }
 
@@ -458,35 +374,15 @@ function InstructionDeleteDialog({ instructionName, onClose, onConfirm }: Instru
   const [submitting, setSubmitting] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in" onClick={onClose}>
-      <div
-        className="card-base w-full max-w-sm p-6 shadow-xl shadow-black/40 animate-slide-up"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-error/10 shrink-0">
-            <Trash2 size={18} className="text-error" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold">Delete Instruction</h2>
-            <p className="text-sm text-surface-400">This action cannot be undone.</p>
-          </div>
-        </div>
-
-        <p className="text-sm text-surface-300 mb-2">
-          Are you sure you want to delete instruction
-        </p>
-        <p className="text-sm font-medium text-white mb-5">
-          &ldquo;{instructionName}&rdquo;
-        </p>
-        <p className="text-xs text-surface-500 mb-5">
-          This instruction will no longer be used when generating user summaries.
-        </p>
-
-        <div className="flex justify-end gap-3">
-          <Button variant="secondary" size="sm" onClick={onClose} disabled={submitting}>
-            Cancel
-          </Button>
+    <Dialog
+      open
+      onOpenChange={(open) => { if (!open) onClose(); }}
+      title="Delete Instruction"
+      description="This action cannot be undone."
+      size="sm"
+      footer={
+        <>
+          <DialogCloseButton size="sm" disabled={submitting} />
           <Button
             variant="danger"
             size="sm"
@@ -500,9 +396,19 @@ function InstructionDeleteDialog({ instructionName, onClose, onConfirm }: Instru
               <span className="flex items-center gap-2"><Trash2 size={14} /> Delete</span>
             )}
           </Button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <p className="text-sm text-surface-300 mb-2">
+        Are you sure you want to delete instruction
+      </p>
+      <p className="text-sm font-medium text-white mb-5">
+        &ldquo;{instructionName}&rdquo;
+      </p>
+      <p className="text-xs text-surface-500 mb-5">
+        This instruction will no longer be used when generating user summaries.
+      </p>
+    </Dialog>
   );
 }
 
@@ -538,17 +444,6 @@ export default function UserDetailPage() {
   const [editInstructionTarget, setEditInstructionTarget] = useState<CustomInstruction | null>(null);
   const [deleteInstructionTarget, setDeleteInstructionTarget] = useState<CustomInstruction | null>(null);
 
-  // ── Toast state ───────────────────────────────────────────────────────────
-  const [toast, setToast] = useState<ToastState>({ visible: false, message: "", type: "success" });
-
-  const showToast = useCallback((message: string, type: "success" | "error") => {
-    setToast({ visible: true, message, type });
-  }, []);
-
-  const dismissToast = useCallback(() => {
-    setToast((prev) => ({ ...prev, visible: false }));
-  }, []);
-
   // ── Cleanup polling on unmount ────────────────────────────────────────────
   useEffect(() => {
     return () => {
@@ -561,47 +456,39 @@ export default function UserDetailPage() {
     if (!userId) return;
     setLoading(true);
 
+    // All three fire in parallel; summary/instructions treat any failure
+    // (typically 404 "not yet generated") as absent data.
+    const userPromise = get<UserWithStats>(`/v1/users/${userId}`);
+    const summaryPromise = get<UserSummaryResponse>(`/v1/users/${userId}/summary`).catch(() => null);
+    const instructionsPromise = get<InstructionsResponse>(`/v1/users/${userId}/summary-instructions`).catch(() => null);
+
     try {
-      const [userRes, summaryRes, instructionsRes] = await Promise.all([
-        fetch(`${API_BASE}/v1/users/${userId}`, { headers: authHeaders() }),
-        fetch(`${API_BASE}/v1/users/${userId}/summary`, { headers: authHeaders() }),
-        fetch(`${API_BASE}/v1/users/${userId}/summary-instructions`, { headers: authHeaders() }),
-      ]);
-
-      if (!userRes.ok) {
-        if (userRes.status === 404) {
-          showToast("User not found", "error");
-          router.replace("/users");
-          return;
-        }
-        if (userRes.status === 403) {
-          // Surface the backend's RFC 7807 detail (e.g. which permission is missing).
-          setForbidden(await errorDetail(userRes));
-          setLoading(false);
-          return;
-        }
-        throw new Error(`Failed to load user: ${userRes.status}`);
-      }
-
-      const userData: UserWithStats = await userRes.json();
+      const userData = await userPromise;
       setUser(userData);
-
-      if (summaryRes.ok) {
-        const summaryData: UserSummaryResponse = await summaryRes.json();
-        setSummary(summaryData);
-      }
-      // Silently swallow 404 for summary (not yet generated)
-
-      if (instructionsRes.ok) {
-        const instructionsData: InstructionsResponse = await instructionsRes.json();
-        setInstructions(instructionsData.data ?? []);
-      }
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to load user data", "error");
-    } finally {
+      if (err instanceof ApiError && err.isNotFound) {
+        toast.error("User not found");
+        setLoading(false);
+        router.replace("/users");
+        return;
+      }
+      if (err instanceof ApiError && err.isForbidden) {
+        // Surface the backend's RFC 7807 detail (e.g. which permission is missing).
+        setForbidden(err.message);
+        setLoading(false);
+        return;
+      }
+      toast.error(err instanceof Error ? err.message : "Failed to load user data");
       setLoading(false);
+      return;
     }
-  }, [userId, showToast, router]);
+
+    const [summaryData, instructionsData] = await Promise.all([summaryPromise, instructionsPromise]);
+    // Silently swallow 404 for summary (not yet generated)
+    if (summaryData) setSummary(summaryData);
+    if (instructionsData) setInstructions(instructionsData.data ?? []);
+    setLoading(false);
+  }, [userId, router]);
 
   useEffect(() => {
     fetchData();
@@ -627,12 +514,12 @@ export default function UserDetailPage() {
           : prev,
       );
       setEditPermissions(null);
-      showToast("Permissions updated", "success");
+      toast.success("Permissions updated");
     } catch (err) {
       if (err instanceof ApiError && err.isForbidden) {
-        showToast("This action requires the 'members:write' permission.", "error");
+        toast.error("This action requires the 'members:write' permission.");
       } else {
-        showToast(err instanceof Error ? err.message : "Failed to update permissions", "error");
+        toast.error(err instanceof Error ? err.message : "Failed to update permissions");
       }
     } finally {
       setSavingPermissions(false);
@@ -644,53 +531,45 @@ export default function UserDetailPage() {
   const handleGenerateSummary = async () => {
     setGenerating(true);
     try {
-      const res = await fetch(`${API_BASE}/v1/users/${userId}/summary`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
+      await post(`/v1/users/${userId}/summary`);
 
-      if (res.status === 202) {
-        showToast("Summary generation started. Check back in a few moments.", "success");
-        // Start polling
-        initialUpdatedAtRef.current = summary?.updated_at ?? null;
-        pollStartRef.current = Date.now();
-        setPolling(true);
+      toast.success("Summary generation started. Check back in a few moments.");
+      // Start polling
+      initialUpdatedAtRef.current = summary?.updated_at ?? null;
+      pollStartRef.current = Date.now();
+      setPolling(true);
 
-        pollRef.current = setInterval(async () => {
-          try {
-            const pollRes = await fetch(`${API_BASE}/v1/users/${userId}/summary`, {
-              headers: authHeaders(),
-            });
-            if (pollRes.ok) {
-              const pollData: UserSummaryResponse = await pollRes.json();
-              if (pollData.updated_at !== initialUpdatedAtRef.current) {
-                // Summary has been regenerated — stop polling
-                setSummary(pollData);
-                setPolling(false);
-                if (pollRef.current) clearInterval(pollRef.current);
-                pollRef.current = null;
-              }
-            }
-          } catch {
-            // Silently swallow poll errors — we'll retry next interval
-          }
-
-          // Timeout check
-          if (Date.now() - pollStartRef.current >= POLL_TIMEOUT_MS) {
+      pollRef.current = setInterval(async () => {
+        try {
+          const pollData = await get<UserSummaryResponse>(`/v1/users/${userId}/summary`);
+          if (pollData.updated_at !== initialUpdatedAtRef.current) {
+            // Summary has been regenerated — stop polling
+            setSummary(pollData);
             setPolling(false);
             if (pollRef.current) clearInterval(pollRef.current);
             pollRef.current = null;
-            showToast("Summary generation is taking longer than expected. Refresh the page to check.", "error");
           }
-        }, POLL_INTERVAL_MS);
-      } else if (res.status === 429) {
-        showToast("Please wait 5 minutes between summary generations.", "error");
-      } else {
-        const body = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(body?.detail ?? `Failed to generate summary (${res.status})`);
-      }
+        } catch (err) {
+          console.warn(
+            `[users/[id]] summary poll failed for user ${userId}; will retry next interval`,
+            err,
+          );
+        }
+
+        // Timeout check
+        if (Date.now() - pollStartRef.current >= POLL_TIMEOUT_MS) {
+          setPolling(false);
+          if (pollRef.current) clearInterval(pollRef.current);
+          pollRef.current = null;
+          toast.error("Summary generation is taking longer than expected. Refresh the page to check.");
+        }
+      }, POLL_INTERVAL_MS);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to generate summary", "error");
+      if (err instanceof ApiError && err.isRateLimited) {
+        toast.error("Please wait 5 minutes between summary generations.");
+      } else {
+        toast.error(err instanceof Error ? err.message : "Failed to generate summary");
+      }
     } finally {
       setGenerating(false);
     }
@@ -699,16 +578,10 @@ export default function UserDetailPage() {
   // ── Summary instructions CRUD ─────────────────────────────────────────────
 
   const syncInstructions = async (updatedInstructions: CustomInstruction[]) => {
-    const res = await fetch(`${API_BASE}/v1/users/${userId}/summary-instructions`, {
-      method: "PUT",
-      headers: authHeaders(),
-      body: JSON.stringify({ instructions: updatedInstructions }),
-    });
-    if (!res.ok) {
-      const body = (await safeJsonParse(res)) as { detail?: string } | null;
-      throw new Error(body?.detail ?? "Failed to update instructions");
-    }
-    const result: InstructionsResponse = await res.json();
+    const result = await put<InstructionsResponse>(
+      `/v1/users/${userId}/summary-instructions`,
+      { instructions: updatedInstructions },
+    );
     setInstructions(result.data ?? []);
   };
 
@@ -716,7 +589,7 @@ export default function UserDetailPage() {
     const updated = [...instructions, { name, text }];
     await syncInstructions(updated);
     setShowCreateInstruction(false);
-    showToast(`Instruction "${name}" added successfully`, "success");
+    toast.success(`Instruction "${name}" added successfully`);
   };
 
   const handleEditInstruction = async (name: string, text: string) => {
@@ -726,7 +599,7 @@ export default function UserDetailPage() {
     );
     await syncInstructions(updated);
     setEditInstructionTarget(null);
-    showToast(`Instruction "${name}" updated successfully`, "success");
+    toast.success(`Instruction "${name}" updated successfully`);
   };
 
   const handleDeleteInstruction = async () => {
@@ -736,7 +609,7 @@ export default function UserDetailPage() {
     );
     await syncInstructions(updated);
     setDeleteInstructionTarget(null);
-    showToast(`Instruction "${deleteInstructionTarget.name}" deleted`, "success");
+    toast.success(`Instruction "${deleteInstructionTarget.name}" deleted`);
   };
 
   // ── Forbidden (member JWT on admin-gated user) ───────────────────────────
@@ -1181,9 +1054,6 @@ export default function UserDetailPage() {
           onConfirm={handleDeleteInstruction}
         />
       )}
-
-      {/* ═══ Toast ═══ */}
-      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }

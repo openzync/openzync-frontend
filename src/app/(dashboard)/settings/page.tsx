@@ -1,92 +1,29 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Save,
   Lock,
   User,
   Shield,
-  CheckCircle,
   AlertCircle,
   Eye,
   EyeOff,
-  X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { API_BASE, safeJsonParse } from "@/lib/api-client";
+import { patch, post, ApiError } from "@/lib/api-client";
+import { useUser, type CurrentUser } from "@/contexts/user-context";
 import { Button } from "@/components/ui/button";
 import { PageGuide, GuideSettings } from "@/components/guides";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogCloseButton } from "@/components/ui/dialog";
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
-
-interface ProfileResponse {
-  id: string;
-  name: string | null;
-  email: string | null;
-  role: string;
-  mfa_enabled?: boolean;
-}
-
-interface ToastState {
-  visible: boolean;
-  message: string;
-  type: "success" | "error";
-}
-
-// ─── Constants ─────────────────────────────────────────────────────────────────
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-
-function authHeaders(): Record<string, string> {
-  const token = sessionStorage.getItem("mg_access_token");
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
-}
-
-// ─── Toast ─────────────────────────────────────────────────────────────────────
-
-const TOAST_DURATION = 4000;
-
-function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void }) {
-  useEffect(() => {
-    if (!toast.visible) return;
-    const timer = setTimeout(onDismiss, TOAST_DURATION);
-    return () => clearTimeout(timer);
-  }, [toast.visible, onDismiss]);
-
-  if (!toast.visible) return null;
-
-  const isSuccess = toast.type === "success";
-
-  return (
-    <div className="fixed bottom-6 right-6 z-[60] animate-slide-up">
-      <div
-        className={cn(
-          "flex items-center gap-3 rounded-lg px-4 py-3 shadow-lg shadow-black/30 border min-w-[280px] max-w-sm",
-          isSuccess
-            ? "bg-surface-900 border-success/40 text-success"
-            : "bg-surface-900 border-error/40 text-error",
-        )}
-      >
-        {isSuccess ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-        <span className="text-sm text-white flex-1">{toast.message}</span>
-        <button onClick={onDismiss} className="text-surface-400 hover:text-white shrink-0">
-          <X size={14} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  // ── Profile state ──────────────────────────────────────────────────────────
-  const [profile, setProfile] = useState<ProfileResponse | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  // ── Profile (owned by UserProvider — no local /auth/me refetch) ────────────
+  const { user, loading: profileLoading } = useUser();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -107,57 +44,16 @@ export default function SettingsPage() {
   const [dialogSubmitting, setDialogSubmitting] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
 
-  // ── Toast state ────────────────────────────────────────────────────────────
-  const [toast, setToast] = useState<ToastState>({ visible: false, message: "", type: "success" });
-
-  const showToast = useCallback((message: string, type: "success" | "error") => {
-    setToast({ visible: true, message, type });
-  }, []);
-
-  const dismissToast = useCallback(() => {
-    setToast((prev) => ({ ...prev, visible: false }));
-  }, []);
-
-  // ── Fetch profile ──────────────────────────────────────────────────────────
-
-  const fetchProfile = useCallback(async () => {
-    setProfileLoading(true);
-    try {
-      // Use the current user endpoint — if there's a specific profile endpoint, use that.
-      // Fallback: GET /v1/users/me or similar. Since we don't have explicit docs,
-      // try a generic profile endpoint.
-      const res = await fetch(`${API_BASE}/v1/auth/me`, { headers: authHeaders() });
-      if (!res.ok) {
-        throw new Error("Failed to load profile");
-      } else {
-        const data = await res.json();
-        processProfile(data);
-      }
-    } catch {
-      // Silently fail — show empty form
-      setProfileLoading(false);
-    }
-  }, []);
-
-  const processProfile = (data: Record<string, unknown>) => {
-    const p: ProfileResponse = {
-      id: (data.id as string) ?? "",
-      name: (data.name as string) ?? null,
-      email: (data.email as string) ?? null,
-      // Fail closed: an unknown role must never display as admin.
-      role: (data.role as string) ?? "member",
-      mfa_enabled: (data.mfa_enabled as boolean) ?? false,
-    };
-    setProfile(p);
-    setName(p.name ?? "");
-    setEmail(p.email ?? "");
-    setLocalMfaEnabled(p.mfa_enabled ?? false);
-    setProfileLoading(false);
-  };
-
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+  // Seed the editable form + MFA toggle whenever the provider lands the
+  // profile. Render-phase adjustment (React's documented prop→state pattern)
+  // instead of an effect, so the inputs are never a render behind.
+  const [seededUser, setSeededUser] = useState<CurrentUser | null>(null);
+  if (user && user !== seededUser) {
+    setSeededUser(user);
+    setName(user.name ?? "");
+    setEmail(user.email ?? "");
+    setLocalMfaEnabled(user.mfa_enabled);
+  }
 
   // ── Save profile ───────────────────────────────────────────────────────────
 
@@ -168,20 +64,10 @@ export default function SettingsPage() {
       if (name.trim()) payload.name = name.trim();
       if (email.trim()) payload.email = email.trim();
 
-      const res = await fetch(`${API_BASE}/v1/auth/me`, {
-        method: "PATCH",
-        headers: authHeaders(),
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const body = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(body?.detail ?? "Failed to update profile");
-      }
-
-      showToast("Profile updated successfully", "success");
+      await patch("/v1/auth/me", payload);
+      toast.success("Profile updated successfully");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to update profile", "error");
+      toast.error(err instanceof ApiError ? err.message : "Failed to update profile");
     } finally {
       setSavingProfile(false);
     }
@@ -207,25 +93,16 @@ export default function SettingsPage() {
 
     setUpdatingPassword(true);
     try {
-      const res = await fetch(`${API_BASE}/v1/auth/me`, {
-        method: "PATCH",
-        headers: authHeaders(),
-        body: JSON.stringify({
-          current_password: currentPassword,
-          new_password: newPassword,
-        }),
+      await patch("/v1/auth/me", {
+        current_password: currentPassword,
+        new_password: newPassword,
       });
-
-      if (!res.ok) {
-        const body = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(body?.detail ?? "Failed to update password");
-      }
 
       setCurrentPassword("");
       setNewPassword("");
-      showToast("Password updated successfully", "success");
+      toast.success("Password updated successfully");
     } catch (err) {
-      setPasswordError(err instanceof Error ? err.message : "Failed to update password");
+      setPasswordError(err instanceof ApiError ? err.message : "Failed to update password");
     } finally {
       setUpdatingPassword(false);
     }
@@ -244,7 +121,10 @@ export default function SettingsPage() {
   };
 
   const handleCancelMfa = () => {
-    setLocalMfaEnabled(profile?.mfa_enabled ?? false);  // revert
+    // Revert the optimistic flip from handleToggleMfa — localMfaEnabled is
+    // this page's source of truth (UserContext has no refetch), so reverting
+    // from user.mfa_enabled would undo an MFA change confirmed this session.
+    setLocalMfaEnabled(mfaIntent !== "enable");
     setMfaDialogOpen(false);
   };
 
@@ -257,23 +137,14 @@ export default function SettingsPage() {
 
     setDialogSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/v1/auth/mfa/enable`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ password: dialogPassword }),
-      });
-
-      if (!res.ok) {
-        const body = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(body?.detail ?? "Failed to enable MFA");
-      }
+      await post("/v1/auth/mfa/enable", { password: dialogPassword });
 
       setMfaDialogOpen(false);
-      showToast("MFA has been enabled", "success");
-      fetchProfile();
+      setLocalMfaEnabled(true);
+      toast.success("MFA has been enabled");
     } catch (err) {
       setDialogError(
-        err instanceof Error ? err.message : "Connection error. Please try again.",
+        err instanceof ApiError ? err.message : "Connection error. Please try again.",
       );
     } finally {
       setDialogSubmitting(false);
@@ -293,23 +164,14 @@ export default function SettingsPage() {
 
     setDialogSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/v1/auth/mfa/disable`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ password: dialogPassword, otp: dialogOtp }),
-      });
-
-      if (!res.ok) {
-        const body = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(body?.detail ?? "Failed to disable MFA");
-      }
+      await post("/v1/auth/mfa/disable", { password: dialogPassword, otp: dialogOtp });
 
       setMfaDialogOpen(false);
-      showToast("MFA has been disabled", "success");
-      fetchProfile();
+      setLocalMfaEnabled(false);
+      toast.success("MFA has been disabled");
     } catch (err) {
       setDialogError(
-        err instanceof Error ? err.message : "Connection error. Please try again.",
+        err instanceof ApiError ? err.message : "Connection error. Please try again.",
       );
     } finally {
       setDialogSubmitting(false);
@@ -379,7 +241,7 @@ export default function SettingsPage() {
               <div className="relative">
                 <input
                   className="input-base pr-10 cursor-not-allowed opacity-60"
-                  value={profile?.role ?? "member"}
+                  value={user?.role ?? "member"}
                   disabled
                   readOnly
                 />
@@ -495,21 +357,21 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3">
             <div className={cn(
               "flex h-10 w-10 items-center justify-center rounded-full shrink-0",
-              profile?.mfa_enabled ? "bg-success/10" : "bg-info/10",
+              localMfaEnabled ? "bg-success/10" : "bg-info/10",
             )}>
-              <Shield size={20} className={profile?.mfa_enabled ? "text-success" : "text-info"} />
+              <Shield size={20} className={localMfaEnabled ? "text-success" : "text-info"} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3">
                 <h2 className="text-base font-semibold">Multi-Factor Authentication</h2>
-          {mfaIntent === "disable" && (
+                {localMfaEnabled && (
                   <span className="text-xs font-medium text-success bg-success/10 px-2 py-0.5 rounded-full border border-success/30 shrink-0">
                     Enabled
                   </span>
                 )}
               </div>
               <p className="text-xs text-surface-400">
-                {profile?.mfa_enabled
+                {localMfaEnabled
                   ? "Your account is protected with email-based MFA"
                   : "Add an extra layer of security to your account"
                 }
@@ -545,7 +407,10 @@ export default function SettingsPage() {
               onClick={mfaIntent === "disable" ? confirmDisableMfa : confirmEnableMfa}
               className={mfaIntent === "disable" ? "border-error/40 text-error hover:bg-error/10 hover:border-error/60" : ""}
             >
-              {profile?.mfa_enabled ? "Disable MFA" : "Enable MFA"}
+              {/* Dialog-flow label mirrors the variant/onClick above — both
+                  derive from mfaIntent, not localMfaEnabled, which is
+                  optimistically flipped while this dialog is open. */}
+              {mfaIntent === "disable" ? "Disable MFA" : "Enable MFA"}
             </Button>
           </>
         }
@@ -567,7 +432,7 @@ export default function SettingsPage() {
             />
           </div>
 
-          {profile?.mfa_enabled && (
+          {mfaIntent === "disable" && (
             <div>
               <label className="block text-sm font-medium text-surface-300 mb-1">
                 MFA Code
@@ -596,9 +461,6 @@ export default function SettingsPage() {
           )}
         </div>
       </Dialog>
-
-      {/* ── Toast ─────────────────────────────────────────────────────────────── */}
-      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }

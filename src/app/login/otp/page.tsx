@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, ArrowLeft, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { API_BASE, safeJsonParse } from "@/lib/api-client";
+import { post, storeTokens } from "@/lib/api-client";
 
 export default function LoginOtpPage() {
   const router = useRouter();
@@ -35,15 +35,8 @@ export default function LoginOtpPage() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(`${API_BASE}/v1/auth/login/otp/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) {
-        const data = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(data?.detail ?? "Failed to send login code.");
-      }
+      // Pre-auth: 401 must surface as an error message, never refresh/redirect.
+      await post("/v1/auth/login/otp/send", { email }, { skipAuthRetry: true });
       setSentMsg("Code sent!");
       setCooldown(60);
       setStep("otp");
@@ -62,15 +55,7 @@ export default function LoginOtpPage() {
     setSentMsg("");
 
     try {
-      const res = await fetch(`${API_BASE}/v1/auth/login/otp/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) {
-        const data = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(data?.detail ?? "Failed to resend code.");
-      }
+      await post("/v1/auth/login/otp/send", { email }, { skipAuthRetry: true });
       setSentMsg("A new code has been sent.");
       setCooldown(60);
     } catch (err: unknown) {
@@ -87,21 +72,12 @@ export default function LoginOtpPage() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(`${API_BASE}/v1/auth/login/otp/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp }),
-      });
-      if (!res.ok) {
-        const data = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(data?.detail ?? "Invalid or expired code.");
-      }
-      const data = (await res.json()) as {
-        access_token: string;
-        refresh_token: string;
-      };
-      sessionStorage.setItem("mg_access_token", data.access_token);
-      sessionStorage.setItem("mg_refresh_token", data.refresh_token);
+      const data = await post<{ access_token: string; refresh_token: string }>(
+        "/v1/auth/login/otp/verify",
+        { email, otp },
+        { skipAuthRetry: true },
+      );
+      storeTokens(data.access_token, data.refresh_token);
       router.replace("/overview");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Connection error. Please try again.");

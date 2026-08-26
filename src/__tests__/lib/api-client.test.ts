@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  safeJsonParse,
   get,
   post,
   put,
@@ -13,7 +12,6 @@ import {
   clearTokens,
   API_BASE,
   uploadWithBlobs,
-  errorDetail,
 } from "@/lib/api-client";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────────
@@ -28,32 +26,6 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-});
-
-// ─── safeJsonParse ───────────────────────────────────────────────────────────────
-
-describe("safeJsonParse", () => {
-  it("parses valid JSON", async () => {
-    const res = new Response('{"key":"value"}', { status: 200 });
-    await expect(safeJsonParse<{ key: string }>(res)).resolves.toEqual({
-      key: "value",
-    });
-  });
-
-  it("throws on invalid JSON with status and preview", async () => {
-    const res = new Response("not-json", { status: 500 });
-    await expect(safeJsonParse(res)).rejects.toThrow(
-      "Failed to parse response (500): not-json",
-    );
-  });
-
-  it("truncates long response bodies to 200 chars", async () => {
-    const long = "a".repeat(500);
-    const res = new Response(long, { status: 400 });
-    await expect(safeJsonParse(res)).rejects.toThrow(
-      "Failed to parse response (400): " + "a".repeat(200),
-    );
-  });
 });
 
 // ─── ApiError ────────────────────────────────────────────────────────────────────
@@ -385,49 +357,6 @@ describe("apiErrorMessage via request helpers", () => {
   });
 });
 
-// ─── errorDetail (raw-fetch pages: graph, prompts, onboarding) ─────────────────
-
-describe("errorDetail", () => {
-  it("unwraps the nested RFC 7807 detail on permission denials", async () => {
-    const res = new Response(
-      JSON.stringify({
-        detail: {
-          detail: "This action requires the 'project:manage' permission.",
-        },
-      }),
-      { status: 403, headers: { "Content-Type": "application/json" } },
-    );
-    await expect(errorDetail(res)).resolves.toBe(
-      "This action requires the 'project:manage' permission.",
-    );
-  });
-
-  it("passes through a flat string detail", async () => {
-    const res = new Response(JSON.stringify({ detail: "Invite expired" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    });
-    await expect(errorDetail(res)).resolves.toBe("Invite expired");
-  });
-
-  it("flattens a 422 validation array like the typed client", async () => {
-    const res = new Response(
-      JSON.stringify({
-        detail: [
-          { loc: ["body", "name"], msg: "Field required", type: "missing" },
-        ],
-      }),
-      { status: 422, headers: { "Content-Type": "application/json" } },
-    );
-    await expect(errorDetail(res)).resolves.toBe("name: Field required");
-  });
-
-  it("falls back to the status message on a non-JSON body", async () => {
-    const res = new Response("bad gateway", { status: 502 });
-    await expect(errorDetail(res)).resolves.toBe("Request failed with status 502");
-  });
-});
-
 // ─── 401 token refresh ──────────────────────────────────────────────────────────
 
 describe("401 token refresh", () => {
@@ -519,6 +448,133 @@ describe("401 token refresh", () => {
     await expect(get("/v1/test")).rejects.toThrow(ApiError);
     // Should only have made 2 requests (original + refresh), not infinite
     expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("shares a single refresh between two parallel 401 requests and both succeed", async () => {
+    let refreshCalls = 0;
+    const seenPaths = new Set<string>();
+    mockFetch.mockImplementation(async (url: RequestInfo | URL) => {
+      const u = String(url);
+      if (u.endsWith("/v1/auth/refresh")) {
+        refreshCalls++;
+        return new Response(
+          JSON.stringify({ access_token: "new-access", refresh_token: "new-refresh" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      if (seenPaths.has(u)) {
+        return new Response(JSON.stringify({ ok: u }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      seenPaths.add(u);
+      return new Response(null, { status: 401 });
+    });
+
+    const [a, b] = await Promise.all([get("/v1/a"), get("/v1/b")]);
+
+    expect(refreshCalls).toBe(1);
+    expect(a).toEqual({ ok: `${API_BASE}/v1/a` });
+    expect(b).toEqual({ ok: `${API_BASE}/v1/b` });
+    // Each path was called exactly twice (original + single retry), and the
+    // retry used the refreshed token
+    for (const path of ["/v1/a", "/v1/b"]) {
+      const calls = mockFetch.mock.calls.filter(
+        ([u]) => String(u) === `${API_BASE}${path}`,
+      );
+      expect(calls).toHaveLength(2);
+      expect(calls[1][1].headers["Authorization"]).toBe("Bearer new-access");
+    }
+    expect(sessionStorage.getItem("mg_access_token")).toBe("new-access");
+  });
+
+  it("both parallel requests throw when the shared refresh fails, without a second attempt", async () => {
+    // jsdom can't navigate; stub location without `any` casts
+    Object.defineProperty(window, "location", {
+      value: { href: "" },
+      writable: true,
+    });
+
+    let refreshCalls = 0;
+    mockFetch.mockImplementation(async (url: RequestInfo | URL) => {
+      const u = String(url);
+      if (u.endsWith("/v1/auth/refresh")) {
+        refreshCalls++;
+        return new Response(null, { status: 400 });
+      }
+      return new Response(null, { status: 401 });
+    });
+
+    const results = await Promise.allSettled([get("/v1/a"), get("/v1/b")]);
+
+    expect(results.every((r) => r.status === "rejected")).toBe(true);
+    expect(refreshCalls).toBe(1);
+    expect(
+      mockFetch.mock.calls.filter(([u]) =>
+        String(u).endsWith("/v1/auth/refresh"),
+      ),
+    ).toHaveLength(1);
+    expect(sessionStorage.getItem("mg_access_token")).toBeNull();
+  });
+});
+
+// ─── skipAuthRetry (pre-auth endpoints) ────────────────────────────────────────
+
+describe("skipAuthRetry", () => {
+  // jsdom can't navigate; stub location so a stray redirect is observable.
+  beforeEach(() => {
+    Object.defineProperty(window, "location", {
+      value: { href: "" },
+      writable: true,
+    });
+    sessionStorage.setItem("mg_access_token", "stale-access");
+    sessionStorage.setItem("mg_refresh_token", "valid-refresh");
+  });
+
+  it("surfaces the 401 as ApiError without refresh, retry, token clearing, or redirect", async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ detail: "Invalid email or password." }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const promise = post("/v1/auth/login", { email: "a@b.com", password: "nope" }, { skipAuthRetry: true });
+    await expect(promise).rejects.toMatchObject({
+      name: "ApiError",
+      status: 401,
+      message: "Invalid email or password.",
+    });
+
+    // Exactly one HTTP call — no /v1/auth/refresh, no retry of the original.
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    // Tokens survive (user may just have mistyped their password).
+    expect(sessionStorage.getItem("mg_access_token")).toBe("stale-access");
+    expect(sessionStorage.getItem("mg_refresh_token")).toBe("valid-refresh");
+    // No redirect-to-login side effect.
+    expect(window.location.href).toBe("");
+  });
+
+  it("still refresh-and-retries when the flag is omitted (default authenticated behaviour)", async () => {
+    mockFetch
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ access_token: "new-access", refresh_token: "new-refresh" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    const result = await post<{ ok: boolean }>("/v1/thing", {});
+    expect(result).toEqual({ ok: true });
+    expect(mockFetch).toHaveBeenCalledTimes(3);
   });
 });
 

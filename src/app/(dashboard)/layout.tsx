@@ -31,7 +31,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { get, getAccessToken } from "@/lib/api-client";
+import { get, getAccessToken, clearTokens } from "@/lib/api-client";
+import { getJwtPayload } from "@/lib/jwt";
 import { RequireAuth } from "./require-auth";
 import { useUser } from "@/contexts/user-context";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -84,25 +85,20 @@ function Sidebar({
 
   // Fetch user info on mount
   useEffect(() => {
-    const token = getAccessToken();
-    if (!token) return;
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const userId = payload.sub;
-      if (userId) {
-        get<{ email?: string; name?: string }>(`/v1/users/${userId}`)
-          .then((user) => {
-            if (user?.email) setCurrentUserLabel(user.email);
-            else setCurrentUserLabel(user?.name || userId.slice(0, 8));
-          })
-          .catch((err) => {
-            console.error("Failed to fetch user profile", err);
-            setCurrentUserLabel(userId.slice(0, 8));
-          });
-      }
-    } catch {
+    const userId = getJwtPayload(getAccessToken())?.sub;
+    if (typeof userId !== "string" || !userId) {
       setCurrentUserLabel("User");
+      return;
     }
+    get<{ email?: string; name?: string }>(`/v1/users/${userId}`)
+      .then((user) => {
+        if (user?.email) setCurrentUserLabel(user.email);
+        else setCurrentUserLabel(user?.name || userId.slice(0, 8));
+      })
+      .catch((err) => {
+        console.error("Failed to fetch user profile", err);
+        setCurrentUserLabel(userId.slice(0, 8));
+      });
   }, []);
 
   // Close user menu on Escape key press
@@ -493,8 +489,7 @@ function Sidebar({
                 <button
                   onClick={() => {
                     setUserMenuOpen(false);
-                    sessionStorage.removeItem("mg_access_token");
-                    sessionStorage.removeItem("mg_refresh_token");
+                    clearTokens();
                     router.push("/login");
                   }}
                   className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-error hover:bg-surface-800"

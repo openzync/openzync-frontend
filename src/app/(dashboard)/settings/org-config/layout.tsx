@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { PageGuide, GuideSettings } from "@/components/guides";
 import { cn } from "@/lib/utils";
 import { ConfigDirtyProvider, useConfigDirty } from "@/contexts/config-dirty";
+import { RequirePermission } from "@/components/shared/require-permission";
 
 const TABS = [
   { label: "Organization", href: "/settings/org-config", id: "organization" },
@@ -67,8 +68,9 @@ function OrgConfigLayoutInner({ children }: { children: React.ReactNode }) {
         })}
       </div>
 
-      {/* Active tab content */}
-      {children}
+      {/* Active tab content — every sub-tab reads /admin/org/config, which the
+          backend gates on configuration:read. Write actions stay gated in-page. */}
+      <RequirePermission permission="configuration:read">{children}</RequirePermission>
     </div>
   );
 }

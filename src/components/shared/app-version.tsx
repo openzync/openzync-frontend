@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { get } from "@/lib/api-client";
 
 export function AppVersion() {
   const [version, setVersion] = useState<string | null>(null);
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-    fetch(`${base}/v1/health`)
-      .then((r) => r.json())
+    // Decorative footer badge: hiding it when /health is unreachable is the
+    // designed empty state — no retry loop for a non-critical label.
+    get<{ version: string }>("/v1/health")
       .then((d) => setVersion(d.version))
       .catch(() => setVersion(null));
   }, []);

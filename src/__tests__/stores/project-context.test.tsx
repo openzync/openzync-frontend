@@ -188,12 +188,12 @@ describe("ProjectProvider", () => {
 });
 
 describe("useProject", () => {
-  it("returns default values when used outside provider", () => {
-    // useProject uses React Context which returns the default value
-    // (not throw) when no provider is present
-    render(<TestConsumer />);
-    expect(screen.getByTestId("loading")).toHaveTextContent("true");
-    expect(screen.getByTestId("project-name")).toHaveTextContent("null");
-    expect(screen.getByTestId("error")).toHaveTextContent("none");
+  it("throws when used outside provider (fail loud, like user-context)", () => {
+    // Suppress console.error for the expected render error
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => render(<TestConsumer />)).toThrow(
+      "useProject must be used within a ProjectProvider",
+    );
+    spy.mockRestore();
   });
 });

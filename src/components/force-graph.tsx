@@ -12,8 +12,10 @@ import {
   X,
   Maximize2,
   Minimize2,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { get } from "@/lib/api-client";
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║ Public Types                                                                ║
@@ -34,10 +36,13 @@ export interface GraphEdgeData {
   type: string;
 }
 
+/**
+ * BREAKING: was `{ baseUrl, projectId, headers }` — the component now fetches
+ * node details through the central api-client (fresh auth headers at call time
+ * + 401 refresh-retry), so only the project id is needed.
+ */
 export interface ApiConfig {
-  baseUrl: string;
   projectId: string;
-  headers: Record<string, string>;
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -177,6 +182,9 @@ export function ForceGraph({
 }: ForceGraphProps) {
   // ── State ────────────────────────────────────────────────────────────────
   const [filterText, setFilterText] = useState("");
+  // Debounced mirror of filterText — recomputing filteredData per keystroke
+  // tears down and rebuilds the whole D3 simulation on every character.
+  const [debouncedFilterText, setDebouncedFilterText] = useState("");
   const [showRelated, setShowRelated] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<GraphNodeData | null>(null);
@@ -184,17 +192,26 @@ export function ForceGraph({
     node: GraphNodeData & { metadata?: Record<string, unknown> };
     edges: GraphEdgeData[];
     loading: boolean;
+    error: string | null;
   } | null>(null);
+  // Bumped by the detail-panel Retry button to re-run the fetch effect.
+  const [detailNonce, setDetailNonce] = useState(0);
 
   // ── D3 refs ─────────────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
   const simulationRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null);
 
+  // ── Debounce the filter (200ms) ────────────────────────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedFilterText(filterText), 200);
+    return () => clearTimeout(t);
+  }, [filterText]);
+
   // ── Derived: filtered data ─────────────────────────────────────────────
   const filteredData = useMemo<{ nodes: GraphNodeData[]; edges: GraphEdgeData[] } | null>(() => {
     if (allNodes.length === 0) return null;
 
-    const lowerFilter = filterText.toLowerCase().trim();
+    const lowerFilter = debouncedFilterText.toLowerCase().trim();
     if (!lowerFilter) return { nodes: allNodes, edges: allEdges };
 
     // Nodes that match the search text
@@ -226,7 +243,7 @@ export function ForceGraph({
     );
 
     return { nodes: expandedNodes, edges: expandedEdges };
-  }, [allNodes, allEdges, filterText, showRelated]);
+  }, [allNodes, allEdges, debouncedFilterText, showRelated]);
 
   // Clear selected node when filter hides it
   useEffect(() => {
@@ -276,41 +293,45 @@ export function ForceGraph({
     }
 
     let cancelled = false;
-    setNodeDetail((prev) => (prev ? { ...prev, loading: true } : null));
+    setNodeDetail((prev) =>
+      prev?.node.id === selectedNode.id
+        ? { ...prev, loading: true, error: null }
+        : null,
+    );
 
     (async () => {
       try {
-        const res = await fetch(
-          `${apiConfig.baseUrl}/v1/projects/${apiConfig.projectId}/graph/nodes/${selectedNode.id}`,
-          { headers: apiConfig.headers },
+        const json = await get<NodeDetailResponse>(
+          `/v1/projects/${apiConfig.projectId}/graph/nodes/${selectedNode.id}`,
         );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json: NodeDetailResponse = await res.json();
-        const detail = json.data;
         if (!cancelled) {
+          const detail = json.data;
           setNodeDetail({
             node: detail.node ?? selectedNode,
             edges: detail.edges ?? [],
             loading: false,
+            error: null,
           });
         }
-      } catch {
+      } catch (err) {
+        // Failures are surfaced in the detail panel — no silent local fallback.
+        console.warn(
+          `[force-graph] node detail fetch failed for ${selectedNode.id}`,
+          err,
+        );
         if (!cancelled) {
-          // Fallback: use local data
-          const localEdges = allEdges.filter(
-            (e) => e.source_id === selectedNode.id || e.target_id === selectedNode.id,
-          );
           setNodeDetail({
             node: selectedNode,
-            edges: localEdges,
+            edges: [],
             loading: false,
+            error: "Failed to load details",
           });
         }
       }
     })();
 
     return () => { cancelled = true; };
-  }, [selectedNode, apiConfig.baseUrl, apiConfig.projectId, apiConfig.headers, allEdges]);
+  }, [selectedNode, apiConfig.projectId, detailNonce]);
 
   // ╔══════════════════════════════════════════════════════════════════════╗
   // ║ D3 Force Graph Rendering                                            ║
@@ -944,6 +965,22 @@ export function ForceGraph({
                     <p className="text-xs text-surface-400 mb-2 leading-relaxed">
                       {selectedNode.summary}
                     </p>
+                  )}
+
+                  {/* Detail fetch failure — loud, with retry */}
+                  {nodeDetail?.error && (
+                    <div className="mt-2 mb-2 flex items-center justify-between gap-2 rounded-md bg-error/10 border border-error/30 px-3 py-2">
+                      <span className="flex items-center gap-1.5 text-xs text-error">
+                        <AlertCircle size={12} className="shrink-0" />
+                        {nodeDetail.error}
+                      </span>
+                      <button
+                        onClick={() => setDetailNonce((n) => n + 1)}
+                        className="text-xs font-medium text-error underline underline-offset-2 hover:text-surface-100 shrink-0"
+                      >
+                        Retry
+                      </button>
+                    </div>
                   )}
 
                   {/* Metadata from API */}

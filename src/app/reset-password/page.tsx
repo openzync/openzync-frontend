@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { API_BASE, safeJsonParse } from "@/lib/api-client";
+import { post } from "@/lib/api-client";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -36,22 +36,12 @@ function ResetPasswordForm() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(`${API_BASE}/v1/auth/reset-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          otp,
-          new_password: newPassword,
-        }),
-      });
-      if (!res.ok) {
-        const data = await safeJsonParse(res);
-        throw new Error(
-          (data as Record<string, unknown>)?.detail as string ??
-            "Failed to reset password. Please try again."
-        );
-      }
+      // Pre-auth: 401 must surface as an error message, never refresh/redirect.
+      await post(
+        "/v1/auth/reset-password",
+        { email, otp, new_password: newPassword },
+        { skipAuthRetry: true },
+      );
       setDone(true);
       setTimeout(() => router.replace("/login"), 3000);
     } catch (err: unknown) {

@@ -15,6 +15,28 @@ vi.mock("@/components/force-graph", () => ({
   ForceGraph: (props: never) => ForceGraphMock(props),
 }));
 
+// The page loads ForceGraph via next/dynamic(ssr:false). Bypass the laziness —
+// resolve the loader into a plain component so behavioral assertions still run.
+vi.mock("next/dynamic", async () => {
+  const { useEffect, useState } = await import("react");
+  type Loader = () => Promise<React.ComponentType<Record<string, unknown>>>;
+  return {
+    default: (loader: Loader) => (props: Record<string, unknown>) => {
+      const [Comp, setComp] = useState<React.ComponentType<Record<string, unknown>> | null>(null);
+      useEffect(() => {
+        let alive = true;
+        void loader().then((c) => {
+          if (alive) setComp(() => c);
+        });
+        return () => {
+          alive = false;
+        };
+      }, []);
+      return Comp ? <Comp {...props} /> : null;
+    },
+  };
+});
+
 const mockProject = {
   id: "project-123",
   name: "Test Project",

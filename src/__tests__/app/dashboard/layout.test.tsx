@@ -139,8 +139,11 @@ describe("DashboardLayout nav gating", () => {
     for (const label of ADMIN_ONLY_LABELS) {
       expect(screen.queryAllByText(label).length).toBe(0);
     }
-    // Non-admin nav stays available to everyone.
-    expect(screen.getAllByText("Account Settings").length).toBeGreaterThan(0);
+    // Non-admin nav stays available to everyone. ("Account Settings" is not
+    // sidebar nav — it only exists as a breadcrumb label for /settings paths.)
+    for (const label of ["Overview", "Search"]) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
   });
 
   it("keeps shared (non-admin) navigation for members", () => {
@@ -148,7 +151,8 @@ describe("DashboardLayout nav gating", () => {
 
     renderLayout();
 
-    for (const label of ["Overview", "View all projects", "Account Settings"]) {
+    // Shared nav = items that render for every role (Insights + bottom bar).
+    for (const label of ["Overview", "View all projects", "Search"]) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
   });

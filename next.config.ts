@@ -2,9 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* Standalone output produces a self-contained server.js for Docker
-   * deployment.  NEXT_PUBLIC_API_URL defaults to "" (relative URLs),
-   * meaning the frontend makes requests like /v1/sessions that are
-   * proxied to the API via nginx. */
+   * deployment. NEXT_PUBLIC_API_URL defaults to http://localhost:8000 for
+   * local dev (see src/lib/api-client.ts); production builds MUST set it
+   * explicitly (e.g. https://app.openzync.tech) — there is no
+   * nginx-relative default. */
   output: "standalone",
 };
 

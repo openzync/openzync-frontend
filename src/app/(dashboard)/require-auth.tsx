@@ -1,22 +1,17 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthLoadingScreen } from "@/components/shared/auth-loading-screen";
 import { UserProvider, useUser } from "@/contexts/user-context";
-
-const MIN_DISPLAY_MS = 200;
-const UNAUTHORIZED_PAUSE_MS = 500;
+import { clearTokens, getAccessToken } from "@/lib/api-client";
+import { getTokenExp } from "@/lib/jwt";
 
 function isTokenExpired(): boolean {
-  const token = sessionStorage.getItem("mg_access_token");
-  if (!token) return true;
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.exp * 1000 < Date.now();
-  } catch {
-    return true;
-  }
+  const token = getAccessToken();
+  const exp = getTokenExp(token);
+  // Fail closed: missing/unparseable token or exp counts as expired.
+  return exp === null || exp * 1000 < Date.now();
 }
 
 /**
@@ -38,37 +33,20 @@ function MustChangePasswordRedirect() {
 }
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<"loading" | "authorized" | "denied">("loading");
-  const redirecting = useRef(false);
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    const token = sessionStorage.getItem("mg_access_token");
-    const expired = !token || isTokenExpired();
-
-    if (expired) {
-      // Clean up stale tokens
-      sessionStorage.removeItem("mg_access_token");
-      sessionStorage.removeItem("mg_refresh_token");
-
-      // Show the loading screen briefly for a polished feel, then redirect
-      const timer = setTimeout(() => {
-        if (!redirecting.current) {
-          redirecting.current = true;
-          window.location.href = "/login?reason=not-signed-in";
-        }
-      }, UNAUTHORIZED_PAUSE_MS);
-
-      setState("denied");
-      return () => clearTimeout(timer);
+    // sessionStorage is sync — the check is instant, so no artificial
+    // loading delay or redirect pause; bounce straight to login when stale.
+    if (isTokenExpired()) {
+      clearTokens();
+      window.location.href = "/login?reason=not-signed-in";
+      return;
     }
-
-    // Valid token — enforce minimum display time so the loading screen
-    // doesn't flicker on fast checks (sessionStorage is sync).
-    const timer = setTimeout(() => setState("authorized"), MIN_DISPLAY_MS);
-    return () => clearTimeout(timer);
+    setAuthorized(true);
   }, []);
 
-  if (state !== "authorized") {
+  if (!authorized) {
     return <AuthLoadingScreen />;
   }
 

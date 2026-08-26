@@ -14,20 +14,38 @@
 const API_BASE: string =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-/** Parse response JSON or throw a structured error with status and preview. */
-export async function safeJsonParse<T>(response: Response): Promise<T> {
-  const text = await response.text();
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new Error(
-      `Failed to parse response (${response.status}): ${text.slice(0, 200)}`,
-    );
-  }
+/**
+ * Single-flight token refresh: concurrent 401s share one in-flight promise
+ * instead of skipping refresh and leaking raw 401s. Cleared when settled so
+ * a later 401 can start a fresh attempt.
+ */
+let _refreshPromise: Promise<string | null> | null = null;
+
+function refreshOnce(): Promise<string | null> {
+  _refreshPromise ??= refreshAccessToken().finally(() => {
+    _refreshPromise = null;
+  });
+  return _refreshPromise;
 }
 
-/** Track if we are already refreshing to avoid infinite loops. */
-let _refreshing = false;
+/**
+ * Shared 401 handling for request() and uploadWithBlobs(): await the shared
+ * refresh, then retry the original request exactly once with the new token.
+ * On refresh failure every awaiter clears tokens, redirects, and throws.
+ */
+async function refreshAndRetry(
+  retry: (newToken: string) => Promise<Response>,
+): Promise<Response> {
+  const newToken = await refreshOnce();
+  if (!newToken) {
+    clearTokens();
+    if (typeof window !== "undefined") {
+      window.location.href = "/login?reason=not-signed-in";
+    }
+    throw new ApiError("Unauthorized", 401, null);
+  }
+  return retry(newToken);
+}
 
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 
@@ -81,7 +99,10 @@ async function refreshAccessToken(): Promise<string | null> {
     storeTokens(body.access_token, body.refresh_token ?? refreshToken);
     return body.access_token;
   } catch {
-    // Network error during refresh — do not clear tokens, caller may retry.
+    // Network error during refresh — returns null like any other refresh
+    // failure, so callers clear the session and redirect to login.
+    // TODO: distinguish transport errors from auth rejection so a transient
+    // network blip doesn't log the user out.
     return null;
   }
 }
@@ -193,58 +214,43 @@ export function apiErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+// ─── Core request helper ──────────────────────────────────────────────────────
+
 /**
- * Extract a readable message from an error Response, unwrapping the RFC 7807
- * `detail` (flat string, nested object, or 422 array). Used by pages that
- * fetch raw (outside `request`) so a 403 permission denial surfaces the
- * backend's exact message — e.g. "This action requires the
- * 'configuration:read' permission." — instead of a generic error.
+ * Pre-auth flows (login, signup, OTP, reset…) pass `skipAuthRetry: true`:
+ * their endpoints have no valid token, so a 401 is a real answer ("wrong
+ * password") — never trigger refresh-retry nor the redirect-to-login side
+ * effect. Authenticated callers omit it and keep refresh semantics.
  */
-export async function errorDetail(resp: Response): Promise<string> {
-  const body = await resp.json().catch(() => null);
-  return parseApiErrorMessage(body, resp.status);
+interface RequestOptions extends RequestInit {
+  skipAuthRetry?: boolean;
 }
 
-// ─── Core request helper ──────────────────────────────────────────────────────
+/** Per-verb opt-out surface — deliberately narrow so callers can't send raw headers past the auth layer. */
+type VerbOptions = Pick<RequestOptions, "skipAuthRetry">;
 
 async function request<T>(
   path: string,
-  options: RequestInit = {},
+  options: RequestOptions = {},
 ): Promise<T> {
+  const { skipAuthRetry, ...init } = options;
   const url = `${API_BASE}${path}`;
   const headers: Record<string, string> = {
     ...getAuthHeaders(),
-    ...(options.headers as Record<string, string>),
+    ...(init.headers as Record<string, string>),
   };
 
   let res = await fetch(url, {
-    ...options,
+    ...init,
     headers,
   });
 
-  // 401 → attempt silent token refresh, then retry once
-  if (res.status === 401 && !_refreshing) {
-    _refreshing = true;
-    try {
-      const newToken = await refreshAccessToken();
-      if (newToken) {
-        // Retry the original request with the fresh token.
-        headers["Authorization"] = `Bearer ${newToken}`;
-        res = await fetch(url, {
-          ...options,
-          headers,
-        });
-      } else {
-        // Refresh failed — nothing more to try.
-        clearTokens();
-        if (typeof window !== "undefined") {
-          window.location.href = "/login?reason=not-signed-in";
-        }
-        throw new ApiError("Unauthorized", 401, null);
-      }
-    } finally {
-      _refreshing = false;
-    }
+  // 401 → silent token refresh (shared across concurrent requests), retry once
+  if (res.status === 401 && !skipAuthRetry) {
+    res = await refreshAndRetry((newToken) => {
+      headers["Authorization"] = `Bearer ${newToken}`;
+      return fetch(url, { ...init, headers });
+    });
   }
 
   // No content (204) — return empty
@@ -270,37 +276,40 @@ async function request<T>(
 // ─── Typed helpers ────────────────────────────────────────────────────────────
 
 /** GET request */
-export function get<T>(path: string): Promise<T> {
-  return request<T>(path, { method: "GET" });
+export function get<T>(path: string, opts?: VerbOptions): Promise<T> {
+  return request<T>(path, { method: "GET", ...opts });
 }
 
 /** POST request */
-export function post<T>(path: string, data?: unknown): Promise<T> {
+export function post<T>(path: string, data?: unknown, opts?: VerbOptions): Promise<T> {
   return request<T>(path, {
     method: "POST",
     body: data !== undefined ? JSON.stringify(data) : undefined,
+    ...opts,
   });
 }
 
 /** PUT request */
-export function put<T>(path: string, data?: unknown): Promise<T> {
+export function put<T>(path: string, data?: unknown, opts?: VerbOptions): Promise<T> {
   return request<T>(path, {
     method: "PUT",
     body: data !== undefined ? JSON.stringify(data) : undefined,
+    ...opts,
   });
 }
 
 /** PATCH request */
-export function patch<T>(path: string, data?: unknown): Promise<T> {
+export function patch<T>(path: string, data?: unknown, opts?: VerbOptions): Promise<T> {
   return request<T>(path, {
     method: "PATCH",
     body: data !== undefined ? JSON.stringify(data) : undefined,
+    ...opts,
   });
 }
 
 /** DELETE request */
-export function del<T = void>(path: string): Promise<T> {
-  return request<T>(path, { method: "DELETE" });
+export function del<T = void>(path: string, opts?: VerbOptions): Promise<T> {
+  return request<T>(path, { method: "DELETE", ...opts });
 }
 
 // ── File Upload ─────────────────────────────────────────────────────────
@@ -338,22 +347,12 @@ async function uploadWithBlobs<T>(
     body: formData,
   });
 
-  // 401 → refresh & retry
-  if (res.status === 401 && !_refreshing) {
-    _refreshing = true;
-    try {
-      const newToken = await refreshAccessToken();
-      if (newToken) {
-        headers["Authorization"] = `Bearer ${newToken}`;
-        res = await fetch(url, { method: "POST", headers, body: formData });
-      } else {
-        clearTokens();
-        window.location.href = "/login?reason=not-signed-in";
-        throw new ApiError("Unauthorized", 401, null);
-      }
-    } finally {
-      _refreshing = false;
-    }
+  // 401 → same shared refresh-and-retry path as request()
+  if (res.status === 401) {
+    res = await refreshAndRetry((newToken) => {
+      headers["Authorization"] = `Bearer ${newToken}`;
+      return fetch(url, { method: "POST", headers, body: formData });
+    });
   }
 
   if (res.status === 204) return {} as T;
@@ -389,9 +388,9 @@ export interface SignupResponse {
   message: string;
 }
 
-/** POST /v1/auth/join — join an existing organization via its org code. */
+/** POST /v1/auth/join — join an existing organization via its org code. Pre-auth: 401 must not trigger refresh/redirect. */
 export function join(data: JoinRequest): Promise<SignupResponse> {
-  return post<SignupResponse>("/v1/auth/join", data);
+  return post<SignupResponse>("/v1/auth/join", data, { skipAuthRetry: true });
 }
 
 /** Normalise API responses that might use `data`, `items`, or be a bare array. */
@@ -422,7 +421,7 @@ export interface TokenPair {
  * and profile. Unauthenticated: the token travels in the BODY, never the URL.
  */
 export function getInviteInfo(token: string): Promise<InviteInfo> {
-  return post<InviteInfo>("/v1/auth/invites/info", { token });
+  return post<InviteInfo>("/v1/auth/invites/info", { token }, { skipAuthRetry: true });
 }
 
 /**
@@ -434,10 +433,11 @@ export async function acceptInvite(
   token: string,
   password: string,
 ): Promise<TokenPair> {
-  const tokens = await post<TokenPair>("/v1/auth/invites/accept", {
-    token,
-    password,
-  });
+  const tokens = await post<TokenPair>(
+    "/v1/auth/invites/accept",
+    { token, password },
+    { skipAuthRetry: true },
+  );
   clearTokens();
   storeTokens(tokens.access_token, tokens.refresh_token);
   return tokens;
@@ -558,9 +558,9 @@ export async function changePassword(
   return tokens;
 }
 
-/** GET /v1/auth/registration-status — PUBLIC; signup page gates on this. */
+/** GET /v1/auth/registration-status — PUBLIC; signup page gates on this. Pre-auth: 401 must not trigger refresh/redirect. */
 export function getRegistrationStatus(): Promise<RegistrationStatus> {
-  return get<RegistrationStatus>("/v1/auth/registration-status");
+  return get<RegistrationStatus>("/v1/auth/registration-status", { skipAuthRetry: true });
 }
 
 // ─── Re-export base URL for edge cases ───────────────────────────────────────

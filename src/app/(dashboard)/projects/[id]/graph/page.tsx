@@ -1,13 +1,27 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { RotateCcw, Info } from "lucide-react";
-import { ForceGraph, type GraphNodeData, type GraphEdgeData } from "@/components/force-graph";
+import type { GraphNodeData, GraphEdgeData } from "@/components/force-graph";
 import { PageGuide, GuideGraph } from "@/components/guides";
-import { get, API_BASE, getAccessToken, ApiError } from "@/lib/api-client";
+import { get, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
+
+// d3 is heavy and browser-only — load the graph explorer lazily, client-side.
+const ForceGraph = dynamic(
+  () => import("@/components/force-graph").then((m) => m.ForceGraph),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="card-base h-[600px] p-4">
+        <div className="h-full rounded bg-surface-800 animate-pulse" />
+      </div>
+    ),
+  },
+);
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -17,15 +31,6 @@ interface NodesApiResponse {
 
 interface EdgesApiResponse {
   data: { items: GraphEdgeData[] };
-}
-
-// ─── Auth headers for ForceGraph external API calls ────────────────────────────
-
-function authHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const token = getAccessToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
@@ -110,7 +115,7 @@ export default function GraphExplorerPage() {
           loading={loading}
           error={error}
           onRetry={loadData}
-          apiConfig={{ baseUrl: API_BASE, projectId, headers: authHeaders() }}
+          apiConfig={{ projectId }}
           showFilter showControls showLegend
         />
       </div>

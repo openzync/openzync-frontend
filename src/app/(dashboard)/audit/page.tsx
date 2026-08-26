@@ -16,6 +16,7 @@ import { PageGuide, GuideSecurity } from "@/components/guides";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
+import { RequirePermission } from "@/components/shared/require-permission";
 import { Button } from "@/components/ui/button";
 import { StatusBadge, ActorTypeBadge, actorTypeLabel } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
@@ -128,19 +129,23 @@ export default function AuditLogPage() {
           );
         } else if (filterActorType === "api_key") {
           const projects = await get<Array<{ id: string }>>("/v1/projects");
-          const allKeys: ActorOption[] = [];
-          for (const p of projects) {
-            const res = await get<{ data: Array<{ id: string; name: string | null; prefix: string }> }>(
-              `/v1/projects/${p.id}/api-keys`
-            );
-            for (const k of res.data ?? []) {
-              allKeys.push({
-                id: k.id,
-                label: `${k.prefix}${k.name ? " — " + k.name : ""}`,
-                group: "API Keys",
-              });
-            }
-          }
+          // Parallel fetch — Promise.all preserves project order, so the
+          // resulting actor list is stable. Any failure rejects into the
+          // outer catch (same behavior as the old serial loop).
+          const keyLists = await Promise.all(
+            projects.map((p) =>
+              get<{ data: Array<{ id: string; name: string | null; prefix: string }> }>(
+                `/v1/projects/${p.id}/api-keys`
+              )
+            )
+          );
+          const allKeys: ActorOption[] = keyLists.flatMap((res) =>
+            (res.data ?? []).map((k) => ({
+              id: k.id,
+              label: `${k.prefix}${k.name ? " — " + k.name : ""}`,
+              group: "API Keys",
+            }))
+          );
           setAvailableActors(allKeys);
         } else if (filterActorType === "system") {
           setAvailableActors([{ id: "system", label: "System", group: "System" }]);
@@ -182,7 +187,8 @@ export default function AuditLogPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <RequirePermission permission="members:read">
+      <div className="space-y-6">
       <PageHeader
         title="Audit Log"
         description="Immutable record of all system actions"
@@ -448,6 +454,7 @@ export default function AuditLogPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </RequirePermission>
   );
 }

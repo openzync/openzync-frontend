@@ -35,6 +35,8 @@ export interface CurrentUser {
   permissions: string[];
   /** Root/admin accounts flagged to rotate their password before first use. */
   must_change_password: boolean;
+  /** Email-based MFA enrolment, from the same /v1/auth/me payload. */
+  mfa_enabled: boolean;
 }
 
 /**
@@ -103,6 +105,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             // Defensive: the /me field is new — a live env may not send it yet.
             permissions: Array.isArray(data.permissions) ? data.permissions : [],
             must_change_password: data.must_change_password ?? false,
+            mfa_enabled: data.mfa_enabled ?? false,
           });
         }
       } catch {

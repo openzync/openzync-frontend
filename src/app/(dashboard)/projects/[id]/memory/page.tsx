@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn, formatFileSize } from "@/lib/utils";
 import { get, uploadWithBlobs } from "@/lib/api-client";
+import { toast } from "sonner";
 import { BlobCard, type BlobCardData } from "@/components/shared/blob-card";
 import { EnrichmentStatus } from "@/components/shared/enrichment-status";
 import { useProject } from "@/stores/project-context";
@@ -60,6 +61,11 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 ];
 
 const ROLES = ["user", "assistant", "system", "tool"] as const;
+
+// Mirrors the backend's per-blob cap (BlobStorageConfig.max_blob_size_mb,
+// default 50 → 413 PayloadTooLargeError). MIME types are unrestricted
+// server-side, so only size is enforced here.
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 // ─── Ingest Tab ────────────────────────────────────────────────────────────────
 
@@ -170,7 +176,15 @@ function IngestTab({ projectId }: { projectId: string }) {
             className="hidden"
             onChange={(e) => {
               const files = Array.from(e.target.files ?? []);
-              setSelectedFiles((prev) => [...prev, ...files]);
+              const accepted: File[] = [];
+              for (const file of files) {
+                if (file.size > MAX_FILE_BYTES) {
+                  toast.error(`${file.name}: exceeds the 50 MB per-file limit`);
+                } else {
+                  accepted.push(file);
+                }
+              }
+              setSelectedFiles((prev) => [...prev, ...accepted]);
               // Reset so re-selecting the same file works
               e.target.value = "";
             }}

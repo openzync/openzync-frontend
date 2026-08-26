@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Shield, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { API_BASE, safeJsonParse } from "@/lib/api-client";
+import { post, storeTokens } from "@/lib/api-client";
 
 function MfaChallengeForm() {
   const router = useRouter();
@@ -25,21 +25,13 @@ function MfaChallengeForm() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(`${API_BASE}/v1/auth/mfa/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp, mfa_session_token: session }),
-      });
-      if (!res.ok) {
-        const data = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(data?.detail ?? "Invalid or expired verification code.");
-      }
-      const data = (await res.json()) as {
-        access_token: string;
-        refresh_token: string;
-      };
-      sessionStorage.setItem("mg_access_token", data.access_token);
-      sessionStorage.setItem("mg_refresh_token", data.refresh_token);
+      // Pre-auth: 401 must surface as an error message, never refresh/redirect.
+      const data = await post<{ access_token: string; refresh_token: string }>(
+        "/v1/auth/mfa/verify",
+        { email, otp, mfa_session_token: session },
+        { skipAuthRetry: true },
+      );
+      storeTokens(data.access_token, data.refresh_token);
       router.replace("/overview");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Connection error. Please try again.");

@@ -20,6 +20,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { ErrorState } from "@/components/shared/error-state";
 import { EmptyState } from "@/components/shared/empty-state";
+import { RequirePermission } from "@/components/shared/require-permission";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -437,7 +438,8 @@ export default function MonitoringPage() {
   const queueTotal = summary ? summary.queue_depth.high + summary.queue_depth.low : null;
 
   return (
-    <div className="space-y-6">
+    <RequirePermission permission="members:read">
+      <div className="space-y-6">
       <PageHeader
         title="Monitoring"
         description="Real-time platform performance and health metrics"
@@ -753,6 +755,7 @@ export default function MonitoringPage() {
           <ErrorState message="Unable to fetch monitoring data" onRetry={() => fetchData(true)} />
         )}
       </div>
-    </div>
+      </div>
+    </RequirePermission>
   );
 }

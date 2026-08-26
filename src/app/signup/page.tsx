@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Eye, EyeOff, Loader2, Lock } from "lucide-react";
-import { API_BASE, safeJsonParse, join, getRegistrationStatus, type RegistrationStatus } from "@/lib/api-client";
+import { post, join, getRegistrationStatus, type RegistrationStatus } from "@/lib/api-client";
 import { getPasswordStrength } from "@/lib/password-strength";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -70,20 +70,14 @@ export default function SignupPage() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/v1/auth/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          approvalsPublic
-            ? { email, organization_name: orgName }
-            : { email, password, organization_name: orgName },
-        ),
-      });
-      if (!res.ok) {
-        const data = (await safeJsonParse(res)) as { detail?: string } | null;
-        throw new Error(data?.detail ?? "Signup failed. Please try again.");
-      }
-      const data = await res.json();
+      // Pre-auth: 401 must surface as an error message, never refresh/redirect.
+      const data = await post<{ email?: string; status?: string; message?: string }>(
+        "/v1/auth/signup",
+        approvalsPublic
+          ? { email, organization_name: orgName }
+          : { email, password, organization_name: orgName },
+        { skipAuthRetry: true },
+      );
 
       if (approvalsPublic && data.status === "pending") {
         setSubmittedMessage(data.message ?? "Your request has been submitted for approval.");

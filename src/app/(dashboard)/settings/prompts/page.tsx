@@ -17,16 +17,7 @@ import {
   Save,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  get,
-  post,
-  put,
-  del as apiDel,
-  getAccessToken,
-  API_BASE,
-  ApiError,
-  errorDetail,
-} from "@/lib/api-client";
+import { get, post, put, del as apiDel, ApiError } from "@/lib/api-client";
 import { timeAgo, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
@@ -83,15 +74,6 @@ const KNOWN_TYPES = [
   { value: "user_summary", label: "User Summary" },
 ];
 
-// ─── Auth fetch helper for dialogs (kept as-is to avoid breaking nested logic) ─
-
-function authHeaders(): Record<string, string> {
-  const token = getAccessToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // Child dialogs — each has unique business logic, kept mostly as-is
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -131,12 +113,7 @@ function EditDialog({
     if (!templateText.trim()) { setError("Template text cannot be empty"); return; }
     setSaving(true); setError(null);
     try {
-      const res = await fetch(`${API_BASE}/admin/org/prompts/${template.name}`, {
-        method: "PUT",
-        headers: authHeaders(),
-        body: JSON.stringify({ template_text: templateText, description: description.trim() || null }),
-      });
-      if (!res.ok) { throw new Error(await errorDetail(res)); }
+      await put(`/admin/org/prompts/${template.name}`, { template_text: templateText, description: description.trim() || null });
       toast.success(`Template "${templateDisplayName(template.name)}" saved as new version`);
       await onSaved();
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to save template"); }
@@ -146,8 +123,7 @@ function EditDialog({
   const handleReset = async () => {
     setResetting(true);
     try {
-      const res = await fetch(`${API_BASE}/admin/org/prompts/${template.name}`, { method: "DELETE", headers: authHeaders() });
-      if (!res.ok) { throw new Error(await errorDetail(res)); }
+      await apiDel(`/admin/org/prompts/${template.name}`);
       setShowResetConfirm(false);
       toast.success(`Template "${templateDisplayName(template.name)}" reset to default`);
       await onReset();
@@ -159,8 +135,7 @@ function EditDialog({
     if (!template.type || template.is_default_for_type) return;
     setSettingDefault(true); setError(null);
     try {
-      const res = await fetch(`${API_BASE}/admin/org/prompts/${template.name}/set-default`, { method: "POST", headers: authHeaders() });
-      if (!res.ok) { throw new Error(await errorDetail(res)); }
+      await post(`/admin/org/prompts/${template.name}/set-default`);
       toast.success(`"${templateDisplayName(template.name)}" is now the default for its type`);
       await onSaved();
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to set as default"); }
@@ -255,9 +230,7 @@ function VersionHistoryDialog({
   const fetchVersions = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch(`${API_BASE}/admin/org/prompts/${templateName}/versions`, { headers: authHeaders() });
-      if (!res.ok) throw new Error(await errorDetail(res));
-      const data: PromptTemplateVersions = await res.json();
+      const data = await get<PromptTemplateVersions>(`/admin/org/prompts/${templateName}/versions`);
       setVersionsData(data);
       const active = data.versions.find((v) => v.is_active);
       if (active) setSelectedVersion(active);
@@ -270,8 +243,7 @@ function VersionHistoryDialog({
   const handleRollback = async (version: number) => {
     setRollingBack(true);
     try {
-      const res = await fetch(`${API_BASE}/admin/org/prompts/${templateName}/rollback/${version}`, { method: "POST", headers: authHeaders() });
-      if (!res.ok) { throw new Error(await errorDetail(res)); }
+      await post(`/admin/org/prompts/${templateName}/rollback/${version}`);
       toast.success(`Template "${templateDisplayName(templateName)}" rolled back to version ${version}`);
       await fetchVersions();
       onRollback(version);
@@ -282,8 +254,7 @@ function VersionHistoryDialog({
   const handlePromote = async (version: number) => {
     setPromoting(true); setPromoteConfirm(null);
     try {
-      const res = await fetch(`${API_BASE}/admin/org/prompts/${templateName}/promote/${version}`, { method: "POST", headers: authHeaders() });
-      if (!res.ok) { throw new Error(await errorDetail(res)); }
+      await post(`/admin/org/prompts/${templateName}/promote/${version}`);
       toast.success(`Version ${version} of "${templateDisplayName(templateName)}" is now the system default`);
       await fetchVersions();
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to promote template"); }
@@ -389,9 +360,7 @@ function BrowserDialog({ onClose, onImported }: { onClose: () => void; onImporte
   const fetchSystemPrompts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/admin/org/prompts/system`, { headers: authHeaders() });
-      if (!res.ok) throw new Error(await errorDetail(res));
-      const data: { groups: SystemPromptGroup[] } = await res.json();
+      const data = await get<{ groups: SystemPromptGroup[] }>("/admin/org/prompts/system");
       setGroups(data.groups ?? []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load system prompts");
@@ -404,8 +373,7 @@ function BrowserDialog({ onClose, onImported }: { onClose: () => void; onImporte
   const handleImport = async (templateName: string) => {
     setImporting(templateName);
     try {
-      const res = await fetch(`${API_BASE}/admin/org/prompts/import`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ template_name: templateName }) });
-      if (!res.ok) { throw new Error(await errorDetail(res)); }
+      await post("/admin/org/prompts/import", { template_name: templateName });
       toast.success(`"${templateDisplayName(templateName)}" imported successfully`);
       await fetchSystemPrompts();
       onImported();
@@ -485,11 +453,7 @@ function CreateDialog({ onClose, onCreate }: { onClose: () => void; onCreate: ()
     if (!trimmedText) { setError("Template text is required"); return; }
     setCreating(true); setError(null);
     try {
-      const res = await fetch(`${API_BASE}/admin/org/prompts/${encodeURIComponent(trimmedName)}`, {
-        method: "PUT", headers: authHeaders(),
-        body: JSON.stringify({ template_text: trimmedText, description: description.trim() || null, type }),
-      });
-      if (!res.ok) { throw new Error(await errorDetail(res)); }
+      await put(`/admin/org/prompts/${encodeURIComponent(trimmedName)}`, { template_text: trimmedText, description: description.trim() || null, type });
       toast.success(`Template "${templateDisplayName(trimmedName)}" created`);
       await onCreate();
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to create template"); }
