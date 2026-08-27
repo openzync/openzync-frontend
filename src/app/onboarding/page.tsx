@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Loader2,
   Eye,
@@ -20,6 +20,9 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { get, put, getAccessToken } from "@/lib/api-client";
 import { SecretInput } from "@/components/ui/secret-input";
+import { Field } from "@/components/ui/field";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -95,6 +98,15 @@ const STEPS = [
   { title: "Review & Save", icon: <CheckCircle size={16} /> },
 ] as const;
 
+const LAST_STEP = STEPS.length - 1;
+
+/** Parse + clamp the ?step= param: non-numeric/negative → 0, too high → last. */
+function parseStepParam(raw: string | null): number {
+  const parsed = parseInt(raw ?? "", 10);
+  if (!Number.isInteger(parsed) || parsed < 0) return 0;
+  return Math.min(parsed, LAST_STEP);
+}
+
 // ─── Section Header ────────────────────────────────────────────────────────────
 
 function SectionHeader({
@@ -133,8 +145,18 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 // ─── Main Onboarding Page ──────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
+  // useSearchParams requires a Suspense boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <OnboardingWizard />
+    </Suspense>
+  );
+}
+
+function OnboardingWizard() {
   const router = useRouter();
-  const [step, setStep] = useState(0);
+  const searchParams = useSearchParams();
+  const [step, setStep] = useState(() => parseStepParam(searchParams.get("step")));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -158,7 +180,17 @@ export default function OnboardingPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  // ── Fetch defaults ─────────────────────────────────────────────────────────
+  /** Step changes land in the URL so refresh/deep-link restores position. */
+  const goToStep = useCallback(
+    (next: number) => {
+      const clamped = Math.max(0, Math.min(LAST_STEP, next));
+      setStep(clamped);
+      router.replace(`/onboarding?step=${clamped}`, { scroll: false });
+    },
+    [router],
+  );
+
+  // ── Fetch defaults + stored-config check (independent — run in parallel) ────
 
   useEffect(() => {
     async function loadDefaults() {
@@ -171,19 +203,21 @@ export default function OnboardingPage() {
           return;
         }
 
-        // Fetch onboarding defaults (no auth required)
-        const data = await get<UpdateOrgConfigRequest>("/admin/org/config/defaults");
+        const [defaultsData, configData] = await Promise.all([
+          get<UpdateOrgConfigRequest>("/admin/org/config/defaults"),
+          get<{ stored: Record<string, unknown> }>("/admin/org/config"),
+        ]);
 
-        // Check if the org already has stored config — if so, redirect to dashboard
-        const configData = await get<{ stored: Record<string, unknown> }>("/admin/org/config");
-        const stored = configData.stored;
-        const hasAnyStored = Object.values(stored).some((v) => v !== null && v !== undefined);
+        // Existing stored config means onboarding already completed
+        const hasAnyStored = Object.values(configData.stored).some(
+          (v) => v !== null && v !== undefined,
+        );
         if (hasAnyStored) {
           router.replace("/overview");
           return;
         }
 
-        setForm(data);
+        setForm(defaultsData);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load configuration defaults");
       } finally {
@@ -197,7 +231,6 @@ export default function OnboardingPage() {
 
   async function handleSave() {
     setSaving(true);
-    setError(null);
 
     try {
       // Surface the RFC 7807 detail (e.g. a missing permission on config save)
@@ -205,15 +238,9 @@ export default function OnboardingPage() {
       await put("/admin/org/config", form);
 
       toast.success("Configuration saved successfully");
-
-      // Short delay to show the toast, then redirect
-      setTimeout(() => {
-        router.replace("/overview");
-      }, 800);
+      router.replace("/overview");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to save configuration";
-      setError(message);
-      toast.error(message);
+      toast.error(err instanceof Error ? err.message : "Failed to save configuration");
     } finally {
       setSaving(false);
     }
@@ -321,7 +348,7 @@ export default function OnboardingPage() {
           </button>
         </div>
 
-        {/* ── Global error ─────────────────────────────────────────────────────── */}
+        {/* ── Global error (load failures only — save failures surface as toasts) ── */}
         {error && (
           <div className="mb-6 rounded-md bg-error/10 border border-error/30 px-4 py-3 text-sm text-error flex items-center gap-2">
             <AlertCircle size={14} />
@@ -344,9 +371,9 @@ export default function OnboardingPage() {
 
               <div className="space-y-4 max-w-md">
                 {/* llm_backend */}
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Backend Provider</label>
+                <Field label="Backend Provider" htmlFor="onb-llm-backend">
                   <select
+                    id="onb-llm-backend"
                     className="input-base w-full"
                     value={form.llm_backend ?? "openai"}
                     onChange={(e) => updateField("llm_backend", e.target.value)}
@@ -355,24 +382,24 @@ export default function OnboardingPage() {
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
-                </div>
+                </Field>
 
                 {/* llm_model */}
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Model</label>
+                <Field label="Model" htmlFor="onb-llm-model">
                   <input
+                    id="onb-llm-model"
                     className="input-base w-full"
                     placeholder="gpt-4o-mini, claude-sonnet-4, ..."
                     value={form.llm_model ?? ""}
                     onChange={(e) => updateField("llm_model", e.target.value)}
                   />
-                </div>
+                </Field>
 
                 <div className="flex gap-4">
                   {/* llm_temperature */}
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">Temperature</label>
+                  <Field label="Temperature" htmlFor="onb-llm-temperature" className="flex-1">
                     <input
+                      id="onb-llm-temperature"
                       className="input-base w-full"
                       type="number"
                       step="0.1"
@@ -381,19 +408,19 @@ export default function OnboardingPage() {
                       value={form.llm_temperature ?? 0}
                       onChange={(e) => updateField("llm_temperature", parseFloat(e.target.value) || 0)}
                     />
-                  </div>
+                  </Field>
 
                   {/* llm_max_tokens */}
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">Max Tokens</label>
+                  <Field label="Max Tokens" htmlFor="onb-llm-max-tokens" className="flex-1">
                     <input
+                      id="onb-llm-max-tokens"
                       className="input-base w-full"
                       type="number"
                       min="1"
                       value={form.llm_max_tokens ?? 4096}
                       onChange={(e) => updateField("llm_max_tokens", parseInt(e.target.value) || 0)}
                     />
-                  </div>
+                  </Field>
                 </div>
               </div>
             </div>
@@ -407,6 +434,7 @@ export default function OnboardingPage() {
 
               <div className="space-y-4 max-w-md">
                 <SecretInput
+                  id="onb-openai-key"
                   label="OpenAI API Key"
                   value={form.openai_api_key ?? ""}
                   onChange={(v) => updateField("openai_api_key", v)}
@@ -415,6 +443,7 @@ export default function OnboardingPage() {
                   onToggleVisibility={() => setShowOpenAiKey((prev) => !prev)}
                 />
                 <SecretInput
+                  id="onb-anthropic-key"
                   label="Anthropic API Key"
                   value={form.anthropic_api_key ?? ""}
                   onChange={(v) => updateField("anthropic_api_key", v)}
@@ -423,6 +452,7 @@ export default function OnboardingPage() {
                   onToggleVisibility={() => setShowAnthropicKey((prev) => !prev)}
                 />
                 <SecretInput
+                  id="onb-openrouter-key"
                   label="OpenRouter API Key"
                   value={form.openrouter_api_key ?? ""}
                   onChange={(v) => updateField("openrouter_api_key", v)}
@@ -431,6 +461,7 @@ export default function OnboardingPage() {
                   onToggleVisibility={() => setShowOpenRouterKey((prev) => !prev)}
                 />
                 <SecretInput
+                  id="onb-azure-key"
                   label="Azure OpenAI API Key"
                   value={form.azure_openai_key ?? ""}
                   onChange={(v) => updateField("azure_openai_key", v)}
@@ -438,26 +469,26 @@ export default function OnboardingPage() {
                   visible={showAzureKey}
                   onToggleVisibility={() => setShowAzureKey((prev) => !prev)}
                 />
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Azure OpenAI Endpoint</label>
+                <Field label="Azure OpenAI Endpoint" htmlFor="onb-azure-endpoint">
                   <input
+                    id="onb-azure-endpoint"
                     className="input-base w-full"
                     type="url"
                     placeholder="https://my-resource.openai.azure.com"
                     value={form.azure_openai_endpoint ?? ""}
                     onChange={(e) => updateField("azure_openai_endpoint", e.target.value)}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Ollama Base URL</label>
+                </Field>
+                <Field label="Ollama Base URL" htmlFor="onb-ollama-url">
                   <input
+                    id="onb-ollama-url"
                     className="input-base w-full"
                     type="url"
                     placeholder="http://localhost:11434"
                     value={form.ollama_base_url ?? ""}
                     onChange={(e) => updateField("ollama_base_url", e.target.value)}
                   />
-                </div>
+                </Field>
               </div>
             </div>
           </>
@@ -471,9 +502,9 @@ export default function OnboardingPage() {
 
               <div className="space-y-4 max-w-md">
                 {/* embedding_backend */}
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Backend Provider</label>
+                <Field label="Backend Provider" htmlFor="onb-embedding-backend">
                   <select
+                    id="onb-embedding-backend"
                     className="input-base w-full"
                     value={form.embedding_backend ?? "openai"}
                     onChange={(e) => updateField("embedding_backend", e.target.value)}
@@ -482,24 +513,24 @@ export default function OnboardingPage() {
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
-                </div>
+                </Field>
 
                 {/* embedding_model */}
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Model</label>
+                <Field label="Model" htmlFor="onb-embedding-model">
                   <input
+                    id="onb-embedding-model"
                     className="input-base w-full"
                     placeholder="text-embedding-3-small, ..."
                     value={form.embedding_model ?? ""}
                     onChange={(e) => updateField("embedding_model", e.target.value)}
                   />
-                </div>
+                </Field>
 
                 <div className="flex gap-4">
                   {/* embedding_dim */}
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">Embedding Dimensions</label>
+                  <Field label="Embedding Dimensions" htmlFor="onb-embedding-dim" className="flex-1">
                     <input
+                      id="onb-embedding-dim"
                       className="input-base w-full"
                       type="number"
                       min="64"
@@ -507,22 +538,23 @@ export default function OnboardingPage() {
                       value={form.embedding_dim ?? 1536}
                       onChange={(e) => updateField("embedding_dim", parseInt(e.target.value) || 0)}
                     />
-                  </div>
+                  </Field>
 
                   {/* embedding_provider */}
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">Provider Name</label>
+                  <Field label="Provider Name" htmlFor="onb-embedding-provider" className="flex-1">
                     <input
+                      id="onb-embedding-provider"
                       className="input-base w-full"
                       placeholder="openai, azure, ..."
                       value={form.embedding_provider ?? ""}
                       onChange={(e) => updateField("embedding_provider", e.target.value)}
                     />
-                  </div>
+                  </Field>
                 </div>
 
                 {/* embedding_api_key */}
                 <SecretInput
+                  id="onb-embedding-key"
                   label="Embedding API Key"
                   value={form.embedding_api_key ?? ""}
                   onChange={(v) => updateField("embedding_api_key", v)}
@@ -538,9 +570,9 @@ export default function OnboardingPage() {
 
               <div className="space-y-4 max-w-md">
                 {/* graph_backend */}
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Graph Backend</label>
+                <Field label="Graph Backend" htmlFor="onb-graph-backend">
                   <select
+                    id="onb-graph-backend"
                     className="input-base w-full"
                     value={form.graph_backend ?? "postgres"}
                     onChange={(e) => updateField("graph_backend", e.target.value)}
@@ -549,12 +581,12 @@ export default function OnboardingPage() {
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
-                </div>
+                </Field>
 
                 {/* graph_search_type */}
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Search Type</label>
+                <Field label="Search Type" htmlFor="onb-graph-search-type">
                   <select
+                    id="onb-graph-search-type"
                     className="input-base w-full"
                     value={form.graph_search_type ?? "hybrid"}
                     onChange={(e) => updateField("graph_search_type", e.target.value)}
@@ -563,33 +595,37 @@ export default function OnboardingPage() {
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
-                </div>
+                </Field>
 
                 {/* SurrealDB connection fields — conditionally shown */}
                 {(form.graph_backend === "surrealdb") && (
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-surface-300 mb-1.5">SurrealDB URL</label>
+                    <Field
+                      label="SurrealDB URL"
+                      htmlFor="onb-surrealdb-url"
+                      hint="Required when using SurrealDB backend"
+                    >
                       <input
+                        id="onb-surrealdb-url"
                         className="input-base w-full"
                         type="url"
                         placeholder="ws://surrealdb:8000/rpc"
                         value={form.surrealdb_url ?? ""}
                         onChange={(e) => updateField("surrealdb_url", e.target.value)}
                       />
-                      <p className="text-xs text-surface-500 mt-1">Required when using SurrealDB backend</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-surface-300 mb-1.5">SurrealDB Username</label>
+                    </Field>
+                    <Field label="SurrealDB Username" htmlFor="onb-surrealdb-user">
                       <input
+                        id="onb-surrealdb-user"
                         className="input-base w-full"
                         type="text"
                         placeholder="SurrealDB username"
                         value={form.surrealdb_user ?? ""}
                         onChange={(e) => updateField("surrealdb_user", e.target.value)}
                       />
-                    </div>
+                    </Field>
                     <SecretInput
+                      id="onb-surrealdb-pass"
                       label="SurrealDB Password"
                       value={form.surrealdb_pass ?? ""}
                       onChange={(v) => updateField("surrealdb_pass", v)}
@@ -597,53 +633,55 @@ export default function OnboardingPage() {
                       visible={showSurrealDbPass}
                       onToggleVisibility={() => setShowSurrealDbPass((prev) => !prev)}
                     />
-                    <div>
-                      <label className="block text-sm font-medium text-surface-300 mb-1.5">SurrealDB Namespace</label>
+                    <Field label="SurrealDB Namespace" htmlFor="onb-surrealdb-namespace">
                       <input
+                        id="onb-surrealdb-namespace"
                         className="input-base w-full"
                         type="text"
                         placeholder="SurrealDB namespace"
                         value={form.surrealdb_namespace ?? ""}
                         onChange={(e) => updateField("surrealdb_namespace", e.target.value)}
                       />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-surface-300 mb-1.5">SurrealDB Database</label>
+                    </Field>
+                    <Field label="SurrealDB Database" htmlFor="onb-surrealdb-database">
                       <input
+                        id="onb-surrealdb-database"
                         className="input-base w-full"
                         type="text"
                         placeholder="SurrealDB database"
                         value={form.surrealdb_database ?? ""}
                         onChange={(e) => updateField("surrealdb_database", e.target.value)}
                       />
-                    </div>
+                    </Field>
                   </div>
                 )}
 
                 {/* FalkorDB URL — shown only when FalkorDB is selected */}
                 {form.graph_backend === "falkordb" && (
-                  <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                      FalkorDB URL
-                    </label>
+                  <Field
+                    label="FalkorDB URL"
+                    htmlFor="onb-falkordb-url"
+                    hint="Required when using FalkorDB backend and no system-level config exists. If FalkorDB is configured at the system level, this field is ignored."
+                  >
                     <input
+                      id="onb-falkordb-url"
                       className="input-base w-full"
                       type="url"
                       placeholder="redis://falkordb:6379"
                       value={form.falkordb_url ?? ""}
                       onChange={(e) => updateField("falkordb_url", e.target.value)}
                     />
-                    <p className="text-xs text-surface-500 mt-1">
-                      Required when using FalkorDB backend and no system-level config exists.
-                      If FalkorDB is configured at the system level, this field is ignored.
-                    </p>
-                  </div>
+                  </Field>
                 )}
 
                 {/* graph_max_traversal_depth */}
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Max Traversal Depth</label>
+                <Field
+                  label="Max Traversal Depth"
+                  htmlFor="onb-graph-depth"
+                  hint="How many hops the graph traversal will follow (1–10)"
+                >
                   <input
+                    id="onb-graph-depth"
                     className="input-base w-full"
                     type="number"
                     min="1"
@@ -651,8 +689,7 @@ export default function OnboardingPage() {
                     value={form.graph_max_traversal_depth ?? 2}
                     onChange={(e) => updateField("graph_max_traversal_depth", parseInt(e.target.value) || 1)}
                   />
-                  <p className="text-xs text-surface-500 mt-1">How many hops the graph traversal will follow (1&ndash;10)</p>
-                </div>
+                </Field>
               </div>
             </div>
 
@@ -661,39 +698,41 @@ export default function OnboardingPage() {
 
               <div className="space-y-4 max-w-md">
                 {/* context_cache_ttl */}
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">Context Cache TTL (seconds)</label>
+                <Field
+                  label="Context Cache TTL (seconds)"
+                  htmlFor="onb-cache-ttl"
+                  hint="How long context data is cached in Redis before being re-fetched (0 = no caching)"
+                >
                   <input
+                    id="onb-cache-ttl"
                     className="input-base w-full"
                     type="number"
                     min="0"
                     value={form.context_cache_ttl ?? 300}
                     onChange={(e) => updateField("context_cache_ttl", parseInt(e.target.value) || 0)}
                   />
-                  <p className="text-xs text-surface-500 mt-1">
-                    How long context data is cached in Redis before being re-fetched (0 = no caching)
-                  </p>
-                </div>
+                </Field>
 
                 {/* audit_log_response_body */}
                 <div className="pt-2">
                   <div className="flex items-start justify-between">
                     <div>
-                      <label className="block text-sm font-medium text-surface-300 mb-1">Audit Log Response Body</label>
+                      <Label htmlFor="onb-audit-log-body" className="mb-1">
+                        Audit Log Response Body
+                      </Label>
                       <p className="text-xs text-surface-500">Include response body content in audit logs</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 ml-4">
-                      <label className="flex items-center gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="rounded border-surface-600 bg-surface-800 text-brand-500"
-                          checked={form.audit_log_response_body ?? false}
-                          onChange={(e) => updateField("audit_log_response_body", e.target.checked)}
-                        />
-                        <span className="text-sm text-surface-300">
-                          {form.audit_log_response_body ? "Enabled" : "Disabled"}
-                        </span>
-                      </label>
+                      <Checkbox
+                        id="onb-audit-log-body"
+                        checked={form.audit_log_response_body ?? false}
+                        onCheckedChange={(checked) =>
+                          updateField("audit_log_response_body", checked === true)
+                        }
+                      />
+                      <span className="text-sm text-surface-300">
+                        {form.audit_log_response_body ? "Enabled" : "Disabled"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -719,14 +758,19 @@ export default function OnboardingPage() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => setStep((s) => s - 1)}
+            onClick={() => goToStep(step - 1)}
             disabled={step === 0 || saving}
           >
             <ChevronLeft size={16} />
             Back
           </Button>
-          {step < STEPS.length - 1 ? (
-            <Button variant="primary" size="sm" onClick={() => setStep((s) => s + 1)}>
+          {step < LAST_STEP ? (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => goToStep(step + 1)}
+              disabled={saving || (step === 0 && anyApiKeyEmpty)}
+            >
               Next
               <ChevronRight size={16} />
             </Button>

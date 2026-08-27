@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Mail, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { AuthLayout } from "@/components/shared/auth-layout";
 import { post, storeTokens } from "@/lib/api-client";
 
@@ -104,11 +105,9 @@ function VerifyEmailForm() {
             )}
 
             <form onSubmit={handleVerify} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Verification Code
-                </label>
+              <Field label="Verification Code" htmlFor="verify-code">
                 <input
+                  id="verify-code"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
@@ -120,7 +119,7 @@ function VerifyEmailForm() {
                   className="input-base w-full text-center text-2xl tracking-[0.5em] font-mono"
                   placeholder="000000"
                 />
-              </div>
+              </Field>
 
               <Button
                 variant="primary"

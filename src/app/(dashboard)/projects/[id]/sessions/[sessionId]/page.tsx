@@ -1,12 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Copy,
-  Check,
   Calendar,
   Clock,
   MessageSquare,
@@ -17,9 +14,11 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
-import { smartTimestamp, truncateId, copyToClipboard } from "@/lib/utils";
+import { smartTimestamp, truncateId } from "@/lib/utils";
 import { useProject } from "@/stores/project-context";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
+import { CopyButton } from "@/components/shared/copy-button";
 import { PageGuide, GuideConversation } from "@/components/guides";
 import SessionTabs, { SESSION_TABS, type SessionTab } from "./tabs";
 import { SessionMessages } from "./session-messages";
@@ -39,30 +38,6 @@ interface SessionDetail {
   observation_count: number;
   created_at: string;
   closed_at?: string | null;
-}
-
-// ─── Copy Button ───────────────────────────────────────────────────────────────
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  async function handleCopy() {
-    const ok = await copyToClipboard(text);
-    if (ok) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    }
-  }
-
-  return (
-    <button
-      onClick={handleCopy}
-      className="text-surface-500 hover:text-surface-300 transition-colors shrink-0"
-      title="Copy to clipboard"
-    >
-      {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
-    </button>
-  );
 }
 
 // ─── Metadata Row ──────────────────────────────────────────────────────────────
@@ -98,10 +73,6 @@ export default function SessionDetailPage() {
   const { project, loading: projectLoading } = useProject();
   const projectId = project?.id;
 
-  const [session, setSession] = useState<SessionDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
   // Determine active tab from current path (null = detail landing → Messages inline)
   const activeTab = (() => {
     for (const tab of SESSION_TABS) {
@@ -110,36 +81,24 @@ export default function SessionDetailPage() {
     return null;
   })() satisfies SessionTab["id"] | null;
 
-  // Fetch session
-  useEffect(() => {
-    if (!sessionId || !projectId) {
-      setLoading(false);
-      setError(!projectId ? "No project selected." : "No session ID provided.");
-      return;
-    }
-
-    async function fetchSession() {
-      setLoading(true);
-      setError("");
-
-      try {
-        const data = await get<SessionDetail>(
-          `/v1/projects/${projectId}/sessions/${sessionId}`,
-        );
-        setSession(data);
-      } catch (err) {
-        if (err instanceof ApiError && err.isNotFound) {
-          setError("Session not found.");
-        } else {
-          setError(err instanceof ApiError ? err.message : "Network error. Please try again.");
-        }
-      } finally {
-        setLoading(false);
+  // Fetch session — useApiQuery keeps data during refetch and is race-safe.
+  const sessionQuery = useApiQuery<SessionDetail>(async () => {
+    try {
+      return await get<SessionDetail>(
+        `/v1/projects/${projectId}/sessions/${sessionId}`,
+      );
+    } catch (err) {
+      // Preserve the page's friendly 404 copy through the hook's normalizer.
+      if (err instanceof ApiError && err.isNotFound) {
+        throw new Error("Session not found.");
       }
+      throw err;
     }
+  }, { enabled: Boolean(projectId && sessionId) });
 
-    fetchSession();
-  }, [sessionId, projectId]);
+  const session = sessionQuery.data;
+  const loading = sessionQuery.isLoading;
+  const error = sessionQuery.error ?? "";
 
   // Breadcrumb
   function Breadcrumb() {
@@ -206,7 +165,7 @@ export default function SessionDetailPage() {
             </div>
           </div>
         ) : error ? (
-          <ErrorState message={error} onRetry={() => window.location.reload()} />
+          <ErrorState message={error} onRetry={sessionQuery.refetch} />
         ) : session ? (
           <>
             <div className="flex items-start justify-between mb-6">
@@ -230,7 +189,7 @@ export default function SessionDetailPage() {
                   <span className="font-mono text-xs bg-surface-800 rounded px-2 py-0.5">
                     {truncateId(session.id)}
                   </span>
-                  <CopyButton text={session.id} />
+                  <CopyButton value={session.id} />
                 </div>
               </MetadataRow>
 
@@ -239,7 +198,7 @@ export default function SessionDetailPage() {
                   <span className="font-mono text-xs bg-surface-800 rounded px-2 py-0.5">
                     {truncateId(session.user_id)}
                   </span>
-                  <CopyButton text={session.user_id} />
+                  <CopyButton value={session.user_id} />
                 </div>
               </MetadataRow>
 

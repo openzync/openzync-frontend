@@ -11,6 +11,7 @@ import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -80,67 +81,63 @@ export default function SuperadminRequestsPage() {
       {error && <ErrorState message={error} onRetry={requestsQuery.refetch} />}
 
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Requested</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-surface-400">Actions</th>
+        <Table zebra={false}>
+          <TableHeader>
+            <TableHead>Name</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Requested</TableHead>
+            <TableHead align="right">Actions</TableHead>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableSkeleton rows={4} cols={4} colWidths={["w-32", "w-20", "w-28", "w-32"]} />
+            ) : pending.length === 0 ? (
+              <tr>
+                <td colSpan={4}>
+                  <EmptyState
+                    icon={Inbox}
+                    title="No pending requests"
+                    description="You’re all caught up — new organization requests will appear here."
+                  />
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {loading ? (
-                <TableSkeleton rows={4} cols={4} colWidths={["w-32", "w-20", "w-28", "w-32"]} />
-              ) : pending.length === 0 ? (
-                <tr>
-                  <td colSpan={4}>
-                    <EmptyState
-                      icon={Inbox}
-                      title="No pending requests"
-                      description="You’re all caught up — new organization requests will appear here."
-                    />
-                  </td>
-                </tr>
-              ) : (
-                pending.map((org) => (
-                  <tr key={org.id} className="transition-colors hover:bg-surface-800/50">
-                    <td className="px-4 py-3 text-surface-200 font-medium">{org.name}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant="warning" size="sm">Pending</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-surface-200 text-xs">{formatDate(org.created_at)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setApproveTarget(org)}
-                          className="rounded-md text-success hover:text-white"
-                          title={`Approve ${org.name}`}
-                          aria-label={`Approve ${org.name}`}
-                        >
-                          <Check size={14} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setRejectTarget(org)}
-                          className="rounded-md text-surface-400 hover:text-error"
-                          title={`Reject ${org.name}`}
-                          aria-label={`Reject ${org.name}`}
-                        >
-                          <X size={14} />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            ) : (
+              pending.map((org) => (
+                <TableRow key={org.id}>
+                  <TableCell className="text-surface-200 font-medium">{org.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="warning" size="sm">Pending</Badge>
+                  </TableCell>
+                  <TableCell className="text-surface-200 text-xs">{formatDate(org.created_at)}</TableCell>
+                  <TableCell align="right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setApproveTarget(org)}
+                        className="rounded-md text-success hover:text-white"
+                        title={`Approve ${org.name}`}
+                        aria-label={`Approve ${org.name}`}
+                      >
+                        <Check size={14} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setRejectTarget(org)}
+                        className="rounded-md text-surface-400 hover:text-error"
+                        title={`Reject ${org.name}`}
+                        aria-label={`Reject ${org.name}`}
+                      >
+                        <X size={14} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       <ConfirmDialog

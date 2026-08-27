@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
+import { PasswordField } from "@/components/shared/password-field";
 import { AuthLayout } from "@/components/shared/auth-layout";
 import { post } from "@/lib/api-client";
 
@@ -93,11 +95,9 @@ function ResetPasswordForm() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Verification Code
-                </label>
+              <Field label="Verification Code" htmlFor="reset-code">
                 <input
+                  id="reset-code"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
@@ -109,38 +109,24 @@ function ResetPasswordForm() {
                   className="input-base w-full text-center text-2xl tracking-[0.5em] font-mono"
                   placeholder="000000"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  New Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    autoComplete="new-password"
-                    className="input-base w-full pr-10"
-                    placeholder="Minimum 8 characters"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
+              <PasswordField
+                id="reset-new-password"
+                label="New Password"
+                value={newPassword}
+                onChange={setNewPassword}
+                placeholder="Minimum 8 characters"
+                autoComplete="new-password"
+                minLength={8}
+                required
+                visible={showPassword}
+                onToggleVisibility={() => setShowPassword((prev) => !prev)}
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Confirm Password
-                </label>
+              <Field label="Confirm Password" htmlFor="reset-confirm-password">
                 <input
+                  id="reset-confirm-password"
                   type={showPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -150,7 +136,7 @@ function ResetPasswordForm() {
                   className="input-base w-full"
                   placeholder="Repeat your password"
                 />
-              </div>
+              </Field>
 
               <Button
                 variant="primary"

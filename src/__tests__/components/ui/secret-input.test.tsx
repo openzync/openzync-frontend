@@ -45,4 +45,9 @@ describe("SecretInput", () => {
     await userEvent.click(screen.getByRole("button"));
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
+  it("associates label with input when id is provided", () => {
+    render(<SecretInput {...defaultProps} id="llm-key" />);
+    // Label text includes the nested "Required" badge, hence the regex.
+    expect(screen.getByLabelText(/API Key/)).toHaveAttribute("id", "llm-key");
+  });
 });

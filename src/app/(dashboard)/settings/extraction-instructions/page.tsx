@@ -7,7 +7,6 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { get, put, ApiError } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -18,7 +17,9 @@ import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -142,71 +143,64 @@ export default function ExtractionInstructionsPage() {
 
       {/* Table */}
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Instruction</th>
-                <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400 w-20">Actions</th>
+        <Table>
+          <TableHeader>
+            <TableHead>Name</TableHead>
+            <TableHead>Instruction</TableHead>
+            <TableHead align="center" className="w-20">Actions</TableHead>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableSkeleton rows={3} cols={3} colWidths={["w-32", "w-full", "w-16"]} />
+            ) : instructions.length === 0 ? (
+              <tr>
+                <td colSpan={3}>
+                  <EmptyState
+                    icon={FileText}
+                    title="No instructions yet"
+                    description="Add custom instructions to guide extraction behavior"
+                    action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={openCreate}>Add Instruction</Button>}
+                  />
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {loading ? (
-                <TableSkeleton rows={3} cols={3} colWidths={["w-32", "w-full", "w-16"]} />
-              ) : instructions.length === 0 ? (
-                <tr>
-                  <td colSpan={3}>
-                    <EmptyState
-                      icon={FileText}
-                      title="No instructions yet"
-                      description="Add custom instructions to guide extraction behavior"
-                      action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={openCreate}>Add Instruction</Button>}
-                    />
-                  </td>
-                </tr>
-              ) : (
-                instructions.map((inst, idx) => (
-                  <tr
-                    key={inst.name}
-                    className={cn("transition-colors hover:bg-surface-800/50", idx % 2 === 0 ? "bg-surface-950/50" : "")}
-                  >
-                    <td className="px-4 py-3">
-                      <span className="text-surface-200 font-medium">{inst.name}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-surface-400 text-xs block max-w-md truncate">
-                        {inst.text.length > 80 ? inst.text.slice(0, 80) + "..." : inst.text}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEdit(idx)}
-                          className="rounded-md text-surface-400 hover:text-white"
-                          title="Edit instruction"
-                        >
-                          <Pencil size={14} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteTarget(inst)}
-                          className="rounded-md text-surface-400 hover:text-error"
-                          title="Delete instruction"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            ) : (
+              instructions.map((inst, idx) => (
+                <TableRow key={inst.name}>
+                  <TableCell>
+                    <span className="text-surface-200 font-medium">{inst.name}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-surface-400 text-xs block max-w-md truncate">
+                      {inst.text.length > 80 ? inst.text.slice(0, 80) + "..." : inst.text}
+                    </span>
+                  </TableCell>
+                  <TableCell align="center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEdit(idx)}
+                        className="rounded-md text-surface-400 hover:text-white"
+                        title="Edit instruction"
+                      >
+                        <Pencil size={14} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteTarget(inst)}
+                        className="rounded-md text-surface-400 hover:text-error"
+                        title="Delete instruction"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {/* ── Create / Edit Dialog ───────────────────────────────────────────────── */}
@@ -234,25 +228,25 @@ export default function ExtractionInstructionsPage() {
         }
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1.5">Name</label>
+          <Field label="Name" htmlFor="instruction-name">
             <input
+              id="instruction-name"
               className="input-base"
               placeholder="e.g. financial_data"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
               autoFocus
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1.5">Instruction Text</label>
+          </Field>
+          <Field label="Instruction Text" htmlFor="instruction-text">
             <textarea
+              id="instruction-text"
               className="input-base min-h-[120px] pt-2 text-sm"
               placeholder="Describe what to extract and how..."
               value={formText}
               onChange={(e) => setFormText(e.target.value)}
             />
-          </div>
+          </Field>
         </div>
       </Dialog>
 

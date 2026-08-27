@@ -24,7 +24,9 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Field } from "@/components/ui/field";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -242,11 +244,9 @@ function CreateDialog({
       }
     >
       <form id="webhook-create-form" onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-surface-300 mb-1">
-            Endpoint Name <span className="text-error">*</span>
-          </label>
+        <Field label="Endpoint Name" htmlFor="webhook-name" required hint="A human-readable label for this webhook endpoint.">
           <input
+            id="webhook-name"
             className="input-base"
             placeholder="e.g. Production Slack Notifier"
             value={name}
@@ -254,14 +254,11 @@ function CreateDialog({
             autoFocus
             disabled={creating}
           />
-          <p className="text-xs text-surface-500 mt-1">A human-readable label for this webhook endpoint.</p>
-        </div>
+        </Field>
 
-        <div>
-          <label className="block text-sm font-medium text-surface-300 mb-1">
-            Endpoint URL <span className="text-error">*</span>
-          </label>
+        <Field label="Endpoint URL" htmlFor="webhook-url" required hint="HTTPS URL that receives POST requests with webhook payloads.">
           <input
+            id="webhook-url"
             className="input-base font-mono text-sm"
             type="url"
             placeholder="https://hooks.example.com/webhooks/openzync"
@@ -269,11 +266,12 @@ function CreateDialog({
             onChange={(e) => { setUrl(e.target.value); if (error) setError(null); }}
             disabled={creating}
           />
-          <p className="text-xs text-surface-500 mt-1">HTTPS URL that receives POST requests with webhook payloads.</p>
-        </div>
+        </Field>
 
         <div>
-          <label className="block text-sm font-medium text-surface-300 mb-2">Subscribed Events</label>
+          {/* Group heading, not a control label — the checkboxes below carry
+              their own accessible names via wrapped labels. */}
+          <p className="block text-sm font-medium text-surface-300 mb-2">Subscribed Events</p>
           <p className="text-xs text-surface-500 mb-3">
             All events are selected by default. Uncheck events you don&apos;t want to receive.
           </p>
@@ -421,93 +419,82 @@ export default function WebhooksPage() {
 
       {/* Table */}
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">URL</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Events</th>
-                <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Last Delivery</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Created</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-surface-400">Actions</th>
+        <Table>
+          <TableHeader>
+            <TableHead>Name</TableHead>
+            <TableHead>URL</TableHead>
+            <TableHead>Events</TableHead>
+            <TableHead align="center">Status</TableHead>
+            <TableHead>Last Delivery</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead align="right">Actions</TableHead>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableSkeleton rows={3} cols={7} colWidths={["w-32", "w-40", "w-28", "w-16", "w-20", "w-24", "w-16"]} />
+            ) : endpoints.length === 0 ? (
+              <tr>
+                <td colSpan={7}>
+                  <EmptyState
+                    icon={Webhook}
+                    title="No webhook endpoints configured"
+                    description="Create an endpoint to start receiving webhook events"
+                    action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>Create Endpoint</Button>}
+                  />
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {loading ? (
-                <TableSkeleton rows={3} cols={7} colWidths={["w-32", "w-40", "w-28", "w-16", "w-20", "w-24", "w-16"]} />
-              ) : endpoints.length === 0 ? (
-                <tr>
-                  <td colSpan={7}>
-                    <EmptyState
-                      icon={Webhook}
-                      title="No webhook endpoints configured"
-                      description="Create an endpoint to start receiving webhook events"
-                      action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>Create Endpoint</Button>}
-                    />
-                  </td>
-                </tr>
-              ) : (
-                endpoints.map((ep, idx) => (
-                  <tr
-                    key={ep.id}
-                    className={cn(
-                      "transition-colors hover:bg-surface-800/50",
-                      idx % 2 === 0 ? "bg-surface-950/50" : "",
-                      !ep.is_active && "opacity-50",
-                    )}
-                  >
-                    <td className="px-4 py-3">
-                      <span className={cn("font-medium", ep.is_active ? "text-white" : "text-surface-500")}>{ep.name}</span>
-                    </td>
-                    <td className="px-4 py-3 max-w-[200px]">
-                      <span className="font-mono text-xs text-surface-400 truncate block" title={ep.url}>
-                        {truncateUrl(ep.url)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1 max-w-[160px]">
-                        {ep.events.length > 0 ? (
-                          ep.events.slice(0, 3).map((evt) => (
-                            <Badge key={evt} variant="brand" size="sm">
-                              {evt.split(".").pop()}
-                            </Badge>
-                          ))
-                        ) : (
-                          <span className="text-surface-500 text-xs italic">All</span>
-                        )}
-                        {ep.events.length > 3 && (
-                          <span className="text-[10px] text-surface-500 font-mono">+{ep.events.length - 3}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Badge variant={ep.is_active ? "success" : "default"} size="sm">
-                        {ep.is_active ? "Active" : "Disabled"}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-surface-400 text-xs">{timeAgo(ep.last_delivery_at)}</td>
-                    <td className="px-4 py-3">
-                      <span className="text-surface-300 text-xs">{formatDate(ep.created_at)}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteTarget(ep)}
-                        className="rounded-md text-surface-400 hover:text-error"
-                        title="Delete endpoint"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            ) : (
+              endpoints.map((ep) => (
+                <TableRow key={ep.id} className={cn(!ep.is_active && "opacity-50")}>
+                  <TableCell>
+                    <span className={cn("font-medium", ep.is_active ? "text-white" : "text-surface-500")}>{ep.name}</span>
+                  </TableCell>
+                  <TableCell className="max-w-[200px]">
+                    <span className="font-mono text-xs text-surface-400 truncate block" title={ep.url}>
+                      {truncateUrl(ep.url)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1 max-w-[160px]">
+                      {ep.events.length > 0 ? (
+                        ep.events.slice(0, 3).map((evt) => (
+                          <Badge key={evt} variant="brand" size="sm">
+                            {evt.split(".").pop()}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-surface-500 text-xs italic">All</span>
+                      )}
+                      {ep.events.length > 3 && (
+                        <span className="text-[10px] text-surface-500 font-mono">+{ep.events.length - 3}</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Badge variant={ep.is_active ? "success" : "default"} size="sm">
+                      {ep.is_active ? "Active" : "Disabled"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-surface-400 text-xs">{timeAgo(ep.last_delivery_at)}</TableCell>
+                  <TableCell>
+                    <span className="text-surface-300 text-xs">{formatDate(ep.created_at)}</span>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeleteTarget(ep)}
+                      className="rounded-md text-surface-400 hover:text-error"
+                      title="Delete endpoint"
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {/* ── Create Dialog ─────────────────────────────────────────────────────── */}

@@ -26,7 +26,10 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
+import { Field } from "@/components/ui/field";
+import { SimpleSelect } from "@/components/ui/select";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -157,19 +160,17 @@ function EditDialog({
           <p className="text-xs text-amber-200/80 leading-relaxed">Custom prompts override the system default. Incorrect Jinja2 syntax may cause extraction failures.</p>
         </div>
         <form onSubmit={handleSave} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Description <span className="text-surface-500">(optional)</span></label>
-            <input className="input-base" placeholder="Describe what this template does" value={description} onChange={(e) => { setDescription(e.target.value); if (error) setError(null); }} disabled={saving} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Template <span className="text-error">*</span></label>
+          <Field label="Description" htmlFor="prompt-edit-description" hint="Optional">
+            <input id="prompt-edit-description" className="input-base" placeholder="Describe what this template does" value={description} onChange={(e) => { setDescription(e.target.value); if (error) setError(null); }} disabled={saving} />
+          </Field>
+          <Field label="Template" htmlFor="prompt-edit-text" required hint="Jinja2 template syntax. Use {{ variables }} and {% tags %} for dynamic content.">
             <textarea
+              id="prompt-edit-text"
               className={cn("w-full rounded-lg border border-surface-700 bg-surface-950 p-4 text-sm font-mono leading-relaxed text-surface-100 placeholder-surface-500 outline-none resize-y min-h-[300px] transition-all duration-150 focus:border-accent-300 focus:shadow-[0_0_0_2px_rgba(143,175,217,0.2)]")}
               placeholder="{% raw %}{{ Enter your Jinja2 template here }}{% endraw %}"
               value={templateText} onChange={(e) => { setTemplateText(e.target.value); if (error) setError(null); }} disabled={saving} spellCheck={false}
             />
-            <p className="text-xs text-surface-500 mt-1">Jinja2 template syntax. Use {"{{ variables }}"} and {"{% tags %}"} for dynamic content.</p>
-          </div>
+          </Field>
           {error && (<div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2"><AlertCircle size={14} />{error}</div>)}
           <div className="flex items-center justify-between pt-2 border-t border-surface-800">
             <div className="flex items-center gap-2">
@@ -475,26 +476,25 @@ function CreateDialog({ onClose, onCreate }: { onClose: () => void; onCreate: ()
           <p className="text-xs text-amber-200/80 leading-relaxed">Incorrect Jinja2 syntax may cause extraction failures. Use the existing templates as reference.</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Template Name <span className="text-error">*</span></label>
-            <input className="input-base" placeholder="e.g. my_custom_ner_v1" value={name} onChange={(e) => { setName(e.target.value); if (error) setError(null); }} autoFocus disabled={creating} />
-            <p className="text-xs text-surface-500 mt-1">Unique identifier used as the template key in the system.</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Type <span className="text-error">*</span></label>
-            <select className="input-base" value={type} onChange={(e) => { setType(e.target.value); if (error) setError(null); }} disabled={creating}>
-              <option value="">Select a type…</option>
-              {KNOWN_TYPES.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Description <span className="text-surface-500">(optional)</span></label>
-            <input className="input-base" placeholder="Describe what this template does" value={description} onChange={(e) => { setDescription(e.target.value); if (error) setError(null); }} disabled={creating} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1">Template <span className="text-error">*</span></label>
-            <textarea className="w-full rounded-lg border border-surface-700 bg-surface-950 p-4 text-sm font-mono leading-relaxed text-surface-100 placeholder-surface-500 outline-none resize-y min-h-[300px] transition-all duration-150 focus:border-accent-300 focus:shadow-[0_0_0_2px_rgba(143,175,217,0.2)]" placeholder="{% raw %}{{ Enter your Jinja2 template here }}{% endraw %}" value={templateText} onChange={(e) => { setTemplateText(e.target.value); if (error) setError(null); }} disabled={creating} spellCheck={false} />
-          </div>
+          <Field label="Template Name" htmlFor="prompt-template-name" required hint="Unique identifier used as the template key in the system.">
+            <input id="prompt-template-name" className="input-base" placeholder="e.g. my_custom_ner_v1" value={name} onChange={(e) => { setName(e.target.value); if (error) setError(null); }} autoFocus disabled={creating} />
+          </Field>
+          <Field label="Type" htmlFor="prompt-template-type" required>
+            <SimpleSelect
+              id="prompt-template-type"
+              placeholder="Select a type…"
+              options={KNOWN_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+              value={type}
+              onValueChange={(value) => { setType(value); if (error) setError(null); }}
+              disabled={creating}
+            />
+          </Field>
+          <Field label="Description" htmlFor="prompt-template-description" hint="Optional">
+            <input id="prompt-template-description" className="input-base" placeholder="Describe what this template does" value={description} onChange={(e) => { setDescription(e.target.value); if (error) setError(null); }} disabled={creating} />
+          </Field>
+          <Field label="Template" htmlFor="prompt-template-text" required>
+            <textarea id="prompt-template-text" className="w-full rounded-lg border border-surface-700 bg-surface-950 p-4 text-sm font-mono leading-relaxed text-surface-100 placeholder-surface-500 outline-none resize-y min-h-[300px] transition-all duration-150 focus:border-accent-300 focus:shadow-[0_0_0_2px_rgba(143,175,217,0.2)]" placeholder="{% raw %}{{ Enter your Jinja2 template here }}{% endraw %}" value={templateText} onChange={(e) => { setTemplateText(e.target.value); if (error) setError(null); }} disabled={creating} spellCheck={false} />
+          </Field>
           {error && (<div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2"><AlertCircle size={14} />{error}</div>)}
           <div className="flex items-center justify-end gap-3 pt-2 border-t border-surface-800">
             <Button type="button" variant="secondary" size="sm" onClick={onClose} disabled={creating}>Cancel</Button>
@@ -634,83 +634,80 @@ export default function PromptsPage() {
 
       {/* Table */}
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Version</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Updated</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-surface-400">Actions</th>
+        {/* zebra off: tbody interleaves type group-header rows with data rows */}
+        <Table zebra={false}>
+          <TableHeader>
+            <TableHead>Name</TableHead>
+            <TableHead>Version</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Updated</TableHead>
+            <TableHead align="right">Actions</TableHead>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableSkeleton rows={4} cols={5} colWidths={["w-36", "w-12", "w-24", "w-20", "w-32"]} />
+            ) : templates.length === 0 ? (
+              <tr>
+                <td colSpan={5}>
+                  <EmptyState icon={FileText} title="No prompt templates available" description="Prompt templates are loaded from the server" />
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {loading ? (
-                <TableSkeleton rows={4} cols={5} colWidths={["w-36", "w-12", "w-24", "w-20", "w-32"]} />
-              ) : templates.length === 0 ? (
-                <tr>
-                  <td colSpan={5}>
-                    <EmptyState icon={FileText} title="No prompt templates available" description="Prompt templates are loaded from the server" />
-                  </td>
-                </tr>
-              ) : (
-                (() => {
-                  const sorted = [...templates].sort((a, b) => {
-                    const typeA = a.type || "\uffff";
-                    const typeB = b.type || "\uffff";
-                    if (typeA !== typeB) return typeA.localeCompare(typeB);
-                    return b.version - a.version;
-                  });
-                  const rows: React.ReactNode[] = [];
-                  let currentType: string | null = null;
-                  sorted.forEach((tmpl) => {
-                    if (tmpl.type !== currentType) {
-                      currentType = tmpl.type;
-                      rows.push(<tr key={`group-${currentType ?? "untagged"}`}><td colSpan={5} className="px-4 py-1.5 bg-surface-800/70"><span className="text-xs font-medium text-surface-300">{currentType ? templateDisplayName(currentType) : "Other"}</span></td></tr>);
-                    }
-                    rows.push(
-                      <tr key={tmpl.name} className="transition-colors hover:bg-surface-800/50">
-                        <td className="px-4 py-3">
-                          <div>
-                            <span className="font-medium text-white">{templateDisplayName(tmpl.name)}</span>
-                            {tmpl.description && <p className="text-[11px] text-surface-500 mt-0.5 truncate max-w-[200px]">{tmpl.description}</p>}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3"><span className="font-mono text-xs text-surface-300">v{tmpl.version}</span></td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            {tmpl.type ? <Badge variant="brand" size="sm">{templateDisplayName(tmpl.type)}</Badge> : <span className="text-[11px] text-surface-500">—</span>}
-                            {tmpl.is_default_for_type && <Badge variant="warning" size="sm"><Star size={10} /> Default</Badge>}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-surface-400 text-xs" title={formatDate(tmpl.updated_at)}>{timeAgo(tmpl.updated_at)}</span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {tmpl.type && !tmpl.is_default_for_type && (
-                              <Button variant="ghost" size="sm" onClick={() => handleSetDefault(tmpl.name)} disabled={settingDefault === tmpl.name}
-                                className="rounded-md text-amber-400 hover:text-amber-300 p-1.5" title="Set as default for this type">
-                                {settingDefault === tmpl.name ? <Spinner className="text-amber-400" /> : <Star size={14} />}
-                              </Button>
-                            )}
-                            <Button variant="ghost" size="sm" onClick={() => openEditor(tmpl.name, tmpl.is_customised)} className="rounded-md text-surface-400 hover:text-brand-300 p-1.5" title="Edit template"><Edit3 size={14} /></Button>
-                            <Button variant="ghost" size="sm" onClick={() => setHistoryTarget(tmpl.name)} className="rounded-md text-surface-400 hover:text-surface-200 p-1.5" title="View version history"><History size={14} /></Button>
-                            {tmpl.is_customised && !tmpl.is_default_for_type && (
-                              <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(tmpl.name)} className="rounded-md text-surface-400 hover:text-error p-1.5" title="Delete template"><Trash2 size={14} /></Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  });
-                  return rows;
-                })()
-              )}
-            </tbody>
-          </table>
-        </div>
+            ) : (
+              (() => {
+                const sorted = [...templates].sort((a, b) => {
+                  const typeA = a.type || "\uffff";
+                  const typeB = b.type || "\uffff";
+                  if (typeA !== typeB) return typeA.localeCompare(typeB);
+                  return b.version - a.version;
+                });
+                const rows: React.ReactNode[] = [];
+                let currentType: string | null = null;
+                sorted.forEach((tmpl) => {
+                  if (tmpl.type !== currentType) {
+                    currentType = tmpl.type;
+                    rows.push(<tr key={`group-${currentType ?? "untagged"}`}><td colSpan={5} className="px-4 py-1.5 bg-surface-800/70"><span className="text-xs font-medium text-surface-300">{currentType ? templateDisplayName(currentType) : "Other"}</span></td></tr>);
+                  }
+                  rows.push(
+                    <TableRow key={tmpl.name}>
+                      <TableCell>
+                        <div>
+                          <span className="font-medium text-white">{templateDisplayName(tmpl.name)}</span>
+                          {tmpl.description && <p className="text-[11px] text-surface-500 mt-0.5 truncate max-w-[200px]">{tmpl.description}</p>}
+                        </div>
+                      </TableCell>
+                      <TableCell><span className="font-mono text-xs text-surface-300">v{tmpl.version}</span></TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {tmpl.type ? <Badge variant="brand" size="sm">{templateDisplayName(tmpl.type)}</Badge> : <span className="text-[11px] text-surface-500">—</span>}
+                          {tmpl.is_default_for_type && <Badge variant="warning" size="sm"><Star size={10} /> Default</Badge>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-surface-400 text-xs" title={formatDate(tmpl.updated_at)}>{timeAgo(tmpl.updated_at)}</span>
+                      </TableCell>
+                      <TableCell align="right">
+                        <div className="flex items-center justify-end gap-1">
+                          {tmpl.type && !tmpl.is_default_for_type && (
+                            <Button variant="ghost" size="sm" onClick={() => handleSetDefault(tmpl.name)} disabled={settingDefault === tmpl.name}
+                              className="rounded-md text-amber-400 hover:text-amber-300 p-1.5" title="Set as default for this type">
+                              {settingDefault === tmpl.name ? <Spinner className="text-amber-400" /> : <Star size={14} />}
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" onClick={() => openEditor(tmpl.name, tmpl.is_customised)} className="rounded-md text-surface-400 hover:text-brand-300 p-1.5" title="Edit template"><Edit3 size={14} /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => setHistoryTarget(tmpl.name)} className="rounded-md text-surface-400 hover:text-surface-200 p-1.5" title="View version history"><History size={14} /></Button>
+                          {tmpl.is_customised && !tmpl.is_default_for_type && (
+                            <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(tmpl.name)} className="rounded-md text-surface-400 hover:text-error p-1.5" title="Delete template"><Trash2 size={14} /></Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                });
+                return rows;
+              })()
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {/* Dialogs */}

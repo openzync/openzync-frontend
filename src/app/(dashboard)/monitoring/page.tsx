@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   Activity,
@@ -22,6 +22,8 @@ import { StatCard } from "@/components/shared/stat-card";
 import { ErrorState } from "@/components/shared/error-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { RequirePermission } from "@/components/shared/require-permission";
+import { LineChart, StackedBarChart, cssVar } from "@/components/shared/charts";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,256 +118,6 @@ function latencyDot(ms: number): string {
   return "bg-error";
 }
 
-// ─── Chart helpers ─────────────────────────────────────────────────────────────
-
-function niceMax(value: number): number {
-  if (value <= 0) return 100;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(value)));
-  const normalized = value / magnitude;
-  if (normalized <= 1) return magnitude;
-  if (normalized <= 2) return 2 * magnitude;
-  if (normalized <= 5) return 5 * magnitude;
-  return 10 * magnitude;
-}
-
-function cssVar(name: string): string {
-  if (typeof window === "undefined") return "#14488C";
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#14488C";
-}
-
-function abbrevDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-// ─── Line Chart (multi-line) ───────────────────────────────────────────────────
-
-interface LineChartProps {
-  lines: Array<{ label: string; color: string; data: Array<{ x: string; y: number }> }>;
-  height?: number;
-}
-
-function LineChart({ lines, height = 220 }: LineChartProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-
-  useEffect(() => {
-    function measure() { if (containerRef.current) setWidth(containerRef.current.clientWidth); }
-    const raf = requestAnimationFrame(measure);
-    window.addEventListener("resize", measure);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", measure); };
-  }, []);
-
-  const PAD = { top: 16, right: 12, bottom: 36, left: 44 };
-  const dw = Math.max(width - PAD.left - PAD.right, 60);
-  const dh = height - PAD.top - PAD.bottom;
-
-  const allY = lines.flatMap((l) => l.data.map((d) => d.y));
-  const rawMax = allY.length > 0 ? Math.max(...allY) : 0;
-  const yMax = niceMax(rawMax);
-  const yTicks = [0, Math.round(yMax / 2), yMax];
-
-  // Use first line's x labels as the shared axis
-  const xLabels = lines[0]?.data.map((d) => d.x) ?? [];
-  const n = xLabels.length;
-  const slotW = n > 0 ? dw / n : 0;
-  const maxLabels = Math.floor(dw / 55);
-  const labelStep = n > 0 ? Math.max(1, Math.ceil(n / Math.max(maxLabels, 1))) : 1;
-
-  function buildLinePath(pts: Array<{ x: number; y: number }>): string {
-    if (pts.length === 0) return "";
-    let d = `M ${pts[0].x},${pts[0].y}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[Math.max(i - 1, 0)];
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const p3 = pts[Math.min(i + 2, pts.length - 1)];
-      const cp1x = p1.x + (p2.x - p0.x) / 6;
-      const cp1y = p1.y + (p2.y - p0.y) / 6;
-      const cp2x = p2.x - (p3.x - p1.x) / 6;
-      const cp2y = p2.y - (p3.y - p1.y) / 6;
-      d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
-    }
-    return d;
-  }
-
-  if (width === 0) return <div ref={containerRef} style={{ height }} />;
-
-  return (
-    <div ref={containerRef} className="relative w-full">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full overflow-visible" preserveAspectRatio="xMidYMid meet">
-        {yTicks.map((tick) => {
-          const y = PAD.top + dh - (tick / yMax) * dh;
-          return (
-            <g key={tick}>
-              <line x1={PAD.left} y1={y} x2={PAD.left + dw} y2={y} stroke={cssVar("--color-surface-800")} strokeWidth={1} />
-              <text x={PAD.left - 6} y={y + 4} textAnchor="end" fill={cssVar("--color-surface-500")} fontSize={10} fontFamily="var(--font-mono)">
-                {tick >= 1000 ? `${(tick / 1000).toFixed(1)}k` : tick.toLocaleString()}
-              </text>
-            </g>
-          );
-        })}
-        <line x1={PAD.left} y1={PAD.top + dh} x2={PAD.left + dw} y2={PAD.top + dh} stroke={cssVar("--color-surface-600")} strokeWidth={1} />
-        {lines.map((line) => {
-          const pts = line.data.map((d, i) => ({
-            x: PAD.left + i * slotW + slotW / 2,
-            y: PAD.top + dh - (d.y / yMax) * dh,
-          }));
-          const path = buildLinePath(pts);
-          const color = cssVar(line.color);
-          return (
-            <g key={line.label}>
-              {path && <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" />}
-              {pts.map((pt, i) => (
-                <circle key={i} cx={pt.x} cy={pt.y} r={hoverIdx === i ? 4 : 2}
-                  fill={color} stroke={cssVar("--color-surface-950")} strokeWidth={1.5}
-                  className="transition-all duration-150" />
-              ))}
-            </g>
-          );
-        })}
-        {/* Invisible hit areas for hover */}
-        {xLabels.map((_, i) => (
-          <rect key={i} x={PAD.left + i * slotW} y={PAD.top} width={slotW} height={dh}
-            fill="transparent" className="cursor-pointer"
-            onMouseEnter={() => setHoverIdx(i)}
-            onMouseLeave={() => setHoverIdx(null)} />
-        ))}
-        {xLabels.map((label, i) => {
-          if (i % labelStep !== 0) return null;
-          const x = PAD.left + i * slotW + slotW / 2;
-          return (
-            <text key={label} x={x} y={height - 6} textAnchor="end"
-              transform={`rotate(-35, ${x}, ${height - 6})`}
-              fill={cssVar("--color-surface-500")} fontSize={9} fontFamily="var(--font-sans)">
-              {abbrevDate(label)}
-            </text>
-          );
-        })}
-      </svg>
-      {hoverIdx !== null && width > 0 && (
-        <div className="absolute pointer-events-none z-10 animate-fade-in"
-          style={{ left: Math.max(0, Math.min(PAD.left + hoverIdx * slotW + slotW / 2 - 64, width - 140)), top: PAD.top - 4 }}>
-          <div className="card-base p-2.5 shadow-lg shadow-black/40 text-xs space-y-1.5 min-w-[130px]">
-            <p className="text-surface-400 font-medium border-b border-surface-800 pb-1.5 mb-1">
-              {xLabels[hoverIdx] ? new Date(xLabels[hoverIdx]).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : ""}
-            </p>
-            {lines.map((line) => {
-              const val = line.data[hoverIdx]?.y ?? 0;
-              return (
-                <div key={line.label} className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cssVar(line.color) }} />
-                  <span className="text-surface-200">{line.label}: <span className="font-semibold font-mono">{val.toLocaleString()}</span></span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Stacked Bar Chart ─────────────────────────────────────────────────────────
-
-interface StackedBarChartProps {
-  data: ErrorTimeseriesPoint[];
-  height?: number;
-}
-
-function StackedBarChart({ data, height = 220 }: StackedBarChartProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-
-  useEffect(() => {
-    function measure() { if (containerRef.current) setWidth(containerRef.current.clientWidth); }
-    const raf = requestAnimationFrame(measure);
-    window.addEventListener("resize", measure);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", measure); };
-  }, []);
-
-  const PAD = { top: 16, right: 12, bottom: 36, left: 44 };
-  const dw = Math.max(width - PAD.left - PAD.right, 60);
-  const dh = height - PAD.top - PAD.bottom;
-  const n = data.length;
-  const slotW = n > 0 ? dw / n : 0;
-  const barW = Math.max(Math.min(slotW * 0.6, 28), 3);
-  const barGap = (slotW - barW) / 2;
-  const maxLabels = Math.floor(dw / 55);
-  const labelStep = n > 0 ? Math.max(1, Math.ceil(n / Math.max(maxLabels, 1))) : 1;
-
-  const totals = data.map((d) => d.count_4xx + d.count_5xx);
-  const rawMax = totals.length > 0 ? Math.max(...totals) : 0;
-  const yMax = niceMax(rawMax);
-  const yTicks = [0, Math.round(yMax / 2), yMax];
-
-  if (width === 0) return <div ref={containerRef} style={{ height }} />;
-
-  return (
-    <div ref={containerRef} className="relative w-full">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full overflow-visible" preserveAspectRatio="xMidYMid meet">
-        {yTicks.map((tick) => {
-          const y = PAD.top + dh - (tick / yMax) * dh;
-          return (
-            <g key={tick}>
-              <line x1={PAD.left} y1={y} x2={PAD.left + dw} y2={y} stroke={cssVar("--color-surface-800")} strokeWidth={1} />
-              <text x={PAD.left - 6} y={y + 4} textAnchor="end" fill={cssVar("--color-surface-500")} fontSize={10} fontFamily="var(--font-mono)">
-                {tick >= 1000 ? `${(tick / 1000).toFixed(1)}k` : tick.toLocaleString()}
-              </text>
-            </g>
-          );
-        })}
-        <line x1={PAD.left} y1={PAD.top + dh} x2={PAD.left + dw} y2={PAD.top + dh} stroke={cssVar("--color-surface-600")} strokeWidth={1} />
-        {data.map((d, i) => {
-          const x = PAD.left + i * slotW + barGap;
-          const h4xx = (d.count_4xx / yMax) * dh;
-          const h5xx = (d.count_5xx / yMax) * dh;
-          const isHovered = hoverIdx === i;
-          return (
-            <g key={d.date}>
-              <rect x={x} y={PAD.top + dh - h4xx} width={barW} height={Math.max(h4xx, 0)}
-                fill={cssVar("--color-warning")} opacity={isHovered ? 1 : 0.75} rx={1} />
-              <rect x={x} y={PAD.top + dh - h4xx - h5xx} width={barW} height={Math.max(h5xx, 0)}
-                fill={cssVar("--color-error")} opacity={isHovered ? 1 : 0.75} rx={1} />
-              <rect x={PAD.left + i * slotW} y={PAD.top} width={slotW} height={dh}
-                fill="transparent" className="cursor-pointer"
-                onMouseEnter={() => setHoverIdx(i)}
-                onMouseLeave={() => setHoverIdx(null)} />
-              {i % labelStep === 0 && (
-                <text x={PAD.left + i * slotW + slotW / 2} y={height - 6} textAnchor="end"
-                  transform={`rotate(-35, ${PAD.left + i * slotW + slotW / 2}, ${height - 6})`}
-                  fill={cssVar("--color-surface-500")} fontSize={9} fontFamily="var(--font-sans)">
-                  {abbrevDate(d.date)}
-                </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
-      {hoverIdx !== null && width > 0 && (
-        <div className="absolute pointer-events-none z-10 animate-fade-in"
-          style={{ left: Math.max(0, Math.min(PAD.left + hoverIdx * slotW + slotW / 2 - 56, width - 120)), top: PAD.top - 4 }}>
-          <div className="card-base p-2 shadow-lg shadow-black/40 text-xs space-y-1.5 min-w-[112px]">
-            <p className="text-surface-400 font-medium border-b border-surface-800 pb-1 mb-1">
-              {new Date(data[hoverIdx].date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-            </p>
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cssVar("--color-warning") }} />
-              <span className="text-surface-200">4xx: <span className="font-semibold font-mono">{data[hoverIdx].count_4xx.toLocaleString()}</span></span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cssVar("--color-error") }} />
-              <span className="text-surface-200">5xx: <span className="font-semibold font-mono">{data[hoverIdx].count_5xx.toLocaleString()}</span></span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── KPI Card — replaced by shared StatCard ─────────────────────────────────────
 
 // ─── Latency Card ──────────────────────────────────────────────────────────────
@@ -443,7 +195,7 @@ export default function MonitoringPage() {
       <div className="space-y-6">
       <PageHeader
         title="Monitoring"
-        description="Real-time platform performance and health metrics"
+        description="Platform health and ingestion pipeline — queue depth, scrape targets, enrichment, and query performance"
         actions={
           <div className="flex items-center gap-3">
             <Link href="/monitoring/query">
@@ -702,39 +454,35 @@ export default function MonitoringPage() {
             description="Targets will appear once Prometheus scrape jobs are configured."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-surface-800">
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Job</th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Instance</th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Health</th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Last Scrape</th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Last Error</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-800">
-                {targets.map((t, i) => {
-                  const isUp = t.health?.toLowerCase() === "up";
-                  return (
-                    <tr key={`${t.job}-${t.instance}-${i}`} className={cn("transition-colors hover:bg-surface-800/50", i % 2 === 0 ? "bg-surface-950/50" : "")}>
-                      <td className="px-5 py-3"><span className="font-mono text-xs text-surface-200">{t.job}</span></td>
-                      <td className="px-5 py-3"><span className="font-mono text-xs text-surface-300">{t.instance}</span></td>
-                      <td className="px-5 py-3">
-                        <Badge variant={isUp ? "success" : "error"} size="sm">{isUp ? "UP" : "DOWN"}</Badge>
-                      </td>
-                      <td className="px-5 py-3"><span className="text-xs text-surface-400">{t.last_scrape ? timeAgo(t.last_scrape) : "—"}</span></td>
-                      <td className="px-5 py-3">
-                        {t.last_error ? (
-                          <span className="text-xs text-surface-500 max-w-[220px] block truncate" title={t.last_error}>{t.last_error}</span>
-                        ) : (<span className="text-xs text-surface-600">—</span>)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableHead>Job</TableHead>
+              <TableHead>Instance</TableHead>
+              <TableHead>Health</TableHead>
+              <TableHead>Last Scrape</TableHead>
+              <TableHead>Last Error</TableHead>
+            </TableHeader>
+            <TableBody>
+              {targets.map((t, i) => {
+                const isUp = t.health?.toLowerCase() === "up";
+                return (
+                  <TableRow key={`${t.job}-${t.instance}-${i}`}>
+                    <TableCell><span className="font-mono text-xs text-surface-200">{t.job}</span></TableCell>
+                    <TableCell><span className="font-mono text-xs text-surface-300">{t.instance}</span></TableCell>
+                    <TableCell>
+                      <Badge variant={isUp ? "success" : "error"} size="sm">{isUp ? "UP" : "DOWN"}</Badge>
+                    </TableCell>
+                    <TableCell><span className="text-xs text-surface-400">{t.last_scrape ? timeAgo(t.last_scrape) : "—"}</span></TableCell>
+                    <TableCell>
+                      {t.last_error ? (
+                        <span className="text-xs text-surface-500 max-w-[220px] block truncate" title={t.last_error}>{t.last_error}</span>
+                      ) : (<span className="text-xs text-surface-600">—</span>)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
       </div>
 

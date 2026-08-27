@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { GitBranch, RotateCcw } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
+import { GitBranch, RotateCcw } from "lucide-react";
+import { get, patch, ApiError } from "@/lib/api-client";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
-import { SecretInput } from "@/components/ui/secret-input";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
+import { SecretInput } from "@/components/ui/secret-input";
+import { SimpleSelect } from "@/components/ui/select";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { useConfigReset } from "@/hooks/use-config-reset";
 
@@ -16,6 +18,13 @@ import { useConfigReset } from "@/hooks/use-config-reset";
 interface OrgConfigResponse {
   stored: Record<string, unknown>;
   system_managed_fields?: string[];
+}
+
+/** What the config fetcher hands to the render-phase form seed. */
+interface OrgConfigData {
+  stored: Record<string, unknown>;
+  defaults: Record<string, unknown>;
+  systemManaged: string[];
 }
 
 type GraphBackend = "postgres" | "surrealdb" | "falkordb" | "none";
@@ -91,9 +100,10 @@ export default function GraphConfigPage() {
   });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
   const [stored, setStored] = useState<Record<string, unknown>>({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Save failures share the banner with load errors; cleared when a fetch
+  // succeeds so a retry visibly resolves.
+  const [actionError, setActionError] = useState<string | null>(null);
   const [systemManaged, setSystemManaged] = useState<string[]>([]);
   const [showSurrealDbPass, setShowSurrealDbPass] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
@@ -112,69 +122,50 @@ export default function GraphConfigPage() {
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
-  const fetchConfig = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await get<OrgConfigResponse>("/admin/org/config");
-      const stored_: Record<string, unknown> = data.stored as Record<string, unknown>;
-      const hasAnyStored = FIELDS.some((f) => stored_[f] != null);
+  const configQuery = useApiQuery<OrgConfigData>(async () => {
+    const data = await get<OrgConfigResponse>("/admin/org/config");
+    const stored = (data.stored ?? {}) as Record<string, unknown>;
+    const hasAnyStored = FIELDS.some((f) => stored[f] != null);
 
-      // If no stored values exist for this tab, pull onboarding defaults from API
-      let defaults: Record<string, unknown> = {};
-      if (!hasAnyStored) {
-        try {
-          defaults = await get<Record<string, unknown>>(
-            "/admin/org/config/defaults",
-          );
-        } catch {
-          // best-effort; fall through to inline fallbacks
-        }
-      }
+    // If no stored values exist for this tab, pull onboarding defaults from API
+    const defaults = hasAnyStored
+      ? {}
+      : await get<Record<string, unknown>>("/admin/org/config/defaults").catch(
+          () => ({}) as Record<string, unknown>,
+        );
 
-      const val = (field: string, fallback: unknown) =>
-        (stored_[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
-
-      const current: FormState = {
-        graph_backend: val("graph_backend", "postgres") as GraphBackend,
-        graph_search_type: val("graph_search_type", "hybrid") as GraphSearchType,
-        graph_max_traversal_depth: val("graph_max_traversal_depth", 3) as number,
-        surrealdb_url: val("surrealdb_url", "") as string,
-        surrealdb_user: val("surrealdb_user", "") as string,
-        surrealdb_pass: val("surrealdb_pass", "") as string,
-        surrealdb_namespace: val("surrealdb_namespace", "") as string,
-        surrealdb_database: val("surrealdb_database", "") as string,
-        falkordb_url: val("falkordb_url", "") as string,
-      };
-      setForm(current);
-      setInitialForm(current);
-      setStored(data.stored ?? {});
-      setSystemManaged(data.system_managed_fields ?? []);
-      setDirty(false);
-    } catch (err) {
-      setError(apiErrorMessage(err, "Failed to load configuration"));
-    } finally {
-      setLoading(false);
-    }
-  }, [setDirty]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchConfig();
-  }, [fetchConfig]);
-
-  // ── beforeunload protection ───────────────────────────────────────────────
-
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (hasChanged()) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    return { stored, defaults, systemManaged: data.system_managed_fields ?? [] };
   });
+
+  // Seed the editable form from server data — render-phase adjustment keyed on
+  // response identity (same pattern as superadmin/config), so a refetch after
+  // save re-seeds exactly once.
+  const [seeded, setSeeded] = useState<OrgConfigData | null>(null);
+  if (configQuery.data && configQuery.data !== seeded) {
+    setSeeded(configQuery.data);
+    const { stored, defaults, systemManaged } = configQuery.data;
+    const val = (field: string, fallback: unknown) =>
+      (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
+    const current: FormState = {
+      graph_backend: val("graph_backend", "postgres") as GraphBackend,
+      graph_search_type: val("graph_search_type", "hybrid") as GraphSearchType,
+      graph_max_traversal_depth: val("graph_max_traversal_depth", 3) as number,
+      surrealdb_url: val("surrealdb_url", "") as string,
+      surrealdb_user: val("surrealdb_user", "") as string,
+      surrealdb_pass: val("surrealdb_pass", "") as string,
+      surrealdb_namespace: val("surrealdb_namespace", "") as string,
+      surrealdb_database: val("surrealdb_database", "") as string,
+      falkordb_url: val("falkordb_url", "") as string,
+    };
+    setForm(current);
+    setInitialForm(current);
+    setStored(stored);
+    setSystemManaged(systemManaged);
+    setActionError(null);
+  }
+
+  const loading = configQuery.isLoading;
+  const error = configQuery.error ?? actionError;
 
   // ── Field helpers ─────────────────────────────────────────────────────────
 
@@ -204,7 +195,6 @@ export default function GraphConfigPage() {
   async function handleSave() {
     if (!hasChanged()) return;
     setSaving(true);
-    setError(null);
 
     try {
       const payload = getSavePayload(form as unknown as Record<string, unknown>);
@@ -212,9 +202,9 @@ export default function GraphConfigPage() {
 
       await patch("/admin/org/config", payload);
       toast.success("Graph configuration saved successfully");
-      await fetchConfig();
       setDirty(false);
       clearResets();
+      configQuery.refetch();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
@@ -224,7 +214,7 @@ export default function GraphConfigPage() {
           : err instanceof Error
             ? err.message
             : "Failed to save configuration";
-      setError(message);
+      setActionError(message);
       toast.error(message);
     } finally {
       setSaving(false);
@@ -255,23 +245,21 @@ export default function GraphConfigPage() {
           </div>
         ) : (
           <>
-            {error && <ErrorState message={error} onRetry={fetchConfig} />}
+            {error && <ErrorState message={error} onRetry={configQuery.refetch} />}
             <div className={error ? "space-y-4 max-w-md mt-4" : "space-y-4 max-w-md"}>
               {/* graph_backend */}
               <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
+                <label htmlFor="graph-backend" className="block text-sm font-medium text-surface-300 mb-1">
                   Graph Backend
                 </label>
                 <div className="flex gap-2 items-start">
-                  <select
-                    className="input-base flex-1"
+                  <SimpleSelect
+                    id="graph-backend"
+                    className="flex-1"
+                    options={GRAPH_BACKEND_OPTIONS}
                     value={form.graph_backend}
-                    onChange={(e) => updateField("graph_backend", e.target.value as GraphBackend)}
-                  >
-                    {GRAPH_BACKEND_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                    onValueChange={(value) => updateField("graph_backend", value as GraphBackend)}
+                  />
                       {isFieldSet("graph_backend") && (
                         <Button
                           onClick={() => handleStageReset("graph_backend")}
@@ -292,19 +280,17 @@ export default function GraphConfigPage() {
                 <>
                   {/* graph_search_type */}
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                    <label htmlFor="graph-search-type" className="block text-sm font-medium text-surface-300 mb-1">
                       Search Type
                     </label>
                     <div className="flex gap-2 items-start">
-                      <select
-                        className="input-base flex-1"
+                      <SimpleSelect
+                        id="graph-search-type"
+                        className="flex-1"
+                        options={SEARCH_TYPE_OPTIONS}
                         value={form.graph_search_type}
-                        onChange={(e) => updateField("graph_search_type", e.target.value as GraphSearchType)}
-                      >
-                        {SEARCH_TYPE_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
+                        onValueChange={(value) => updateField("graph_search_type", value as GraphSearchType)}
+                      />
                       {isFieldSet("graph_search_type") && (
                         <Button
                           onClick={() => handleStageReset("graph_search_type")}
@@ -322,11 +308,12 @@ export default function GraphConfigPage() {
 
                   {/* graph_max_traversal_depth */}
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                    <label htmlFor="graph-max-traversal-depth" className="block text-sm font-medium text-surface-300 mb-1">
                       Max Traversal Depth
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
+                        id="graph-max-traversal-depth"
                         className="input-base flex-1"
                         type="number"
                         min="1"
@@ -356,11 +343,12 @@ export default function GraphConfigPage() {
               {form.graph_backend === "surrealdb" && !systemManaged.includes("surrealdb_url") && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                    <label htmlFor="surrealdb-url" className="block text-sm font-medium text-surface-300 mb-1">
                       SurrealDB URL
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
+                        id="surrealdb-url"
                         className="input-base flex-1"
                         type="url"
                         placeholder="ws://surrealdb:8000/rpc"
@@ -385,11 +373,12 @@ export default function GraphConfigPage() {
 
                   {/* surrealdb_user */}
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                    <label htmlFor="surrealdb-user" className="block text-sm font-medium text-surface-300 mb-1">
                       SurrealDB Username
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
+                        id="surrealdb-user"
                         className="input-base flex-1"
                         type="text"
                         placeholder="SurrealDB username"
@@ -413,6 +402,7 @@ export default function GraphConfigPage() {
 
                   {/* surrealdb_pass */}
                   <SecretInput
+                    id="surrealdb-pass"
                     label="SurrealDB Password"
                     value={form.surrealdb_pass}
                     onChange={(v) => updateField("surrealdb_pass", v)}
@@ -423,11 +413,12 @@ export default function GraphConfigPage() {
 
                   {/* surrealdb_namespace */}
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                    <label htmlFor="surrealdb-namespace" className="block text-sm font-medium text-surface-300 mb-1">
                       SurrealDB Namespace
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
+                        id="surrealdb-namespace"
                         className="input-base flex-1"
                         type="text"
                         placeholder="SurrealDB namespace"
@@ -451,11 +442,12 @@ export default function GraphConfigPage() {
 
                   {/* surrealdb_database */}
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                    <label htmlFor="surrealdb-database" className="block text-sm font-medium text-surface-300 mb-1">
                       SurrealDB Database
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
+                        id="surrealdb-database"
                         className="input-base flex-1"
                         type="text"
                         placeholder="SurrealDB database"
@@ -493,11 +485,12 @@ export default function GraphConfigPage() {
               {form.graph_backend === "falkordb" && !systemManaged.includes("falkordb_url") && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                    <label htmlFor="falkordb-url" className="block text-sm font-medium text-surface-300 mb-1">
                       FalkorDB URL
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
+                        id="falkordb-url"
                         className="input-base flex-1"
                         type="url"
                         placeholder="redis://falkordb:6379"

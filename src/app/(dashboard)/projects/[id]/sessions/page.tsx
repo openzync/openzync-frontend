@@ -19,8 +19,10 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -199,47 +201,53 @@ export default function ProjectSessionsPage() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-surface-800">
-                    <th className="text-left text-xs font-medium text-surface-400 px-4 py-3">External ID</th>
-                    <th className="text-left text-xs font-medium text-surface-400 px-4 py-3">Status</th>
-                    <th className="text-center text-xs font-medium text-surface-400 px-4 py-3">Messages</th>
-                    <th className="text-center text-xs font-medium text-surface-400 px-4 py-3">Facts</th>
-                    <th className="text-left text-xs font-medium text-surface-400 px-4 py-3">Created</th>
-                    <th className="text-right text-xs font-medium text-surface-400 px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-800">
-                  {sessions.map((session) => (
-                    <tr key={session.id} className="transition-colors hover:bg-surface-800/50">
-                      <td className="px-4 py-3 text-surface-100 font-medium">{session.external_id}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant={session.is_active ? "success" : "default"} size="sm">
-                          <span className={`mr-1.5 h-1.5 w-1.5 rounded-full inline-block ${session.is_active ? "bg-success" : "bg-surface-500"}`} />
-                          {session.is_active ? "Active" : "Closed"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center text-surface-300">{session.message_count}</td>
-                      <td className="px-4 py-3 text-center text-surface-300">{session.fact_count}</td>
-                      <td className="px-4 py-3 text-surface-400 whitespace-nowrap">{formatDate(session.created_at)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => router.push(`/projects/${projectId}/sessions/${session.id}`)}
-                            className="p-1.5" title="View session"><Eye size={15} /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(session)}
-                            className="text-surface-400 hover:text-error" title="Delete session"><Trash2 size={15} /></Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table zebra={false}>
+              <TableHeader>
+                <TableHead>External ID</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead align="center">Messages</TableHead>
+                <TableHead align="center">Facts</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead align="right">Actions</TableHead>
+              </TableHeader>
+              <TableBody>
+                {sessions.map((session) => (
+                  <TableRow key={session.id}>
+                    <TableCell className="text-surface-100 font-medium">{session.external_id}</TableCell>
+                    <TableCell>
+                      <Badge variant={session.is_active ? "success" : "default"} size="sm">
+                        <span className={`mr-1.5 h-1.5 w-1.5 rounded-full inline-block ${session.is_active ? "bg-success" : "bg-surface-500"}`} />
+                        {session.is_active ? "Active" : "Closed"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell align="center" className="text-surface-300">{session.message_count}</TableCell>
+                    <TableCell align="center" className="text-surface-300">{session.fact_count}</TableCell>
+                    <TableCell className="text-surface-400 whitespace-nowrap">{formatDate(session.created_at)}</TableCell>
+                    <TableCell align="right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => router.push(`/projects/${projectId}/sessions/${session.id}`)}
+                              className="p-1.5" aria-label="View session"><Eye size={15} /></Button>
+                          </TooltipTrigger>
+                          <TooltipContent>View session</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(session)}
+                              className="text-surface-400 hover:text-error" aria-label="Delete session"><Trash2 size={15} /></Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete session</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
 
             {hasMore && (
               <div className="flex justify-center py-4 border-t border-surface-800">

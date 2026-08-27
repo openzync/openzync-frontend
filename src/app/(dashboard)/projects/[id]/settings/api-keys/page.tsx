@@ -9,7 +9,6 @@ import {
   AlertCircle,
   Ban,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { get, post, del, ApiError } from "@/lib/api-client";
 import { timeAgo, formatDate, copyToClipboard } from "@/lib/utils";
@@ -20,10 +19,12 @@ import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -192,87 +193,80 @@ export default function ProjectApiKeysPage() {
 
       {/* Table */}
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Prefix</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Permissions</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Last Used</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Created</th>
-                <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400">Status</th>
-                <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400 w-20">Actions</th>
+        <Table>
+          <TableHeader>
+            <TableHead>Name</TableHead>
+            <TableHead>Prefix</TableHead>
+            <TableHead>Permissions</TableHead>
+            <TableHead>Last Used</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead align="center">Status</TableHead>
+            <TableHead align="center" className="w-20">Actions</TableHead>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableSkeleton rows={4} cols={7} colWidths={["w-32", "w-20", "w-28", "w-20", "w-24", "w-16", "w-16"]} />
+            ) : keys.length === 0 ? (
+              <tr>
+                <td colSpan={7}>
+                  <EmptyState
+                    icon={Key}
+                    title="No API keys yet"
+                    description="Create an API key to enable programmatic access to this project"
+                    action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={openCreate}>Create Key</Button>}
+                  />
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {loading ? (
-                <TableSkeleton rows={4} cols={7} colWidths={["w-32", "w-20", "w-28", "w-20", "w-24", "w-16", "w-16"]} />
-              ) : keys.length === 0 ? (
-                <tr>
-                  <td colSpan={7}>
-                    <EmptyState
-                      icon={Key}
-                      title="No API keys yet"
-                      description="Create an API key to enable programmatic access to this project"
-                      action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={openCreate}>Create Key</Button>}
-                    />
-                  </td>
-                </tr>
-              ) : (
-                  keys.map((key, idx) => (
-                    <tr
-                      key={key.id}
-                      className={cn("transition-colors hover:bg-surface-800/50", idx % 2 === 0 ? "bg-surface-950/50" : "")}
-                    >
-                      <td className="px-4 py-3">
-                        <span className="text-surface-200 font-medium">{key.name}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <code className="text-xs bg-surface-800 text-surface-300 px-1.5 py-0.5 rounded font-mono">{key.prefix}...</code>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {key.permissions.length === 0 ? (
-                            <Badge variant="default" size="sm">No permissions</Badge>
-                          ) : (
-                            key.permissions.map((permission) => (
-                              <Badge key={permission} variant="info" size="sm">{permission}</Badge>
-                            ))
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-surface-400 text-xs">{timeAgo(key.last_used_at)}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-surface-400 text-xs">{formatDate(key.created_at)}</span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge variant={key.is_revoked ? "error" : "success"} size="sm">
-                          {key.is_revoked ? "Revoked" : "Active"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {!key.is_revoked && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setRevokeTarget(key)}
-                            className="rounded-md text-surface-400 hover:text-error"
-                            title="Revoke key"
-                          >
-                            <Ban size={14} />
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+            ) : (
+              keys.map((key) => (
+                <TableRow key={key.id}>
+                  <TableCell>
+                    <span className="text-surface-200 font-medium">{key.name}</span>
+                  </TableCell>
+                  <TableCell>
+                    <code className="text-xs bg-surface-800 text-surface-300 px-1.5 py-0.5 rounded font-mono">{key.prefix}...</code>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {key.permissions.length === 0 ? (
+                        <Badge variant="default" size="sm">No permissions</Badge>
+                      ) : (
+                        key.permissions.map((permission) => (
+                          <Badge key={permission} variant="info" size="sm">{permission}</Badge>
+                        ))
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-surface-400 text-xs">{timeAgo(key.last_used_at)}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-surface-400 text-xs">{formatDate(key.created_at)}</span>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Badge variant={key.is_revoked ? "error" : "success"} size="sm">
+                      {key.is_revoked ? "Revoked" : "Active"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell align="center">
+                    {!key.is_revoked && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setRevokeTarget(key)}
+                        className="rounded-md text-surface-400 hover:text-error"
+                        title="Revoke key"
+                      >
+                        <Ban size={14} />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {/* ── Create Dialog ──────────────────────────────────────────────────────── */}
       <Dialog
@@ -297,9 +291,9 @@ export default function ProjectApiKeysPage() {
       >
         {!createdKey ? (
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-surface-300 mb-1.5">Key Name</label>
+            <Field label="Key Name" htmlFor="api-key-name">
               <input
+                id="api-key-name"
                 className="input-base w-full"
                 placeholder="e.g. Production CI"
                 value={newName}
@@ -307,7 +301,7 @@ export default function ProjectApiKeysPage() {
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
                 autoFocus
               />
-            </div>
+            </Field>
 
             {/* Permission picker — the checked list is sent verbatim. The server
                 does NOT default an empty selection to admin/full access. */}

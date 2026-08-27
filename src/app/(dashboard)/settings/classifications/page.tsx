@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Tags, Eye } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { get } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -13,6 +12,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -95,38 +95,34 @@ export default function ClassificationsPage() {
       {error && <ErrorState message={error} onRetry={schemasQuery.refetch} />}
 
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Template</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Created</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-surface-400">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {loading ? (
-                <TableSkeleton rows={4} cols={5} colWidths={["w-36", "w-16", "w-12", "w-24", "w-12"]} />
-              ) : schemas.length === 0 ? (
-                <tr><td colSpan={5}><EmptyState icon={Tags} title="No classification schemas found" description="Configure classification schemas to appear here" /></td></tr>
-              ) : (
-                schemas.map((schema, idx) => (
-                  <tr key={schema.id} className={cn("transition-colors hover:bg-surface-800/50", idx % 2 === 0 ? "bg-surface-950/50" : "")}>
-                    <td className="px-4 py-3"><span className="font-medium text-white">{schema.name}</span></td>
-                    <td className="px-4 py-3"><Badge variant={schema.is_active ? "success" : "default"} size="sm">{schema.is_active ? "Active" : "Inactive"}</Badge></td>
-                    <td className="px-4 py-3"><span className="text-xs text-surface-400">{schema.prompt_template ? "Yes" : "—"}</span></td>
-                    <td className="px-4 py-3 text-surface-400 text-xs">{formatDate(schema.created_at)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => setViewTarget(schema)} className="rounded-md text-surface-400 hover:text-white" title="View schema"><Eye size={14} /></Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableHead>Name</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Template</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead align="right">Actions</TableHead>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableSkeleton rows={4} cols={5} colWidths={["w-36", "w-16", "w-12", "w-24", "w-12"]} />
+            ) : schemas.length === 0 ? (
+              <tr><td colSpan={5}><EmptyState icon={Tags} title="No classification schemas found" description="Configure classification schemas to appear here" /></td></tr>
+            ) : (
+              schemas.map((schema) => (
+                <TableRow key={schema.id}>
+                  <TableCell><span className="font-medium text-white">{schema.name}</span></TableCell>
+                  <TableCell><Badge variant={schema.is_active ? "success" : "default"} size="sm">{schema.is_active ? "Active" : "Inactive"}</Badge></TableCell>
+                  <TableCell><span className="text-xs text-surface-400">{schema.prompt_template ? "Yes" : "—"}</span></TableCell>
+                  <TableCell className="text-surface-400 text-xs">{formatDate(schema.created_at)}</TableCell>
+                  <TableCell align="right">
+                    <Button variant="ghost" size="sm" onClick={() => setViewTarget(schema)} className="rounded-md text-surface-400 hover:text-white" title="View schema"><Eye size={14} /></Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {viewTarget && <ViewDialog schema={viewTarget} onClose={() => setViewTarget(null)} />}

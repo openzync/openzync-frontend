@@ -1,17 +1,55 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { useEffect, useReducer } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import OverviewPage from "@/app/(dashboard)/overview/page";
 import { get } from "@/lib/api-client";
 
+// Re-renders the page whenever the URL mock changes — the stand-in for
+// Next.js re-rendering useSearchParams consumers after router.replace.
+function OverviewPageHarness() {
+  const [, force] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    const unsub = onMockReplace(force);
+    return () => {
+      unsub();
+    };
+  }, []);
+  return <OverviewPage />;
+}
+
 // ─── Mocks ────────────────────────────────────────────────────────────────────────
 
 const mockPush = vi.fn();
+// Stateful URL simulation: router.replace writes ?days= back into the
+// search-param mock and notifies subscribers, mirroring how real Next.js
+// re-renders useSearchParams consumers after a replace.
+const { mockReplace, mockSearchParamsGet, setSearchParams, onMockReplace } =
+  vi.hoisted(() => {
+    const params = new Map<string, string>();
+    const listeners = new Set<() => void>();
+    return {
+      mockReplace: vi.fn((url: string) => {
+        params.clear();
+        for (const [k, v] of new URL(url, "http://x").searchParams) params.set(k, v);
+        for (const notify of listeners) notify();
+      }),
+      mockSearchParamsGet: vi.fn((key: string) => params.get(key) ?? null),
+      setSearchParams: (entries: Record<string, string>) => {
+        params.clear();
+        for (const [k, v] of Object.entries(entries)) params.set(k, v);
+      },
+      onMockReplace: (cb: () => void) => {
+        listeners.add(cb);
+        return () => listeners.delete(cb);
+      },
+    };
+  });
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush, replace: vi.fn(), prefetch: vi.fn() }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace, prefetch: vi.fn() }),
   usePathname: () => "/overview",
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => ({ get: (key: string) => mockSearchParamsGet(key) }),
   useParams: () => ({}),
 }));
 
@@ -100,6 +138,9 @@ vi.mock("@/components/guides", () => ({
 
 beforeEach(() => {
   mockPush.mockReset();
+  mockReplace.mockClear();
+  mockSearchParamsGet.mockClear();
+  setSearchParams({});
   mockFetch.mockReset();
 });
 
@@ -114,7 +155,7 @@ describe("OverviewPage", () => {
     render(<OverviewPage />);
     expect(await screen.findByText("Overview")).toBeInTheDocument();
     expect(
-      await screen.findByText(/Organization dashboard/),
+      await screen.findByText(/activity pulse/),
     ).toBeInTheDocument();
   });
 
@@ -163,6 +204,43 @@ describe("OverviewPage", () => {
     expect(await screen.findByText("7d")).toBeInTheDocument();
     expect(await screen.findByText("30d")).toBeInTheDocument();
     expect(await screen.findByText("90d")).toBeInTheDocument();
+  });
+
+  // ── ?days= URL state ────────────────────────────────────────────────────────
+
+  it("clamps an invalid ?days= value to the default range", async () => {
+    setSearchParams({ days: "42" });
+    render(<OverviewPage />);
+    await screen.findByText("Daily Usage");
+
+    // The usage fetch must use the clamped value, never the raw param.
+    expect(get).toHaveBeenCalledWith("/v1/admin/stats/usage?days=7");
+    expect(get).not.toHaveBeenCalledWith("/v1/admin/stats/usage?days=42");
+    // The 7d pill is the active one.
+    expect(screen.getByRole("button", { name: "7d" })).toHaveClass("bg-brand-500");
+  });
+
+  it("honours a valid ?days= deep link", async () => {
+    setSearchParams({ days: "30" });
+    render(<OverviewPage />);
+    await screen.findByText("Daily Usage");
+
+    expect(get).toHaveBeenCalledWith("/v1/admin/stats/usage?days=30");
+    expect(screen.getByRole("button", { name: "30d" })).toHaveClass("bg-brand-500");
+  });
+
+  it("selecting a range pill writes ?days= via router.replace and refetches", async () => {
+    const user = userEvent.setup();
+    render(<OverviewPageHarness />);
+    await screen.findByText("Daily Usage");
+
+    vi.mocked(get).mockClear();
+    await user.click(screen.getByRole("button", { name: "90d" }));
+
+    expect(mockReplace).toHaveBeenCalledWith("/overview?days=90", { scroll: false });
+    expect(
+      vi.mocked(get).mock.calls.some(([path]) => path === "/v1/admin/stats/usage?days=90"),
+    ).toBe(true);
   });
 
   it("renders guide section with dashboard illustration", async () => {

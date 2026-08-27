@@ -13,6 +13,7 @@ import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { Button } from "@/components/ui/button";
 
 interface OrgMember {
@@ -86,69 +87,65 @@ export default function OrgMembersAdminPage() {
       {error && <ErrorState message={error} onRetry={membersQuery.refetch} />}
 
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Role</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Created</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-surface-400">Actions</th>
+        <Table zebra={false}>
+          <TableHeader>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead align="right">Actions</TableHead>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableSkeleton rows={5} cols={5} colWidths={["w-32", "w-36", "w-20", "w-28", "w-32"]} />
+            ) : members.length === 0 ? (
+              <tr>
+                <td colSpan={5}>
+                  <EmptyState
+                    icon={UsersIcon}
+                    title="No members found"
+                    description="This organization has no members yet."
+                  />
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {loading ? (
-                <TableSkeleton rows={5} cols={5} colWidths={["w-32", "w-36", "w-20", "w-28", "w-32"]} />
-              ) : members.length === 0 ? (
-                <tr>
-                  <td colSpan={5}>
-                    <EmptyState
-                      icon={UsersIcon}
-                      title="No members found"
-                      description="This organization has no members yet."
-                    />
-                  </td>
-                </tr>
-              ) : (
-                members.map((member) => (
-                  <tr key={member.id} className="transition-colors hover:bg-surface-800/50">
-                    <td className="px-4 py-3 text-surface-200">
-                      {member.name || <span className="text-surface-500 italic">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-surface-200">
-                      {member.email || <span className="text-surface-500 italic">—</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={member.role === "admin" ? "brand" : "default"} size="sm">
-                        {member.role === "admin" ? "Admin" : "Member"}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-surface-200 text-xs">{formatDate(member.created_at)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          setRoleTarget({ user: member, to: member.role === "admin" ? "member" : "admin" })
-                        }
-                        className="rounded-md text-surface-400 hover:text-white"
-                        title={member.role === "admin" ? "Remove admin" : "Make admin"}
-                        aria-label={
-                          member.role === "admin"
-                            ? `Remove admin from ${member.name ?? member.external_id}`
-                            : `Make ${member.name ?? member.external_id} an admin`
-                        }
-                      >
-                        {member.role === "admin" ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            ) : (
+              members.map((member) => (
+                <TableRow key={member.id}>
+                  <TableCell className="text-surface-200">
+                    {member.name || <span className="text-surface-500 italic">—</span>}
+                  </TableCell>
+                  <TableCell className="text-surface-200">
+                    {member.email || <span className="text-surface-500 italic">—</span>}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={member.role === "admin" ? "brand" : "default"} size="sm">
+                      {member.role === "admin" ? "Admin" : "Member"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-surface-200 text-xs">{formatDate(member.created_at)}</TableCell>
+                  <TableCell align="right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setRoleTarget({ user: member, to: member.role === "admin" ? "member" : "admin" })
+                      }
+                      className="rounded-md text-surface-400 hover:text-white"
+                      title={member.role === "admin" ? "Remove admin" : "Make admin"}
+                      aria-label={
+                        member.role === "admin"
+                          ? `Remove admin from ${member.name ?? member.external_id}`
+                          : `Make ${member.name ?? member.external_id} an admin`
+                      }
+                    >
+                      {member.role === "admin" ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       <ConfirmDialog

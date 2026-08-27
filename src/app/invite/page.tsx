@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   acceptInvite,
   getInviteInfo,
@@ -12,6 +12,8 @@ import {
 } from "@/lib/api-client";
 import { getPasswordStrength } from "@/lib/password-strength";
 import { AuthLayout } from "@/components/shared/auth-layout";
+import { PasswordField } from "@/components/shared/password-field";
+import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 
 const INVALID_MESSAGE = "This invitation link is invalid or has expired.";
@@ -126,30 +128,26 @@ function InviteForm() {
 
               {/* Read-only profile — set by the admin on the invite */}
               <div className="space-y-4 mb-5">
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Email
-                  </label>
+                <Field label="Email" htmlFor="invite-email">
                   <input
+                    id="invite-email"
                     type="email"
                     value={info.email}
                     readOnly
                     disabled
                     className="input-base w-full"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Name
-                  </label>
+                </Field>
+                <Field label="Name" htmlFor="invite-name">
                   <input
+                    id="invite-name"
                     type="text"
                     value={info.name}
                     readOnly
                     disabled
                     className="input-base w-full"
                   />
-                </div>
+                </Field>
               </div>
 
               {error && (
@@ -160,28 +158,18 @@ function InviteForm() {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={8}
-                      autoComplete="new-password"
-                      className="input-base w-full pr-10"
-                      placeholder="Minimum 8 characters"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
+                  <PasswordField
+                    id="invite-password"
+                    label="Password"
+                    value={password}
+                    onChange={setPassword}
+                    placeholder="Minimum 8 characters"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                    visible={showPassword}
+                    onToggleVisibility={() => setShowPassword((prev) => !prev)}
+                  />
                   {password && (
                     <div className="mt-2">
                       <div className="flex justify-between text-xs mb-1">
@@ -198,11 +186,9 @@ function InviteForm() {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Confirm Password
-                  </label>
+                <Field label="Confirm Password" htmlFor="invite-confirm-password">
                   <input
+                    id="invite-confirm-password"
                     type={showPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -212,7 +198,7 @@ function InviteForm() {
                     className="input-base w-full"
                     placeholder="Repeat your password"
                   />
-                </div>
+                </Field>
 
                 <Button
                   variant="primary"

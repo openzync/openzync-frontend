@@ -6,24 +6,20 @@ import { Command } from "cmdk";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   Search,
-  LayoutDashboard,
-  Activity,
   Users,
-  Shield,
   Settings,
-  Key,
-  FileJson,
-  Webhook,
-  FileCode,
-  SlidersHorizontal,
   FolderKanban,
   MessageSquare,
-  FileText,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get } from "@/lib/api-client";
 import { useUser } from "@/contexts/user-context";
+import {
+  NAV_SECTIONS,
+  isVisible,
+  type NavEntry,
+} from "@/lib/nav";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -40,15 +36,6 @@ interface GlobalSearchResponse {
   query: string;
 }
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: LucideIcon;
-  section: string;
-  /** Permission required to see this entry — undefined = visible to all. */
-  permission?: string;
-}
-
 interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -56,24 +43,14 @@ interface CommandPaletteProps {
 
 // ─── Navigation items ──────────────────────────────────────────────────────
 
-// Keep in lockstep with the sidebar gates in app/(dashboard)/layout.tsx:
-// admin-only org surfaces map to members:read / configuration:read.
-const NAV_ITEMS: NavItem[] = [
-  { label: "Overview", href: "/overview", icon: LayoutDashboard, section: "Navigation" },
-  { label: "Monitoring", href: "/monitoring", icon: Activity, section: "Navigation", permission: "members:read" },
-  { label: "Projects", href: "/projects", icon: FolderKanban, section: "Navigation" },
-  { label: "Users", href: "/users", icon: Users, section: "Navigation", permission: "members:read" },
-  { label: "Audit Log", href: "/audit", icon: Shield, section: "Navigation", permission: "members:read" },
-  { label: "Account Settings", href: "/settings", icon: Settings, section: "Navigation" },
-  { label: "API Keys", href: "/settings/api-keys", icon: Key, section: "Settings", permission: "configuration:read" },
-  { label: "Extraction Schemas", href: "/settings/schemas", icon: FileJson, section: "Settings", permission: "configuration:read" },
-  { label: "Classifications", href: "/settings/classifications", icon: FileCode, section: "Settings", permission: "configuration:read" },
-  { label: "Extractions", href: "/settings/extractions", icon: SlidersHorizontal, section: "Settings", permission: "configuration:read" },
-  { label: "Webhooks", href: "/settings/webhooks", icon: Webhook, section: "Settings", permission: "configuration:read" },
-  { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: FileText, section: "Settings", permission: "configuration:read" },
-  { label: "Prompt Templates", href: "/settings/prompts", icon: MessageSquare, section: "Settings", permission: "configuration:read" },
-  { label: "Configuration", href: "/settings/org-config", icon: Settings, section: "Settings", permission: "configuration:read" },
-];
+// Palette-only destinations: reachable by everyone, no gated manifest entry.
+const PERSONAL_SECTION: { label: string; entries: NavEntry[] } = {
+  label: "Navigation",
+  entries: [
+    { label: "Projects", href: "/projects", icon: FolderKanban },
+    { label: "Account", href: "/account", icon: Settings },
+  ],
+};
 
 // ─── Icons for search result types ─────────────────────────────────────────
 
@@ -89,7 +66,7 @@ const defaultIcon = FolderKanban;
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
-  const { can } = useUser();
+  const { can, isSuperadmin } = useUser();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -124,15 +101,25 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Filter navigation items locally: permission-gated entries first, then query.
-  const filteredNav = NAV_ITEMS.filter(
-    (item) => item.permission === undefined || can(item.permission),
-  ).filter(
-    (item) =>
-      query.length < 1 ||
-      item.label.toLowerCase().includes(query.toLowerCase()) ||
-      item.section.toLowerCase().includes(query.toLowerCase()),
-  );
+  // Filter navigation sections locally: permission-gated entries first, then
+  // query. Sections render as separate cmdk groups (heading = section label).
+  const q = query.toLowerCase();
+  const filteredSections: { label: string; items: NavEntry[] }[] = [
+    PERSONAL_SECTION,
+    ...NAV_SECTIONS,
+  ]
+    .map((section) => ({
+      label: section.label,
+      items: section.entries
+        .filter((entry) => isVisible(entry, can, isSuperadmin))
+        .filter(
+          (entry) =>
+            query.length < 1 ||
+            entry.label.toLowerCase().includes(q) ||
+            section.label.toLowerCase().includes(q),
+        ),
+    }))
+    .filter((section) => section.items.length > 0);
 
   const handleSelect = useCallback(
     (href: string) => {
@@ -196,16 +183,17 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             {/* ── Results list ──────────────────────────────────────────── */}
             <Command.List className="max-h-80 overflow-y-auto px-0 py-2">
               {/* Empty state */}
-              {query.length > 0 && !loading && !hasResults && filteredNav.length === 0 && (
+              {query.length > 0 && !loading && !hasResults && filteredSections.length === 0 && (
                 <div className="py-12 text-center">
                   <p className="text-sm text-surface-500">No results found.</p>
                 </div>
               )}
 
-              {/* ── Navigation group ──────────────────────────────────── */}
-              {filteredNav.length > 0 && (
+              {/* ── Navigation groups (one per section) ─────────────────── */}
+              {filteredSections.map((section) => (
                 <Command.Group
-                  heading="Navigation"
+                  key={section.label}
+                  heading={section.label}
                   className={cn(
                     "pb-2",
                     "[&_[cmdk-group-heading]]:px-4 [&_[cmdk-group-heading]]:py-2",
@@ -214,13 +202,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     "[&_[cmdk-group-heading]]:text-surface-500",
                   )}
                 >
-                  {filteredNav.map((item) => {
-                    const Icon = item.icon;
+                  {section.items.map((entry) => {
+                    const Icon = entry.icon;
                     return (
                       <Command.Item
-                        key={item.href}
-                        value={`nav-${item.href}`}
-                        onSelect={() => handleSelect(item.href)}
+                        key={entry.href}
+                        value={`nav-${entry.href}`}
+                        onSelect={() => handleSelect(entry.href)}
                         className={cn(
                           "flex items-center gap-3 rounded-md px-4 py-2.5 mx-2 text-sm text-surface-200",
                           "data-[selected=true]:bg-surface-800 data-[selected=true]:text-text-primary",
@@ -228,12 +216,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         )}
                       >
                         <Icon size={18} className="shrink-0 text-surface-400" />
-                        <span>{item.label}</span>
+                        <span>{entry.label}</span>
                       </Command.Item>
                     );
                   })}
                 </Command.Group>
-              )}
+              ))}
 
               {/* ── Loading indicator ──────────────────────────────────── */}
               {loading && (

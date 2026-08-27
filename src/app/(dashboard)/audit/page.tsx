@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Shield,
   RefreshCw,
@@ -20,6 +21,8 @@ import { RequirePermission } from "@/components/shared/require-permission";
 import { Button } from "@/components/ui/button";
 import { StatusBadge, ActorTypeBadge, actorTypeLabel } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SimpleSelect } from "@/components/ui/select";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -49,23 +52,68 @@ interface ActorOption { id: string; label: string; group: string }
 
 const PAGE_SIZE = 25;
 
+const ACTOR_TYPES = ["all", "user", "api_key", "system"] as const;
+const STATUSES = ["all", "2xx", "4xx", "5xx"] as const;
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AuditLogPage() {
+  // useSearchParams requires a Suspense boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <AuditLogInner />
+    </Suspense>
+  );
+}
+
+function AuditLogInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Filters
-  const [filterAction, setFilterAction] = useState("");
-  const [filterActorType, setFilterActorType] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterActorId, setFilterActorId] = useState("");
   const [availableActors, setAvailableActors] = useState<ActorOption[]>([]);
 
-  // Pagination
-  const [offset, setOffset] = useState(0);
+  // ── Filters + pagination live in the URL so filtered views are shareable.
+  // Unknown values clamp to defaults; empty/default values stay absent from
+  // the URL (?action=session.create&actor_type=user&page=2).
+  const filterAction = searchParams.get("action") ?? "";
+  const rawActorType = searchParams.get("actor_type") ?? "all";
+  const filterActorType = (ACTOR_TYPES as readonly string[]).includes(rawActorType)
+    ? rawActorType
+    : "all";
+  const rawStatus = searchParams.get("status") ?? "all";
+  const filterStatus = (STATUSES as readonly string[]).includes(rawStatus)
+    ? rawStatus
+    : "all";
+  const filterActorId = searchParams.get("actor_id") ?? "";
+  const rawPage = Number(searchParams.get("page"));
+  const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
+
+  /** Merge param updates into the URL; empty/"all"/null values are removed.
+   * Built from this page's own derived state (not searchParams iteration) so
+   * the written URL always contains exactly the five params we own. */
+  function setParams(updates: Record<string, string | null>) {
+    const current: Record<string, string | null> = {
+      action: filterAction || null,
+      actor_type: filterActorType !== "all" ? filterActorType : null,
+      status: filterStatus !== "all" ? filterStatus : null,
+      actor_id: filterActorId || null,
+      page: page > 1 ? String(page) : null,
+    };
+    const merged = { ...current, ...updates };
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(merged)) {
+      if (value && value !== "all") params.set(key, value);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
+  const offset = (page - 1) * PAGE_SIZE;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
@@ -109,8 +157,6 @@ export default function AuditLogPage() {
 
   // ── Fetch available actors for the dropdown ─────────────────────────────────
   useEffect(() => {
-    // Always clear selection when type changes — stale ID from previous type is meaningless
-    setFilterActorId("");
     if (filterActorType === "all") {
       setAvailableActors([]);
       return;
@@ -155,7 +201,7 @@ export default function AuditLogPage() {
       }
     };
     fetchActors();
-  }, [filterActorType, setFilterActorId]);
+  }, [filterActorType]);
 
   // Auto-refresh
   useEffect(() => {
@@ -169,20 +215,21 @@ export default function AuditLogPage() {
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  const applyFilters = () => setOffset(0);
+  // Filters refetch as they change; Apply's remaining job is resetting to the
+  // first page of the filtered result set.
+  const applyFilters = () => setParams({ page: null });
 
-  const clearFilters = () => {
-    setFilterAction("");
-    setFilterActorType("all");
-    setFilterActorId("");
-    setFilterStatus("all");
-    setOffset(0);
-  };
+  const clearFilters = () =>
+    setParams({ action: null, actor_type: null, actor_id: null, status: null, page: null });
 
   const hasActiveFilters = filterAction.trim() || filterActorId.trim() || filterActorType !== "all" || filterStatus !== "all";
 
-  const goToPrevious = () => setOffset((prev) => Math.max(0, prev - PAGE_SIZE));
-  const goToNext = () => setOffset((prev) => (prev + PAGE_SIZE < total ? prev + PAGE_SIZE : prev));
+  const goToPrevious = () =>
+    setParams({ page: page > 2 ? String(page - 1) : null });
+  const goToNext = () => {
+    if (offset + PAGE_SIZE >= total) return;
+    setParams({ page: String(page + 1) });
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -203,26 +250,28 @@ export default function AuditLogPage() {
         <div className="flex flex-wrap items-end gap-3">
           {/* Action filter */}
           <div className="flex-1 min-w-[160px]">
-            <label className="block text-xs font-medium text-surface-400 mb-1">Action</label>
+            <label htmlFor="audit-filter-action" className="block text-xs font-medium text-surface-400 mb-1">Action</label>
             <div className="relative">
               <input
+                id="audit-filter-action"
                 className="input-base pl-8 text-sm"
                 placeholder="e.g. session.create"
                 value={filterAction}
-                onChange={(e) => setFilterAction(e.target.value)}
+                onChange={(e) => setParams({ action: e.target.value, page: null })}
                 onKeyDown={(e) => e.key === "Enter" && applyFilters()}
               />
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-surface-500 pointer-events-none" />
             </div>
           </div>
 
-          {/* Actor ID filter */}
+          {/* Actor ID filter — native select: optgroups aren't supported by SimpleSelect */}
           <div className="w-64">
-            <label className="block text-xs font-medium text-surface-400 mb-1">Actor ID</label>
+            <label htmlFor="audit-filter-actor-id" className="block text-xs font-medium text-surface-400 mb-1">Actor ID</label>
             <select
+              id="audit-filter-actor-id"
               className="input-base appearance-none cursor-pointer text-sm"
               value={filterActorId}
-              onChange={(e) => setFilterActorId(e.target.value)}
+              onChange={(e) => setParams({ actor_id: e.target.value || null, page: null })}
               disabled={filterActorType === "all"}
             >
               <option value="">All actors</option>
@@ -249,32 +298,40 @@ export default function AuditLogPage() {
 
           {/* Actor Type filter */}
           <div className="w-36">
-            <label className="block text-xs font-medium text-surface-400 mb-1">Actor Type</label>
-            <select
-              className="input-base appearance-none cursor-pointer text-sm"
+            <label htmlFor="audit-filter-actor-type" className="block text-xs font-medium text-surface-400 mb-1">Actor Type</label>
+            <SimpleSelect
+              id="audit-filter-actor-type"
+              className="text-sm"
+              options={[
+                { value: "all", label: "All" },
+                { value: "user", label: "User" },
+                { value: "api_key", label: "API Key" },
+                { value: "system", label: "System" },
+              ]}
               value={filterActorType}
-              onChange={(e) => setFilterActorType(e.target.value)}
-            >
-              <option value="all">All</option>
-              <option value="user">User</option>
-              <option value="api_key">API Key</option>
-              <option value="system">System</option>
-            </select>
+              onValueChange={(value) =>
+                // Changing type invalidates the selected actor — a stale ID
+                // from the previous type is meaningless.
+                setParams({ actor_type: value, actor_id: null, page: null })
+              }
+            />
           </div>
 
           {/* Status filter */}
           <div className="w-28">
-            <label className="block text-xs font-medium text-surface-400 mb-1">Status</label>
-            <select
-              className="input-base appearance-none cursor-pointer text-sm"
+            <label htmlFor="audit-filter-status" className="block text-xs font-medium text-surface-400 mb-1">Status</label>
+            <SimpleSelect
+              id="audit-filter-status"
+              className="text-sm"
+              options={[
+                { value: "all", label: "All" },
+                { value: "2xx", label: "2xx" },
+                { value: "4xx", label: "4xx" },
+                { value: "5xx", label: "5xx" },
+              ]}
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="all">All</option>
-              <option value="2xx">2xx</option>
-              <option value="4xx">4xx</option>
-              <option value="5xx">5xx</option>
-            </select>
+              onValueChange={(value) => setParams({ status: value, page: null })}
+            />
           </div>
 
           <div className="flex items-center gap-2 pb-0.5">
@@ -321,87 +378,77 @@ export default function AuditLogPage() {
 
       {/* Table */}
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Time</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Action</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Actor</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Type</th>
-                <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Method</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Path</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">IP</th>
+        <Table>
+          <TableHeader>
+            <TableHead>Time</TableHead>
+            <TableHead>Action</TableHead>
+            <TableHead>Actor</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead align="center">Status</TableHead>
+            <TableHead>Method</TableHead>
+            <TableHead>Path</TableHead>
+            <TableHead>IP</TableHead>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableSkeleton rows={6} cols={8} colWidths={["w-16", "w-28", "w-16", "w-14", "w-12", "w-10", "w-24", "w-20"]} />
+            ) : entries.length === 0 ? (
+              <tr>
+                <td colSpan={8}>
+                  <EmptyState
+                    icon={Shield}
+                    title="No audit entries found"
+                    description={hasActiveFilters ? "Try adjusting your filters" : "Audit entries will appear here as actions are performed"}
+                  />
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {loading ? (
-                <TableSkeleton rows={6} cols={8} colWidths={["w-16", "w-28", "w-16", "w-14", "w-12", "w-10", "w-24", "w-20"]} />
-              ) : entries.length === 0 ? (
-                <tr>
-                  <td colSpan={8}>
-                    <EmptyState
-                      icon={Shield}
-                      title="No audit entries found"
-                      description={hasActiveFilters ? "Try adjusting your filters" : "Audit entries will appear here as actions are performed"}
-                    />
-                  </td>
-                </tr>
-              ) : (
-                entries.map((entry, idx) => (
-                  <tr
-                    key={entry.id}
-                    className={cn(
-                      "transition-colors hover:bg-surface-800/50",
-                      idx % 2 === 0 ? "bg-surface-950/50" : "",
+            ) : (
+              entries.map((entry) => (
+                <TableRow key={entry.id}>
+                  <TableCell className="whitespace-nowrap">
+                    <span className="text-surface-300 text-xs">{smartTimestamp(entry.created_at)}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-mono text-xs text-surface-200">{entry.action}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className="font-mono text-xs text-surface-400 max-w-[80px] block truncate"
+                      title={entry.actor_id ?? undefined}
+                    >
+                      {entry.actor_id ? entry.actor_id.slice(0, 12) : "—"}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <ActorTypeBadge type={entry.actor_type} />
+                  </TableCell>
+                  <TableCell align="center">
+                    <StatusBadge code={entry.status_code} />
+                  </TableCell>
+                  <TableCell>
+                    {entry.method ? (
+                      <span className="text-xs font-mono text-surface-400">{entry.method}</span>
+                    ) : (
+                      <span className="text-surface-600 text-xs">—</span>
                     )}
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="text-surface-300 text-xs">{smartTimestamp(entry.created_at)}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-mono text-xs text-surface-200">{entry.action}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className="font-mono text-xs text-surface-400 max-w-[80px] block truncate"
-                        title={entry.actor_id ?? undefined}
-                      >
-                        {entry.actor_id ? entry.actor_id.slice(0, 12) : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {entry.path ? (
+                      <span className="text-xs text-surface-400 max-w-[140px] block truncate font-mono" title={entry.path}>
+                        {entry.path}
                       </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <ActorTypeBadge type={entry.actor_type} />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <StatusBadge code={entry.status_code} />
-                    </td>
-                    <td className="px-4 py-3">
-                      {entry.method ? (
-                        <span className="text-xs font-mono text-surface-400">{entry.method}</span>
-                      ) : (
-                        <span className="text-surface-600 text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {entry.path ? (
-                        <span className="text-xs text-surface-400 max-w-[140px] block truncate font-mono" title={entry.path}>
-                          {entry.path}
-                        </span>
-                      ) : (
-                        <span className="text-surface-600 text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs font-mono text-surface-500">{entry.ip_address ?? "—"}</span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    ) : (
+                      <span className="text-surface-600 text-xs">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-xs font-mono text-surface-500">{entry.ip_address ?? "—"}</span>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
 
         {/* Error state */}
         {error && !loading && (

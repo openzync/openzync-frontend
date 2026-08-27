@@ -20,7 +20,9 @@ import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Field } from "@/components/ui/field";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { Button } from "@/components/ui/button";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -88,11 +90,9 @@ function CreateOrgDialog({
       }
     >
       <form onSubmit={(e) => { e.preventDefault(); void handleSubmit(); }} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-surface-300 mb-1">
-            Organization Name <span className="text-error">*</span>
-          </label>
+        <Field label="Organization Name" htmlFor="org-create-name" required>
           <input
+            id="org-create-name"
             className="input-base"
             placeholder="e.g. Acme Corp"
             value={name}
@@ -102,7 +102,7 @@ function CreateOrgDialog({
             }}
             autoFocus
           />
-        </div>
+        </Field>
         {error && (
           <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
             <AlertCircle size={14} />
@@ -224,81 +224,77 @@ export default function SuperadminOrgsPage() {
       {error && <ErrorState message={error} onRetry={loadOrgs} />}
 
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Created</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-surface-400">Actions</th>
+        <Table zebra={false}>
+          <TableHeader>
+            <TableHead>Name</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead align="right">Actions</TableHead>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableSkeleton rows={5} cols={4} colWidths={["w-32", "w-20", "w-28", "w-40"]} />
+            ) : orgs.length === 0 ? (
+              <tr>
+                <td colSpan={4}>
+                  <EmptyState
+                    icon={Building2}
+                    title="No organizations yet"
+                    description="Organizations appear here as they are created or requested."
+                  />
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {loading ? (
-                <TableSkeleton rows={5} cols={4} colWidths={["w-32", "w-20", "w-28", "w-40"]} />
-              ) : orgs.length === 0 ? (
-                <tr>
-                  <td colSpan={4}>
-                    <EmptyState
-                      icon={Building2}
-                      title="No organizations yet"
-                      description="Organizations appear here as they are created or requested."
-                    />
-                  </td>
-                </tr>
-              ) : (
-                orgs.map((org) => (
-                  <tr key={org.id} className="transition-colors hover:bg-surface-800/50">
-                    <td className="px-4 py-3 text-surface-200 font-medium">{org.name}</td>
-                    <td className="px-4 py-3">
-                      <OrgStatusBadge status={org.status} />
-                    </td>
-                    <td className="px-4 py-3 text-surface-200 text-xs">{formatDate(org.created_at)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {org.status === "pending" && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setApproveTarget(org)}
-                              className="rounded-md text-success hover:text-white"
-                              title={`Approve ${org.name}`}
-                              aria-label={`Approve ${org.name}`}
-                            >
-                              <Check size={14} />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setRejectTarget(org)}
-                              className="rounded-md text-surface-400 hover:text-error"
-                              title={`Reject ${org.name}`}
-                              aria-label={`Reject ${org.name}`}
-                            >
-                              <X size={14} />
-                            </Button>
-                          </>
-                        )}
-                        <Link href={`/superadmin/orgs/${org.id}/config`}>
-                          <Button variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-white" title="Organization configuration">
-                            <Settings2 size={14} />
+            ) : (
+              orgs.map((org) => (
+                <TableRow key={org.id}>
+                  <TableCell className="text-surface-200 font-medium">{org.name}</TableCell>
+                  <TableCell>
+                    <OrgStatusBadge status={org.status} />
+                  </TableCell>
+                  <TableCell className="text-surface-200 text-xs">{formatDate(org.created_at)}</TableCell>
+                  <TableCell align="right">
+                    <div className="flex items-center justify-end gap-1">
+                      {org.status === "pending" && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setApproveTarget(org)}
+                            className="rounded-md text-success hover:text-white"
+                            title={`Approve ${org.name}`}
+                            aria-label={`Approve ${org.name}`}
+                          >
+                            <Check size={14} />
                           </Button>
-                        </Link>
-                        <Link href={`/superadmin/orgs/${org.id}/members`}>
-                          <Button variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-white" title="Members">
-                            <Users size={14} />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setRejectTarget(org)}
+                            className="rounded-md text-surface-400 hover:text-error"
+                            title={`Reject ${org.name}`}
+                            aria-label={`Reject ${org.name}`}
+                          >
+                            <X size={14} />
                           </Button>
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                        </>
+                      )}
+                      <Link href={`/superadmin/orgs/${org.id}/config`}>
+                        <Button variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-white" title="Organization configuration">
+                          <Settings2 size={14} />
+                        </Button>
+                      </Link>
+                      <Link href={`/superadmin/orgs/${org.id}/members`}>
+                        <Button variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-white" title="Members">
+                          <Users size={14} />
+                        </Button>
+                      </Link>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
 
         {!loading && hasMore && (
           <div className="border-t border-surface-800 px-4 py-3 text-center">

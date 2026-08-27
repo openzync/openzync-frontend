@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AlertCircle, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
+import { AlertCircle, KeyRound, Loader2 } from "lucide-react";
 import { changePassword } from "@/lib/api-client";
 import { getPasswordStrength } from "@/lib/password-strength";
 import { AuthLayout } from "@/components/shared/auth-layout";
+import { PasswordField } from "@/components/shared/password-field";
+import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -19,7 +21,6 @@ export default function ChangePasswordPage() {
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -67,11 +68,9 @@ export default function ChangePasswordPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Current Password
-                </label>
+              <Field label="Current Password" htmlFor="change-current-password">
                 <input
+                  id="change-current-password"
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
@@ -81,31 +80,18 @@ export default function ChangePasswordPage() {
                   className="input-base w-full"
                   placeholder="Enter your current password"
                 />
-              </div>
+              </Field>
 
               <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  New Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showNewPassword ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    autoComplete="new-password"
-                    className="input-base w-full pr-10"
-                    placeholder="Minimum 8 characters"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
-                  >
-                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
+                <PasswordField
+                  id="change-new-password"
+                  label="New Password"
+                  value={newPassword}
+                  onChange={setNewPassword}
+                  placeholder="Minimum 8 characters"
+                  autoComplete="new-password"
+                  minLength={8}
+                />
                 {newPassword && (
                   <div className="mt-2">
                     <div className="flex justify-between text-xs mb-1">

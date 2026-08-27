@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Upload,
   Search,
@@ -14,12 +15,16 @@ import { cn, formatFileSize } from "@/lib/utils";
 import { get, uploadWithBlobs } from "@/lib/api-client";
 import { toast } from "sonner";
 import { BlobCard, type BlobCardData } from "@/components/shared/blob-card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { EnrichmentStatus } from "@/components/shared/enrichment-status";
 import { useProject } from "@/stores/project-context";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageGuide, GuideMemory } from "@/components/guides";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Field } from "@/components/ui/field";
+import { SimpleSelect } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -127,8 +132,7 @@ function IngestTab({ projectId }: { projectId: string }) {
     <div className="card-base p-5 space-y-5">
       <h2 className="text-sm font-semibold flex items-center gap-2"><Upload size={16} className="text-brand-300" />Ingest Messages</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label htmlFor="memory-session-select" className="text-xs font-medium text-surface-400">Session <span className="text-surface-500 font-normal">(required)</span></label>
+        <Field label="Session" htmlFor="memory-session-select" required>
           <select id="memory-session-select" value={sessionId} onChange={(e) => setSessionId(e.target.value)} className="input-base" required>
             <option value="">Select a session...</option>
             {sessionsLoading && <option disabled>Loading sessions...</option>}
@@ -137,17 +141,16 @@ function IngestTab({ projectId }: { projectId: string }) {
               <option key={s.id} value={s.id}>{s.external_id || s.id.slice(0, 8)}</option>
             ))}
           </select>
-          {!sessionId && !sessionsLoading && (
-            <p className="text-xs text-warning">Select a session — memory is ingested into an existing session only.</p>
-          )}
-        </div>
+        </Field>
       </div>
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-surface-400">Messages <span className="text-surface-500 font-normal">(one per line, format: role: content)</span></label>
-        <textarea value={messagesText} onChange={(e) => setMessagesText(e.target.value)}
+      {!sessionId && !sessionsLoading && (
+        <p className="text-xs text-warning -mt-3">Select a session — memory is ingested into an existing session only.</p>
+      )}
+      <Field label="Messages" htmlFor="memory-messages" hint="One per line, format: role: content">
+        <textarea id="memory-messages" value={messagesText} onChange={(e) => setMessagesText(e.target.value)}
           placeholder="user: What is the capital of France?&#10;assistant: The capital of France is Paris."
           rows={6} className="input-base min-h-[120px] py-2 resize-y leading-relaxed" style={{ height: "auto" }} />
-      </div>
+      </Field>
       {/* ── File Attachments ───────────────────────────────────── */}
       <div className="space-y-2">
         <label className="text-sm font-medium text-surface-300">
@@ -224,18 +227,15 @@ function IngestTab({ projectId }: { projectId: string }) {
       </div>
 
       <div className="flex items-end gap-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-surface-400">Default Role</label>
-          <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)}
-            className="input-base cursor-pointer w-36 appearance-none"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A99AB' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-              backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: "32px",
-            }}
-          >
-            {ROLES.map((role) => (<option key={role} value={role}>{role}</option>))}
-          </select>
-        </div>
+        <Field label="Default Role" htmlFor="memory-default-role">
+          <SimpleSelect
+            id="memory-default-role"
+            options={ROLES.map((role) => ({ value: role, label: role }))}
+            value={selectedRole}
+            onValueChange={setSelectedRole}
+            className="w-36"
+          />
+        </Field>
         <Button variant="primary" onClick={handleIngest} loading={ingesting} disabled={!sessionId.trim()} icon={<Upload size={16} />}>Ingest</Button>
       </div>
       {error && (<div className="flex items-start gap-2 rounded-md bg-error/10 border border-error/30 p-3 text-sm text-error"><AlertCircle size={16} className="mt-0.5 shrink-0" /><span>{error}</span></div>)}
@@ -290,11 +290,10 @@ function ContextTab({ projectId }: { projectId: string }) {
           </div>
         </div>
       </div>
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-surface-400">Query</label>
-        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. What did the user say about their project?"
+      <Field label="Query" htmlFor="context-query">
+        <input id="context-query" type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. What did the user say about their project?"
           className="input-base" onKeyDown={(e) => { if (e.key === "Enter" && !fetching) handleGetContext(); }} />
-      </div>
+      </Field>
       <Button variant="primary" onClick={handleGetContext} loading={fetching} disabled={!query.trim()} icon={<FileText size={16} />}>Get Context</Button>
       {error && (<div className="flex items-start gap-2 rounded-md bg-error/10 border border-error/30 p-3 text-sm text-error"><AlertCircle size={16} className="mt-0.5 shrink-0" /><span>{error}</span></div>)}
       {result && (
@@ -356,11 +355,10 @@ function SearchTab({ projectId }: { projectId: string }) {
           </div>
         </div>
       </div>
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-surface-400">Query</label>
-        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search across episodes, facts, and entities..."
+      <Field label="Query" htmlFor="memory-search-query">
+        <input id="memory-search-query" type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search across episodes, facts, and entities..."
           className="input-base" onKeyDown={(e) => { if (e.key === "Enter" && !searching) handleSearch(); }} />
-      </div>
+      </Field>
       <Button variant="primary" onClick={handleSearch} loading={searching} disabled={!query.trim()} icon={<Search size={16} />}>Search</Button>
       {error && (<div className="flex items-start gap-2 rounded-md bg-error/10 border border-error/30 p-3 text-sm text-error"><AlertCircle size={16} className="mt-0.5 shrink-0" /><span>{error}</span></div>)}
       {results !== null && (
@@ -370,37 +368,36 @@ function SearchTab({ projectId }: { projectId: string }) {
             <div className="rounded-md bg-surface-950 border border-surface-800 p-6 text-center text-sm text-surface-500">No results found for this query.</div>
           ) : (
             <div className="overflow-x-auto rounded-md border border-surface-800">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-surface-950 border-b border-surface-800">
-                    <th className="px-3 py-2 text-left text-xs font-medium text-surface-400 uppercase tracking-wider w-24">Type</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-surface-400 uppercase tracking-wider">Content</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-surface-400 uppercase tracking-wider w-20">Score</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-800">
+              {/* note: canonical table style — was a denser px-3 variant, normalized for consistency */}
+              <Table zebra={false}>
+                <TableHeader>
+                  <TableHead className="w-24">Type</TableHead>
+                  <TableHead>Content</TableHead>
+                  <TableHead align="right" className="w-20">Score</TableHead>
+                </TableHeader>
+                <TableBody>
                   {results.map((item, i) => (
-                    <tr key={item.id ?? i} className="hover:bg-surface-800/50 transition-colors">
-                      <td className="px-3 py-2.5">
+                    <TableRow key={item.id ?? i}>
+                      <TableCell>
                         <Badge variant={
                           item.type === "episode" || item.type === "episodes" ? "info"
                           : item.type === "fact" || item.type === "facts" ? "success"
                           : item.type === "entity" || item.type === "entities" ? "warning"
                           : "default"
                         } size="sm">{item.type ?? "unknown"}</Badge>
-                      </td>
-                      <td className="px-3 py-2.5 text-surface-200 max-w-md truncate">{item.content ?? JSON.stringify(item)}</td>
-                      <td className="px-3 py-2.5 text-right">
+                      </TableCell>
+                      <TableCell className="text-surface-200 max-w-md truncate">{item.content ?? JSON.stringify(item)}</TableCell>
+                      <TableCell align="right">
                         {item.score !== undefined ? (
                           <span className={cn("font-mono text-xs font-medium",
                             item.score >= 0.7 ? "text-success" : item.score >= 0.4 ? "text-warning" : "text-surface-400"
                           )}>{(item.score * 100).toFixed(0)}%</span>
                         ) : <span className="text-surface-600">—</span>}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>
@@ -412,9 +409,29 @@ function SearchTab({ projectId }: { projectId: string }) {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function MemoryPage() {
-  const [activeTab, setActiveTab] = useState<TabId>("ingest");
+  // useSearchParams requires a Suspense boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <MemoryPageInner />
+    </Suspense>
+  );
+}
+
+function MemoryPageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const { project } = useProject();
   const projectId = project?.id;
+
+  // Tab lives in the URL (?tab=ingest|context|search) so deep links and
+  // back/forward work. Unknown values clamp to the default.
+  const rawTab = searchParams.get("tab") ?? "ingest";
+  const activeTab: TabId = TABS.some((t) => t.id === rawTab) ? (rawTab as TabId) : "ingest";
+
+  function setTab(tab: string) {
+    router.replace(`${pathname}?tab=${tab}`, { scroll: false });
+  }
 
   if (!projectId) {
     return (
@@ -436,16 +453,15 @@ export default function MemoryPage() {
         <p>Memory stores accumulated knowledge across all sessions — entities, facts, and relationships extracted from conversations. This persistent knowledge graph enables your AI to recall context from past interactions.</p>
       </PageGuide>
 
-      <div className="flex gap-1 rounded-lg bg-surface-950 p-1 border border-surface-800 w-fit">
-        {TABS.map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={cn("flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors",
-              activeTab === tab.id ? "bg-brand-500 text-white shadow-sm" : "bg-surface-800 text-surface-300 hover:bg-surface-700 hover:text-surface-100"
-            )}>
-            {tab.icon}{tab.label}
-          </button>
-        ))}
-      </div>
+      <Tabs variant="pill" value={activeTab} onValueChange={setTab} className="w-fit">
+        <TabsList>
+          {TABS.map((tab) => (
+            <TabsTrigger key={tab.id} value={tab.id}>
+              {tab.icon}{tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {activeTab === "ingest" && <IngestTab projectId={projectId} />}
       {activeTab === "context" && <ContextTab projectId={projectId} />}

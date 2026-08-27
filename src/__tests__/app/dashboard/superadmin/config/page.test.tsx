@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SuperadminConfigPage from "@/app/(dashboard)/superadmin/config/page";
@@ -75,6 +75,12 @@ function renderPage() {
   return render(<SuperadminConfigPage />);
 }
 
+// jsdom lacks the PointerEvent APIs Radix Select relies on
+beforeAll(() => {
+  window.HTMLElement.prototype.hasPointerCapture = () => false;
+  window.HTMLElement.prototype.scrollIntoView = () => {};
+});
+
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("SuperadminConfigPage", () => {
@@ -95,7 +101,9 @@ describe("SuperadminConfigPage", () => {
     // Radios render from the fetched policy; clicking the label toggles it.
     await user.click(await screen.findByText("Approval required"));
     // Scope becomes enabled once approvals is selected; pick public signup.
-    await user.selectOptions(screen.getByRole("combobox", { name: "Approval Scope" }), "public_signup");
+    // Approval Scope is a Radix Select — open the combobox, then click the option.
+    await user.click(screen.getByRole("combobox", { name: "Approval Scope" }));
+    await user.click(await screen.findByRole("option", { name: "Public signup only" }));
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {

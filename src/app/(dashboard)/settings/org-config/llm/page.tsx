@@ -1,12 +1,14 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useState } from "react";
 import { Brain, Eye, RotateCcw, Zap } from "lucide-react";
 import { toast } from "sonner";
-import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
+import { get, patch, ApiError } from "@/lib/api-client";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { SecretInput } from "@/components/ui/secret-input";
+import { SimpleSelect } from "@/components/ui/select";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
 import { useConfigReset } from "@/hooks/use-config-reset";
@@ -15,6 +17,12 @@ import { useConfigReset } from "@/hooks/use-config-reset";
 
 interface OrgConfigResponse {
   stored: Record<string, unknown>;
+}
+
+/** What the config fetcher hands to the render-phase form seed. */
+interface OrgConfigData {
+  stored: Record<string, unknown>;
+  defaults: Record<string, unknown>;
 }
 
 type LlmBackend = "openai" | "anthropic" | "ollama" | "openai_like" | "openrouter" | "azure";
@@ -177,9 +185,10 @@ export default function LlmConfigPage() {
   });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
   const [stored, setStored] = useState<Record<string, unknown>>({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Save failures share the banner with load errors; cleared when a fetch
+  // succeeds so a retry visibly resolves.
+  const [actionError, setActionError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
   const [visibleFields, setVisibleFields] = useState<Partial<Record<keyof FormState, boolean>>>({});
 
@@ -208,91 +217,63 @@ export default function LlmConfigPage() {
     clearResets,
   } = useConfigReset(LLM_FIELDS, initialForm, setFormForReset);
 
-  // ── beforeunload protection ──────────────────────────────────────────────
-
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (hasChanged()) e.preventDefault();
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form]);
-
   // ── Fetch config ──────────────────────────────────────────────────────────
 
-  const fetchConfig = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await get<OrgConfigResponse>("/admin/org/config");
-      const stored = data.stored as Record<string, unknown>;
-      const hasAnyStored =
-        LLM_FIELDS.some((f) => stored[f] != null) || hasStoredPromptCaching(stored.prompt_caching);
+  const configQuery = useApiQuery<OrgConfigData>(async () => {
+    const data = await get<OrgConfigResponse>("/admin/org/config");
+    const stored = (data.stored ?? {}) as Record<string, unknown>;
+    const hasAnyStored =
+      LLM_FIELDS.some((f) => stored[f] != null) || hasStoredPromptCaching(stored.prompt_caching);
 
-      // If no stored values exist for this tab, pull onboarding defaults from API
-      let defaults: Record<string, unknown> = {};
-      if (!hasAnyStored) {
-        try {
-          defaults = await get<Record<string, unknown>>("/admin/org/config/defaults");
-        } catch {
-          // defaults fetch is best-effort; fall through to inline fallbacks
-        }
-      }
+    // If no stored values exist for this tab, pull onboarding defaults from API
+    const defaults = hasAnyStored
+      ? {}
+      : await get<Record<string, unknown>>("/admin/org/config/defaults").catch(
+          () => ({}) as Record<string, unknown>,
+        );
 
-      const val = (field: string, fallback: unknown) =>
-        (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
+    return { stored, defaults };
+  });
 
-      // prompt_caching is nested on the backend — read the three flat form
-      // fields from stored.prompt_caching, falling back to the platform
-      // default per key when the object or a key is null/absent
-      const pc = stored.prompt_caching as Record<string, unknown> | null | undefined;
-      const pcVal = (key: string, fallback: unknown) => (pc?.[key] as unknown) ?? fallback;
+  // Seed the editable form from server data — render-phase adjustment keyed on
+  // response identity (same pattern as superadmin/config), so a refetch after
+  // save re-seeds exactly once.
+  const [seeded, setSeeded] = useState<OrgConfigData | null>(null);
+  if (configQuery.data && configQuery.data !== seeded) {
+    setSeeded(configQuery.data);
+    const { stored, defaults } = configQuery.data;
+    const val = (field: string, fallback: unknown) =>
+      (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
 
-      setForm({
-        llm_backend: val("llm_backend", "openai") as LlmBackend,
-        llm_model: val("llm_model", "") as string,
-        llm_temperature: val("llm_temperature", 0.7) as number,
-        llm_max_tokens: val("llm_max_tokens", 4096) as number,
-        openai_api_key: val("openai_api_key", "") as string,
-        anthropic_api_key: val("anthropic_api_key", "") as string,
-        openrouter_api_key: val("openrouter_api_key", "") as string,
-        ollama_base_url: val("ollama_base_url", "") as string,
-        azure_openai_endpoint: val("azure_openai_endpoint", "") as string,
-        azure_openai_key: val("azure_openai_key", "") as string,
-        prompt_caching_enabled: pcVal("enabled", true) as boolean,
-        prompt_caching_anthropic_min_tokens: pcVal("anthropic_min_tokens", 1024) as number,
-        prompt_caching_anthropic_cache_ttl: pcVal("anthropic_cache_ttl", "5m") as "5m" | "1h",
-      });
-      setInitialForm({
-        llm_backend: val("llm_backend", "openai") as LlmBackend,
-        llm_model: val("llm_model", "") as string,
-        llm_temperature: val("llm_temperature", 0.7) as number,
-        llm_max_tokens: val("llm_max_tokens", 4096) as number,
-        openai_api_key: val("openai_api_key", "") as string,
-        anthropic_api_key: val("anthropic_api_key", "") as string,
-        openrouter_api_key: val("openrouter_api_key", "") as string,
-        ollama_base_url: val("ollama_base_url", "") as string,
-        azure_openai_endpoint: val("azure_openai_endpoint", "") as string,
-        azure_openai_key: val("azure_openai_key", "") as string,
-        prompt_caching_enabled: pcVal("enabled", true) as boolean,
-        prompt_caching_anthropic_min_tokens: pcVal("anthropic_min_tokens", 1024) as number,
-        prompt_caching_anthropic_cache_ttl: pcVal("anthropic_cache_ttl", "5m") as "5m" | "1h",
-      });
-      setStored(data.stored ?? {});
-      setError(null);
-    } catch (err) {
-      const msg = apiErrorMessage(err, "Failed to load configuration");
-      setError(msg);
-      // initialForm keeps current values so the form remains interactive
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    // prompt_caching is nested on the backend — read the three flat form
+    // fields from stored.prompt_caching, falling back to the platform
+    // default per key when the object or a key is null/absent
+    const pc = stored.prompt_caching as Record<string, unknown> | null | undefined;
+    const pcVal = (key: string, fallback: unknown) => (pc?.[key] as unknown) ?? fallback;
 
-  useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
+    const current: FormState = {
+      llm_backend: val("llm_backend", "openai") as LlmBackend,
+      llm_model: val("llm_model", "") as string,
+      llm_temperature: val("llm_temperature", 0.7) as number,
+      llm_max_tokens: val("llm_max_tokens", 4096) as number,
+      openai_api_key: val("openai_api_key", "") as string,
+      anthropic_api_key: val("anthropic_api_key", "") as string,
+      openrouter_api_key: val("openrouter_api_key", "") as string,
+      ollama_base_url: val("ollama_base_url", "") as string,
+      azure_openai_endpoint: val("azure_openai_endpoint", "") as string,
+      azure_openai_key: val("azure_openai_key", "") as string,
+      prompt_caching_enabled: pcVal("enabled", true) as boolean,
+      prompt_caching_anthropic_min_tokens: pcVal("anthropic_min_tokens", 1024) as number,
+      prompt_caching_anthropic_cache_ttl: pcVal("anthropic_cache_ttl", "5m") as "5m" | "1h",
+    };
+    setForm(current);
+    setInitialForm(current);
+    setStored(stored);
+    setActionError(null);
+  }
+
+  const loading = configQuery.isLoading;
+  const error = configQuery.error ?? actionError;
 
   // ── Field helpers ─────────────────────────────────────────────────────────
 
@@ -374,19 +355,18 @@ export default function LlmConfigPage() {
     }
 
     setSaving(true);
-    setError(null);
 
     try {
       await patch("/admin/org/config", payload);
       toast.success("LLM configuration saved successfully");
-      await fetchConfig();
       setDirty(false);
       clearResets();
+      configQuery.refetch();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to save configuration";
-      setError(msg);
+      setActionError(msg);
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -433,23 +413,21 @@ export default function LlmConfigPage() {
           </div>
         ) : (
           <>
-            {error && <ErrorState message={error} onRetry={fetchConfig} />}
+            {error && <ErrorState message={error} onRetry={configQuery.refetch} />}
             <div className="space-y-4 max-w-md">
               {/* llm_backend */}
               <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
+                <label htmlFor="llm-backend" className="block text-sm font-medium text-surface-300 mb-1">
                   Backend Provider
                 </label>
                 <div className="flex gap-2 items-start">
-                  <select
-                    className="input-base flex-1"
+                  <SimpleSelect
+                    id="llm-backend"
+                    className="flex-1"
+                    options={PROVIDERS.map((p) => ({ value: p.id, label: p.label }))}
                     value={form.llm_backend}
-                    onChange={(e) => updateField("llm_backend", e.target.value as LlmBackend)}
-                  >
-                    {PROVIDERS.map((p) => (
-                      <option key={p.id} value={p.id}>{p.label}</option>
-                    ))}
-                  </select>
+                    onValueChange={(value) => updateField("llm_backend", value as LlmBackend)}
+                  />
                   {isFieldSet("llm_backend") && (
                     <Button
                       onClick={() => handleStageReset("llm_backend")}
@@ -467,11 +445,12 @@ export default function LlmConfigPage() {
 
               {/* llm_model */}
               <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
+                <label htmlFor="llm-model" className="block text-sm font-medium text-surface-300 mb-1">
                   Model
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
+                    id="llm-model"
                     className="input-base flex-1"
                     placeholder="gpt-4o, claude-sonnet-4, ..."
                     value={form.llm_model}
@@ -494,11 +473,12 @@ export default function LlmConfigPage() {
 
               {/* llm_temperature */}
               <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
+                <label htmlFor="llm-temperature" className="block text-sm font-medium text-surface-300 mb-1">
                   Temperature
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
+                    id="llm-temperature"
                     className="input-base flex-1"
                     type="number"
                     step="0.1"
@@ -524,11 +504,12 @@ export default function LlmConfigPage() {
 
               {/* llm_max_tokens */}
               <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
+                <label htmlFor="llm-max-tokens" className="block text-sm font-medium text-surface-300 mb-1">
                   Max Tokens
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
+                    id="llm-max-tokens"
                     className="input-base flex-1"
                     type="number"
                     min="1"
@@ -568,53 +549,55 @@ export default function LlmConfigPage() {
           </div>
 
           <div className="space-y-4 max-w-md">
-            {provider.fields.map((f) => (
-              <Fragment key={f.field}>
-                {/* url fields keep the label above the input row, as before */}
-                {f.kind === "url" && (
-                  <label className="block text-sm font-medium text-surface-300 mb-1">
-                    {f.label}
-                  </label>
-                )}
-                <div className="flex gap-2 items-start">
-                  {f.kind === "secret" ? (
-                    <div className="flex-1">
-                      <SecretInput
-                        label={f.label}
-                        value={String(form[f.field] ?? "")}
-                        onChange={(v) => updateField(f.field, v)}
+              {provider.fields.map((f) => (
+                <Fragment key={f.field}>
+                  {/* url fields keep the label above the input row, as before */}
+                  {f.kind === "url" && (
+                    <label htmlFor={f.field} className="block text-sm font-medium text-surface-300 mb-1">
+                      {f.label}
+                    </label>
+                  )}
+                  <div className="flex gap-2 items-start">
+                    {f.kind === "secret" ? (
+                      <div className="flex-1">
+                        <SecretInput
+                          id={f.field}
+                          label={f.label}
+                          value={String(form[f.field] ?? "")}
+                          onChange={(v) => updateField(f.field, v)}
+                          placeholder={f.placeholder}
+                          visible={Boolean(visibleFields[f.field])}
+                          onToggleVisibility={() => toggleFieldVisibility(f.field)}
+                        />
+                      </div>
+                    ) : (
+                      <input
+                        id={f.field}
+                        className="input-base flex-1"
+                        type="url"
                         placeholder={f.placeholder}
-                        visible={Boolean(visibleFields[f.field])}
-                        onToggleVisibility={() => toggleFieldVisibility(f.field)}
+                        value={String(form[f.field] ?? "")}
+                        onChange={(e) => updateField(f.field, e.target.value)}
                       />
-                    </div>
-                  ) : (
-                    <input
-                      className="input-base flex-1"
-                      type="url"
-                      placeholder={f.placeholder}
-                      value={String(form[f.field] ?? "")}
-                      onChange={(e) => updateField(f.field, e.target.value)}
-                    />
+                    )}
+                    {isFieldSet(f.field) && (
+                      <Button
+                        onClick={() => handleStageReset(f.field)}
+                        variant="ghost" size="sm"
+                        // secret fields: SecretInput renders its own label above the
+                        // input, so push the reset button down to the input row
+                        className={`rounded-md text-surface-400 hover:text-brand-300 shrink-0 ${f.kind === "secret" ? "mt-7" : "mt-0.5"}`}
+                        title="Remove stored value — default will apply on save"
+                      >
+                        <RotateCcw size={14} />
+                      </Button>
+                    )}
+                  </div>
+                  {pendingResets.has(f.field) && (
+                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
                   )}
-                  {isFieldSet(f.field) && (
-                    <Button
-                      onClick={() => handleStageReset(f.field)}
-                      variant="ghost" size="sm"
-                      // secret fields: SecretInput renders its own label above the
-                      // input, so push the reset button down to the input row
-                      className={`rounded-md text-surface-400 hover:text-brand-300 shrink-0 ${f.kind === "secret" ? "mt-7" : "mt-0.5"}`}
-                      title="Remove stored value — default will apply on save"
-                    >
-                      <RotateCcw size={14} />
-                    </Button>
-                  )}
-                </div>
-                {pendingResets.has(f.field) && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                )}
-              </Fragment>
-            ))}
+                </Fragment>
+              ))}
           </div>
         </div>
       )}
@@ -637,13 +620,14 @@ export default function LlmConfigPage() {
             <div>
               <div className="flex items-start justify-between">
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1">
+                  <label htmlFor="prompt-caching-enabled" className="block text-sm font-medium text-surface-300 mb-1">
                     Enable prompt caching
                   </label>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
+                  <label htmlFor="prompt-caching-enabled" className="flex items-center gap-3 cursor-pointer">
                     <input
+                      id="prompt-caching-enabled"
                       type="checkbox"
                       className="rounded border-surface-600 bg-surface-800 text-brand-500"
                       checked={form.prompt_caching_enabled}
@@ -672,11 +656,12 @@ export default function LlmConfigPage() {
 
             {/* prompt_caching_anthropic_min_tokens */}
             <div>
-              <label className="block text-sm font-medium text-surface-300 mb-1">
+              <label htmlFor="prompt-caching-min-tokens" className="block text-sm font-medium text-surface-300 mb-1">
                 Minimum input tokens
               </label>
               <div className="flex gap-2 items-start">
                 <input
+                  id="prompt-caching-min-tokens"
                   className="input-base flex-1"
                   type="number"
                   min="512"
@@ -708,20 +693,22 @@ export default function LlmConfigPage() {
 
             {/* prompt_caching_anthropic_cache_ttl */}
             <div>
-              <label className="block text-sm font-medium text-surface-300 mb-1">
+              <label htmlFor="prompt-caching-ttl" className="block text-sm font-medium text-surface-300 mb-1">
                 Cache TTL
               </label>
               <div className="flex gap-2 items-start">
-                <select
-                  className="input-base flex-1"
+                <SimpleSelect
+                  id="prompt-caching-ttl"
+                  className="flex-1"
+                  options={[
+                    { value: "5m", label: "5m — 1.25× write cost" },
+                    { value: "1h", label: "1h — 2× write cost" },
+                  ]}
                   value={form.prompt_caching_anthropic_cache_ttl}
-                  onChange={(e) =>
-                    updateField("prompt_caching_anthropic_cache_ttl", e.target.value as "5m" | "1h")
+                  onValueChange={(value) =>
+                    updateField("prompt_caching_anthropic_cache_ttl", value as "5m" | "1h")
                   }
-                >
-                  <option value="5m">5m — 1.25× write cost</option>
-                  <option value="1h">1h — 2× write cost</option>
-                </select>
+                />
                 {isFieldSet("prompt_caching_anthropic_cache_ttl") && (
                   <Button
                     onClick={() => handleStageReset("prompt_caching_anthropic_cache_ttl")}

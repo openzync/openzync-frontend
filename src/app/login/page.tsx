@@ -3,9 +3,11 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, Loader2, LogIn, Mail } from "lucide-react";
+import { Loader2, LogIn, Mail } from "lucide-react";
 import { post, storeTokens } from "@/lib/api-client";
 import { AuthLayout } from "@/components/shared/auth-layout";
+import { PasswordField } from "@/components/shared/password-field";
+import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 
 function LoginNotice() {
@@ -31,7 +33,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
   // Focus email input after hydration to avoid SSR mismatch with autoFocus
@@ -94,12 +95,10 @@ export default function LoginPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Email
-                </label>
+              <Field label="Email" htmlFor="login-email">
                 <input
                   ref={emailRef}
+                  id="login-email"
                   type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -109,32 +108,17 @@ export default function LoginPage() {
                   placeholder="you@example.com"
                   suppressHydrationWarning
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Password
-                </label>
-                <div className="relative" suppressHydrationWarning>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                    className="input-base w-full pr-10"
-                    placeholder="Enter your password"
-                    suppressHydrationWarning
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
+              <PasswordField
+                id="login-password"
+                label="Password"
+                value={password}
+                onChange={setPassword}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                required
+              />
 
               <div className="flex justify-end -mt-2">
                 <Link
@@ -175,15 +159,6 @@ export default function LoginPage() {
               <Mail size={16} />
               Sign in with a magic code
             </Link>
-
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <Button variant="secondary" size="sm" className="w-full" disabled>
-                GitHub
-              </Button>
-              <Button variant="secondary" size="sm" className="w-full" disabled>
-                Google
-              </Button>
-            </div>
 
             <p className="mt-6 text-center text-sm text-surface-400">
               Don&apos;t have an account?{" "}

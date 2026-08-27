@@ -6,6 +6,7 @@ import { get, ApiError } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { ErrorState } from "@/components/shared/error-state";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
@@ -372,52 +373,43 @@ export default function QueryPlaygroundPage() {
               ) : (
                 <>
                   <div className="card-base overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-surface-800">
-                          {result.columns.map((col, i) => (
-                            <th
-                              key={col}
-                              onClick={() => handleSort(i)}
-                              className={cn(
-                                "px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400",
-                                "cursor-pointer hover:text-surface-200 transition-colors select-none",
-                                sort?.colIndex === i && "text-brand-300",
-                              )}
-                            >
-                              <span className="inline-flex items-center gap-1">
-                                {col}
-                                {sort?.colIndex === i && (
-                                  <span className="text-[10px]">
-                                    {sort.direction === "asc" ? "\u25B2" : "\u25BC"}
-                                  </span>
-                                )}
-                              </span>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-surface-800">
-                        {sortedRows.map((row, i) => (
-                          <tr
-                            key={i}
+                    <Table>
+                      <TableHeader>
+                        {result.columns.map((col, i) => (
+                          <TableHead
+                            key={col}
+                            onClick={() => handleSort(i)}
                             className={cn(
-                              "hover:bg-surface-800/50 transition-colors",
-                              i % 2 === 0 ? "bg-surface-950/50" : "",
+                              "cursor-pointer hover:text-surface-200 transition-colors select-none",
+                              sort?.colIndex === i && "text-brand-300",
                             )}
                           >
+                            <span className="inline-flex items-center gap-1">
+                              {col}
+                              {sort?.colIndex === i && (
+                                <span className="text-[10px]">
+                                  {sort.direction === "asc" ? "\u25B2" : "\u25BC"}
+                                </span>
+                              )}
+                            </span>
+                          </TableHead>
+                        ))}
+                      </TableHeader>
+                      <TableBody>
+                        {sortedRows.map((row, i) => (
+                          <TableRow key={i}>
                             {row.map((cell, j) => (
-                              <td
+                              <TableCell
                                 key={j}
-                                className="px-4 py-3 font-mono text-xs text-surface-200 whitespace-nowrap"
+                                className="font-mono text-xs text-surface-200 whitespace-nowrap"
                               >
                                 {String(cell)}
-                              </td>
+                              </TableCell>
                             ))}
-                          </tr>
+                          </TableRow>
                         ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
 
                   {/* Pagination */}

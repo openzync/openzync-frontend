@@ -5,40 +5,53 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
 import {
-  LayoutDashboard,
-  Activity,
-  Users,
   MessageSquare,
   BrainCircuit,
   GitBranch,
   Shield,
   Key,
-  FileJson,
   Settings,
   Search,
+  Users,
 
   LogOut,
   Menu,
   ChevronLeft,
   ChevronRight,
-  Webhook,
-  FileText,
-  FileCode,
-  SlidersHorizontal,
   FolderKanban,
   MapPin,
   X,
-  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  NAV_SECTIONS,
+  isVisible,
+  resolveBreadcrumb,
+  type NavSectionId,
+} from "@/lib/nav";
 import { get, getAccessToken, clearTokens } from "@/lib/api-client";
 import { getJwtPayload } from "@/lib/jwt";
 import { RequireAuth } from "./require-auth";
 import { useUser } from "@/contexts/user-context";
+import { ConfigDirtyProvider, useConfigDirty } from "@/contexts/config-dirty";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { usePinnedProjects } from "@/hooks/use-pinned-projects";
 import { CommandPalette } from "@/components/shared/command-palette";
 import { AppVersion } from "@/components/shared/app-version";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  TooltipProvider,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -61,9 +74,33 @@ function isOnProjectList(pathname: string): boolean {
 // ─── Sidebar ───────────────────────────────────────────────────────────────────
 
 /**
+ * Wraps an element in a Tooltip only while `show` is true — used for
+ * collapsed-sidebar icon-only controls whose label would otherwise be
+ * inaccessible (replaces the old native `title` attributes).
+ */
+function CollapsedTip({
+  show,
+  label,
+  children,
+}: {
+  show: boolean;
+  label: string;
+  children: React.ReactElement;
+}) {
+  if (!show) return children;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/**
  * Real <Link> for every sidebar destination — right-click / open-in-new-tab
  * work, and screen readers announce navigation. `onClick` still fires (used by
- * the mobile drawer to close itself alongside navigation).
+ * the mobile drawer to close itself alongside navigation). When the sidebar is
+ * collapsed the visible label disappears, so a Tooltip carries it instead.
  */
 function SidebarLink({
   href,
@@ -79,26 +116,37 @@ function SidebarLink({
   collapsed?: boolean;
   /** Center the icon when collapsed (matches the previous per-section styling). */
   centerCollapsed?: boolean;
+  /** Label revealed as a Tooltip when collapsed; redundant when expanded. */
   title?: string;
   onClick?: () => void;
   children: React.ReactNode;
 }) {
+  // Unsaved-changes guard: intercept plain clicks while a page is dirty and
+  // route them through the provider's confirm dialog. Modified clicks
+  // (cmd/ctrl/shift — new tab/window) pass through untouched.
+  const { isDirty, navigate } = useConfigDirty();
   return (
-    <Link
-      href={href}
-      onClick={onClick}
-      title={title}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-        centerCollapsed && collapsed && "justify-center px-0",
-        active
-          ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
-          : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
-      )}
-    >
-      {children}
-    </Link>
+    <CollapsedTip show={Boolean(collapsed && title)} label={title ?? ""}>
+      <Link
+        href={href}
+        onClick={(e) => {
+          onClick?.();
+          if (!isDirty || e.metaKey || e.ctrlKey || e.shiftKey) return;
+          e.preventDefault();
+          navigate(href);
+        }}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
+          centerCollapsed && collapsed && "justify-center px-0",
+          active
+            ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
+            : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
+        )}
+      >
+        {children}
+      </Link>
+    </CollapsedTip>
   );
 }
 
@@ -122,7 +170,6 @@ function Sidebar({
   const projectId = extractProjectId(pathname);
   const { pinned } = usePinnedProjects();
 
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [currentUserLabel, setCurrentUserLabel] = useState("User");
 
   // Fetch user info on mount
@@ -143,23 +190,16 @@ function Sidebar({
       });
   }, []);
 
-  // Close user menu on Escape key press
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setUserMenuOpen(false);
-      }
-    };
-    if (userMenuOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-    }
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [userMenuOpen]);
-
   const isActive = (href: string) => {
     if (href === "/overview") return pathname === "/overview";
     return pathname.startsWith(href);
   };
+
+  // Manifest entries the current user may see, in declared order.
+  const visibleEntries = (sectionId: NavSectionId) =>
+    (NAV_SECTIONS.find((s) => s.id === sectionId)?.entries ?? []).filter((entry) =>
+      isVisible(entry, can, isSuperadmin),
+    );
 
   return (
     <aside
@@ -214,25 +254,21 @@ function Sidebar({
               )}
             </div>
             <div className="space-y-0.5">
-              {[
-                { label: "Overview", href: "/overview", icon: <LayoutDashboard size={18} /> },
-                // Monitoring is gated on members:read (org-level read access)
-                ...(can("members:read")
-                  ? [{ label: "Monitoring", href: "/monitoring", icon: <Activity size={18} /> }]
-                  : []),
-              ].map((item) => {
-                const active = isActive(item.href);
+              {visibleEntries("insights").map((entry) => {
+                const active = isActive(entry.href);
+                const Icon = entry.icon;
                 return (
                   <SidebarLink
-                    key={item.href}
-                    href={item.href}
+                    key={entry.href}
+                    href={entry.href}
                     active={active}
+                    title={entry.label}
                     onClick={onClose}
                   >
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
-                      {item.icon}
+                      <Icon size={18} />
                     </span>
-                    <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
+                    <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{entry.label}</span>
                   </SidebarLink>
                 );
               })}
@@ -262,6 +298,7 @@ function Sidebar({
                   active={isActiveProject}
                   collapsed={collapsed}
                   centerCollapsed
+                  title={p.name}
                   onClick={onClose}
                 >
                   <span className={cn("shrink-0", isActiveProject ? "text-brand-300" : "text-surface-400")}>
@@ -279,6 +316,7 @@ function Sidebar({
                 active={onProjectList}
                 collapsed={collapsed}
                 centerCollapsed
+                title="View all projects"
                 onClick={onClose}
               >
                 <span className="shrink-0 text-surface-400">
@@ -306,6 +344,7 @@ function Sidebar({
                       active={active}
                       collapsed={collapsed}
                       centerCollapsed
+                      title={item.label}
                       onClick={onClose}
                     >
                       <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
@@ -345,6 +384,7 @@ function Sidebar({
                     key={item.href}
                     href={item.href}
                     active={active}
+                    title={item.label}
                     onClick={onClose}
                   >
                     <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
@@ -363,15 +403,8 @@ function Sidebar({
           (() => {
             // Users/org member management → members:read; config surfaces → configuration:read.
             // The section header collapses with the items so members never see a bare header.
-            const adminItems = [
-              { label: "Users", href: "/users", icon: <Users size={18} />, show: can("members:read") },
-              { label: "Extraction Schemas", href: "/settings/schemas", icon: <FileJson size={18} />, show: can("configuration:read") },
-              { label: "Webhooks", href: "/settings/webhooks", icon: <Webhook size={18} />, show: can("configuration:read") },
-              { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: <FileText size={18} />, show: can("configuration:read") },
-              { label: "Prompt Templates", href: "/settings/prompts", icon: <FileCode size={18} />, show: can("configuration:read") },
-              { label: "Configuration", href: "/settings/org-config", icon: <SlidersHorizontal size={18} />, show: can("configuration:read") },
-            ].filter((item) => item.show);
-            if (adminItems.length === 0) return null;
+            const adminEntries = visibleEntries("admin");
+            if (adminEntries.length === 0) return null;
             return (
               <div>
                 <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
@@ -384,19 +417,21 @@ function Sidebar({
                   )}
                 </div>
                 <div className="space-y-0.5">
-                  {adminItems.map((item) => {
-                    const active = isActive(item.href);
+                  {adminEntries.map((entry) => {
+                    const active = isActive(entry.href);
+                    const Icon = entry.icon;
                     return (
                       <SidebarLink
-                        key={item.href}
-                        href={item.href}
+                        key={entry.href}
+                        href={entry.href}
                         active={active}
+                        title={entry.label}
                         onClick={onClose}
                       >
                         <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
-                          {item.icon}
+                          <Icon size={18} />
                         </span>
-                        <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
+                        <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{entry.label}</span>
                       </SidebarLink>
                     );
                   })}
@@ -405,118 +440,114 @@ function Sidebar({
             );
           })()}
 
-        {/* ── System (hidden inside project pages) ── */}
-        {!inProject && (
-          <div>
-            <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
-              {collapsed ? (
-                <div className="h-px bg-surface-700" />
-              ) : (
-                <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
-                  System
-                </h2>
-              )}
-            </div>
-            <div className="space-y-0.5">
-              {[
-                // Audit Log is gated on members:read (org-level read access)
-                ...(can("members:read")
-                  ? [{ label: "Audit Log", href: "/audit", icon: <Shield size={18} /> }]
-                  : []),
-                // Platform Admin is root/superadmin only — the platform console.
-                ...(isSuperadmin
-                  ? [{ label: "Platform Admin", href: "/superadmin/orgs", icon: <ShieldCheck size={18} /> }]
-                  : []),
-              ].map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <SidebarLink
-                    key={item.href}
-                    href={item.href}
-                    active={active}
-                    onClick={onClose}
-                  >
-                    <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
-                      {item.icon}
-                    </span>
-                    <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
-                  </SidebarLink>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* ── System (hidden inside project pages; header hides with items) ── */}
+        {!inProject &&
+          (() => {
+            const systemEntries = visibleEntries("system");
+            if (systemEntries.length === 0) return null;
+            return (
+              <div>
+                <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
+                  {collapsed ? (
+                    <div className="h-px bg-surface-700" />
+                  ) : (
+                    <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
+                      System
+                    </h2>
+                  )}
+                </div>
+                <div className="space-y-0.5">
+                  {systemEntries.map((entry) => {
+                    const active = isActive(entry.href);
+                    const Icon = entry.icon;
+                    return (
+                      <SidebarLink
+                        key={entry.href}
+                        href={entry.href}
+                        active={active}
+                        title={entry.label}
+                        onClick={onClose}
+                      >
+                        <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
+                          <Icon size={18} />
+                        </span>
+                        <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{entry.label}</span>
+                      </SidebarLink>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
       </nav>
 
       {/* Bottom section */}
       <div className="mt-auto border-t border-surface-800 p-2 space-y-1">
         {/* View all projects — bottom section when inside a project */}
         {inProject && (
-          <Link
-            href="/projects"
-            onClick={onClose}
-            className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
-            title={collapsed ? "View all projects" : undefined}
-          >
-            <FolderKanban size={18} />
-            <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>View all projects</span>
-          </Link>
+          <CollapsedTip show={collapsed} label="View all projects">
+            <Link
+              href="/projects"
+              onClick={onClose}
+              className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
+            >
+              <FolderKanban size={18} />
+              <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>View all projects</span>
+            </Link>
+          </CollapsedTip>
         )}
 
         {/* Search — opens command palette */}
-        <button
-          onClick={() => onSearchOpen?.()}
-          className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
-          title={collapsed ? "Search" : undefined}
-        >
-          <Search size={18} />
-          <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>Search</span>
-        </button>
-
-        {/* User avatar + dropdown */}
-        <div className="relative">
+        <CollapsedTip show={collapsed} label="Search">
           <button
-            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            onClick={() => onSearchOpen?.()}
             className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
-            title={collapsed ? currentUserLabel : undefined}
           >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white">
-              {(currentUserLabel?.[0] || "U").toUpperCase()}
-            </span>
-            <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{currentUserLabel}</span>
+            <Search size={18} />
+            <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>Search</span>
           </button>
+        </CollapsedTip>
 
-          {userMenuOpen && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
-              <div className="absolute bottom-full left-0 mb-2 z-20 w-56 rounded-lg border border-surface-800 bg-surface-900 p-1 shadow-lg shadow-black/30 animate-slide-up">
-                <div className="px-2 py-1.5 text-sm text-surface-400 border-b border-surface-800 mb-1">
-                  {currentUserLabel}
-                </div>
-                <Link
-                  href="/settings"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-surface-200 hover:bg-surface-800"
-                >
-                  <Settings size={14} />
-                  Settings
-                </Link>
-                <hr className="my-1 border-surface-800" />
-                <button
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    clearTokens();
-                    router.push("/login");
-                  }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-error hover:bg-surface-800"
-                >
-                  <LogOut size={14} />
-                  Sign Out
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        {/* User avatar + menu — Radix handles focus, typeahead, Escape,
+            click-outside; placement is bottom-up like the old hand-rolled
+            popover. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
+              title={collapsed ? currentUserLabel : undefined}
+            >
+              <Avatar className="h-6 w-6">
+                <AvatarFallback className="rounded-full bg-brand-500 text-[10px] font-bold text-white">
+                  {(currentUserLabel?.[0] || "U").toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{currentUserLabel}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-56">
+            <div className="border-b border-surface-800 mb-1 px-2 py-1.5 text-sm text-surface-400">
+              {currentUserLabel}
+            </div>
+            <DropdownMenuItem asChild>
+              <Link href="/account" className="flex items-center gap-2">
+                <Settings size={14} />
+                Account
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              destructive
+              onSelect={() => {
+                clearTokens();
+                router.push("/login");
+              }}
+            >
+              <LogOut size={14} />
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <AppVersion />
       </div>
     </aside>
@@ -568,64 +599,13 @@ export default function DashboardLayout({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Build breadcrumb items from the current pathname
-  const breadcrumbItems = (() => {
-    // Project pages
-    if (pathname.startsWith("/projects/")) {
-      const pageLabel = (() => {
-        if (pathname.endsWith("/sessions")) return "Sessions";
-        if (pathname.endsWith("/memory")) return "Memory";
-        if (pathname.includes("/graph/communities")) return "Communities";
-        if (pathname.endsWith("/graph")) return "Graph Explorer";
-        if (pathname.endsWith("/members")) return "Members";
-        if (pathname.endsWith("/settings")) return "Project Settings";
-        if (pathname.includes("/settings/api-keys")) return "API Keys";
-        if (pathname.match(/\/sessions\/[^/]+$/)) return "Session";
-        if (pathname.includes("/messages")) return "Messages";
-        if (pathname.includes("/facts")) return "Facts";
-        if (pathname.includes("/classifications")) return "Classifications";
-        if (pathname.includes("/extractions")) return "Extractions";
-        return "Project";
-      })();
-      return [
-        { label: "Projects", href: "/projects" },
-        ...(projectName ? [{ label: projectName }] : []),
-        { label: pageLabel },
-      ];
-    }
-
-    // Non-project pages
-    if (pathname === "/projects") return [{ label: "Projects" }];
-    if (pathname === "/overview") return [{ label: "Insights" }, { label: "Overview" }];
-    if (pathname.startsWith("/monitoring")) {
-      if (pathname.includes("/query")) return [{ label: "Insights" }, { label: "Monitoring" }, { label: "Query Playground" }];
-      return [{ label: "Insights" }, { label: "Monitoring" }];
-    }
-    if (pathname.startsWith("/superadmin")) {
-      if (pathname.endsWith("/requests")) return [{ label: "Platform Admin" }, { label: "Approval Requests" }];
-      if (pathname.endsWith("/config")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Configuration" }];
-      if (pathname.endsWith("/members")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Members" }];
-      if (pathname.endsWith("/orgs")) return [{ label: "Platform Admin" }, { label: "Organizations" }];
-      return [{ label: "Platform Admin" }, { label: "System Configuration" }];
-    }
-    if (pathname.startsWith("/users")) return [{ label: "Administration" }, { label: "Users" }];
-    if (pathname.startsWith("/audit")) return [{ label: "System" }, { label: "Audit Log" }];
-    if (pathname.startsWith("/settings")) {
-      if (pathname.includes("/api-keys")) return [{ label: "Administration" }, { label: "API Keys" }];
-      if (pathname.includes("/schemas")) return [{ label: "Administration" }, { label: "Extraction Schemas" }];
-      if (pathname.includes("/classifications")) return [{ label: "Administration" }, { label: "Classifications" }];
-      if (pathname.includes("/extractions")) return [{ label: "Administration" }, { label: "Extractions" }];
-      if (pathname.includes("/webhooks")) return [{ label: "Administration" }, { label: "Webhooks" }];
-      if (pathname.includes("/extraction-instructions")) return [{ label: "Administration" }, { label: "Extraction Instructions" }];
-      if (pathname.includes("/prompts")) return [{ label: "Administration" }, { label: "Prompt Templates" }];
-      if (pathname.includes("/org-config")) return [{ label: "Administration" }, { label: "Configuration" }];
-      return [{ label: "System" }, { label: "Account Settings" }];
-    }
-    return [];
-  })();
+  // Breadcrumb from the nav manifest + project-path ladder (src/lib/nav.ts)
+  const breadcrumbItems = resolveBreadcrumb(pathname, projectName);
 
   return (
     <RequireAuth>
+    <ConfigDirtyProvider>
+    <TooltipProvider delayDuration={200}>
     <div className="flex h-screen overflow-hidden bg-surface-950">
       {/* Floating mobile hamburger */}
       {!mobileOpen && (
@@ -678,7 +658,9 @@ export default function DashboardLayout({
         </div>
       </main>
     </div>
+    </TooltipProvider>
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
+    </ConfigDirtyProvider>
     </RequireAuth>
   );
 }

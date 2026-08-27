@@ -1,10 +1,42 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import { useEffect, useReducer } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MemoryPage from "@/app/(dashboard)/projects/[id]/memory/page";
 import { post, uploadWithBlobs, ApiError } from "@/lib/api-client";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────────
+
+const { mockReplace, mockSearchParamsGet, setSearchParams, onMockReplace } =
+  vi.hoisted(() => {
+    // Stateful URL simulation: router.replace writes ?tab= back into the
+    // search-param mock and notifies subscribers, mirroring how real Next.js
+    // re-renders useSearchParams consumers after a replace.
+    const params = new Map<string, string>();
+    const listeners = new Set<() => void>();
+    return {
+      mockReplace: vi.fn((url: string) => {
+        params.clear();
+        for (const [k, v] of new URL(url, "http://x").searchParams) params.set(k, v);
+        for (const notify of listeners) notify();
+      }),
+      mockSearchParamsGet: vi.fn((key: string) => params.get(key) ?? null),
+      setSearchParams: (entries: Record<string, string>) => {
+        params.clear();
+        for (const [k, v] of Object.entries(entries)) params.set(k, v);
+      },
+      onMockReplace: (cb: () => void) => {
+        listeners.add(cb);
+        return () => listeners.delete(cb);
+      },
+    };
+  });
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/projects/project-123/memory",
+  useRouter: () => ({ push: vi.fn(), replace: mockReplace, prefetch: vi.fn() }),
+  useSearchParams: () => ({ get: (key: string) => mockSearchParamsGet(key) }),
+}));
 
 const mockProject = {
   id: "project-123",
@@ -65,18 +97,38 @@ vi.mock("@/components/guides", () => ({
   GuideMemory: () => <div>Memory Icon</div>,
 }));
 
+// jsdom lacks the PointerEvent APIs Radix Select (Default Role) relies on
+beforeAll(() => {
+  window.HTMLElement.prototype.hasPointerCapture = () => false;
+  window.HTMLElement.prototype.scrollIntoView = () => {};
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
+  setSearchParams({});
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// Re-renders the page whenever the URL mock changes — the stand-in for
+// Next.js re-rendering useSearchParams consumers after router.replace.
+function MemoryPageHarness() {
+  const [, force] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    const unsub = onMockReplace(force);
+    return () => {
+      unsub();
+    };
+  }, []);
+  return <MemoryPage />;
+}
+
 // The submit button and the Ingest tab share the accessible name "Ingest" —
 // scope queries to the ingest card via its heading.
 function renderIngestCard() {
-  render(<MemoryPage />);
+  render(<MemoryPageHarness />);
   const heading = screen.getByText("Ingest Messages");
   const card = heading.closest(".card-base");
   if (!card) throw new Error("Ingest card not found");
@@ -215,5 +267,52 @@ describe("MemoryPage Ingest", () => {
       ),
     ).toBeInTheDocument();
     expect(uploadWithBlobs).not.toHaveBeenCalled();
+  });
+});
+
+// ─── ?tab= URL state ──────────────────────────────────────────────────────────────
+
+describe("MemoryPage tabs (?tab= URL state)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setSearchParams({});
+  });
+
+  it("defaults to the ingest tab when ?tab= is absent", () => {
+    render(<MemoryPageHarness />);
+    expect(screen.getByRole("tab", { name: /Ingest/i })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByText("Ingest Messages")).toBeInTheDocument();
+    expect(screen.queryByText("Query Context")).not.toBeInTheDocument();
+  });
+
+  it("clicking Context writes ?tab=context via router.replace (no scroll) and switches panels", async () => {
+    const user = userEvent.setup();
+    render(<MemoryPageHarness />);
+
+    await user.click(screen.getByRole("tab", { name: /Context/i }));
+
+    expect(mockReplace).toHaveBeenCalledWith(
+      "/projects/project-123/memory?tab=context",
+      { scroll: false },
+    );
+    expect(await screen.findByText("Query Context")).toBeInTheDocument();
+    expect(screen.queryByText("Ingest Messages")).not.toBeInTheDocument();
+  });
+
+  it("deep-links straight into a tab from ?tab=search", () => {
+    setSearchParams({ tab: "search" });
+    render(<MemoryPageHarness />);
+    expect(screen.getByText("Search Memory")).toBeInTheDocument();
+    expect(screen.queryByText("Ingest Messages")).not.toBeInTheDocument();
+  });
+
+  it("clamps an invalid ?tab= value back to ingest", () => {
+    setSearchParams({ tab: "bogus" });
+    render(<MemoryPageHarness />);
+    expect(screen.getByText("Ingest Messages")).toBeInTheDocument();
+    expect(screen.queryByText("Search Memory")).not.toBeInTheDocument();
   });
 });

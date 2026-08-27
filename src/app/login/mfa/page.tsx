@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Shield, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { AuthLayout } from "@/components/shared/auth-layout";
 import { post, storeTokens } from "@/lib/api-client";
 
@@ -74,11 +75,9 @@ function MfaChallengeForm() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Authentication Code
-                </label>
+              <Field label="Authentication Code" htmlFor="mfa-code">
                 <input
+                  id="mfa-code"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
@@ -91,7 +90,7 @@ function MfaChallengeForm() {
                   className="input-base w-full text-center text-2xl tracking-[0.5em] font-mono"
                   placeholder="000000"
                 />
-              </div>
+              </Field>
 
               <Button
                 variant="primary"

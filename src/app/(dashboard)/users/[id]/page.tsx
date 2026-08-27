@@ -5,8 +5,6 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Copy,
-  Check,
   Calendar,
   Hash,
   User as UserIcon,
@@ -30,8 +28,10 @@ import { get, post, put, patch as apiPatch, ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogCloseButton } from "@/components/ui/dialog";
+import { Field } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/shared/error-state";
+import { CopyButton } from "@/components/shared/copy-button";
 import { useUser, ALL_PERMISSIONS } from "@/contexts/user-context";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -88,32 +88,6 @@ function formatDateTime(dateStr: string): string {
 function shortId(id: string): string {
   if (id.length <= 12) return id;
   return `${id.slice(0, 6)}\u2026${id.slice(-4)}`;
-}
-
-// ─── Copy Button ───────────────────────────────────────────────────────────────
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard API not available
-    }
-  }
-
-  return (
-    <button
-      onClick={handleCopy}
-      className="text-surface-500 hover:text-surface-300 transition-colors shrink-0"
-      title="Copy to clipboard"
-    >
-      {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
-    </button>
-  );
 }
 
 // ─── Metadata Row ──────────────────────────────────────────────────────────────
@@ -219,11 +193,9 @@ function InstructionCreateDialog({ onClose, onCreate }: InstructionCreateDialogP
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Name */}
-        <div>
-          <label className="block text-sm font-medium text-surface-300 mb-1">
-            Name <span className="text-error">*</span>
-          </label>
+        <Field label="Name" htmlFor="instruction-create-name" required hint="A label for this instruction.">
           <input
+            id="instruction-create-name"
             className="input-base"
             placeholder="e.g. Tone & Voice"
             value={name}
@@ -231,25 +203,19 @@ function InstructionCreateDialog({ onClose, onCreate }: InstructionCreateDialogP
             autoFocus
             disabled={submitting}
           />
-          <p className="text-xs text-surface-500 mt-1">A label for this instruction.</p>
-        </div>
+        </Field>
 
         {/* Text */}
-        <div>
-          <label className="block text-sm font-medium text-surface-300 mb-1">
-            Instruction Text <span className="text-error">*</span>
-          </label>
+        <Field label="Instruction Text" htmlFor="instruction-create-text" required hint="The instruction given to the LLM when generating the summary.">
           <textarea
+            id="instruction-create-text"
             className="input-base min-h-[120px] resize-y"
             placeholder="e.g. Summarize the user's tone, communication style, and preferred vocabulary."
             value={text}
             onChange={(e) => { setText(e.target.value); if (error) setError(null); }}
             disabled={submitting}
           />
-          <p className="text-xs text-surface-500 mt-1">
-            The instruction given to the LLM when generating the summary.
-          </p>
-        </div>
+        </Field>
 
         {error && (
           <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
@@ -322,11 +288,9 @@ function InstructionEditDialog({ initial, onClose, onSave }: InstructionEditDial
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Name */}
-        <div>
-          <label className="block text-sm font-medium text-surface-300 mb-1">
-            Name <span className="text-error">*</span>
-          </label>
+        <Field label="Name" htmlFor="instruction-edit-name" required>
           <input
+            id="instruction-edit-name"
             className="input-base"
             placeholder="e.g. Tone & Voice"
             value={name}
@@ -334,20 +298,18 @@ function InstructionEditDialog({ initial, onClose, onSave }: InstructionEditDial
             autoFocus
             disabled={submitting}
           />
-        </div>
+        </Field>
 
         {/* Text */}
-        <div>
-          <label className="block text-sm font-medium text-surface-300 mb-1">
-            Instruction Text <span className="text-error">*</span>
-          </label>
+        <Field label="Instruction Text" htmlFor="instruction-edit-text" required>
           <textarea
+            id="instruction-edit-text"
             className="input-base min-h-[120px] resize-y"
             value={text}
             onChange={(e) => { setText(e.target.value); if (error) setError(null); }}
             disabled={submitting}
           />
-        </div>
+        </Field>
 
         {error && (
           <div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2">
@@ -724,7 +686,7 @@ export default function UserDetailPage() {
                   <span className="font-mono text-xs bg-surface-800 rounded px-2 py-0.5">
                     {shortId(user.id)}
                   </span>
-                  <CopyButton text={user.id} />
+                  <CopyButton value={user.id} />
                 </div>
               </MetadataRow>
 

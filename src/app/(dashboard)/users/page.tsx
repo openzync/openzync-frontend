@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import {
-  Plus, Copy, Edit, Trash2, RefreshCw, UsersIcon, AlertCircle, Eye, ShieldCheck, ShieldOff, UserPlus, Ban,
+  Plus, Edit, Trash2, RefreshCw, UsersIcon, AlertCircle, Eye, ShieldCheck, ShieldOff, UserPlus, Ban,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { get, post, patch as apiPatch, del as apiDel, ApiError, apiErrorMessage, inviteUser, revokeInvite } from "@/lib/api-client";
-import { formatDate, timeAgo, copyToClipboard } from "@/lib/utils";
+import { formatDate, timeAgo } from "@/lib/utils";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageGuide, GuideSecurity } from "@/components/guides";
@@ -19,6 +18,8 @@ import { Dialog } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { CopyButton } from "@/components/shared/copy-button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { useUser } from "@/contexts/user-context";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -288,11 +289,6 @@ export default function UsersPage() {
     } finally { setDeleting(false); }
   };
 
-  const handleCopyId = async (id: string) => {
-    const ok = await copyToClipboard(id);
-    toast.success(ok ? "User ID copied to clipboard" : "Failed to copy");
-  };
-
   const handleInvite = async (data: { email: string; name: string }) => {
     await inviteUser(data.email, data.name);
     setShowInvite(false);
@@ -373,91 +369,94 @@ export default function UsersPage() {
 
       {/* Users table */}
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">External ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Role</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Created</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-surface-400">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {loading ? (
-                <TableSkeleton rows={5} cols={6} colWidths={["w-32", "w-24", "w-36", "w-20", "w-28", "w-40"]} />
-              ) : users.length === 0 ? (
-                <tr><td colSpan={6}><EmptyState icon={UsersIcon} title="No users found" description="Create your first user to get started" /></td></tr>
-              ) : (
-                users.map((user, idx) => {
-                  const isSelf = me?.id != null && user.id === me.id;
-                  return (
-                    <tr key={user.id} className={cn("transition-colors hover:bg-surface-800/50", idx % 2 === 0 ? "bg-surface-950/50" : "")}>
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-xs text-white">{user.external_id}</span>
-                        {isSelf && (
-                          <span className="ml-2 rounded-full bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-medium text-brand-300">you</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-surface-200">
-                        {user.name || <span className="text-surface-500 italic">—</span>}
-                        {user.is_pending_invite && (
-                          <Badge variant="warning" size="sm" className="ml-2 align-middle">
-                            Pending
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-surface-200">
-                        {user.email || <span className="text-surface-500 italic">—</span>}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={user.role === "admin" ? "brand" : "default"} size="sm">
-                          {user.role === "admin" ? "Admin" : "Member"}
+        <Table>
+          <TableHeader>
+            <TableHead>External ID</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead align="right">Actions</TableHead>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableSkeleton rows={5} cols={6} colWidths={["w-32", "w-24", "w-36", "w-20", "w-28", "w-40"]} />
+            ) : users.length === 0 ? (
+              <tr><td colSpan={6}><EmptyState icon={UsersIcon} title="No users found" description="Create your first user to get started" /></td></tr>
+            ) : (
+              users.map((user) => {
+                const isSelf = me?.id != null && user.id === me.id;
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <span className="font-mono text-xs text-white">{user.external_id}</span>
+                      {isSelf && (
+                        <span className="ml-2 rounded-full bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-medium text-brand-300">you</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-surface-200">
+                      {user.name || <span className="text-surface-500 italic">—</span>}
+                      {user.is_pending_invite && (
+                        <Badge variant="warning" size="sm" className="ml-2 align-middle">
+                          Pending
                         </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col">
-                          <span className="text-surface-200 text-xs">{formatDate(user.created_at)}</span>
-                          <span className="text-surface-500 text-[11px]">{timeAgo(user.created_at)}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {canWrite && !isSelf && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setRoleChangeTarget({ user, to: user.role === "admin" ? "member" : "admin" })}
-                              className="rounded-md text-surface-400 hover:text-white"
-                              title={user.role === "admin" ? "Remove admin" : "Make admin"}
-                              aria-label={user.role === "admin" ? `Remove admin from ${user.external_id}` : `Make ${user.external_id} an admin`}
-                            >
-                              {user.role === "admin" ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
-                            </Button>
-                          )}
-                          <Link href={`/users/${user.id}`}><Button variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-white" title="View User"><Eye size={14} /></Button></Link>
-                          <Button variant="ghost" size="sm" onClick={() => handleCopyId(user.id)} className="rounded-md text-surface-400 hover:text-white" title="Copy User ID"><Copy size={14} /></Button>
-                          {/* Edit/Delete are destructive mutations — members:write only */}
-                          {canWrite && (
-                            <Button variant="ghost" size="sm" onClick={() => setEditTarget(user)} className="rounded-md text-surface-400 hover:text-white" title="Edit User"><Edit size={14} /></Button>
-                          )}
-                          {canWrite && (user.is_pending_invite ? (
-                            // Pending invites have no account to delete — revoke the invite instead.
-                            <Button variant="ghost" size="sm" onClick={() => setRevokeTarget(user)} className="rounded-md text-surface-400 hover:text-error" title="Revoke Invitation" aria-label={`Revoke invite for ${user.external_id}`}><Ban size={14} /></Button>
-                          ) : (
-                            <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(user)} className="rounded-md text-surface-400 hover:text-error" title="Delete User"><Trash2 size={14} /></Button>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-surface-200">
+                      {user.email || <span className="text-surface-500 italic">—</span>}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={user.role === "admin" ? "brand" : "default"} size="sm">
+                        {user.role === "admin" ? "Admin" : "Member"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-surface-200 text-xs">{formatDate(user.created_at)}</span>
+                        <span className="text-surface-500 text-[11px]">{timeAgo(user.created_at)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell align="right">
+                      <div className="flex items-center justify-end gap-1">
+                        {canWrite && !isSelf && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setRoleChangeTarget({ user, to: user.role === "admin" ? "member" : "admin" })}
+                            className="rounded-md text-surface-400 hover:text-white"
+                            title={user.role === "admin" ? "Remove admin" : "Make admin"}
+                            aria-label={user.role === "admin" ? `Remove admin from ${user.external_id}` : `Make ${user.external_id} an admin`}
+                          >
+                            {user.role === "admin" ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
+                          </Button>
+                        )}
+                        <Link href={`/users/${user.id}`}><Button variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-white" title="View User"><Eye size={14} /></Button></Link>
+                        {/* Callers own notification policy — sonner toasts stay on this page */}
+                        <CopyButton
+                          value={user.id}
+                          label="Copy User ID"
+                          className="rounded-md text-surface-400 hover:text-white"
+                          onSuccess={() => toast.success("User ID copied to clipboard")}
+                          onError={() => toast.error("Failed to copy")}
+                        />
+                        {/* Edit/Delete are destructive mutations — members:write only */}
+                        {canWrite && (
+                          <Button variant="ghost" size="sm" onClick={() => setEditTarget(user)} className="rounded-md text-surface-400 hover:text-white" title="Edit User"><Edit size={14} /></Button>
+                        )}
+                        {canWrite && (user.is_pending_invite ? (
+                          // Pending invites have no account to delete — revoke the invite instead.
+                          <Button variant="ghost" size="sm" onClick={() => setRevokeTarget(user)} className="rounded-md text-surface-400 hover:text-error" title="Revoke Invitation" aria-label={`Revoke invite for ${user.external_id}`}><Ban size={14} /></Button>
+                        ) : (
+                          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(user)} className="rounded-md text-surface-400 hover:text-error" title="Delete User"><Trash2 size={14} /></Button>
+                        ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
 
         {/* Load more */}
         {!loading && hasMore && (

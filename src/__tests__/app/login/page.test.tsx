@@ -77,12 +77,28 @@ describe("LoginPage", () => {
     expect(headings.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("shows password toggle button", () => {
+  it("associates labels with inputs via htmlFor/id", () => {
     render(<LoginPage />);
-    const toggleBtn = screen.getByRole("button", {
-      name: "",
-    });
-    expect(toggleBtn).toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).toHaveAttribute("id", "login-email");
+    expect(screen.getByLabelText("Password")).toHaveAttribute("id", "login-password");
+  });
+
+  it("toggles password visibility with accessible state", async () => {
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    const passwordInput = screen.getByLabelText("Password");
+    const toggleBtn = screen.getByRole("button", { name: "Show password" });
+    expect(toggleBtn).toHaveAttribute("aria-pressed", "false");
+    expect(passwordInput).toHaveAttribute("type", "password");
+
+    await user.click(toggleBtn);
+
+    expect(screen.getByRole("button", { name: "Hide password" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(passwordInput).toHaveAttribute("type", "text");
   });
 
   it("has email input with correct attributes", () => {

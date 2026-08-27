@@ -1,9 +1,9 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { PageGuide, GuideSettings } from "@/components/guides";
 import { cn } from "@/lib/utils";
-import { ConfigDirtyProvider, useConfigDirty } from "@/contexts/config-dirty";
+import { useConfigDirty } from "@/contexts/config-dirty";
 import { RequirePermission } from "@/components/shared/require-permission";
 
 const TABS = [
@@ -16,21 +16,17 @@ const TABS = [
 ];
 
 export default function OrgConfigLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <ConfigDirtyProvider>
-      <OrgConfigLayoutInner>{children}</OrgConfigLayoutInner>
-    </ConfigDirtyProvider>
-  );
+  return <OrgConfigLayoutInner>{children}</OrgConfigLayoutInner>;
 }
 
 function OrgConfigLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { isDirty } = useConfigDirty();
+  // Tab switches route through the shared dirty guard — the ConfirmDialog
+  // itself lives in ConfigDirtyProvider (mounted at the dashboard level).
+  const { navigate } = useConfigDirty();
 
   function handleTabClick(href: string) {
-    if (isDirty && !confirm("You have unsaved changes. Discard them and leave?")) return;
-    router.push(href);
+    navigate(href);
   }
 
   return (

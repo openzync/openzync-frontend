@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Skeleton, TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 
 interface FactRow {
   id: string;
@@ -194,34 +195,32 @@ export default function SessionFactsPage() {
           description="Facts will appear here once the session is processed." />
       ) : (
         <div className="card-base overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-surface-800 text-surface-400 text-xs uppercase tracking-wider">
-              <tr>
-                <th className="px-4 py-3 text-left">Content</th>
-                <th className="px-4 py-3 text-left">Triple</th>
-                <th className="px-4 py-3 text-center">Confidence</th>
-                <th className="px-4 py-3 text-right">Extracted</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
+          <Table>
+            <TableHeader>
+              <TableHead>Content</TableHead>
+              <TableHead>Triple</TableHead>
+              <TableHead align="center">Confidence</TableHead>
+              <TableHead align="right">Extracted</TableHead>
+              <TableHead align="right">Actions</TableHead>
+            </TableHeader>
+            <TableBody>
               {facts.map((fact) => (
-                <tr key={fact.id} className="even:bg-surface-950/50">
-                  <td className="px-4 py-3 text-sm text-surface-200 max-w-xs truncate">{fact.content}</td>
-                  <td className="px-4 py-3 text-sm text-surface-400">
+                <TableRow key={fact.id}>
+                  <TableCell className="text-sm text-surface-200 max-w-xs truncate">{fact.content}</TableCell>
+                  <TableCell className="text-sm text-surface-400">
                     {fact.subject && fact.predicate && fact.object
                       ? `${fact.subject} → ${fact.predicate} → ${fact.object}`
                       : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-center">
+                  </TableCell>
+                  <TableCell align="center">
                     <Badge variant={confidenceVariant(fact.confidence)} size="sm">
                       {(fact.confidence * 100).toFixed(0)}%
                     </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm text-surface-400 whitespace-nowrap">
+                  </TableCell>
+                  <TableCell align="right" className="text-sm text-surface-400 whitespace-nowrap">
                     {formatDate(fact.created_at)}
-                  </td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                  </TableCell>
+                  <TableCell align="right" className="whitespace-nowrap">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => openHistory(fact)}>
                         History
@@ -237,11 +236,11 @@ export default function SessionFactsPage() {
                         Retract
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
           {hasMore && (
             <div className="flex justify-center py-4 border-t border-surface-800">
               <Button variant="secondary" size="sm" onClick={loadMore} loading={loadingMore}>

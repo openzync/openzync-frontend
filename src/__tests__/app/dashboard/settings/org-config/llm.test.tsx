@@ -11,6 +11,12 @@ const { mockGet, mockPatch } = vi.hoisted(() => ({
   mockPatch: vi.fn(),
 }));
 
+// ConfigDirtyProvider (mounted by renderPage) reads router/pathname.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/settings/org-config/llm",
+}));
+
 vi.mock("@/lib/api-client", () => {
   class ApiError extends Error {
     status: number;

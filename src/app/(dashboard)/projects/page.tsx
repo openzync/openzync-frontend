@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { Field } from "@/components/ui/field";
 import { usePinnedProjects } from "@/hooks/use-pinned-projects";
 
 
@@ -254,11 +255,9 @@ export default function ProjectsPage() {
           }
         >
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                Name <span className="text-error">*</span>
-              </label>
+            <Field label="Name" htmlFor="project-name" required>
               <input
+                id="project-name"
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -267,19 +266,17 @@ export default function ProjectsPage() {
                 autoFocus
                 disabled={creating}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                Description
-              </label>
+            </Field>
+            <Field label="Description" htmlFor="project-description">
               <textarea
+                id="project-description"
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
                 placeholder="Optional description of this project"
                 className="input-base min-h-[80px] resize-y"
                 disabled={creating}
               />
-            </div>
+            </Field>
             {createError && (
               <div className="rounded-md border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">
                 {createError}

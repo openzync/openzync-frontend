@@ -25,7 +25,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { Field } from "@/components/ui/field";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -204,49 +206,36 @@ export default function ProjectMembersPage() {
           />
         ) : (
           <div className="card-base overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-surface-800">
-                  <th className="text-left text-xs font-medium text-surface-400 px-4 py-3">
-                    User ID
-                  </th>
-                  <th className="text-left text-xs font-medium text-surface-400 px-4 py-3">
-                    Role
-                  </th>
-                  <th className="text-left text-xs font-medium text-surface-400 px-4 py-3">
-                    Added
-                  </th>
-                  <th className="text-right text-xs font-medium text-surface-400 px-4 py-3">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-800">
+            <Table zebra={false}>
+              <TableHeader>
+                <TableHead>User ID</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Added</TableHead>
+                <TableHead align="right">Actions</TableHead>
+              </TableHeader>
+              <TableBody>
                 {members.map((member) => (
-                  <tr
-                    key={member.id}
-                    className="transition-colors hover:bg-surface-800/50"
-                  >
-                    <td className="px-4 py-3">
+                  <TableRow key={member.id}>
+                    <TableCell>
                       <div className="flex items-center gap-2">
                         <UserIcon size={14} className="text-surface-500" />
                         <span className="font-mono text-xs text-surface-200">
                           {member.user_id.slice(0, 8)}...
                         </span>
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell>
                       <Badge
                         variant={isOwner(member.role) ? "brand" : "default"}
                         size="sm"
                       >
                         {member.role}
                       </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-surface-400">
+                    </TableCell>
+                    <TableCell className="text-surface-400">
                       {new Date(member.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
+                    </TableCell>
+                    <TableCell align="right">
                       {canManage && !isOwner(member.role) && (
                         <Button
                           variant="ghost"
@@ -263,11 +252,11 @@ export default function ProjectMembersPage() {
                           Last owner
                         </span>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
 
@@ -302,14 +291,12 @@ export default function ProjectMembersPage() {
           }
         >
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                User
-              </label>
+            <Field label="User" htmlFor="member-user-select">
               {usersLoading ? (
                 <div className="h-9 rounded-md bg-surface-800 animate-pulse" />
               ) : (
                 <select
+                  id="member-user-select"
                   value={selectedUserId}
                   onChange={(e) => setSelectedUserId(e.target.value)}
                   className="input-base appearance-none cursor-pointer w-full"
@@ -327,7 +314,7 @@ export default function ProjectMembersPage() {
                   ))}
                 </select>
               )}
-            </div>
+            </Field>
             {addError && (
               <div className="rounded-md border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">
                 {addError}

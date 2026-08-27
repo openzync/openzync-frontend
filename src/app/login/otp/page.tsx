@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, ArrowLeft, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { AuthLayout } from "@/components/shared/auth-layout";
 import { post, storeTokens } from "@/lib/api-client";
 
@@ -120,11 +121,9 @@ export default function LoginOtpPage() {
 
             {step === "email" ? (
               <form onSubmit={handleSendCode} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Email
-                  </label>
+                <Field label="Email" htmlFor="otp-email">
                   <input
+                    id="otp-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -134,7 +133,7 @@ export default function LoginOtpPage() {
                     className="input-base w-full"
                     placeholder="you@example.com"
                   />
-                </div>
+                </Field>
 
                 <Button
                   variant="primary"
@@ -151,11 +150,9 @@ export default function LoginOtpPage() {
               </form>
             ) : (
               <form onSubmit={handleVerifyOtp} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Verification Code
-                  </label>
+                <Field label="Verification Code" htmlFor="otp-code">
                   <input
+                    id="otp-code"
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
@@ -167,7 +164,7 @@ export default function LoginOtpPage() {
                     className="input-base w-full text-center text-2xl tracking-[0.5em] font-mono"
                     placeholder="000000"
                   />
-                </div>
+                </Field>
 
                 <Button
                   variant="primary"

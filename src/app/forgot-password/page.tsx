@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Loader2, ArrowLeft, ArrowRight, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { AuthLayout } from "@/components/shared/auth-layout";
 import { post } from "@/lib/api-client";
 
@@ -76,11 +77,9 @@ export default function ForgotPasswordPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Email
-                </label>
+              <Field label="Email" htmlFor="forgot-email">
                 <input
+                  id="forgot-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -90,7 +89,7 @@ export default function ForgotPasswordPage() {
                   className="input-base w-full"
                   placeholder="you@example.com"
                 />
-              </div>
+              </Field>
 
               <Button
                 variant="primary"

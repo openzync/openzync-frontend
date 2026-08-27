@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Eye, EyeOff, AudioWaveform, RotateCcw } from "lucide-react";
-import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
+import { get, patch, ApiError } from "@/lib/api-client";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
+import { SimpleSelect } from "@/components/ui/select";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { useConfigReset } from "@/hooks/use-config-reset";
 
@@ -14,6 +16,12 @@ import { useConfigReset } from "@/hooks/use-config-reset";
 
 interface OrgConfigResponse {
   stored: Record<string, unknown>;
+}
+
+/** What the config fetcher hands to the render-phase form seed. */
+interface OrgConfigData {
+  stored: Record<string, unknown>;
+  defaults: Record<string, unknown>;
 }
 
 type EmbeddingBackend = "openai" | "ollama" | "openrouter" | "huggingface" | "sentence_transformers";
@@ -67,9 +75,10 @@ export default function EmbeddingsConfigPage() {
   });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
   const [stored, setStored] = useState<Record<string, unknown>>({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Save failures share the banner with load errors; cleared when a fetch
+  // succeeds so a retry visibly resolves.
+  const [actionError, setActionError] = useState<string | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
 
@@ -87,66 +96,45 @@ export default function EmbeddingsConfigPage() {
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
-  const fetchConfig = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await get<OrgConfigResponse>("/admin/org/config");
+  const configQuery = useApiQuery<OrgConfigData>(async () => {
+    const data = await get<OrgConfigResponse>("/admin/org/config");
+    const stored = (data.stored ?? {}) as Record<string, unknown>;
+    const hasAnyStored = FIELDS.some((f) => stored[f] != null);
 
-      const stored = data.stored as Record<string, unknown>;
-      const hasAnyStored = FIELDS.some((f) => stored[f] != null);
-
-      // If no stored values exist for this tab, pull onboarding defaults from API
-      let defaults: Record<string, unknown> = {};
-      if (!hasAnyStored) {
-        defaults = await get<Record<string, unknown>>("/admin/org/config/defaults").catch(
-          () => ({} as Record<string, unknown>),
+    // If no stored values exist for this tab, pull onboarding defaults from API
+    const defaults = hasAnyStored
+      ? {}
+      : await get<Record<string, unknown>>("/admin/org/config/defaults").catch(
+          () => ({}) as Record<string, unknown>,
         );
-      }
 
-      const val = (field: string, fallback: unknown) =>
-        (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
-
-      setForm({
-        embedding_backend: val("embedding_backend", "openai") as EmbeddingBackend,
-        embedding_model: val("embedding_model", "") as string,
-        embedding_dim: val("embedding_dim", 1536) as number,
-        embedding_api_key: val("embedding_api_key", "") as string,
-        embedding_provider: val("embedding_provider", "") as string,
-      });
-      setInitialForm({
-        embedding_backend: val("embedding_backend", "openai") as EmbeddingBackend,
-        embedding_model: val("embedding_model", "") as string,
-        embedding_dim: val("embedding_dim", 1536) as number,
-        embedding_api_key: val("embedding_api_key", "") as string,
-        embedding_provider: val("embedding_provider", "") as string,
-      });
-      setStored(data.stored ?? {});
-      setDirty(false);
-      setError(null);
-    } catch (err) {
-      setError(apiErrorMessage(err, "Failed to load configuration"));
-    } finally {
-      setLoading(false);
-    }
-  }, [setDirty]);
-
-  useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
-
-  // ── beforeunload protection ───────────────────────────────────────────────
-
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (hasChanged()) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    return { stored, defaults };
   });
+
+  // Seed the editable form from server data — render-phase adjustment keyed on
+  // response identity (same pattern as superadmin/config), so a refetch after
+  // save re-seeds exactly once.
+  const [seeded, setSeeded] = useState<OrgConfigData | null>(null);
+  if (configQuery.data && configQuery.data !== seeded) {
+    setSeeded(configQuery.data);
+    const { stored, defaults } = configQuery.data;
+    const val = (field: string, fallback: unknown) =>
+      (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
+    const current: FormState = {
+      embedding_backend: val("embedding_backend", "openai") as EmbeddingBackend,
+      embedding_model: val("embedding_model", "") as string,
+      embedding_dim: val("embedding_dim", 1536) as number,
+      embedding_api_key: val("embedding_api_key", "") as string,
+      embedding_provider: val("embedding_provider", "") as string,
+    };
+    setForm(current);
+    setInitialForm(current);
+    setStored(stored);
+    setActionError(null);
+  }
+
+  const loading = configQuery.isLoading;
+  const error = configQuery.error ?? actionError;
 
   // ── Field helpers ─────────────────────────────────────────────────────────
 
@@ -178,7 +166,6 @@ export default function EmbeddingsConfigPage() {
   async function handleSave() {
     if (!hasChanged()) return;
     setSaving(true);
-    setError(null);
 
     try {
       const changed = getSavePayload(form as unknown as Record<string, unknown>);
@@ -186,13 +173,13 @@ export default function EmbeddingsConfigPage() {
       await patch("/admin/org/config", changed);
       toast.success("Embedding configuration saved successfully");
       clearResets();
-      await fetchConfig();
+      configQuery.refetch();
       setDirty(false);
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to save configuration";
-      setError(message);
+      setActionError(message);
       toast.error(message);
     } finally {
       setSaving(false);
@@ -224,23 +211,21 @@ export default function EmbeddingsConfigPage() {
           </div>
         ) : (
           <>
-            {error && <ErrorState message={error} onRetry={fetchConfig} />}
+            {error && <ErrorState message={error} onRetry={configQuery.refetch} />}
             <div className="space-y-4 max-w-md">
               {/* embedding_backend */}
               <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
+                <label htmlFor="embedding-backend" className="block text-sm font-medium text-surface-300 mb-1">
                   Backend Provider
                 </label>
                 <div className="flex gap-2 items-start">
-                  <select
-                    className="input-base flex-1"
+                  <SimpleSelect
+                    id="embedding-backend"
+                    className="flex-1"
+                    options={BACKEND_OPTIONS}
                     value={form.embedding_backend}
-                    onChange={(e) => updateField("embedding_backend", e.target.value as EmbeddingBackend)}
-                  >
-                    {BACKEND_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                    onValueChange={(value) => updateField("embedding_backend", value as EmbeddingBackend)}
+                  />
                   {isFieldSet("embedding_backend") && (
                     <Button
                       onClick={() => handleStageReset("embedding_backend")}
@@ -258,11 +243,12 @@ export default function EmbeddingsConfigPage() {
 
               {/* embedding_model */}
               <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
+                <label htmlFor="embedding-model" className="block text-sm font-medium text-surface-300 mb-1">
                   Model
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
+                    id="embedding-model"
                     className="input-base flex-1"
                     placeholder="text-embedding-3-small, ..."
                     value={form.embedding_model}
@@ -285,11 +271,12 @@ export default function EmbeddingsConfigPage() {
 
               {/* embedding_dim */}
               <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
+                <label htmlFor="embedding-dim" className="block text-sm font-medium text-surface-300 mb-1">
                   Embedding Dimensions
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
+                    id="embedding-dim"
                     className="input-base flex-1"
                     type="number"
                     min="64"
@@ -315,11 +302,12 @@ export default function EmbeddingsConfigPage() {
               {/* embedding_provider — only for OpenRouter */}
               {form.embedding_backend === "openrouter" && (
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1">
+                  <label htmlFor="embedding-provider" className="block text-sm font-medium text-surface-300 mb-1">
                     Provider Name
                   </label>
                   <div className="flex gap-2 items-start">
                     <input
+                      id="embedding-provider"
                       className="input-base flex-1"
                       placeholder="openai, azure, ..."
                       value={form.embedding_provider}
@@ -344,12 +332,13 @@ export default function EmbeddingsConfigPage() {
               {/* embedding_api_key — only for backends that need it */}
               {(form.embedding_backend === "openai" || form.embedding_backend === "openrouter" || form.embedding_backend === "ollama") && (
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1">
+                  <label htmlFor="embedding-api-key" className="block text-sm font-medium text-surface-300 mb-1">
                     API Key
                   </label>
                   <div className="flex gap-2 items-start">
                     <div className="relative flex-1">
                       <input
+                        id="embedding-api-key"
                         className="input-base pr-10 w-full"
                         type={showApiKey ? "text" : "password"}
                         placeholder="Embedding provider API key"

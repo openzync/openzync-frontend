@@ -8,6 +8,9 @@
  * through PATCH unchanged. Secrets (API keys) are deliberately NOT listed.
  */
 
+import { Field } from "@/components/ui/field";
+import { SimpleSelect } from "@/components/ui/select";
+
 export interface ConfigFieldMeta {
   key: string;
   label: string;
@@ -106,46 +109,39 @@ export function ConfigFields({
   return (
     <div className="space-y-4 max-w-md">
       {SYSTEM_DEFAULT_FIELDS.map((field) => (
-        <div key={field.key}>
-          <label className="block">
-            <span className="block text-sm font-medium text-surface-300 mb-1">
-              {field.label}
-            </span>
-            {field.kind === "select" ? (
-              <select
-                className="input-base w-full"
-                value={String(values[field.key] ?? "")}
-                disabled={disabled}
-                onChange={(e) => onChange(field.key, e.target.value)}
-              >
-                {field.options?.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            ) : field.kind === "number" ? (
-              <input
-                className="input-base w-full"
-                type="number"
-                value={String(values[field.key] ?? "")}
-                disabled={disabled}
-                onChange={(e) => onChange(field.key, parseFloat(e.target.value) || 0)}
-              />
-            ) : (
-              <input
-                className="input-base w-full"
-                type="text"
-                value={String(values[field.key] ?? "")}
-                disabled={disabled}
-                onChange={(e) => onChange(field.key, e.target.value)}
-              />
-            )}
-          </label>
-          {field.hint && (
-            <p className="text-xs text-surface-500 mt-1">{field.hint}</p>
+        <Field
+          key={field.key}
+          label={field.label}
+          htmlFor={`system-default-${field.key}`}
+          hint={field.hint}
+        >
+          {field.kind === "select" ? (
+            <SimpleSelect
+              id={`system-default-${field.key}`}
+              className="w-full"
+              options={field.options ?? []}
+              value={String(values[field.key] ?? "")}
+              disabled={disabled}
+              onValueChange={(value) => onChange(field.key, value)}
+            />
+          ) : (
+            <input
+              id={`system-default-${field.key}`}
+              className="input-base w-full"
+              type={field.kind === "number" ? "number" : "text"}
+              value={String(values[field.key] ?? "")}
+              disabled={disabled}
+              onChange={(e) =>
+                onChange(
+                  field.key,
+                  field.kind === "number"
+                    ? parseFloat(e.target.value) || 0
+                    : e.target.value,
+                )
+              }
+            />
           )}
-        </div>
+        </Field>
       ))}
     </div>
   );

@@ -18,6 +18,8 @@ import {
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
+import { SimpleSelect } from "@/components/ui/select";
 import { ConfigFields, SYSTEM_DEFAULT_FIELDS } from "@/app/(dashboard)/superadmin/_components/config-fields";
 
 const POLICIES: { value: OrgCreationPolicy; label: string; description: string }[] = [
@@ -222,27 +224,17 @@ export default function SuperadminConfigPage() {
         </fieldset>
 
         <div className="mt-5 max-w-xs">
-          <label htmlFor="approval-scope" className="block text-sm font-medium text-surface-300 mb-1">
-            Approval Scope
-          </label>
-          <select
-            id="approval-scope"
-            className="input-base w-full"
-            value={form.scope}
-            disabled={form.policy !== "approvals"}
-            onChange={(e) => setForm((prev) => ({ ...prev, scope: e.target.value as ApprovalScope }))}
-          >
-            {SCOPES.map((scope) => (
-              <option key={scope.value} value={scope.value}>
-                {scope.label}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-surface-500 mt-1">
-            {form.policy === "approvals"
-              ? "Where organization requests are accepted for review."
-              : "Only applies when approval is required — ignored under the current policy."}
-          </p>
+          <Field label="Approval Scope" htmlFor="approval-scope" hint={form.policy === "approvals"
+            ? "Where organization requests are accepted for review."
+            : "Only applies when approval is required — ignored under the current policy."}>
+            <SimpleSelect
+              id="approval-scope"
+              options={SCOPES}
+              value={form.scope}
+              disabled={form.policy !== "approvals"}
+              onValueChange={(value) => setForm((prev) => ({ ...prev, scope: value as ApprovalScope }))}
+            />
+          </Field>
         </div>
       </div>
 

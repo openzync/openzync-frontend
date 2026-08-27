@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Shield, Users as UsersIcon } from "lucide-react";
-import { get, ApiError, extractList } from "@/lib/api-client";
+import { get } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageGuide, GuideGraph } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -17,23 +17,11 @@ export default function CommunitiesPage() {
   const { project } = useProject();
   const projectId = project?.id;
 
-  const [data, setData] = useState<Community[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!projectId) return;
-    async function fetchCommunities() {
-      setLoading(true); setError(null);
-      try {
-        const json = await get<{ data: Community[] }>(`/v1/projects/${projectId}/graph/communities`);
-        setData(json.data ?? []);
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : "Failed to load communities");
-      } finally { setLoading(false); }
-    }
-    fetchCommunities();
-  }, [projectId]);
+  const communitiesQuery = useApiQuery<{ data: Community[] }>(
+    () => get<{ data: Community[] }>(`/v1/projects/${projectId}/graph/communities`),
+    { enabled: Boolean(projectId) },
+  );
+  const data = communitiesQuery.data?.data ?? [];
 
   if (!projectId) {
     return (
@@ -51,9 +39,9 @@ export default function CommunitiesPage() {
         <p>Communities are clusters of related entities discovered through graph analysis. They reveal groups of entities that are densely connected, helping you identify natural groupings in your data.</p>
       </PageGuide>
 
-      {error && <ErrorState message={error} />}
+      {communitiesQuery.error && <ErrorState message={communitiesQuery.error} onRetry={communitiesQuery.refetch} />}
 
-      {loading ? (
+      {communitiesQuery.isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => <div key={i} className="card-base p-6 h-32 animate-pulse" />)}
         </div>

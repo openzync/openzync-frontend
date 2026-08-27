@@ -4,6 +4,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SecretInputProps {
+  /** Input id — wires label htmlFor ↔ input id. Required for new call sites. */
+  id?: string;
   label: string;
   value: string;
   onChange: (v: string) => void;
@@ -13,6 +15,7 @@ interface SecretInputProps {
 }
 
 export function SecretInput({
+  id,
   label,
   value,
   onChange,
@@ -24,7 +27,7 @@ export function SecretInput({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-surface-300 mb-1.5">
+      <label className="block text-sm font-medium text-surface-300 mb-1.5" htmlFor={id}>
         {label}
         {isEmpty && (
           <span className="ml-2 text-[10px] font-medium text-error uppercase tracking-wider">Required</span>
@@ -32,6 +35,7 @@ export function SecretInput({
       </label>
       <div className="relative">
         <input
+          id={id}
           className={cn(
             "input-base pr-10 w-full",
             isEmpty && "border-error/40 focus:border-error",

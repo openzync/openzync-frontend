@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { RotateCcw, HardDrive } from "lucide-react";
 import { toast } from "sonner";
-import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
+import { get, patch, ApiError } from "@/lib/api-client";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { SecretInput } from "@/components/ui/secret-input";
+import { SimpleSelect } from "@/components/ui/select";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
@@ -15,6 +17,12 @@ import { useConfigReset } from "@/hooks/use-config-reset";
 
 interface OrgConfigResponse {
   stored: Record<string, unknown>;
+}
+
+/** What the config fetcher hands to the render-phase form seed. */
+interface OrgConfigData {
+  stored: Record<string, unknown>;
+  defaults: Record<string, unknown>;
 }
 
 interface FormState {
@@ -68,9 +76,10 @@ export default function BlobStorageConfigPage() {
   });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
   const [stored, setStored] = useState<Record<string, unknown>>({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Save failures share the banner with load errors; cleared when a fetch
+  // succeeds so a retry visibly resolves.
+  const [actionError, setActionError] = useState<string | null>(null);
   const [visibleSecrets, setVisibleSecrets] = useState<Set<string>>(new Set());
   const [justSaved, setJustSaved] = useState(false);
 
@@ -82,75 +91,57 @@ export default function BlobStorageConfigPage() {
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
-  const fetchConfig = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await get<OrgConfigResponse>("/admin/org/config");
-      const stored = data.stored as Record<string, unknown>;
-      const hasAnyStored = FIELDS.some((f) => stored[f] != null);
+  const configQuery = useApiQuery<OrgConfigData>(async () => {
+    const data = await get<OrgConfigResponse>("/admin/org/config");
+    const stored = (data.stored ?? {}) as Record<string, unknown>;
+    const hasAnyStored = FIELDS.some((f) => stored[f] != null);
 
-      let defaults: Record<string, unknown> = {};
-      if (!hasAnyStored) {
-        try {
-          defaults = await get<Record<string, unknown>>(
-            "/admin/org/config/defaults",
-          );
-        } catch {
-          // best-effort
-        }
-      }
+    // If no stored values exist for this tab, pull onboarding defaults from API
+    const defaults = hasAnyStored
+      ? {}
+      : await get<Record<string, unknown>>("/admin/org/config/defaults").catch(
+          () => ({}) as Record<string, unknown>,
+        );
 
-      const val = (field: string, fallback: unknown) =>
-        (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
-
-      setForm({
-        blob_storage_backend: val("blob_storage_backend", "s3") as string,
-        s3_endpoint_url: val("s3_endpoint_url", "") as string,
-        s3_region: val("s3_region", "auto") as string,
-        s3_access_key_id: val("s3_access_key_id", "") as string,
-        s3_secret_access_key: val("s3_secret_access_key", "") as string,
-        s3_bucket_name: val("s3_bucket_name", "openzync-blobs") as string,
-        max_blob_size_mb: val("max_blob_size_mb", 50) as number,
-        image_extraction: val("image_extraction", "none") as string,
-      });
-      setInitialForm({
-        blob_storage_backend: val("blob_storage_backend", "s3") as string,
-        s3_endpoint_url: val("s3_endpoint_url", "") as string,
-        s3_region: val("s3_region", "auto") as string,
-        s3_access_key_id: val("s3_access_key_id", "") as string,
-        s3_secret_access_key: val("s3_secret_access_key", "") as string,
-        s3_bucket_name: val("s3_bucket_name", "openzync-blobs") as string,
-        max_blob_size_mb: val("max_blob_size_mb", 50) as number,
-        image_extraction: val("image_extraction", "none") as string,
-      });
-      reset.clearResets();
-      setStored(data.stored ?? {});
-      setDirty(false);
-      setError(null);
-    } catch (err) {
-      setError(apiErrorMessage(err, "Failed to load configuration"));
-    } finally {
-      setLoading(false);
-    }
-  }, [setDirty, reset]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
-
-  // ── beforeunload protection ───────────────────────────────────────────────
-
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (hasChanged()) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    return { stored, defaults };
   });
+
+  // Seed the editable form from server data — render-phase adjustment keyed on
+  // response identity (same pattern as superadmin/config), so a refetch after
+  // save re-seeds exactly once.
+  const [seeded, setSeeded] = useState<OrgConfigData | null>(null);
+  if (configQuery.data && configQuery.data !== seeded) {
+    setSeeded(configQuery.data);
+    const { stored, defaults } = configQuery.data;
+    const val = (field: string, fallback: unknown) =>
+      (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
+    setForm({
+      blob_storage_backend: val("blob_storage_backend", "s3") as string,
+      s3_endpoint_url: val("s3_endpoint_url", "") as string,
+      s3_region: val("s3_region", "auto") as string,
+      s3_access_key_id: val("s3_access_key_id", "") as string,
+      s3_secret_access_key: val("s3_secret_access_key", "") as string,
+      s3_bucket_name: val("s3_bucket_name", "openzync-blobs") as string,
+      max_blob_size_mb: val("max_blob_size_mb", 50) as number,
+      image_extraction: val("image_extraction", "none") as string,
+    });
+    setInitialForm({
+      blob_storage_backend: val("blob_storage_backend", "s3") as string,
+      s3_endpoint_url: val("s3_endpoint_url", "") as string,
+      s3_region: val("s3_region", "auto") as string,
+      s3_access_key_id: val("s3_access_key_id", "") as string,
+      s3_secret_access_key: val("s3_secret_access_key", "") as string,
+      s3_bucket_name: val("s3_bucket_name", "openzync-blobs") as string,
+      max_blob_size_mb: val("max_blob_size_mb", 50) as number,
+      image_extraction: val("image_extraction", "none") as string,
+    });
+    reset.clearResets();
+    setStored(stored);
+    setActionError(null);
+  }
+
+  const loading = configQuery.isLoading;
+  const error = configQuery.error ?? actionError;
 
   // ── Field helpers ─────────────────────────────────────────────────────────
 
@@ -198,7 +189,6 @@ export default function BlobStorageConfigPage() {
   async function handleSave() {
     if (!hasChanged()) return;
     setSaving(true);
-    setError(null);
 
     try {
       const payload = reset.getSavePayload(
@@ -207,14 +197,14 @@ export default function BlobStorageConfigPage() {
       await patch("/admin/org/config", payload);
       toast.success("Blob storage configuration saved successfully");
       reset.clearResets();
-      await fetchConfig();
       setDirty(false);
+      configQuery.refetch();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to save configuration";
-      setError(message);
+      setActionError(message);
       toast.error(
         err instanceof ApiError ? err.message : "Failed to save configuration",
       );
@@ -249,24 +239,24 @@ export default function BlobStorageConfigPage() {
           </div>
         ) : (
           <>
-            {error && <ErrorState message={error} onRetry={fetchConfig} />}
+            {error && <ErrorState message={error} onRetry={configQuery.refetch} />}
             <div className="space-y-5 max-w-lg">
               {/* blob_storage_backend — select */}
               <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                <label htmlFor="blob-storage-backend" className="block text-sm font-medium text-surface-300 mb-1.5">
                   Storage Backend
                 </label>
                 <div className="flex gap-2 items-start">
-                  <select
-                    className="input-base flex-1"
+                  <SimpleSelect
+                    id="blob-storage-backend"
+                    className="flex-1"
+                    options={[
+                      { value: "s3", label: "S3-compatible" },
+                      { value: "none", label: "Disabled" },
+                    ]}
                     value={form.blob_storage_backend}
-                    onChange={(e) =>
-                      updateField("blob_storage_backend", e.target.value)
-                    }
-                  >
-                    <option value="s3">S3-compatible</option>
-                    <option value="none">Disabled</option>
-                  </select>
+                    onValueChange={(value) => updateField("blob_storage_backend", value)}
+                  />
                   {isFieldSet("blob_storage_backend") && (
                     <Button
                       onClick={() => handleStageReset("blob_storage_backend")}
@@ -292,11 +282,12 @@ export default function BlobStorageConfigPage() {
                 <>
                   {/* s3_endpoint_url */}
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                    <label htmlFor="s3-endpoint-url" className="block text-sm font-medium text-surface-300 mb-1.5">
                       S3 Endpoint URL
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
+                        id="s3-endpoint-url"
                         className="input-base flex-1"
                         type="text"
                         placeholder="http://minio:9000"
@@ -327,11 +318,12 @@ export default function BlobStorageConfigPage() {
 
                   {/* s3_region */}
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                    <label htmlFor="s3-region" className="block text-sm font-medium text-surface-300 mb-1.5">
                       S3 Region
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
+                        id="s3-region"
                         className="input-base flex-1"
                         type="text"
                         placeholder="auto"
@@ -362,11 +354,12 @@ export default function BlobStorageConfigPage() {
 
                   {/* s3_bucket_name */}
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                    <label htmlFor="s3-bucket-name" className="block text-sm font-medium text-surface-300 mb-1.5">
                       Bucket Name
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
+                        id="s3-bucket-name"
                         className="input-base flex-1"
                         type="text"
                         placeholder="openzync-blobs"
@@ -398,6 +391,7 @@ export default function BlobStorageConfigPage() {
                   {/* s3_access_key_id — secret */}
                   <div>
                     <SecretInput
+                      id="s3-access-key-id"
                       label="S3 Access Key ID"
                       value={form.s3_access_key_id}
                       onChange={(v) => updateField("s3_access_key_id", v)}
@@ -415,6 +409,7 @@ export default function BlobStorageConfigPage() {
                   {/* s3_secret_access_key — secret */}
                   <div>
                     <SecretInput
+                      id="s3-secret-access-key"
                       label="S3 Secret Access Key"
                       value={form.s3_secret_access_key}
                       onChange={(v) => updateField("s3_secret_access_key", v)}
@@ -431,11 +426,12 @@ export default function BlobStorageConfigPage() {
 
                   {/* max_blob_size_mb */}
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1.5">
+                    <label htmlFor="max-blob-size-mb" className="block text-sm font-medium text-surface-300 mb-1.5">
                       Max Blob Size (MB)
                     </label>
                     <div className="flex gap-2 items-start">
                       <input
+                        id="max-blob-size-mb"
                         className="input-base flex-1 max-w-[160px]"
                         type="number"
                         min={1}
@@ -479,17 +475,17 @@ export default function BlobStorageConfigPage() {
                       </div>
                     </div>
                     <div className="flex gap-2 items-start">
-                      <select
-                        className="input-base flex-1 max-w-[240px]"
+                      <SimpleSelect
+                        aria-label="Image text extraction"
+                        className="flex-1 max-w-[240px]"
+                        options={[
+                          { value: "none", label: "Disabled (store only)" },
+                          { value: "ocr", label: "OCR (Tesseract)" },
+                          { value: "vision", label: "Vision API (LLM)" },
+                        ]}
                         value={form.image_extraction}
-                        onChange={(e) =>
-                          updateField("image_extraction", e.target.value)
-                        }
-                      >
-                        <option value="none">Disabled (store only)</option>
-                        <option value="ocr">OCR (Tesseract)</option>
-                        <option value="vision">Vision API (LLM)</option>
-                      </select>
+                        onValueChange={(value) => updateField("image_extraction", value)}
+                      />
                       {isFieldSet("image_extraction") && (
                         <Button
                           onClick={() => handleStageReset("image_extraction")}

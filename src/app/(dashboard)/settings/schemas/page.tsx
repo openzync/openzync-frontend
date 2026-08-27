@@ -6,7 +6,6 @@ import {
   Eye,
   Trash2,
   FileJson,
-  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -21,7 +20,10 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Field } from "@/components/ui/field";
+import { SimpleSelect } from "@/components/ui/select";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -151,87 +153,80 @@ export default function SchemasPage() {
 
       {/* Table */}
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Type</th>
-                <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400">Status</th>
-                <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400">Template</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">Created</th>
-                <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-surface-400 w-20">Actions</th>
+        <Table>
+          <TableHeader>
+            <TableHead>Name</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead align="center">Status</TableHead>
+            <TableHead align="center">Template</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead align="center" className="w-20">Actions</TableHead>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableSkeleton rows={4} cols={6} colWidths={["w-36", "w-24", "w-16", "w-16", "w-24", "w-16"]} />
+            ) : schemas.length === 0 ? (
+              <tr>
+                <td colSpan={6}>
+                  <EmptyState
+                    icon={FileJson}
+                    title="No schemas yet"
+                    description="Create your first extraction schema"
+                    action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>Create Schema</Button>}
+                  />
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {loading ? (
-                <TableSkeleton rows={4} cols={6} colWidths={["w-36", "w-24", "w-16", "w-16", "w-24", "w-16"]} />
-              ) : schemas.length === 0 ? (
-                <tr>
-                  <td colSpan={6}>
-                    <EmptyState
-                      icon={FileJson}
-                      title="No schemas yet"
-                      description="Create your first extraction schema"
-                      action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>Create Schema</Button>}
-                    />
-                  </td>
-                </tr>
-              ) : (
-                schemas.map((schema, idx) => (
-                  <tr
-                    key={schema.id}
-                    className={cn("transition-colors hover:bg-surface-800/50", idx % 2 === 0 ? "bg-surface-950/50" : "")}
-                  >
-                    <td className="px-4 py-3">
-                      <span className="text-surface-200 font-medium">{schema.name}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={schema.type === "classification" ? "info" : "brand"} size="sm">
-                        {schema.type}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Badge variant={schema.is_active ? "success" : "default"} size="sm">
-                        {schema.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="text-xs text-surface-400">
-                        {schema.prompt_template ? "Yes" : "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-surface-400 text-xs">{formatDate(schema.created_at)}</span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setViewTarget(schema)}
-                          className="rounded-md text-surface-400 hover:text-white"
-                          title="View schema"
-                        >
-                          <Eye size={14} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteTarget(schema)}
-                          className="rounded-md text-surface-400 hover:text-error"
-                          title="Delete schema"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            ) : (
+              schemas.map((schema) => (
+                <TableRow key={schema.id}>
+                  <TableCell>
+                    <span className="text-surface-200 font-medium">{schema.name}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={schema.type === "classification" ? "info" : "brand"} size="sm">
+                      {schema.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Badge variant={schema.is_active ? "success" : "default"} size="sm">
+                      {schema.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell align="center">
+                    <span className="text-xs text-surface-400">
+                      {schema.prompt_template ? "Yes" : "—"}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-surface-400 text-xs">{formatDate(schema.created_at)}</span>
+                  </TableCell>
+                  <TableCell align="center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setViewTarget(schema)}
+                        className="rounded-md text-surface-400 hover:text-white"
+                        title="View schema"
+                      >
+                        <Eye size={14} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteTarget(schema)}
+                        className="rounded-md text-surface-400 hover:text-error"
+                        title="Delete schema"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {/* ── Create Dialog ──────────────────────────────────────────────────────── */}
@@ -259,59 +254,51 @@ export default function SchemasPage() {
       >
         <div className="space-y-4">
           {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1.5">Name</label>
+          <Field label="Name" htmlFor="schema-name">
             <input
+              id="schema-name"
               className="input-base"
               placeholder="e.g. invoice_data"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               autoFocus
             />
-          </div>
+          </Field>
 
           {/* Type */}
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1.5">Type</label>
-            <select
-              className="input-base"
+          <Field label="Type" htmlFor="schema-type">
+            <SimpleSelect
+              id="schema-type"
+              options={[
+                { value: "structured", label: "Structured" },
+                { value: "classification", label: "Classification" },
+              ]}
               value={newType}
-              onChange={(e) => setNewType(e.target.value as "structured" | "classification")}
-            >
-              <option value="structured">Structured</option>
-              <option value="classification">Classification</option>
-            </select>
-          </div>
+              onValueChange={(value) => setNewType(value as "structured" | "classification")}
+            />
+          </Field>
 
           {/* JSON Schema */}
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1.5">JSON Schema</label>
+          <Field label="JSON Schema" htmlFor="schema-json" error={schemaError ?? undefined}>
             <textarea
+              id="schema-json"
               className="input-base min-h-[120px] pt-2 font-mono text-xs"
               placeholder='{"type": "object", "properties": {...}}'
               value={newSchema}
               onChange={(e) => setNewSchema(e.target.value)}
             />
-            {schemaError && (
-              <p className="text-xs text-error mt-1 flex items-center gap-1">
-                <AlertCircle size={10} />
-                {schemaError}
-              </p>
-            )}
-          </div>
+          </Field>
 
           {/* Prompt Template (optional) */}
-          <div>
-            <label className="block text-sm font-medium text-surface-300 mb-1.5">
-              Prompt Template <span className="text-surface-500 font-normal">(optional)</span>
-            </label>
+          <Field label="Prompt Template" htmlFor="schema-prompt" hint="Optional">
             <textarea
+              id="schema-prompt"
               className="input-base min-h-[80px] pt-2 font-mono text-xs"
               placeholder="Extract the following fields from the text..."
               value={newPrompt}
               onChange={(e) => setNewPrompt(e.target.value)}
             />
-          </div>
+          </Field>
         </div>
       </Dialog>
 

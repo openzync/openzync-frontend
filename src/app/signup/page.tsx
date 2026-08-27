@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Eye, EyeOff, Loader2, Lock } from "lucide-react";
+import { CheckCircle2, Loader2, Lock } from "lucide-react";
 import { post, join, getRegistrationStatus, type RegistrationStatus } from "@/lib/api-client";
 import { getPasswordStrength } from "@/lib/password-strength";
 import { cn } from "@/lib/utils";
 import { AuthLayout } from "@/components/shared/auth-layout";
+import { PasswordField } from "@/components/shared/password-field";
+import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -29,7 +31,6 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [submittedMessage, setSubmittedMessage] = useState<string | null>(null);
 
   // The status endpoint is PUBLIC — fetch once on mount. On failure keep the
@@ -211,11 +212,9 @@ export default function SignupPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === "create" && (
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Organization Name
-                  </label>
+                <Field label="Organization Name" htmlFor="signup-org-name">
                   <input
+                    id="signup-org-name"
                     type="text"
                     value={orgName}
                     onChange={(e) => setOrgName(e.target.value)}
@@ -224,15 +223,13 @@ export default function SignupPage() {
                     className="input-base w-full"
                     placeholder="My Organization"
                   />
-                </div>
+                </Field>
               )}
 
               {mode === "join" && (
-                <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Organization Code
-                  </label>
+                <Field label="Organization Code" htmlFor="signup-org-code">
                   <input
+                    id="signup-org-code"
                     type="text"
                     value={orgCode}
                     onChange={(e) => setOrgCode(e.target.value)}
@@ -244,14 +241,12 @@ export default function SignupPage() {
                     className="input-base w-full font-mono"
                     placeholder="XXXX-XXXX-XXXX"
                   />
-                </div>
+                </Field>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                  Email
-                </label>
+              <Field label="Email" htmlFor="signup-email">
                 <input
+                  id="signup-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -260,32 +255,20 @@ export default function SignupPage() {
                   className="input-base w-full"
                   placeholder="you@example.com"
                 />
-              </div>
+              </Field>
 
               {!approvalsPublic && (
                 <div>
-                  <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={8}
-                      autoComplete="new-password"
-                      className="input-base w-full pr-10"
-                      placeholder="Minimum 8 characters"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-text-primary"
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
+                  <PasswordField
+                    id="signup-password"
+                    label="Password"
+                    value={password}
+                    onChange={setPassword}
+                    placeholder="Minimum 8 characters"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                  />
                   {password && (
                     <div className="mt-2">
                       <div className="flex justify-between text-xs mb-1">

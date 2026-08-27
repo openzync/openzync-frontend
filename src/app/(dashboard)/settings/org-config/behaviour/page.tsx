@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { RotateCcw, Settings2 } from "lucide-react";
 import { toast } from "sonner";
-import { get, patch, ApiError, apiErrorMessage } from "@/lib/api-client";
+import { get, patch, ApiError } from "@/lib/api-client";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
@@ -14,6 +15,12 @@ import { useConfigReset } from "@/hooks/use-config-reset";
 
 interface OrgConfigResponse {
   stored: Record<string, unknown>;
+}
+
+/** What the config fetcher hands to the render-phase form seed. */
+interface OrgConfigData {
+  stored: Record<string, unknown>;
+  defaults: Record<string, unknown>;
 }
 
 interface FormState {
@@ -50,9 +57,10 @@ export default function BehaviourConfigPage() {
   });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
   const [stored, setStored] = useState<Record<string, unknown>>({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Save failures share the banner with load errors; cleared when a fetch
+  // succeeds so a retry visibly resolves.
+  const [actionError, setActionError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
 
   // ── Staged resets ────────────────────────────────────────────────────────────
@@ -72,70 +80,42 @@ export default function BehaviourConfigPage() {
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
-  const fetchConfig = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await get<OrgConfigResponse>("/admin/org/config");
+  const configQuery = useApiQuery<OrgConfigData>(async () => {
+    const data = await get<OrgConfigResponse>("/admin/org/config");
+    const stored = (data.stored ?? {}) as Record<string, unknown>;
+    const hasAnyStored = FIELDS.some((f) => stored[f] != null);
 
-      const stored = data.stored as Record<string, unknown>;
-      const hasAnyStored = FIELDS.some((f) => stored[f] != null);
+    // If no stored values exist for this tab, pull onboarding defaults from API
+    const defaults = hasAnyStored
+      ? {}
+      : await get<Record<string, unknown>>("/admin/org/config/defaults").catch(
+          () => ({}) as Record<string, unknown>,
+        );
 
-      // If no stored values exist for this tab, pull onboarding defaults from API
-      let defaults: Record<string, unknown> = {};
-      if (!hasAnyStored) {
-        try {
-          defaults = await get<Record<string, unknown>>(
-            "/admin/org/config/defaults",
-          );
-        } catch {
-          // best-effort; fall through to inline fallbacks
-        }
-      }
-
-      const val = (field: string, fallback: unknown) =>
-        (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
-
-      setForm({
-        context_cache_ttl: val("context_cache_ttl", 1800) as number,
-        audit_log_response_body: val(
-          "audit_log_response_body",
-          true,
-        ) as boolean,
-      });
-      setInitialForm({
-        context_cache_ttl: val("context_cache_ttl", 1800) as number,
-        audit_log_response_body: val(
-          "audit_log_response_body",
-          true,
-        ) as boolean,
-      });
-      setStored(data.stored ?? {});
-      setDirty(false);
-      setError(null);
-    } catch (err) {
-      setError(apiErrorMessage(err, "Failed to load configuration"));
-    } finally {
-      setLoading(false);
-    }
-  }, [setDirty]);
-
-  useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
-
-  // ── beforeunload protection ───────────────────────────────────────────────
-
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (hasChanged()) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    return { stored, defaults };
   });
+
+  // Seed the editable form from server data — render-phase adjustment keyed on
+  // response identity (same pattern as superadmin/config), so a refetch after
+  // save re-seeds exactly once.
+  const [seeded, setSeeded] = useState<OrgConfigData | null>(null);
+  if (configQuery.data && configQuery.data !== seeded) {
+    setSeeded(configQuery.data);
+    const { stored, defaults } = configQuery.data;
+    const val = (field: string, fallback: unknown) =>
+      (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
+    const current: FormState = {
+      context_cache_ttl: val("context_cache_ttl", 1800) as number,
+      audit_log_response_body: val("audit_log_response_body", true) as boolean,
+    };
+    setForm(current);
+    setInitialForm(current);
+    setStored(stored);
+    setActionError(null);
+  }
+
+  const loading = configQuery.isLoading;
+  const error = configQuery.error ?? actionError;
 
   // ── Field helpers ─────────────────────────────────────────────────────────
 
@@ -178,7 +158,6 @@ export default function BehaviourConfigPage() {
   async function handleSave() {
     if (!hasChanged()) return;
     setSaving(true);
-    setError(null);
 
     try {
       const payload = getSavePayload(form as unknown as Record<string, unknown>);
@@ -186,15 +165,15 @@ export default function BehaviourConfigPage() {
       await patch("/admin/org/config", payload);
 
       toast.success("Behaviour configuration saved successfully");
-      await fetchConfig();
       clearResets();
       setDirty(false);
+      configQuery.refetch();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to save configuration";
-      setError(message);
+      setActionError(message);
       toast.error(
         err instanceof ApiError
           ? err.message
@@ -231,15 +210,16 @@ export default function BehaviourConfigPage() {
           </div>
         ) : (
           <>
-            {error && <ErrorState message={error} onRetry={fetchConfig} />}
+            {error && <ErrorState message={error} onRetry={configQuery.refetch} />}
             <div className="space-y-4 max-w-md">
               {/* context_cache_ttl */}
               <div>
-                <label className="block text-sm font-medium text-surface-300 mb-1">
+                <label htmlFor="context-cache-ttl" className="block text-sm font-medium text-surface-300 mb-1">
                   Context Cache TTL (seconds)
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
+                    id="context-cache-ttl"
                     className="input-base flex-1"
                     type="number"
                     min="0"
@@ -278,7 +258,7 @@ export default function BehaviourConfigPage() {
               <div className="pt-2">
                 <div className="flex items-start justify-between">
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                    <label htmlFor="audit-log-response-body" className="block text-sm font-medium text-surface-300 mb-1">
                       Audit Log Response Body
                     </label>
                     <p className="text-xs text-surface-500">
@@ -286,8 +266,9 @@ export default function BehaviourConfigPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-4">
-                    <label className="flex items-center gap-3 cursor-pointer">
+                    <label htmlFor="audit-log-response-body" className="flex items-center gap-3 cursor-pointer">
                       <input
+                        id="audit-log-response-body"
                         type="checkbox"
                         className="rounded border-surface-600 bg-surface-800 text-brand-500"
                         checked={form.audit_log_response_body}

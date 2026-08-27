@@ -8,5 +8,8 @@ const nextConfig: NextConfig = {
    * nginx-relative default. */
   output: "standalone",
 };
+module.exports = {
+  allowedDevOrigins: ['192.168.0.109'],
+}
 
 export default nextConfig;
