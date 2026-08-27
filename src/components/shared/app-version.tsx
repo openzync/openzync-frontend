@@ -9,7 +9,7 @@ export function AppVersion() {
   useEffect(() => {
     // Decorative footer badge: hiding it when /health is unreachable is the
     // designed empty state — no retry loop for a non-critical label.
-    get<{ version: string }>("/v1/health")
+    get<{ version: string }>("/health", { skipAuthRetry: true })
       .then((d) => setVersion(d.version))
       .catch(() => setVersion(null));
   }, []);
