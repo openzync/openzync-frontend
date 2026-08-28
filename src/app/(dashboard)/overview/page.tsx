@@ -167,7 +167,8 @@ function OverviewInner() {
 
   function renderGraphChart() {
     if (loading || (usageLoading && usage.length === 0)) return renderGraphSkeleton();
-    if (usage.length === 0) {
+    const hasGraphData = usage.some((p) => (p.node_count ?? 0) > 0 || (p.edge_count ?? 0) > 0);
+    if (!hasGraphData) {
       return (
         <div className="flex flex-col items-center justify-center h-[260px] text-surface-500">
           <BarChart3 size={40} className="mb-3 opacity-40" />
@@ -267,27 +268,30 @@ function OverviewInner() {
 
       {/* Small graphs — 6 charts, 2 rows of 3 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {SMALL_CHARTS.map((cfg) => (
-          <div key={cfg.dataKey} className="card-base p-5">
-            <h3 className="text-sm font-medium mb-4">{cfg.label}</h3>
-            {usageLoading && usage.length === 0 ? (
-              <div className="h-[200px] rounded bg-surface-800 animate-pulse" />
-            ) : usage.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-[200px] text-surface-500">
-                <BarChart3 size={28} className="mb-2 opacity-40" />
-                <p className="text-sm font-medium">No data for this period</p>
-                <p className="text-xs mt-1 text-surface-600">Try selecting a different time range.</p>
-              </div>
-            ) : (
-              <BarChart
-                data={usage}
-                dates={usage.map((p) => p.date)}
-                height={200}
-                series={[{ label: cfg.label, color: cfg.color, value: (p) => (p[cfg.dataKey] as number) ?? 0 }]}
-              />
-            )}
-          </div>
-        ))}
+        {SMALL_CHARTS.map((cfg) => {
+          const hasData = usage.some((p) => ((p[cfg.dataKey] as number) ?? 0) > 0);
+          return (
+            <div key={cfg.dataKey} className="card-base p-5">
+              <h3 className="text-sm font-medium mb-4">{cfg.label}</h3>
+              {usageLoading && usage.length === 0 ? (
+                <div className="h-[200px] rounded bg-surface-800 animate-pulse" />
+              ) : !hasData ? (
+                <div className="flex flex-col items-center justify-center h-[200px] text-surface-500">
+                  <BarChart3 size={28} className="mb-2 opacity-40" />
+                  <p className="text-sm font-medium">No data for this period</p>
+                  <p className="text-xs mt-1 text-surface-600">Try selecting a different time range.</p>
+                </div>
+              ) : (
+                <BarChart
+                  data={usage}
+                  dates={usage.map((p) => p.date)}
+                  height={200}
+                  series={[{ label: cfg.label, color: cfg.color, value: (p) => (p[cfg.dataKey] as number) ?? 0 }]}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Big Graph — Nodes / Edges */}
