@@ -25,21 +25,24 @@ import { PageGuide, GuideDashboard } from "@/components/guides";
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface OrgStats {
-  total_users: number;
-  total_sessions: number;
-  total_messages: number;
-  total_api_keys: number;
   total_episodes: number;
+  total_sessions: number;
   total_facts: number;
+  total_extractions: number;
+  total_observations: number;
+  total_classifications: number;
 }
 
 interface UsagePoint {
   date: string;
-  message_count: number;
-  session_count: number;
   episode_count: number;
-  user_count: number;
-  entity_count: number;
+  session_count: number;
+  fact_count: number;
+  extraction_count: number;
+  observation_count: number;
+  classification_count: number;
+  node_count: number;
+  edge_count: number;
 }
 
 interface QuickActionItem {
@@ -69,13 +72,22 @@ const DAYS_OPTIONS = [7, 30, 90] as const;
 type DaysOption = (typeof DAYS_OPTIONS)[number];
 
 const STAT_CARDS = [
-  { label: "Messages", key: "total_messages" as const },
+  { label: "Episodes", key: "total_episodes" as const },
   { label: "Sessions", key: "total_sessions" as const },
   { label: "Facts", key: "total_facts" as const },
-  { label: "Users", key: "total_users" as const },
-  { label: "Episodes", key: "total_episodes" as const },
-  { label: "API Keys", key: "total_api_keys" as const },
+  { label: "Extractions", key: "total_extractions" as const },
+  { label: "Observations", key: "total_observations" as const },
+  { label: "Classifications", key: "total_classifications" as const },
 ];
+
+const SMALL_CHARTS = [
+  { dataKey: "episode_count" as const, color: "--color-accent-300", label: "Episodes" },
+  { dataKey: "session_count" as const, color: "--color-success", label: "Sessions" },
+  { dataKey: "fact_count" as const, color: "--color-brand-500", label: "Facts" },
+  { dataKey: "extraction_count" as const, color: "--color-warning-500", label: "Extractions" },
+  { dataKey: "observation_count" as const, color: "--color-info-500", label: "Observations" },
+  { dataKey: "classification_count" as const, color: "--color-accent-500", label: "Classifications" },
+] as const;
 
 // Fresh-org quickstart — all destinations point at /projects (this page does not
 // fetch project data, so there is no first-project link available without adding
@@ -134,39 +146,36 @@ function OverviewInner() {
     : usageQuery.data?.data ?? [];
   const usageLoading = usageQuery.isLoading;
 
-  // ── Chart render states ────────────────────────────────────────────────────
+  // ── Big Graph render helpers ───────────────────────────────────────────────
 
-  // Deterministic skeleton heights — Math.random() here re-randomised on every
-  // render, making the skeleton flicker whenever any state changed.
   const SKELETON_HEIGHTS = [64, 48, 72, 40, 58, 80, 35, 66, 50, 74, 44, 62, 38, 70, 52, 46, 68, 42, 56, 60];
   const SKELETON_OPACITIES = [0.5, 0.8, 0.65, 0.9, 0.55, 0.75, 0.85, 0.6];
 
-  function renderChartSkeleton() {
+  function renderGraphSkeleton() {
     return (
       <div className="flex items-end gap-1 h-[260px] pt-5">
         {Array.from({ length: 20 }, (_, i) => (
-          <div key={i} className="flex-1 rounded-t bg-surface-800 animate-pulse"
-            style={{ height: `${SKELETON_HEIGHTS[i % SKELETON_HEIGHTS.length]}%`, opacity: SKELETON_OPACITIES[i % SKELETON_OPACITIES.length] }} />
+          <div
+            key={i}
+            className="flex-1 rounded-t bg-surface-800 animate-pulse"
+            style={{ height: `${SKELETON_HEIGHTS[i % SKELETON_HEIGHTS.length]}%`, opacity: SKELETON_OPACITIES[i % SKELETON_OPACITIES.length] }}
+          />
         ))}
       </div>
     );
   }
 
-  function renderEmptyChart() {
-    return (
-      <div className="flex flex-col items-center justify-center h-[260px] text-surface-500">
-        <BarChart3 size={40} className="mb-3 opacity-40" />
-        <p className="text-sm font-medium">No usage data available for this period.</p>
-        <p className="text-xs mt-1 text-surface-600">Try selecting a different time range.</p>
-      </div>
-    );
-  }
-
-  function renderChart() {
-    if (loading || (usageLoading && usage.length === 0)) return renderChartSkeleton();
-    if (usage.length === 0) return renderEmptyChart();
-
-    // Series order = tooltip order; overlap mode paints Messages on top.
+  function renderGraphChart() {
+    if (loading || (usageLoading && usage.length === 0)) return renderGraphSkeleton();
+    if (usage.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[260px] text-surface-500">
+          <BarChart3 size={40} className="mb-3 opacity-40" />
+          <p className="text-sm font-medium">No graph data for this period</p>
+          <p className="text-xs mt-1 text-surface-600">Try selecting a different time range</p>
+        </div>
+      );
+    }
     return (
       <BarChart
         data={usage}
@@ -174,8 +183,8 @@ function OverviewInner() {
         height={260}
         tooltipShowYear
         series={[
-          { label: "Messages", color: "--color-brand-500", value: (p) => p.message_count },
-          { label: "Sessions", color: "--color-accent-300", value: (p) => p.session_count, baseOpacity: 0.65 },
+          { label: "Nodes", color: "--color-brand-500", value: (p) => p.node_count ?? 0 },
+          { label: "Edges", color: "--color-accent-300", value: (p) => p.edge_count ?? 0, baseOpacity: 0.65 },
         ]}
       />
     );
@@ -194,8 +203,8 @@ function OverviewInner() {
         <p>Monitor your organization&rsquo;s key metrics — messages, sessions, facts, users, episodes, and API keys. Track daily usage trends with the interactive chart.</p>
       </PageGuide>
 
-      {/* Quickstart — only for a brand-new org (no messages yet) */}
-      {!loading && statsQuery.data?.total_messages === 0 && (
+      {/* Quickstart — only for a brand-new org (no episodes yet) */}
+      {!loading && statsQuery.data?.total_episodes === 0 && (
         <div className="card-base p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -256,13 +265,9 @@ function OverviewInner() {
         </div>
       )}
 
-      {/* Trend mini-charts — Episodes, Users, Graph Activity */}
+      {/* Small graphs — 6 charts, 2 rows of 3 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {([
-          { dataKey: "episode_count" as const, color: "--color-accent-300", label: "Episodes" },
-          { dataKey: "user_count" as const, color: "--color-success", label: "Users" },
-          { dataKey: "entity_count" as const, color: "--color-brand-500", label: "Graph Entities" },
-        ]).map((cfg) => (
+        {SMALL_CHARTS.map((cfg) => (
           <div key={cfg.dataKey} className="card-base p-5">
             <h3 className="text-sm font-medium mb-4">{cfg.label}</h3>
             {usageLoading && usage.length === 0 ? (
@@ -274,19 +279,26 @@ function OverviewInner() {
                 <p className="text-xs mt-1 text-surface-600">Try selecting a different time range.</p>
               </div>
             ) : (
-              <BarChart data={usage} dates={usage.map((p) => p.date)} height={200} series={[{ label: cfg.label, color: cfg.color, value: (p) => (p[cfg.dataKey] as number) }]} />
+              <BarChart
+                data={usage}
+                dates={usage.map((p) => p.date)}
+                height={200}
+                series={[{ label: cfg.label, color: cfg.color, value: (p) => (p[cfg.dataKey] as number) ?? 0 }]}
+              />
             )}
           </div>
         ))}
       </div>
 
-      {/* Daily Usage chart */}
+      {/* Big Graph — Nodes / Edges */}
       <div className="card-base p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium">Daily Usage</h3>
+        <div className="flex justify-between mb-4">
+          <h3 className="text-sm font-medium">Graph</h3>
           <div className="flex gap-1 rounded-lg bg-surface-950 p-0.5 border border-surface-800">
             {DAYS_OPTIONS.map((d) => (
-              <button key={d} onClick={() => setDays(d)}
+              <button
+                key={d}
+                onClick={() => setDays(d)}
                 className={cn(
                   "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                   days === d
@@ -299,14 +311,16 @@ function OverviewInner() {
             ))}
           </div>
         </div>
-        <div>{renderChart()}</div>
+        <div>{renderGraphChart()}</div>
         {usage.length > 0 && !usageLoading && (
-          <div className="flex items-center gap-5 mt-3 pt-3 border-t border-surface-800">
+          <div className="flex gap-5 mt-3 pt-3 border-t border-surface-800">
             <div className="flex items-center gap-1.5 text-xs text-surface-400">
-              <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-brand-500") }} />Messages
+              <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-brand-500") }} />
+              Nodes
             </div>
             <div className="flex items-center gap-1.5 text-xs text-surface-400">
-              <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-accent-300") }} />Sessions
+              <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-accent-300") }} />
+              Edges
             </div>
           </div>
         )}
