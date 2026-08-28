@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Users,
   FolderKanban,
@@ -53,6 +53,11 @@ interface QuickActionItem {
 
 interface QuickActionsResponse {
   actions: QuickActionItem[];
+}
+
+interface ProjectOption {
+  id: string;
+  name: string;
 }
 
 // ─── Icon Map for Quick Actions ────────────────────────────────────────────────
@@ -110,19 +115,108 @@ export default function OverviewPage() {
 
 function OverviewInner() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Chart range lives in the URL (?days=7|30|90) so it survives reloads and
-  // is shareable. Anything outside the supported set clamps to the default.
+  // ── Global filter state — URL is the source of truth ──────────────────────
+
   const rawDays = Number(searchParams.get("days"));
-  const days: DaysOption = DAYS_OPTIONS.includes(rawDays as DaysOption)
-    ? (rawDays as DaysOption)
-    : 30;
+  const rawFrom = searchParams.get("from");
+  const rawTo = searchParams.get("to");
+  const rawProject = searchParams.get("project");
+
+  const isCustom = !!rawFrom && !!rawTo;
+
+  const days: DaysOption = isCustom
+    ? 30
+    : DAYS_OPTIONS.includes(rawDays as DaysOption)
+      ? (rawDays as DaysOption)
+      : 30;
+
+  const from = isCustom ? rawFrom : null;
+  const to = isCustom ? rawTo : null;
+  const projectId = rawProject || null;
+
+  // Local date input state — decoupled from URL so typing doesn't push history.
+  const [customFrom, setCustomFrom] = useState(from ?? "");
+  const [customTo, setCustomTo] = useState(to ?? "");
+  const [pendingRange, setPendingRange] = useState<string>(isCustom ? "custom" : String(days));
+
+  // Sync local inputs when URL changes via navigation (back/forward/filter buttons).
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setCustomFrom(from ?? ""); }, [from]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setCustomTo(to ?? ""); }, [to]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setPendingRange(isCustom ? "custom" : String(days)); }, [isCustom, days]);
+
+  function setDays(d: DaysOption) {
+    const p = new URLSearchParams(searchParams.toString());
+    p.set("days", String(d));
+    p.delete("from");
+    p.delete("to");
+    router.replace(`${pathname}?${p.toString()}`, { scroll: false });
+  }
+
+  function setProject(id: string | null) {
+    const p = new URLSearchParams(searchParams.toString());
+    if (id) p.set("project", id);
+    else p.delete("project");
+    router.replace(`${pathname}?${p.toString()}`, { scroll: false });
+  }
+
+  function applyCustom(f: string, t: string) {
+    const p = new URLSearchParams(searchParams.toString());
+    p.set("from", f);
+    p.set("to", t);
+    p.delete("days");
+    router.replace(`${pathname}?${p.toString()}`, { scroll: false });
+  }
+
+  function clearCustom() {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete("from");
+    p.delete("to");
+    p.set("days", "30");
+    router.replace(`${pathname}?${p.toString()}`, { scroll: false });
+  }
+
+  // ── Projects dropdown ──────────────────────────────────────────────────────
+
+  const projectsQuery = useApiQuery<ProjectOption[] | { data: ProjectOption[] }>(async () => {
+    try {
+      return await get<ProjectOption[] | { data: ProjectOption[] }>("/v1/projects?limit=100");
+    } catch {
+      // Fallback endpoint if the primary shape returns 404 in some deployments.
+      return await get<ProjectOption[] | { data: ProjectOption[] }>("/v1/projects/list");
+    }
+  });
+
+  const projects: ProjectOption[] = (() => {
+    const d = projectsQuery.data;
+    if (!d) return [];
+    return Array.isArray(d) ? d : (d.data ?? []);
+  })();
+
+  // ── Windowed query string — shared by stats + usage ───────────────────────
+
+  const qs = new URLSearchParams();
+  if (isCustom && from && to) {
+    qs.set("from", from);
+    qs.set("to", to);
+  } else {
+    qs.set("days", String(days));
+  }
+  if (projectId) qs.set("project_id", projectId);
+  const qsString = qs.toString();
+  const windowKey = `${days}-${from}-${to}-${projectId}`;
 
   // Each section fails independently so one bad endpoint doesn't blank the
   // whole dashboard. Errors clear on success only, so a retry visibly keeps
   // the error until it actually resolves.
-  const statsQuery = useApiQuery<OrgStats>(() => get<OrgStats>("/v1/admin/stats/org"));
+  const statsQuery = useApiQuery<OrgStats>(() => get<OrgStats>(`/v1/admin/stats/org?${qsString}`), {
+    refreshKey: windowKey,
+  });
   const quickActionsQuery = useApiQuery<QuickActionsResponse>(() =>
     get<QuickActionsResponse>("/v1/admin/quick-actions"),
   );
@@ -130,10 +224,10 @@ function OverviewInner() {
 
   const quickActions = quickActionsQuery.data?.actions ?? [];
 
-  // Chart state — days comes from the URL above.
+  // Chart state — windowed by the same qs.
   const usageQuery = useApiQuery<UsagePoint[] | { data?: UsagePoint[] }>(
-    () => get<UsagePoint[] | { data?: UsagePoint[] }>(`/v1/admin/stats/usage?days=${days}`),
-    { refreshKey: days },
+    () => get<UsagePoint[] | { data?: UsagePoint[] }>(`/v1/admin/stats/usage?${qsString}`),
+    { refreshKey: windowKey },
   );
   const usage: UsagePoint[] = Array.isArray(usageQuery.data)
     ? usageQuery.data
@@ -259,6 +353,86 @@ function OverviewInner() {
           ))}
         </div>
       )}
+
+      {/* Filters toolbar — global window controls */}
+      <div className="card-base p-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Project</span>
+            <select
+              value={projectId ?? ""}
+              onChange={(e) => setProject(e.target.value || null)}
+              className="input-base h-8 text-xs flex-1 min-w-0 truncate border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
+              aria-label="Filter by project"
+            >
+              <option value="">All projects</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Time range</span>
+            <select
+              value={pendingRange}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "custom") {
+                  setPendingRange("custom");
+                } else {
+                  setPendingRange(v);
+                  setDays(Number(v) as DaysOption);
+                }
+              }}
+              className="input-base h-8 text-xs flex-1 min-w-0 border-surface-800"
+              aria-label="Filter by time range"
+            >
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="custom">Custom range</option>
+            </select>
+          </label>
+        </div>
+        {(pendingRange === "custom" || isCustom) && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-surface-800">
+            <div className="grid grid-cols-2 gap-2 flex-1">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="input-base h-8 text-xs border-surface-800"
+                aria-label="From date"
+              />
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="input-base h-8 text-xs border-surface-800"
+                aria-label="To date"
+              />
+            </div>
+            <div className="flex gap-2 shrink-0 sm:ml-auto">
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => applyCustom(customFrom, customTo)}
+                disabled={!customFrom || !customTo}
+                className="h-8 flex-1 sm:flex-none"
+              >
+                Apply
+              </Button>
+              {isCustom && (
+                <Button size="sm" variant="ghost" onClick={clearCustom} className="h-8">
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Small graphs — 6 charts, 2 rows of 3 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
