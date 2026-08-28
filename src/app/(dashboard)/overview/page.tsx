@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Users,
   FolderKanban,
@@ -12,7 +12,6 @@ import {
   Network,
   type LucideIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { get } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
@@ -111,7 +110,6 @@ export default function OverviewPage() {
 
 function OverviewInner() {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   // Chart range lives in the URL (?days=7|30|90) so it survives reloads and
@@ -119,11 +117,7 @@ function OverviewInner() {
   const rawDays = Number(searchParams.get("days"));
   const days: DaysOption = DAYS_OPTIONS.includes(rawDays as DaysOption)
     ? (rawDays as DaysOption)
-    : 7;
-
-  function setDays(d: DaysOption) {
-    router.replace(`${pathname}?days=${d}`, { scroll: false });
-  }
+    : 30;
 
   // Each section fails independently so one bad endpoint doesn't blank the
   // whole dashboard. Errors clear on success only, so a retry visibly keeps
@@ -296,24 +290,8 @@ function OverviewInner() {
 
       {/* Big Graph — Nodes / Edges */}
       <div className="card-base p-5">
-        <div className="flex justify-between mb-4">
+        <div className="mb-4">
           <h3 className="text-sm font-medium">Graph</h3>
-          <div className="flex gap-1 rounded-lg bg-surface-950 p-0.5 border border-surface-800">
-            {DAYS_OPTIONS.map((d) => (
-              <button
-                key={d}
-                onClick={() => setDays(d)}
-                className={cn(
-                  "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                  days === d
-                    ? "bg-brand-500 text-white shadow-sm"
-                    : "text-surface-400 hover:text-surface-100 hover:bg-surface-800",
-                )}
-              >
-                {d}d
-              </button>
-            ))}
-          </div>
         </div>
         <div>{renderGraphChart()}</div>
         {usage.length > 0 && !usageLoading && (
