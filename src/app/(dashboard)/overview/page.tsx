@@ -4,28 +4,21 @@ import { Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Users,
-  MessageSquare,
-  MessageCircle,
-  Key,
   FolderKanban,
   BarChart3,
   Shield,
   BrainCircuit,
-  Database,
-  TrendingUp,
-  FileText,
   Upload,
   Network,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { get } from "@/lib/api-client";
-import { timeAgo, actionLabel } from "@/lib/utils";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { ErrorState } from "@/components/shared/error-state";
-import { AreaChart, BarChart, cssVar } from "@/components/shared/charts";
+import { BarChart, cssVar } from "@/components/shared/charts";
 import { Button } from "@/components/ui/button";
 import { PageGuide, GuideDashboard } from "@/components/guides";
 
@@ -47,16 +40,6 @@ interface UsagePoint {
   episode_count: number;
   user_count: number;
   entity_count: number;
-}
-
-interface AuditEntry {
-  id: string;
-  action: string;
-  actor_id: string | null;
-  actor_type: string | null;
-  created_at: string;
-  status_code: number | null;
-  display_name: string | null;
 }
 
 interface QuickActionItem {
@@ -86,12 +69,12 @@ const DAYS_OPTIONS = [7, 30, 90] as const;
 type DaysOption = (typeof DAYS_OPTIONS)[number];
 
 const STAT_CARDS = [
-  { label: "Messages", key: "total_messages" as const, icon: MessageCircle, color: "text-brand-300" },
-  { label: "Sessions", key: "total_sessions" as const, icon: MessageSquare, color: "text-accent-300" },
-  { label: "Facts", key: "total_facts" as const, icon: Database, color: "text-success" },
-  { label: "Users", key: "total_users" as const, icon: Users, color: "text-surface-300" },
-  { label: "Episodes", key: "total_episodes" as const, icon: FileText, color: "text-accent-400" },
-  { label: "API Keys", key: "total_api_keys" as const, icon: Key, color: "text-surface-300" },
+  { label: "Messages", key: "total_messages" as const },
+  { label: "Sessions", key: "total_sessions" as const },
+  { label: "Facts", key: "total_facts" as const },
+  { label: "Users", key: "total_users" as const },
+  { label: "Episodes", key: "total_episodes" as const },
+  { label: "API Keys", key: "total_api_keys" as const },
 ];
 
 // Fresh-org quickstart — all destinations point at /projects (this page does not
@@ -102,22 +85,6 @@ const QUICKSTART_STEPS = [
   { title: "Ingest a conversation", description: "Import a chat log to embed entities and facts.", href: "/projects", icon: Upload },
   { title: "Explore the knowledge graph", description: "Watch connections light up as the graph grows.", href: "/projects", icon: Network },
 ] as const;
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-
-function actorLabel(entry: AuditEntry): string {
-  switch (entry.actor_type) {
-    case "api_key":
-      return "API";
-    case "system":
-      return "System";
-    case "user":
-      if (entry.actor_id) return entry.actor_id.slice(0, 8);
-      return "User";
-    default:
-      return "Anonymous";
-  }
-}
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
@@ -150,17 +117,12 @@ function OverviewInner() {
   // whole dashboard. Errors clear on success only, so a retry visibly keeps
   // the error until it actually resolves.
   const statsQuery = useApiQuery<OrgStats>(() => get<OrgStats>("/v1/admin/stats/org"));
-  const activitiesQuery = useApiQuery<{ items: AuditEntry[] }>(() =>
-    get<{ items: AuditEntry[] }>("/v1/admin/audit-logs?limit=5"),
-  );
   const quickActionsQuery = useApiQuery<QuickActionsResponse>(() =>
     get<QuickActionsResponse>("/v1/admin/quick-actions"),
   );
-  const loading =
-    statsQuery.isLoading || activitiesQuery.isLoading || quickActionsQuery.isLoading;
+  const loading = statsQuery.isLoading || quickActionsQuery.isLoading;
 
   const quickActions = quickActionsQuery.data?.actions ?? [];
-  const activities = activitiesQuery.data?.items ?? [];
 
   // Chart state — days comes from the URL above.
   const usageQuery = useApiQuery<UsagePoint[] | { data?: UsagePoint[] }>(
@@ -225,11 +187,11 @@ function OverviewInner() {
     <div className="space-y-6">
       <PageHeader
         title="Overview"
-        description="Your organization&rsquo;s activity pulse — live stats, recent activity, and getting-started guides"
+        description="Your organization&rsquo;s activity pulse — live stats and daily usage trends"
       />
 
       <PageGuide title="Your organization at a glance" illustration={<GuideDashboard />}>
-        <p>Monitor your organization&rsquo;s key metrics — messages, sessions, facts, users, episodes, and API keys. View recent activity and track daily usage trends with the interactive chart.</p>
+        <p>Monitor your organization&rsquo;s key metrics — messages, sessions, facts, users, episodes, and API keys. Track daily usage trends with the interactive chart.</p>
       </PageGuide>
 
       {/* Quickstart — only for a brand-new org (no messages yet) */}
@@ -288,96 +250,11 @@ function OverviewInner() {
               key={card.key}
               label={card.label}
               value={statsQuery.data?.[card.key] ?? null}
-              icon={card.icon}
-              color={card.color}
               loading={loading}
             />
           ))}
         </div>
       )}
-
-      {/* Quick actions + Recent Activity */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card-base p-4">
-          <h3 className="text-sm font-medium mb-2">Quick Actions</h3>
-          {loading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-9 rounded bg-surface-800 animate-pulse" />
-              ))}
-            </div>
-          ) : quickActionsQuery.isError ? (
-            <ErrorState
-              message="Couldn't load quick actions."
-              onRetry={quickActionsQuery.refetch}
-            />
-          ) : quickActions.length === 0 ? (
-            <div className="text-sm text-surface-500 py-4 text-center">
-              No actions available
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {quickActions.map((action) => {
-                const Icon = QUICK_ACTION_ICONS[action.icon] ?? FolderKanban;
-                return (
-                  <Button
-                    key={action.label + action.href}
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => router.push(action.href)}
-                    className="w-full justify-start"
-                    title={action.description}
-                  >
-                    <Icon size={14} className="mr-2" />
-                    {action.label}
-                  </Button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="card-base p-4 md:col-span-2">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium">Recent Activity</h3>
-            <button
-              onClick={() => router.push("/audit")}
-              className="text-xs text-accent-300 hover:text-accent-200"
-            >
-              View all &rarr;
-            </button>
-          </div>
-          {loading ? (
-            <div className="text-sm text-surface-500 py-4 text-center">
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-8 rounded bg-surface-800 animate-pulse" />
-                ))}
-              </div>
-            </div>
-          ) : activitiesQuery.isError ? (
-            <ErrorState
-              message="Couldn't load recent activity."
-              onRetry={activitiesQuery.refetch}
-            />
-          ) : activities.length === 0 ? (
-            <div className="text-sm text-surface-500 py-4 text-center">
-              No recent activity found.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {activities.map((entry) => (
-                <div key={entry.id} className="flex items-center gap-3 text-sm">
-                  <div className="h-2 w-2 rounded-full bg-accent-300/50 shrink-0" />
-                  <span className="text-surface-300 flex-1">{entry.display_name || actionLabel(entry.action)}</span>
-                  <span className="text-surface-500 text-xs">{actorLabel(entry)}</span>
-                  <span className="text-surface-600 text-xs">{timeAgo(entry.created_at)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Trend mini-charts — Episodes, Users, Graph Activity */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -386,14 +263,18 @@ function OverviewInner() {
           { dataKey: "user_count" as const, color: "--color-success", label: "Users" },
           { dataKey: "entity_count" as const, color: "--color-brand-500", label: "Graph Entities" },
         ]).map((cfg) => (
-          <div key={cfg.dataKey} className="card-base p-4">
-            <h3 className="text-xs font-medium text-surface-400 mb-2">{cfg.label}</h3>
+          <div key={cfg.dataKey} className="card-base p-5">
+            <h3 className="text-sm font-medium mb-4">{cfg.label}</h3>
             {usageLoading && usage.length === 0 ? (
               <div className="h-[200px] rounded bg-surface-800 animate-pulse" />
             ) : usage.length === 0 ? (
-              <div className="flex items-center justify-center h-[200px] text-surface-500 text-xs">No data</div>
+              <div className="flex flex-col items-center justify-center h-[200px] text-surface-500">
+                <BarChart3 size={28} className="mb-2 opacity-40" />
+                <p className="text-sm font-medium">No data for this period</p>
+                <p className="text-xs mt-1 text-surface-600">Try selecting a different time range.</p>
+              </div>
             ) : (
-              <AreaChart data={usage} dataKey={cfg.dataKey} color={cfg.color} label={cfg.label} />
+              <BarChart data={usage} dates={usage.map((p) => p.date)} height={200} series={[{ label: cfg.label, color: cfg.color, value: (p) => (p[cfg.dataKey] as number) }]} />
             )}
           </div>
         ))}
@@ -402,9 +283,7 @@ function OverviewInner() {
       {/* Daily Usage chart */}
       <div className="card-base p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium flex items-center gap-1.5">
-            <TrendingUp size={16} className="text-brand-300" />Daily Usage
-          </h3>
+          <h3 className="text-sm font-medium">Daily Usage</h3>
           <div className="flex gap-1 rounded-lg bg-surface-950 p-0.5 border border-surface-800">
             {DAYS_OPTIONS.map((d) => (
               <button key={d} onClick={() => setDays(d)}
@@ -429,6 +308,50 @@ function OverviewInner() {
             <div className="flex items-center gap-1.5 text-xs text-surface-400">
               <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-accent-300") }} />Sessions
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Quick Actions — footer */}
+      <div className="card-base p-5">
+        <h3 className="text-sm font-medium mb-4">Quick Actions</h3>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-[72px] rounded-md bg-surface-800 animate-pulse" />
+            ))}
+          </div>
+        ) : quickActionsQuery.isError ? (
+          <ErrorState message="Couldn't load quick actions." onRetry={quickActionsQuery.refetch} />
+        ) : quickActions.length === 0 ? (
+          <div className="text-sm text-surface-500 py-6 text-center">No actions available</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {quickActions.map((action) => {
+              const Icon = QUICK_ACTION_ICONS[action.icon] ?? FolderKanban;
+              return (
+                <button
+                  key={action.label + action.href}
+                  onClick={() => router.push(action.href)}
+                  title={action.description}
+                  className="group flex w-full items-start gap-3 rounded-md border border-surface-800 bg-surface-950/50 p-3 text-left transition-colors hover:border-brand-500/50 hover:bg-surface-900"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-500/10 text-brand-300">
+                    <Icon size={14} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-surface-100 group-hover:text-white">
+                      {action.label}
+                    </span>
+                    {action.description && (
+                      <span className="mt-0.5 block text-xs text-surface-300 line-clamp-2">
+                        {action.description}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
