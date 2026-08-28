@@ -7,9 +7,7 @@ const nextConfig: NextConfig = {
    * explicitly (e.g. https://app.openzync.tech) — there is no
    * nginx-relative default. */
   output: "standalone",
+  allowedDevOrigins: ["192.168.0.109"],
 };
-module.exports = {
-  allowedDevOrigins: ['192.168.0.109'],
-}
 
 export default nextConfig;
