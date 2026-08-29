@@ -9,13 +9,14 @@ interface StickySaveBarProps {
   hasSaved: boolean;
   onSave: () => void;
   onDiscard: () => void;
+  saveDisabled?: boolean;
 }
 
 /**
  * Inline save bar for config save/discard actions.
  * Renders as a normal block element at the bottom of the form flow.
  */
-export function StickySaveBar({ saving, hasChanges, hasSaved, onSave, onDiscard }: StickySaveBarProps) {
+export function StickySaveBar({ saving, hasChanges, hasSaved, onSave, onDiscard, saveDisabled = false }: StickySaveBarProps) {
   const visible = hasChanges || hasSaved;
 
   if (!visible) return null;
@@ -50,7 +51,7 @@ export function StickySaveBar({ saving, hasChanges, hasSaved, onSave, onDiscard 
             size="sm"
             icon={<Save size={14} />}
             loading={saving}
-            disabled={saving || !hasChanges}
+            disabled={saving || !hasChanges || saveDisabled}
             onClick={onSave}
           >
             {saving ? "Saving\u2026" : "Save Changes"}

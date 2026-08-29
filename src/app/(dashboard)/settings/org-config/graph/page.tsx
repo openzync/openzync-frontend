@@ -27,7 +27,7 @@ interface OrgConfigData {
   systemManaged: string[];
 }
 
-type GraphBackend = "postgres" | "surrealdb" | "falkordb" | "none";
+type GraphBackend = "surrealdb" | "falkordb" | "none";
 type GraphSearchType = "hybrid" | "bm25" | "vector";
 
 interface FormState {
@@ -57,9 +57,8 @@ const FIELDS: (keyof FormState)[] = [
 ];
 
 const GRAPH_BACKEND_OPTIONS: { value: GraphBackend; label: string }[] = [
-  { value: "postgres", label: "PostgreSQL (pgvector)" },
-  { value: "surrealdb", label: "SurrealDB" },
   { value: "falkordb", label: "FalkorDB" },
+  { value: "surrealdb", label: "SurrealDB" },
   { value: "none", label: "No graph backend" },
 ];
 
@@ -88,7 +87,7 @@ const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
 export default function GraphConfigPage() {
   const { setDirty } = useConfigDirty();
   const [form, setForm] = useState<FormState>({
-    graph_backend: "postgres",
+    graph_backend: "falkordb",
     graph_search_type: "hybrid",
     graph_max_traversal_depth: 3,
     surrealdb_url: "",
@@ -147,7 +146,7 @@ export default function GraphConfigPage() {
     const val = (field: string, fallback: unknown) =>
       (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
     const current: FormState = {
-      graph_backend: val("graph_backend", "postgres") as GraphBackend,
+      graph_backend: val("graph_backend", "falkordb") as GraphBackend,
       graph_search_type: val("graph_search_type", "hybrid") as GraphSearchType,
       graph_max_traversal_depth: val("graph_max_traversal_depth", 3) as number,
       surrealdb_url: val("surrealdb_url", "") as string,
@@ -163,6 +162,10 @@ export default function GraphConfigPage() {
     setSystemManaged(systemManaged);
     setActionError(null);
   }
+
+  const isPostgresSelected = (form as unknown as { graph_backend: string }).graph_backend === "postgres";
+  const isStoredPostgres = stored["graph_backend"] === "postgres";
+  const showPostgresBanner = isPostgresSelected || isStoredPostgres;
 
   const loading = configQuery.isLoading;
   const error = configQuery.error ?? actionError;
@@ -193,6 +196,11 @@ export default function GraphConfigPage() {
   // ── Save ──────────────────────────────────────────────────────────────────
 
   async function handleSave() {
+    if ((form as unknown as { graph_backend: string }).graph_backend === "postgres") {
+      setActionError("PostgreSQL graph backend is deprecated and will be removed in v1.1.0. Migrate to falkordb. Saving with PostgreSQL is blocked.");
+      toast.error("PostgreSQL graph backend is deprecated — saving blocked. Migrate to FalkorDB.");
+      return;
+    }
     if (!hasChanged()) return;
     setSaving(true);
 
@@ -246,7 +254,19 @@ export default function GraphConfigPage() {
         ) : (
           <>
             {error && <ErrorState message={error} onRetry={configQuery.refetch} />}
-            <div className={error ? "space-y-4 max-w-md mt-4" : "space-y-4 max-w-md"}>
+            {showPostgresBanner && (
+              <div
+                role="alert"
+                data-testid="postgres-deprecated-banner"
+                className="rounded-lg border border-red-500/50 bg-red-950/40 px-4 py-3"
+              >
+                <p className="text-sm font-semibold text-red-300">
+                  PostgreSQL graph backend is deprecated and will be removed in v1.1.0. Migrate to FalkorDB.
+                  Saving with PostgreSQL is blocked.
+                </p>
+              </div>
+            )}
+            <div className={error || showPostgresBanner ? "space-y-4 max-w-md mt-4" : "space-y-4 max-w-md"}>
               {/* graph_backend */}
               <div>
                 <label htmlFor="graph-backend" className="block text-sm font-medium text-surface-300 mb-1">
@@ -537,6 +557,7 @@ export default function GraphConfigPage() {
           hasSaved={justSaved}
           onSave={handleSave}
           onDiscard={() => { setForm({ ...initialForm }); clearResets(); setDirty(false); }}
+          saveDisabled={isPostgresSelected}
         />
       )}
     </div>

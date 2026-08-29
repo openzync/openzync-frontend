@@ -60,9 +60,8 @@ export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
     label: "Graph Backend",
     kind: "select",
     options: [
-      { value: "postgres", label: "PostgreSQL (pgvector)" },
-      { value: "surrealdb", label: "SurrealDB" },
       { value: "falkordb", label: "FalkorDB" },
+      { value: "surrealdb", label: "SurrealDB" },
       { value: "none", label: "No graph backend" },
     ],
   },

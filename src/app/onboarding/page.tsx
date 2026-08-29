@@ -58,7 +58,7 @@ interface UpdateOrgConfigRequest {
 
 type LlmBackend = "openai" | "anthropic" | "ollama" | "openai_like" | "openrouter" | "azure";
 type EmbeddingBackend = "openai" | "ollama" | "huggingface" | "sentence_transformers";
-type GraphBackend = "postgres" | "surrealdb" | "falkordb" | "none";
+type GraphBackend = "surrealdb" | "falkordb" | "none";
 type GraphSearchType = "hybrid" | "bm25" | "vector";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -80,9 +80,8 @@ const EMBEDDING_BACKEND_OPTIONS: { value: EmbeddingBackend; label: string }[] = 
 ];
 
 const GRAPH_BACKEND_OPTIONS: { value: GraphBackend; label: string }[] = [
-  { value: "postgres", label: "PostgreSQL (pgvector)" },
-  { value: "surrealdb", label: "SurrealDB" },
   { value: "falkordb", label: "FalkorDB" },
+  { value: "surrealdb", label: "SurrealDB" },
   { value: "none", label: "No graph backend" },
 ];
 
@@ -264,7 +263,7 @@ function OnboardingWizard() {
     { label: "Embedding Backend", value: form.embedding_backend ?? "openai" },
     { label: "Embedding Model", value: form.embedding_model || "Not set" },
     { label: "Embedding Provider", value: form.embedding_provider || "Not set" },
-    { label: "Graph Backend", value: form.graph_backend ?? "postgres" },
+    { label: "Graph Backend", value: form.graph_backend ?? "falkordb" },
     { label: "Search Type", value: form.graph_search_type ?? "hybrid" },
     ...(form.graph_backend === "surrealdb" && form.surrealdb_url
       ? [{ label: "SurrealDB URL", value: form.surrealdb_url }]
@@ -574,7 +573,7 @@ function OnboardingWizard() {
                   <select
                     id="onb-graph-backend"
                     className="input-base w-full"
-                    value={form.graph_backend ?? "postgres"}
+                    value={form.graph_backend ?? "falkordb"}
                     onChange={(e) => updateField("graph_backend", e.target.value)}
                   >
                     {GRAPH_BACKEND_OPTIONS.map((opt) => (
