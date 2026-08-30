@@ -50,12 +50,23 @@ const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
   pii_min_confidence: "Reset PII min confidence to default",
 };
 
+// ─── Default PII types (7 regex types) — must match services/pii_service.py DEFAULT_PII_TYPES
+const DEFAULT_PII_ENABLED: string[] = [
+  "email",
+  "phone",
+  "ssn",
+  "credit_card",
+  "ip_address",
+  "api_key",
+  "crypto_wallet",
+];
+
 // ─── Default values for staged-reset UI ────────────────────────────────────────
 
 const DEFAULTS: FormState = {
   pii_mode: "mask",
   pii_sensitivity: "low",
-  pii_enabled_types: [],
+  pii_enabled_types: [...DEFAULT_PII_ENABLED],
   pii_min_confidence: 0.7,
 };
 
@@ -161,7 +172,7 @@ export default function PiiConfigPage() {
     const current: FormState = {
       pii_mode: val("pii_mode", "mask") as PiiMode,
       pii_sensitivity: val("pii_sensitivity", "low") as PiiSensitivity,
-      pii_enabled_types: (val("pii_enabled_types", []) as unknown as string[]) ?? [],
+      pii_enabled_types: (val("pii_enabled_types", DEFAULT_PII_ENABLED) as unknown as string[]) ?? [...DEFAULT_PII_ENABLED],
       pii_min_confidence: val("pii_min_confidence", 0.7) as number,
     };
     // Ensure pii_enabled_types is always an array
@@ -418,7 +429,7 @@ export default function PiiConfigPage() {
                     </label>
                   ))}
                 </div>
-                <p className="text-xs text-surface-500 mt-2">Empty = all default types</p>
+                <p className="text-xs text-surface-500 mt-2">7 regex types enabled by default; uncheck to disable</p>
               </div>
             </div>
           </>
