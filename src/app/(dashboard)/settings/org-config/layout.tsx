@@ -13,6 +13,7 @@ const TABS = [
   { label: "Graph", href: "/settings/org-config/graph", id: "graph" },
   { label: "Behaviour", href: "/settings/org-config/behaviour", id: "behaviour" },
   { label: "Blob Storage", href: "/settings/org-config/blob-storage", id: "blob-storage" },
+  { label: "PII Protection", href: "/settings/org-config/pii", id: "pii" },
 ];
 
 export default function OrgConfigLayout({ children }: { children: React.ReactNode }) {
@@ -44,20 +45,22 @@ function OrgConfigLayoutInner({ children }: { children: React.ReactNode }) {
       </PageGuide>
 
       {/* Tab bar */}
-      <div className="flex gap-1 p-1 card-base w-fit">
+      <div className="flex gap-1 p-1 card-base w-fit flex-wrap">
         {TABS.map((tab) => {
           const isActive = pathname === tab.href;
+          const Icon = (tab as { icon?: React.ElementType }).icon;
           return (
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.href)}
               className={cn(
-                "px-3 py-1.5 text-sm rounded-md transition-colors",
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors",
                 isActive
                   ? "bg-brand-500 text-white"
                   : "text-surface-400 hover:text-white hover:bg-surface-800",
               )}
             >
+              {Icon ? <Icon size={14} className="shrink-0" /> : null}
               {tab.label}
             </button>
           );
