@@ -24,7 +24,7 @@ import { useUser } from "@/contexts/user-context";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type UserRole = "admin" | "member";
+type UserRole = "admin" | "member" | "superadmin";
 
 interface UserItem {
   id: string;
@@ -278,6 +278,8 @@ export default function UsersPage() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
+    // Option A guard: tenant users API must not delete superadmins
+    if ((deleteTarget.role as string) === "superadmin") return;
     setDeleting(true);
     try {
       await apiDel(`/v1/users/${deleteTarget.id}`);
@@ -311,6 +313,8 @@ export default function UsersPage() {
 
   const handleRoleChange = async () => {
     if (!roleChangeTarget) return;
+    // Option A guard: tenant users API must not demote/promote superadmins
+    if ((roleChangeTarget.user.role as string) === "superadmin") return;
     const { user: target, to } = roleChangeTarget;
     setChangingRole(true);
     try {
@@ -386,6 +390,7 @@ export default function UsersPage() {
             ) : (
               users.map((user) => {
                 const isSelf = me?.id != null && user.id === me.id;
+                const isSuperadmin = user.role === "superadmin";
                 return (
                   <TableRow key={user.id}>
                     <TableCell>
@@ -406,8 +411,8 @@ export default function UsersPage() {
                       {user.email || <span className="text-surface-500 italic">—</span>}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.role === "admin" ? "brand" : "default"} size="sm">
-                        {user.role === "admin" ? "Admin" : "Member"}
+                      <Badge variant={user.role === "admin" || user.role === "superadmin" ? "brand" : "default"} size="sm">
+                        {user.role === "superadmin" ? "Superadmin" : user.role === "admin" ? "Admin" : "Member"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -422,12 +427,28 @@ export default function UsersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setRoleChangeTarget({ user, to: user.role === "admin" ? "member" : "admin" })}
+                            disabled={isSuperadmin}
+                            onClick={() => {
+                              if (isSuperadmin) return;
+                              setRoleChangeTarget({ user, to: user.role === "admin" ? "member" : "admin" });
+                            }}
                             className="rounded-md text-surface-400 hover:text-white"
-                            title={user.role === "admin" ? "Remove admin" : "Make admin"}
-                            aria-label={user.role === "admin" ? `Remove admin from ${user.external_id}` : `Make ${user.external_id} an admin`}
+                            title={
+                              isSuperadmin
+                                ? "Superadmin role cannot be changed"
+                                : user.role === "admin"
+                                  ? "Remove admin"
+                                  : "Make admin"
+                            }
+                            aria-label={
+                              isSuperadmin
+                                ? `Superadmin ${user.external_id} cannot be demoted via tenant users`
+                                : user.role === "admin"
+                                  ? `Remove admin from ${user.external_id}`
+                                  : `Make ${user.external_id} an admin`
+                            }
                           >
-                            {user.role === "admin" ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
+                            {user.role === "member" ? <ShieldCheck size={14} /> : <ShieldOff size={14} />}
                           </Button>
                         )}
                         <Link href={`/users/${user.id}`}><Button variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-white" title="View User"><Eye size={14} /></Button></Link>
@@ -445,9 +466,41 @@ export default function UsersPage() {
                         )}
                         {canWrite && (user.is_pending_invite ? (
                           // Pending invites have no account to delete — revoke the invite instead.
-                          <Button variant="ghost" size="sm" onClick={() => setRevokeTarget(user)} className="rounded-md text-surface-400 hover:text-error" title="Revoke Invitation" aria-label={`Revoke invite for ${user.external_id}`}><Ban size={14} /></Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={isSuperadmin}
+                            onClick={() => {
+                              if (isSuperadmin) return;
+                              setRevokeTarget(user);
+                            }}
+                            className="rounded-md text-surface-400 hover:text-error"
+                            title={isSuperadmin ? "Superadmin cannot be deleted" : "Revoke Invitation"}
+                            aria-label={
+                              isSuperadmin
+                                ? `Superadmin ${user.external_id} cannot be deleted`
+                                : `Revoke invite for ${user.external_id}`
+                            }
+                          >
+                            <Ban size={14} />
+                          </Button>
                         ) : (
-                          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(user)} className="rounded-md text-surface-400 hover:text-error" title="Delete User"><Trash2 size={14} /></Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={isSuperadmin}
+                            onClick={() => {
+                              if (isSuperadmin) return;
+                              setDeleteTarget(user);
+                            }}
+                            className="rounded-md text-surface-400 hover:text-error"
+                            title={isSuperadmin ? "Superadmin cannot be deleted" : "Delete User"}
+                            aria-label={
+                              isSuperadmin ? `Superadmin ${user.external_id} cannot be deleted` : `Delete ${user.external_id}`
+                            }
+                          >
+                            <Trash2 size={14} />
+                          </Button>
                         ))}
                       </div>
                     </TableCell>

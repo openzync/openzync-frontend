@@ -21,7 +21,7 @@ interface OrgMember {
   external_id: string;
   name: string | null;
   email: string | null;
-  role: "admin" | "member";
+  role: "admin" | "member" | "superadmin";
   created_at: string;
 }
 
@@ -118,27 +118,37 @@ export default function OrgMembersAdminPage() {
                     {member.email || <span className="text-surface-500 italic">—</span>}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={member.role === "admin" ? "brand" : "default"} size="sm">
-                      {member.role === "admin" ? "Admin" : "Member"}
+                    <Badge variant={member.role === "admin" || member.role === "superadmin" ? "brand" : "default"} size="sm">
+                      {member.role === "superadmin" ? "Superadmin" : member.role === "admin" ? "Admin" : "Member"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-surface-200 text-xs">{formatDate(member.created_at)}</TableCell>
                   <TableCell align="right">
+                    {/* Superadmin console uses /admin/system/... — role changes for superadmins are intentionally allowed here */}
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() =>
-                        setRoleTarget({ user: member, to: member.role === "admin" ? "member" : "admin" })
+                        setRoleTarget({
+                          user: member,
+                          to: member.role === "member" ? "admin" : "member",
+                        })
                       }
                       className="rounded-md text-surface-400 hover:text-white"
-                      title={member.role === "admin" ? "Remove admin" : "Make admin"}
+                      title={
+                        member.role === "superadmin"
+                          ? "Remove superadmin"
+                          : member.role === "admin"
+                            ? "Remove admin"
+                            : "Make admin"
+                      }
                       aria-label={
-                        member.role === "admin"
-                          ? `Remove admin from ${member.name ?? member.external_id}`
-                          : `Make ${member.name ?? member.external_id} an admin`
+                        member.role === "member"
+                          ? `Make ${member.name ?? member.external_id} an admin`
+                          : `Remove admin from ${member.name ?? member.external_id}`
                       }
                     >
-                      {member.role === "admin" ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
+                      {member.role === "member" ? <ShieldCheck size={14} /> : <ShieldOff size={14} />}
                     </Button>
                   </TableCell>
                 </TableRow>
