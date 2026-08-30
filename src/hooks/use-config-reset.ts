@@ -50,8 +50,21 @@ export function useConfigReset<T extends string>(
       for (const field of fields) {
         if (pendingResets.has(field)) {
           payload[field] = null;
-        } else if (currentForm[field] !== initialForm[field]) {
-          payload[field] = currentForm[field];
+        } else {
+          const cur = currentForm[field];
+          const init = initialForm[field];
+          const isEqual = (() => {
+            if (Array.isArray(cur) && Array.isArray(init)) {
+              if (cur.length !== init.length) return false;
+              const sA = [...(cur as unknown[])].sort();
+              const sB = [...(init as unknown[])].sort();
+              return sA.every((v, i) => v === sB[i]);
+            }
+            return cur === init;
+          })();
+          if (!isEqual) {
+            payload[field] = cur;
+          }
         }
       }
       return payload;
