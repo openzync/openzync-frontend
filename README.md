@@ -59,7 +59,8 @@ npm run build
 # Start production server
 npm start
 
-# Docker
+# Docker — pull works without login (public since 2026-08-31)
+docker pull ghcr.io/openzync/frontend:latest # works without login (public since 2026-08-31)
 docker build -t openzync-frontend .
 docker run -p 3000:3000 openzync-frontend
 ```

@@ -122,20 +122,16 @@ jobs:
 
       - name: Extract and deploy frontend container
         uses: appleboy/ssh-action@v1.0.3
-        env:
-          GHCR_PAT: ${{ secrets.GHCR_PAT }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: GHCR_PAT
           script: |
             cd /home/deploy/openzync
             tar xzf deploy-files.tar.gz
             rm deploy-files.tar.gz
 
-            # ── Authenticate to ghcr.io ────────────────────────────
-            echo "$GHCR_PAT" | docker login ghcr.io -u rohnsha0 --password-stdin
+            # Images are public on ghcr.io since 2026-08-31 — no docker login needed
 
             # ── Write NEXT_PUBLIC_API_URL into deploy/.env ──────────────
             # docker-compose.yml resolves env_file relative to its own
