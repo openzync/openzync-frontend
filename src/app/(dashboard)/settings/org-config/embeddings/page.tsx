@@ -24,7 +24,7 @@ interface OrgConfigData {
   defaults: Record<string, unknown>;
 }
 
-type EmbeddingBackend = "openai" | "ollama" | "openrouter" | "huggingface" | "sentence_transformers";
+type EmbeddingBackend = "openai" | "ollama" | "huggingface" | "sentence_transformers";
 
 interface FormState {
   embedding_backend: EmbeddingBackend;
@@ -47,7 +47,6 @@ const FIELDS: (keyof FormState)[] = [
 const BACKEND_OPTIONS: { value: EmbeddingBackend; label: string }[] = [
   { value: "openai", label: "OpenAI" },
   { value: "ollama", label: "Ollama" },
-  { value: "openrouter", label: "OpenRouter" },
   { value: "huggingface", label: "Hugging Face" },
   { value: "sentence_transformers", label: "Sentence Transformers" },
 ];
@@ -299,38 +298,8 @@ export default function EmbeddingsConfigPage() {
                 )}
               </div>
 
-              {/* embedding_provider — only for OpenRouter */}
-              {form.embedding_backend === "openrouter" && (
-                <div>
-                  <label htmlFor="embedding-provider" className="block text-sm font-medium text-surface-300 mb-1">
-                    Provider Name
-                  </label>
-                  <div className="flex gap-2 items-start">
-                    <input
-                      id="embedding-provider"
-                      className="input-base flex-1"
-                      placeholder="openai, azure, ..."
-                      value={form.embedding_provider}
-                      onChange={(e) => updateField("embedding_provider", e.target.value)}
-                    />
-                    {isFieldSet("embedding_provider") && (
-                      <Button
-                        onClick={() => handleStageReset("embedding_provider")}
-                        variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                        title={RESET_TITLES.embedding_provider}
-                      >
-                        <RotateCcw size={14} />
-                      </Button>
-                    )}
-                  </div>
-                  {pendingResets.has("embedding_provider") && (
-                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                  )}
-                </div>
-              )}
-
               {/* embedding_api_key — only for backends that need it */}
-              {(form.embedding_backend === "openai" || form.embedding_backend === "openrouter" || form.embedding_backend === "ollama") && (
+              {(form.embedding_backend === "openai" || form.embedding_backend === "ollama") && (
                 <div>
                   <label htmlFor="embedding-api-key" className="block text-sm font-medium text-surface-300 mb-1">
                     API Key

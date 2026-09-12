@@ -29,7 +29,6 @@ export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
       { value: "anthropic", label: "Anthropic" },
       { value: "ollama", label: "Ollama" },
       { value: "openai_like", label: "OpenAI-compatible" },
-      { value: "openrouter", label: "OpenRouter" },
       { value: "azure", label: "Azure OpenAI" },
     ],
   },
@@ -48,7 +47,6 @@ export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
     options: [
       { value: "openai", label: "OpenAI" },
       { value: "ollama", label: "Ollama" },
-      { value: "openrouter", label: "OpenRouter" },
       { value: "huggingface", label: "Hugging Face" },
       { value: "sentence_transformers", label: "Sentence Transformers" },
     ],

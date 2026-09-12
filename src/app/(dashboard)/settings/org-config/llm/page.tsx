@@ -25,7 +25,7 @@ interface OrgConfigData {
   defaults: Record<string, unknown>;
 }
 
-type LlmBackend = "openai" | "anthropic" | "ollama" | "openai_like" | "openrouter" | "azure";
+type LlmBackend = "openai" | "anthropic" | "ollama" | "openai_like" | "azure";
 
 // `type` (not `interface`) so the form gets an implicit index signature and is
 // assignable to the `Record<string, unknown>` the reset hook expects — this is
@@ -37,7 +37,7 @@ type FormState = {
   llm_max_tokens: number;
   openai_api_key: string;
   anthropic_api_key: string;
-  openrouter_api_key: string;
+  openai_like_base_url: string;
   ollama_base_url: string;
   azure_openai_endpoint: string;
   azure_openai_key: string;
@@ -73,7 +73,7 @@ const LLM_FIELDS: readonly (keyof FormState)[] = [
   "llm_max_tokens",
   "openai_api_key",
   "anthropic_api_key",
-  "openrouter_api_key",
+  "openai_like_base_url",
   "ollama_base_url",
   "azure_openai_endpoint",
   "azure_openai_key",
@@ -129,15 +129,6 @@ const PROVIDERS: readonly ProviderConfig[] = [
     ],
   },
   {
-    id: "openrouter",
-    label: "OpenRouter",
-    title: "OpenRouter Settings",
-    description: "API key for OpenRouter",
-    fields: [
-      { field: "openrouter_api_key", label: "OpenRouter API Key", placeholder: "sk-or-...", kind: "secret" },
-    ],
-  },
-  {
     id: "azure",
     label: "Azure OpenAI",
     title: "Azure OpenAI Settings",
@@ -160,8 +151,10 @@ const PROVIDERS: readonly ProviderConfig[] = [
     id: "openai_like",
     label: "OpenAI-compatible",
     title: "Provider Settings",
-    description: "No additional provider-specific configuration needed",
-    fields: [],
+    description: "Any OpenAI-compatible endpoint — shares the OpenAI API key",
+    fields: [
+      { field: "openai_like_base_url", label: "Base URL", placeholder: "https://api.together.xyz/v1", kind: "url" },
+    ],
   },
 ];
 
@@ -175,7 +168,7 @@ export default function LlmConfigPage() {
     llm_max_tokens: 4096,
     openai_api_key: "",
     anthropic_api_key: "",
-    openrouter_api_key: "",
+    openai_like_base_url: "",
     ollama_base_url: "",
     azure_openai_endpoint: "",
     azure_openai_key: "",
@@ -258,7 +251,7 @@ export default function LlmConfigPage() {
       llm_max_tokens: val("llm_max_tokens", 4096) as number,
       openai_api_key: val("openai_api_key", "") as string,
       anthropic_api_key: val("anthropic_api_key", "") as string,
-      openrouter_api_key: val("openrouter_api_key", "") as string,
+      openai_like_base_url: val("openai_like_base_url", "") as string,
       ollama_base_url: val("ollama_base_url", "") as string,
       azure_openai_endpoint: val("azure_openai_endpoint", "") as string,
       azure_openai_key: val("azure_openai_key", "") as string,

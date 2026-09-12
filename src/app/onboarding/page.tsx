@@ -34,7 +34,7 @@ interface UpdateOrgConfigRequest {
   llm_max_tokens?: number | null;
   openai_api_key?: string | null;
   anthropic_api_key?: string | null;
-  openrouter_api_key?: string | null;
+  openai_like_base_url?: string | null;
   ollama_base_url?: string | null;
   azure_openai_endpoint?: string | null;
   azure_openai_key?: string | null;
@@ -56,7 +56,7 @@ interface UpdateOrgConfigRequest {
   audit_log_response_body?: boolean | null;
 }
 
-type LlmBackend = "openai" | "anthropic" | "ollama" | "openai_like" | "openrouter" | "azure";
+type LlmBackend = "openai" | "anthropic" | "ollama" | "openai_like" | "azure";
 type EmbeddingBackend = "openai" | "ollama" | "huggingface" | "sentence_transformers";
 type GraphBackend = "surrealdb" | "falkordb" | "none";
 type GraphSearchType = "hybrid" | "bm25" | "vector";
@@ -66,7 +66,6 @@ type GraphSearchType = "hybrid" | "bm25" | "vector";
 const LLM_BACKEND_OPTIONS: { value: LlmBackend; label: string }[] = [
   { value: "openai", label: "OpenAI" },
   { value: "anthropic", label: "Anthropic" },
-  { value: "openrouter", label: "OpenRouter" },
   { value: "azure", label: "Azure OpenAI" },
   { value: "ollama", label: "Ollama" },
   { value: "openai_like", label: "OpenAI-compatible" },
@@ -163,7 +162,6 @@ function OnboardingWizard() {
   // Password visibility toggles
   const [showOpenAiKey, setShowOpenAiKey] = useState(false);
   const [showAnthropicKey, setShowAnthropicKey] = useState(false);
-  const [showOpenRouterKey, setShowOpenRouterKey] = useState(false);
   const [showAzureKey, setShowAzureKey] = useState(false);
   const [showEmbeddingKey, setShowEmbeddingKey] = useState(false);
   const [showSurrealDbPass, setShowSurrealDbPass] = useState(false);
@@ -256,10 +254,10 @@ function OnboardingWizard() {
     { label: "Max Tokens", value: String(form.llm_max_tokens ?? 4096) },
     { label: "OpenAI API Key", value: secretStatus(form.openai_api_key) },
     { label: "Anthropic API Key", value: secretStatus(form.anthropic_api_key) },
-    { label: "OpenRouter API Key", value: secretStatus(form.openrouter_api_key) },
     { label: "Azure OpenAI API Key", value: secretStatus(form.azure_openai_key) },
     ...(form.azure_openai_endpoint ? [{ label: "Azure Endpoint", value: form.azure_openai_endpoint }] : []),
     ...(form.ollama_base_url ? [{ label: "Ollama Base URL", value: form.ollama_base_url }] : []),
+    ...(form.openai_like_base_url ? [{ label: "OpenAI-compatible Base URL", value: form.openai_like_base_url }] : []),
     { label: "Embedding Backend", value: form.embedding_backend ?? "openai" },
     { label: "Embedding Model", value: form.embedding_model || "Not set" },
     { label: "Embedding Provider", value: form.embedding_provider || "Not set" },
@@ -289,7 +287,7 @@ function OnboardingWizard() {
     );
   }
 
-  const anyApiKeyEmpty = !form.openai_api_key && !form.anthropic_api_key && !form.openrouter_api_key && !form.azure_openai_key;
+  const anyApiKeyEmpty = !form.openai_api_key && !form.anthropic_api_key && !form.azure_openai_key;
 
   return (
     <div className="min-h-screen bg-surface-950">
@@ -451,15 +449,6 @@ function OnboardingWizard() {
                   onToggleVisibility={() => setShowAnthropicKey((prev) => !prev)}
                 />
                 <SecretInput
-                  id="onb-openrouter-key"
-                  label="OpenRouter API Key"
-                  value={form.openrouter_api_key ?? ""}
-                  onChange={(v) => updateField("openrouter_api_key", v)}
-                  placeholder="sk-or-..."
-                  visible={showOpenRouterKey}
-                  onToggleVisibility={() => setShowOpenRouterKey((prev) => !prev)}
-                />
-                <SecretInput
                   id="onb-azure-key"
                   label="Azure OpenAI API Key"
                   value={form.azure_openai_key ?? ""}
@@ -486,6 +475,16 @@ function OnboardingWizard() {
                     placeholder="http://localhost:11434"
                     value={form.ollama_base_url ?? ""}
                     onChange={(e) => updateField("ollama_base_url", e.target.value)}
+                  />
+                </Field>
+                <Field label="OpenAI-compatible Base URL" htmlFor="onb-openai-like-url">
+                  <input
+                    id="onb-openai-like-url"
+                    className="input-base w-full"
+                    type="url"
+                    placeholder="https://api.together.xyz/v1"
+                    value={form.openai_like_base_url ?? ""}
+                    onChange={(e) => updateField("openai_like_base_url", e.target.value)}
                   />
                 </Field>
               </div>
