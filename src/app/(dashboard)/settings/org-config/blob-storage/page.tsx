@@ -10,6 +10,8 @@ import { SimpleSelect } from "@/components/ui/select";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
+import { ConnectionTestButton } from "@/components/shared/connection-test-button";
+import { useConnectionTest, type ConnectionTestResult } from "@/hooks/use-connection-test";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { useConfigReset } from "@/hooks/use-config-reset";
 
@@ -64,6 +66,7 @@ const FIELD_DEFAULTS: Record<string, unknown> = {
 
 export default function BlobStorageConfigPage() {
   const { setDirty } = useConfigDirty();
+  const conn = useConnectionTest();
   const [form, setForm] = useState<FormState>({
     blob_storage_backend: "s3",
     s3_endpoint_url: "",
@@ -197,6 +200,7 @@ export default function BlobStorageConfigPage() {
       await patch("/admin/org/config", payload);
       toast.success("Blob storage configuration saved successfully");
       reset.clearResets();
+      conn.reset();
       setDirty(false);
       configQuery.refetch();
       setJustSaved(true);
@@ -211,6 +215,27 @@ export default function BlobStorageConfigPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  // ── Test connection (unsaved form as candidate; never marks dirty) ─────────
+
+  function handleTestConnection(): Promise<ConnectionTestResult | null> {
+    return conn.test("blob", {
+      blob_storage_backend: form.blob_storage_backend,
+      s3_endpoint_url: form.s3_endpoint_url,
+      s3_region: form.s3_region,
+      s3_access_key_id: form.s3_access_key_id,
+      s3_secret_access_key: form.s3_secret_access_key,
+      s3_bucket_name: form.s3_bucket_name,
+      max_blob_size_mb: form.max_blob_size_mb,
+    });
+  }
+
+  function handleDiscard() {
+    setForm({ ...initialForm });
+    reset.clearResets();
+    conn.reset();
+    setDirty(false);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -522,7 +547,9 @@ export default function BlobStorageConfigPage() {
           hasChanges={hasChanged()}
           hasSaved={justSaved}
           onSave={handleSave}
-          onDiscard={() => { setForm({ ...initialForm }); reset.clearResets(); setDirty(false); }}
+          onDiscard={handleDiscard}
+          saveDisabled={conn.testing}
+          testAction={<ConnectionTestButton testing={conn.testing} result={conn.result} error={conn.error} onTest={handleTestConnection} disabled={saving || loading} />}
         />
       )}
     </div>

@@ -12,6 +12,8 @@ interface SecretInputProps {
   placeholder: string;
   visible: boolean;
   onToggleVisibility: () => void;
+  /** When true, hides the Required badge when empty. Defaults to false. */
+  optional?: boolean;
 }
 
 export function SecretInput({
@@ -22,6 +24,7 @@ export function SecretInput({
   placeholder,
   visible,
   onToggleVisibility,
+  optional = false,
 }: SecretInputProps) {
   const isEmpty = !value;
 
@@ -29,7 +32,7 @@ export function SecretInput({
     <div>
       <label className="block text-sm font-medium text-surface-300 mb-1.5" htmlFor={id}>
         {label}
-        {isEmpty && (
+        {isEmpty && !optional && (
           <span className="ml-2 text-[10px] font-medium text-error uppercase tracking-wider">Required</span>
         )}
       </label>

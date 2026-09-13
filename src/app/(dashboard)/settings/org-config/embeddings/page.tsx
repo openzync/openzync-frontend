@@ -8,7 +8,9 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
+import { ConnectionTestButton } from "@/components/shared/connection-test-button";
 import { SimpleSelect } from "@/components/ui/select";
+import { useConnectionTest, type ConnectionTestResult } from "@/hooks/use-connection-test";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { useConfigReset } from "@/hooks/use-config-reset";
 
@@ -65,6 +67,7 @@ const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
 
 export default function EmbeddingsConfigPage() {
   const { setDirty } = useConfigDirty();
+  const conn = useConnectionTest();
   const [form, setForm] = useState<FormState>({
     embedding_backend: "openai",
     embedding_model: "",
@@ -172,6 +175,7 @@ export default function EmbeddingsConfigPage() {
       await patch("/admin/org/config", changed);
       toast.success("Embedding configuration saved successfully");
       clearResets();
+      conn.reset();
       configQuery.refetch();
       setDirty(false);
       setJustSaved(true);
@@ -183,6 +187,25 @@ export default function EmbeddingsConfigPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  // ── Test connection (unsaved form as candidate; never marks dirty) ─────────
+
+  function handleTestConnection(): Promise<ConnectionTestResult | null> {
+    return conn.test("embeddings", {
+      embedding_backend: form.embedding_backend,
+      embedding_model: form.embedding_model,
+      embedding_dim: form.embedding_dim,
+      embedding_api_key: form.embedding_api_key,
+      embedding_provider: form.embedding_provider,
+    });
+  }
+
+  function handleDiscard() {
+    setForm({ ...initialForm });
+    setDirty(false);
+    clearResets();
+    conn.reset();
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -349,7 +372,9 @@ export default function EmbeddingsConfigPage() {
           hasChanges={hasChanged()}
           hasSaved={justSaved}
           onSave={handleSave}
-          onDiscard={() => { setForm({ ...initialForm }); setDirty(false); clearResets(); }}
+          onDiscard={handleDiscard}
+          saveDisabled={conn.testing}
+          testAction={<ConnectionTestButton testing={conn.testing} result={conn.result} error={conn.error} onTest={handleTestConnection} disabled={saving || loading} />}
         />
       )}
     </div>

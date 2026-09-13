@@ -8,8 +8,10 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
+import { ConnectionTestButton } from "@/components/shared/connection-test-button";
 import { SecretInput } from "@/components/ui/secret-input";
 import { SimpleSelect } from "@/components/ui/select";
+import { useConnectionTest, type ConnectionTestResult } from "@/hooks/use-connection-test";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { useConfigReset } from "@/hooks/use-config-reset";
 
@@ -86,6 +88,7 @@ const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
 
 export default function GraphConfigPage() {
   const { setDirty } = useConfigDirty();
+  const conn = useConnectionTest();
   const [form, setForm] = useState<FormState>({
     graph_backend: "falkordb",
     graph_search_type: "hybrid",
@@ -212,6 +215,7 @@ export default function GraphConfigPage() {
       toast.success("Graph configuration saved successfully");
       setDirty(false);
       clearResets();
+      conn.reset();
       configQuery.refetch();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
@@ -227,6 +231,29 @@ export default function GraphConfigPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  // ── Test connection (unsaved form as candidate; never marks dirty) ─────────
+
+  function handleTestConnection(): Promise<ConnectionTestResult | null> {
+    return conn.test("graph", {
+      graph_backend: form.graph_backend,
+      graph_search_type: form.graph_search_type,
+      graph_max_traversal_depth: form.graph_max_traversal_depth,
+      surrealdb_url: form.surrealdb_url,
+      surrealdb_user: form.surrealdb_user,
+      surrealdb_pass: form.surrealdb_pass,
+      surrealdb_namespace: form.surrealdb_namespace,
+      surrealdb_database: form.surrealdb_database,
+      falkordb_url: form.falkordb_url,
+    });
+  }
+
+  function handleDiscard() {
+    setForm({ ...initialForm });
+    clearResets();
+    conn.reset();
+    setDirty(false);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -556,8 +583,9 @@ export default function GraphConfigPage() {
           hasChanges={hasChanged()}
           hasSaved={justSaved}
           onSave={handleSave}
-          onDiscard={() => { setForm({ ...initialForm }); clearResets(); setDirty(false); }}
-          saveDisabled={isPostgresSelected}
+          onDiscard={handleDiscard}
+          saveDisabled={isPostgresSelected || conn.testing}
+          testAction={<ConnectionTestButton testing={conn.testing} result={conn.result} error={conn.error} onTest={handleTestConnection} disabled={saving || loading} />}
         />
       )}
     </div>

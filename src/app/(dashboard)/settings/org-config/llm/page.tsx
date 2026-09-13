@@ -11,6 +11,8 @@ import { SecretInput } from "@/components/ui/secret-input";
 import { SimpleSelect } from "@/components/ui/select";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
+import { ConnectionTestButton } from "@/components/shared/connection-test-button";
+import { useConnectionTest, type ConnectionTestResult } from "@/hooks/use-connection-test";
 import { useConfigReset } from "@/hooks/use-config-reset";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -53,6 +55,8 @@ interface ProviderField {
   label: string;
   placeholder: string;
   kind: "secret" | "url";
+  /** When true, the secret field hides its Required badge when empty. */
+  optional?: boolean;
 }
 
 interface ProviderConfig {
@@ -151,9 +155,10 @@ const PROVIDERS: readonly ProviderConfig[] = [
     id: "openai_like",
     label: "OpenAI-compatible",
     title: "Provider Settings",
-    description: "Any OpenAI-compatible endpoint — shares the OpenAI API key",
+    description: "Any OpenAI-compatible endpoint — shared OpenAI API key (optional, same card)",
     fields: [
       { field: "openai_like_base_url", label: "Base URL", placeholder: "https://api.together.xyz/v1", kind: "url" },
+      { field: "openai_api_key", label: "API Key", placeholder: "sk-... (leave empty if endpoint needs no auth)", kind: "secret", optional: true },
     ],
   },
 ];
@@ -186,6 +191,7 @@ export default function LlmConfigPage() {
   const [visibleFields, setVisibleFields] = useState<Partial<Record<keyof FormState, boolean>>>({});
 
   const { setDirty } = useConfigDirty();
+  const conn = useConnectionTest();
 
   // The reset hook writes into a `Record<string, unknown>` form, but this page
   // keeps a fully typed `FormState`. The hook only ever touches keys listed in
@@ -354,6 +360,7 @@ export default function LlmConfigPage() {
       toast.success("LLM configuration saved successfully");
       setDirty(false);
       clearResets();
+      conn.reset();
       configQuery.refetch();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
@@ -371,7 +378,23 @@ export default function LlmConfigPage() {
   function handleDiscard() {
     setForm({ ...initialForm });
     clearResets();
+    conn.reset();
     setDirty(false);
+  }
+
+  // ── Test connection (unsaved form as candidate; never marks dirty) ─────────
+
+  function handleTestConnection(): Promise<ConnectionTestResult | null> {
+    return conn.test("llm", {
+      llm_backend: form.llm_backend,
+      llm_model: form.llm_model,
+      openai_api_key: form.openai_api_key,
+      anthropic_api_key: form.anthropic_api_key,
+      openai_like_base_url: form.openai_like_base_url,
+      ollama_base_url: form.ollama_base_url,
+      azure_openai_endpoint: form.azure_openai_endpoint,
+      azure_openai_key: form.azure_openai_key,
+    });
   }
 
   // ── Provider meta ──────────────────────────────────────────────────────────
@@ -561,6 +584,7 @@ export default function LlmConfigPage() {
                           placeholder={f.placeholder}
                           visible={Boolean(visibleFields[f.field])}
                           onToggleVisibility={() => toggleFieldVisibility(f.field)}
+                          optional={f.optional ?? false}
                         />
                       </div>
                     ) : (
@@ -731,6 +755,8 @@ export default function LlmConfigPage() {
           hasSaved={justSaved}
           onSave={handleSave}
           onDiscard={handleDiscard}
+          saveDisabled={conn.testing}
+          testAction={<ConnectionTestButton testing={conn.testing} result={conn.result} error={conn.error} onTest={handleTestConnection} disabled={saving || loading} />}
         />
       )}
     </div>

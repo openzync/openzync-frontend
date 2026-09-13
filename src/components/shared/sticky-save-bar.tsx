@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -10,13 +11,14 @@ interface StickySaveBarProps {
   onSave: () => void;
   onDiscard: () => void;
   saveDisabled?: boolean;
+  testAction?: ReactNode;
 }
 
 /**
  * Inline save bar for config save/discard actions.
  * Renders as a normal block element at the bottom of the form flow.
  */
-export function StickySaveBar({ saving, hasChanges, hasSaved, onSave, onDiscard, saveDisabled = false }: StickySaveBarProps) {
+export function StickySaveBar({ saving, hasChanges, hasSaved, onSave, onDiscard, saveDisabled = false, testAction }: StickySaveBarProps) {
   const visible = hasChanges || hasSaved;
 
   if (!visible) return null;
@@ -35,7 +37,8 @@ export function StickySaveBar({ saving, hasChanges, hasSaved, onSave, onDiscard,
             <span className="text-surface-400">Saving&hellip;</span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {testAction}
           {hasChanges && (
             <Button
               variant="secondary"
