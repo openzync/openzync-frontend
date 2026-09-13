@@ -49,10 +49,12 @@ export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
       { value: "ollama", label: "Ollama" },
       { value: "huggingface", label: "Hugging Face" },
       { value: "sentence_transformers", label: "Sentence Transformers" },
+      { value: "openai_like", label: "OpenAI-compatible" },
     ],
   },
   { key: "embedding_model", label: "Embedding Model", kind: "text" },
   { key: "embedding_dim", label: "Embedding Dimensions", kind: "number" },
+  { key: "embedding_openai_like_base_url", label: "Embedding OpenAI-compatible Base URL", kind: "text" },
   {
     key: "graph_backend",
     label: "Graph Backend",

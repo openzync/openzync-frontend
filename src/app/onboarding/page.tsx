@@ -43,6 +43,7 @@ interface UpdateOrgConfigRequest {
   embedding_dim?: number | null;
   embedding_api_key?: string | null;
   embedding_provider?: string | null;
+  embedding_openai_like_base_url?: string | null;
   graph_backend?: string | null;
   graph_search_type?: string | null;
   graph_max_traversal_depth?: number | null;
@@ -57,7 +58,7 @@ interface UpdateOrgConfigRequest {
 }
 
 type LlmBackend = "openai" | "anthropic" | "ollama" | "openai_like" | "azure";
-type EmbeddingBackend = "openai" | "ollama" | "huggingface" | "sentence_transformers";
+type EmbeddingBackend = "openai" | "ollama" | "huggingface" | "sentence_transformers" | "openai_like";
 type GraphBackend = "surrealdb" | "falkordb" | "none";
 type GraphSearchType = "hybrid" | "bm25" | "vector";
 
@@ -76,6 +77,7 @@ const EMBEDDING_BACKEND_OPTIONS: { value: EmbeddingBackend; label: string }[] = 
   { value: "ollama", label: "Ollama" },
   { value: "huggingface", label: "Hugging Face" },
   { value: "sentence_transformers", label: "Sentence Transformers" },
+  { value: "openai_like", label: "OpenAI-compatible" },
 ];
 
 const GRAPH_BACKEND_OPTIONS: { value: GraphBackend; label: string }[] = [
@@ -261,6 +263,9 @@ function OnboardingWizard() {
     { label: "Embedding Backend", value: form.embedding_backend ?? "openai" },
     { label: "Embedding Model", value: form.embedding_model || "Not set" },
     { label: "Embedding Provider", value: form.embedding_provider || "Not set" },
+    ...(form.embedding_openai_like_base_url
+      ? [{ label: "Embedding OpenAI-compatible Base URL", value: form.embedding_openai_like_base_url }]
+      : []),
     { label: "Graph Backend", value: form.graph_backend ?? "falkordb" },
     { label: "Search Type", value: form.graph_search_type ?? "hybrid" },
     ...(form.graph_backend === "surrealdb" && form.surrealdb_url
@@ -549,6 +554,20 @@ function OnboardingWizard() {
                     />
                   </Field>
                 </div>
+
+                {/* embedding_openai_like_base_url — only for OpenAI-compatible backend */}
+                {form.embedding_backend === "openai_like" && (
+                  <Field label="OpenAI-compatible Base URL" htmlFor="onb-embedding-openai-like-url">
+                    <input
+                      id="onb-embedding-openai-like-url"
+                      className="input-base w-full"
+                      type="url"
+                      placeholder="https://api.together.xyz/v1"
+                      value={form.embedding_openai_like_base_url ?? ""}
+                      onChange={(e) => updateField("embedding_openai_like_base_url", e.target.value)}
+                    />
+                  </Field>
+                )}
 
                 {/* embedding_api_key */}
                 <SecretInput

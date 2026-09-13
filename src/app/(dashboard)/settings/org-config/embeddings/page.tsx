@@ -26,7 +26,7 @@ interface OrgConfigData {
   defaults: Record<string, unknown>;
 }
 
-type EmbeddingBackend = "openai" | "ollama" | "huggingface" | "sentence_transformers";
+type EmbeddingBackend = "openai" | "ollama" | "huggingface" | "sentence_transformers" | "openai_like";
 
 interface FormState {
   embedding_backend: EmbeddingBackend;
@@ -34,6 +34,7 @@ interface FormState {
   embedding_dim: number;
   embedding_api_key: string;
   embedding_provider: string;
+  embedding_openai_like_base_url: string;
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ const FIELDS: (keyof FormState)[] = [
   "embedding_dim",
   "embedding_api_key",
   "embedding_provider",
+  "embedding_openai_like_base_url",
 ];
 
 const BACKEND_OPTIONS: { value: EmbeddingBackend; label: string }[] = [
@@ -51,6 +53,7 @@ const BACKEND_OPTIONS: { value: EmbeddingBackend; label: string }[] = [
   { value: "ollama", label: "Ollama" },
   { value: "huggingface", label: "Hugging Face" },
   { value: "sentence_transformers", label: "Sentence Transformers" },
+  { value: "openai_like", label: "OpenAI-compatible" },
 ];
 
 // ─── Reset field titles ────────────────────────────────────────────────────────
@@ -61,6 +64,7 @@ const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
   embedding_dim: "Reset embedding dimensions to default",
   embedding_api_key: "Reset API key to default",
   embedding_provider: "Reset provider to default",
+  embedding_openai_like_base_url: "Reset OpenAI-compatible base URL to default",
 };
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -74,6 +78,7 @@ export default function EmbeddingsConfigPage() {
     embedding_dim: 1536,
     embedding_api_key: "",
     embedding_provider: "",
+    embedding_openai_like_base_url: "",
   });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
   const [stored, setStored] = useState<Record<string, unknown>>({});
@@ -128,6 +133,7 @@ export default function EmbeddingsConfigPage() {
       embedding_dim: val("embedding_dim", 1536) as number,
       embedding_api_key: val("embedding_api_key", "") as string,
       embedding_provider: val("embedding_provider", "") as string,
+      embedding_openai_like_base_url: val("embedding_openai_like_base_url", "") as string,
     };
     setForm(current);
     setInitialForm(current);
@@ -198,6 +204,7 @@ export default function EmbeddingsConfigPage() {
       embedding_dim: form.embedding_dim,
       embedding_api_key: form.embedding_api_key,
       embedding_provider: form.embedding_provider,
+      embedding_openai_like_base_url: form.embedding_openai_like_base_url,
     });
   }
 
@@ -321,8 +328,39 @@ export default function EmbeddingsConfigPage() {
                 )}
               </div>
 
+              {/* embedding_openai_like_base_url — only for OpenAI-compatible backend */}
+              {form.embedding_backend === "openai_like" && (
+                <div>
+                  <label htmlFor="embedding-openai-like-base-url" className="block text-sm font-medium text-surface-300 mb-1">
+                    Base URL
+                  </label>
+                  <div className="flex gap-2 items-start">
+                    <input
+                      id="embedding-openai-like-base-url"
+                      className="input-base flex-1"
+                      type="url"
+                      placeholder="https://api.together.xyz/v1"
+                      value={form.embedding_openai_like_base_url}
+                      onChange={(e) => updateField("embedding_openai_like_base_url", e.target.value)}
+                    />
+                    {isFieldSet("embedding_openai_like_base_url") && (
+                      <Button
+                        onClick={() => handleStageReset("embedding_openai_like_base_url")}
+                        variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                        title={RESET_TITLES.embedding_openai_like_base_url}
+                      >
+                        <RotateCcw size={14} />
+                      </Button>
+                    )}
+                  </div>
+                  {pendingResets.has("embedding_openai_like_base_url") && (
+                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                  )}
+                </div>
+              )}
+
               {/* embedding_api_key — only for backends that need it */}
-              {(form.embedding_backend === "openai" || form.embedding_backend === "ollama") && (
+              {(form.embedding_backend === "openai" || form.embedding_backend === "ollama" || form.embedding_backend === "openai_like") && (
                 <div>
                   <label htmlFor="embedding-api-key" className="block text-sm font-medium text-surface-300 mb-1">
                     API Key
