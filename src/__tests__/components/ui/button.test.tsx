@@ -10,7 +10,7 @@ describe("Button", () => {
   });
   it("applies primary variant by default", () => {
     render(<Button>Primary</Button>);
-    expect(screen.getByRole("button")).toHaveClass("bg-brand-500");
+    expect(screen.getByRole("button")).toHaveClass("bg-text-primary");
   });
   it("applies secondary variant", () => {
     render(<Button variant="secondary">Secondary</Button>);
@@ -22,7 +22,7 @@ describe("Button", () => {
   });
   it("applies danger variant", () => {
     render(<Button variant="danger">Danger</Button>);
-    expect(screen.getByRole("button")).toHaveClass("bg-error");
+    expect(screen.getByRole("button")).toHaveClass("text-error");
   });
   it("applies sm size", () => {
     render(<Button size="sm">Small</Button>);

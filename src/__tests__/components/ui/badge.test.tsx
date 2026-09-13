@@ -9,7 +9,7 @@ describe("Badge", () => {
   });
   it("applies variant class for success", () => {
     render(<Badge variant="success">OK</Badge>);
-    expect(screen.getByText("OK")).toHaveClass("bg-success/10");
+    expect(screen.getByText("OK")).toHaveClass("bg-signal/10");
   });
   it("defaults to md size", () => {
     render(<Badge>Default</Badge>);

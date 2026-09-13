@@ -54,10 +54,10 @@ describe("Table", () => {
     expect(th.className).toContain("px-4");
   });
 
-  it("enables zebra striping by default via nth-child on the table", () => {
+  it("disables zebra striping by default (hairline dividers only)", () => {
     const { container } = renderTable();
     const table = container.querySelector("table") as HTMLElement;
-    expect(table.className).toContain("nth-child(odd)");
+    expect(table.className).not.toContain("nth-child");
   });
 
   it("omits zebra striping when zebra={false}", () => {
