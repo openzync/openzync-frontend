@@ -86,14 +86,14 @@ interface NodeDetailResponse {
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 const NODE_COLORS: Record<string, string> = {
-  person: "#14488C",
-  organization: "#1453A6",
-  location: "#8FAFD9",
-  event: "#1747A6",
-  concept: "#6A8DB8",
-  community: "#7C3AED",
+  person: "#4C6A9C",
+  organization: "#5B7A8C",
+  location: "#6E7F99",
+  event: "#8A93A6",
+  concept: "#5B6478",
+  community: "#F0B65C",
 };
-const DEFAULT_NODE_COLOR = "#4A6D96";
+const DEFAULT_NODE_COLOR = "#5B6478";
 
 const ENTITY_TYPE_LEGEND = [
   { type: "person", label: "Person", color: NODE_COLORS.person },
@@ -370,7 +370,7 @@ export function ForceGraph({
       .attr("dx", 0)
       .attr("dy", 0)
       .attr("stdDeviation", 3)
-      .attr("flood-color", "rgba(20, 72, 140, 0.3)");
+      .attr("flood-color", "rgba(120, 169, 242, 0.18)");
 
     // ── Main group for zoom/pan ───────────────────────────────────────────
     const g = svg.append("g");
@@ -474,14 +474,21 @@ export function ForceGraph({
           const sid = typeof l.source === "object" ? sourceObj.id : l.source;
           const tid = typeof l.target === "object" ? targetObj.id : l.target;
           return memberSet.has(sid) || memberSet.has(tid)
-            ? "rgba(143,175,217,0.6)"
-            : "rgba(143,175,217,0.04)";
+            ? "rgba(120,169,242,0.65)"
+            : "rgba(120,169,242,0.06)";
+        });
+        link.classed("graph-active-edge", (l) => {
+          const sourceObj = l.source as unknown as D3Node;
+          const targetObj = l.target as unknown as D3Node;
+          const sid = typeof l.source === "object" ? sourceObj.id : l.source;
+          const tid = typeof l.target === "object" ? targetObj.id : l.target;
+          return memberSet.has(sid) || memberSet.has(tid);
         });
         hullPath.attr("fill-opacity", (hd) => (hd.id === d.id ? 0.22 : 0.06));
       })
       .on("mouseleave", () => {
         node.attr("opacity", 1);
-        link.attr("stroke", "rgba(143,175,217,0.25)");
+        link.attr("stroke", "#232838").classed("graph-active-edge", false);
         hullPath.attr("fill-opacity", 0.12);
       })
       .on("click", (_event: MouseEvent, d: CommunityHullData) => {
@@ -496,7 +503,7 @@ export function ForceGraph({
       .selectAll<SVGLineElement, D3Link & { source: D3Node; target: D3Node }>("line")
       .data(links, (d) => d.id)
       .join("line")
-      .attr("stroke", "rgba(143,175,217,0.25)")
+      .attr("stroke", "#232838")
       .attr("stroke-width", 1.5)
       .attr("stroke-linecap", "round");
 
@@ -509,8 +516,8 @@ export function ForceGraph({
       .join("text")
       .text((d) => d.type)
       .attr("font-size", 9)
-      .attr("font-family", "JetBrains Mono, monospace")
-      .attr("fill", "rgba(143,175,217,0.4)")
+      .attr("font-family", "'IBM Plex Mono', monospace")
+      .attr("fill", "#8A93A6")
       .attr("text-anchor", "middle")
       .attr("pointer-events", "none");
 
@@ -539,8 +546,8 @@ export function ForceGraph({
       .attr("dy", 20)
       .attr("text-anchor", "middle")
       .attr("font-size", 11)
-      .attr("font-family", "Inter, sans-serif")
-      .attr("fill", "#d1d5db")
+      .attr("font-family", "'IBM Plex Sans', sans-serif")
+      .attr("fill", "#8A93A6")
       .attr("pointer-events", "none")
       .text((d) => (d.name.length > 20 ? `${d.name.slice(0, 18)}…` : d.name));
 
@@ -591,7 +598,7 @@ export function ForceGraph({
               connectedIds.add(sid);
               connectedIds.add(tid);
             }
-            return isConnected ? "rgba(143,175,217,0.6)" : "rgba(143,175,217,0.04)";
+            return isConnected ? "rgba(120,169,242,0.65)" : "rgba(120,169,242,0.06)";
           })
           .attr("stroke-width", (l) => {
             const sourceObj = l.source as unknown as D3Node;
@@ -602,6 +609,13 @@ export function ForceGraph({
           });
 
         node.attr("opacity", (n) => (connectedIds.has(n.id) ? 1 : 0.2));
+        link.classed("graph-active-edge", (l) => {
+          const sourceObj = l.source as unknown as D3Node;
+          const targetObj = l.target as unknown as D3Node;
+          const sid = typeof l.source === "object" ? sourceObj.id : l.source;
+          const tid = typeof l.target === "object" ? targetObj.id : l.target;
+          return connectedIds.has(sid) || connectedIds.has(tid);
+        });
         linkLabel.attr("opacity", (l) => {
           const sourceObj = l.source as unknown as D3Node;
           const targetObj = l.target as unknown as D3Node;
@@ -612,8 +626,9 @@ export function ForceGraph({
       })
       .on("mouseleave", () => {
         link
-          .attr("stroke", "rgba(143,175,217,0.25)")
-          .attr("stroke-width", 1.5);
+          .attr("stroke", "#232838")
+          .attr("stroke-width", 1.5)
+          .classed("graph-active-edge", false);
         node.attr("opacity", 1);
         linkLabel.attr("opacity", 1);
       });
@@ -761,9 +776,9 @@ export function ForceGraph({
               <button
                 onClick={() => setShowRelated(false)}
                 title="Show only matching nodes (strict)"
-                className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                className={`px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
                   !showRelated
-                    ? "bg-surface-800 text-white"
+                    ? "bg-panel-raised text-signal"
                     : "text-surface-400 hover:text-surface-200"
                 }`}
               >
@@ -773,9 +788,9 @@ export function ForceGraph({
               <button
                 onClick={() => setShowRelated(true)}
                 title="Include 1-hop neighbors of matched nodes"
-                className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                className={`px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
                   showRelated
-                    ? "bg-surface-800 text-white"
+                    ? "bg-panel-raised text-signal"
                     : "text-surface-400 hover:text-surface-200"
                 }`}
               >
@@ -817,7 +832,7 @@ export function ForceGraph({
                 variant="ghost"
                 size="sm"
                 onClick={handleZoomIn}
-                className="rounded-md text-surface-400 hover:text-white"
+                className="rounded-md text-surface-400 hover:text-text"
                 title="Zoom in"
               >
                 <ZoomIn size={16} />
@@ -826,7 +841,7 @@ export function ForceGraph({
                 variant="ghost"
                 size="sm"
                 onClick={handleZoomOut}
-                className="rounded-md text-surface-400 hover:text-white"
+                className="rounded-md text-surface-400 hover:text-text"
                 title="Zoom out"
               >
                 <ZoomOut size={16} />
@@ -835,7 +850,7 @@ export function ForceGraph({
                 variant="ghost"
                 size="sm"
                 onClick={handleResetZoom}
-                className="rounded-md text-surface-400 hover:text-white"
+                className="rounded-md text-surface-400 hover:text-text"
                 title="Reset zoom"
               >
                 <RotateCcw size={14} />
@@ -845,7 +860,7 @@ export function ForceGraph({
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsFullscreen((p) => !p)}
-                className="rounded-md text-surface-400 hover:text-white"
+                className="rounded-md text-surface-400 hover:text-text"
                 title={isFullscreen ? "Exit fullscreen (Esc)" : "Enter fullscreen"}
               >
                 {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -877,7 +892,7 @@ export function ForceGraph({
                 <X size={22} className="text-error" />
               </div>
               <p className="text-sm text-surface-300 font-medium">{error}</p>
-              <p className="text-xs text-surface-500 mt-1 mb-4">
+              <p className="text-[0.8rem] text-muted mt-1 mb-4">
                 Check your connection and try again
               </p>
               {onRetry && (
@@ -897,7 +912,7 @@ export function ForceGraph({
               <p className="text-sm text-surface-300 font-medium">
                 {isFiltered ? "No matching entities" : emptyMessage}
               </p>
-              <p className="text-xs text-surface-500 mt-1">
+              <p className="text-[0.8rem] text-muted mt-1">
                 {isFiltered
                   ? "Try a different filter term"
                   : "Ingest some data to populate the knowledge graph"}
@@ -920,7 +935,7 @@ export function ForceGraph({
 
           {/* ── Floating node info panel ──────────────────────────────── */}
           {selectedNode && (
-            <div className="absolute bottom-4 right-4 z-20 w-80 max-h-[calc(100%-2rem)] overflow-y-auto rounded-lg border border-surface-700/50 bg-surface-900/95 backdrop-blur-md p-4 shadow-xl animate-fade-in">
+            <div className="absolute bottom-4 right-4 z-20 w-80 max-h-[calc(100%-2rem)] overflow-y-auto rounded-lg border border-line bg-panel p-4 animate-fade-in">
               {nodeDetail?.loading && (
                 <div className="flex items-center justify-center py-8">
                   <Spinner className="text-accent-300 h-5 w-5" />
@@ -937,12 +952,12 @@ export function ForceGraph({
                         style={{ backgroundColor: getColor(selectedNode.type) }}
                       />
                       <div className="min-w-0">
-                        <h3 className="text-sm font-semibold text-white truncate">
+                        <h3 className="text-sm font-semibold text-text truncate">
                           {selectedNode.name}
                         </h3>
                       </div>
                       <span
-                        className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0"
+                        className="text-[0.68rem] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0"
                         style={{
                           backgroundColor: `${getColor(selectedNode.type)}20`,
                           color: getColor(selectedNode.type),
@@ -954,7 +969,7 @@ export function ForceGraph({
                     <Button
                       variant="ghost"
                       onClick={() => setSelectedNode(null)}
-                      className="rounded text-surface-500 hover:text-white shrink-0"
+                      className="rounded text-muted hover:text-text shrink-0"
                     >
                       <X size={14} />
                     </Button>
@@ -962,7 +977,7 @@ export function ForceGraph({
 
                   {/* Summary */}
                   {selectedNode.summary && (
-                    <p className="text-xs text-surface-400 mb-2 leading-relaxed">
+                    <p className="text-[0.8rem] text-surface-400 mb-2 leading-relaxed">
                       {selectedNode.summary}
                     </p>
                   )}
@@ -986,10 +1001,10 @@ export function ForceGraph({
                   {/* Metadata from API */}
                   {nodeDetail?.node?.metadata && Object.keys(nodeDetail.node.metadata).length > 0 && (
                     <div className="mt-2 pt-2 border-t border-surface-800">
-                      <h4 className="text-[10px] font-medium text-surface-500 mb-1 uppercase tracking-wider">Metadata</h4>
+                      <h4 className="text-[0.68rem] font-medium text-muted mb-1 uppercase tracking-wider">Metadata</h4>
                       <div className="space-y-0.5">
                         {Object.entries(nodeDetail.node.metadata).map(([key, val]) => (
-                          <div key={key} className="flex gap-2 text-[11px]">
+                            <div key={key} className="flex gap-2 text-[0.8rem]">
                             <span className="text-surface-500 shrink-0">{key}:</span>
                             <span className="text-surface-300 truncate">
                               {typeof val === "object" ? JSON.stringify(val) : String(val)}
@@ -1003,7 +1018,7 @@ export function ForceGraph({
                   {/* Relationships */}
                   {(nodeDetail?.edges ?? connectedEdges).length > 0 && (
                     <div className="mt-2 pt-2 border-t border-surface-800">
-                      <h4 className="text-[10px] font-medium text-surface-500 mb-1.5 uppercase tracking-wider">
+                      <h4 className="text-[0.68rem] font-medium text-muted mb-1.5 uppercase tracking-wider">
                         Relationships ({(nodeDetail?.edges ?? connectedEdges).length})
                       </h4>
                       <div className="space-y-1">
@@ -1012,19 +1027,19 @@ export function ForceGraph({
                           const neighborId = isSource ? edge.target_id : edge.source_id;
                           const neighbor = allNodes.find((n) => n.id === neighborId);
                           return (
-                            <div key={i} className="flex items-center gap-1.5 text-[11px]">
-                              <span className="text-surface-600 shrink-0">
+                            <div key={i} className="flex items-center gap-1.5 text-[0.8rem]">
+                              <span className="text-dim shrink-0">
                                 {isSource ? "→" : "←"}
                               </span>
-                              <span className="font-medium text-accent-300/80">{edge.type}</span>
-                              <span className="text-surface-600">→</span>
+                              <span className="font-medium text-signal/80">{edge.type}</span>
+                              <span className="text-dim">→</span>
                               {neighbor ? (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedNode(neighbor);
                                   }}
-                                  className="truncate text-surface-200 hover:text-accent-300 underline underline-offset-2 decoration-surface-700 hover:decoration-accent-300 transition-colors"
+                                  className="truncate text-surface-200 hover:text-signal underline underline-offset-2 decoration-surface-700 hover:decoration-signal transition-colors duration-150"
                                 >
                                   {neighbor.name}
                                 </button>
@@ -1041,7 +1056,7 @@ export function ForceGraph({
                   )}
 
                   {/* ID + created */}
-                  <div className="mt-2 pt-2 border-t border-surface-800 flex items-center justify-between text-[10px] text-surface-600">
+                  <div className="mt-2 pt-2 border-t border-surface-800 flex items-center justify-between text-[0.68rem] text-dim">
                     <span className="font-mono truncate max-w-[140px]" title={selectedNode.id}>
                       {selectedNode.id.slice(0, 12)}…
                     </span>
@@ -1058,7 +1073,7 @@ export function ForceGraph({
       {!isFullscreen && showLegend && allNodes.length > 0 && (
         <div className="card-base p-3">
           <div className="flex items-center gap-6 flex-wrap">
-            <span className="text-xs text-surface-500 font-medium uppercase tracking-wider">
+            <span className="text-[0.68rem] text-muted font-medium uppercase tracking-wider">
               Entity Types
             </span>
             {ENTITY_TYPE_LEGEND.map((entry) => (

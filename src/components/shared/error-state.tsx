@@ -16,7 +16,7 @@ export function ErrorState({ message, onRetry }: ErrorStateProps) {
       <AlertCircle size={14} className="shrink-0" />
       <span className="flex-1">{message}</span>
       {onRetry && (
-        <Button variant="ghost" size="sm" onClick={onRetry} className="text-error hover:text-white">
+        <Button variant="ghost" size="sm" onClick={onRetry} className="text-error hover:text-error">
           Retry
         </Button>
       )}

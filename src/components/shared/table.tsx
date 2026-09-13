@@ -8,17 +8,15 @@ import { cn } from "@/lib/utils";
  * `divide-y` body rows with hover highlight, consistent `px-4 py-3` cell
  * padding, and an internal `overflow-x-auto` wrapper for mobile scroll.
  *
- * Zebra striping (`bg-surface-950/50` on odd data rows) is the dominant
- * pattern and defaults ON; pass `zebra={false}` for plain tables. Striping is
- * CSS-driven (`nth-child`) so it needs no per-row index plumbing; rows whose
- * only cell is a `colSpan` (empty-state placeholders) are excluded.
+ * No zebra striping — hairline row dividers only. `zebra` remains as an
+ * opt-in escape hatch; pass `zebra` for the legacy striped look.
  */
 
 interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
   zebra?: boolean;
 }
 
-export function Table({ zebra = true, className, children, ...props }: TableProps) {
+export function Table({ zebra = false, className, children, ...props }: TableProps) {
   return (
     <div className="overflow-x-auto">
       <table
@@ -66,7 +64,7 @@ export function TableHead({ align = "left", className, ...props }: TableHeadProp
   return (
     <th
       className={cn(
-        "px-4 py-3 text-xs font-medium uppercase tracking-wider text-surface-400",
+        "px-4 py-3 text-[0.68rem] font-medium uppercase tracking-wider text-muted",
         alignClass[align],
         className,
       )}
@@ -87,7 +85,7 @@ export function TableRow({
   ...props
 }: React.HTMLAttributes<HTMLTableRowElement>) {
   return (
-    <tr className={cn("transition-colors hover:bg-surface-800/50", className)} {...props} />
+    <tr className={cn("transition-colors duration-150 hover:bg-surface-800/50", className)} {...props} />
   );
 }
 

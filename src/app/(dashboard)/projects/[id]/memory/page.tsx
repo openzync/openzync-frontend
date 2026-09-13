@@ -284,8 +284,8 @@ function ContextTab({ projectId }: { projectId: string }) {
           </label>
           <div className="flex items-center gap-3">
             <input type="range" min={1} max={100} value={limit} onChange={(e) => setLimit(Number(e.target.value))}
-              className="flex-1 accent-brand-500 h-1.5 cursor-pointer"
-              style={{ appearance: "none", height: "6px", borderRadius: "3px", background: `linear-gradient(to right, #14488C ${limit}%, #303A4E ${limit}%)` }} />
+              className="flex-1 accent-signal h-1.5 cursor-pointer"
+              style={{ appearance: "none", height: "6px", borderRadius: "3px", background: `linear-gradient(to right, #4C6A9C ${limit}%, #232838 ${limit}%)` }} />
             <input type="number" min={1} max={100} value={limit} onChange={(e) => setLimit(Math.min(100, Math.max(1, Number(e.target.value) || 1)))} className="input-base w-16 text-center text-sm" />
           </div>
         </div>

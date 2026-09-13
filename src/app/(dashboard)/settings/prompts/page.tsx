@@ -166,7 +166,7 @@ function EditDialog({
           <Field label="Template" htmlFor="prompt-edit-text" required hint="Jinja2 template syntax. Use {{ variables }} and {% tags %} for dynamic content.">
             <textarea
               id="prompt-edit-text"
-              className={cn("w-full rounded-lg border border-surface-700 bg-surface-950 p-4 text-sm font-mono leading-relaxed text-surface-100 placeholder-surface-500 outline-none resize-y min-h-[300px] transition-all duration-150 focus:border-accent-300 focus:shadow-[0_0_0_2px_rgba(143,175,217,0.2)]")}
+              className={cn("w-full rounded-lg border border-surface-700 bg-surface-950 p-4 text-sm font-mono leading-relaxed text-surface-100 placeholder-surface-500 outline-none resize-y min-h-[300px] transition-all duration-150 focus:border-accent-300 focus:shadow-[0_0_0_2px_rgba(120,169,242,0.2)]")}
               placeholder="{% raw %}{{ Enter your Jinja2 template here }}{% endraw %}"
               value={templateText} onChange={(e) => { setTemplateText(e.target.value); if (error) setError(null); }} disabled={saving} spellCheck={false}
             />
@@ -493,7 +493,7 @@ function CreateDialog({ onClose, onCreate }: { onClose: () => void; onCreate: ()
             <input id="prompt-template-description" className="input-base" placeholder="Describe what this template does" value={description} onChange={(e) => { setDescription(e.target.value); if (error) setError(null); }} disabled={creating} />
           </Field>
           <Field label="Template" htmlFor="prompt-template-text" required>
-            <textarea id="prompt-template-text" className="w-full rounded-lg border border-surface-700 bg-surface-950 p-4 text-sm font-mono leading-relaxed text-surface-100 placeholder-surface-500 outline-none resize-y min-h-[300px] transition-all duration-150 focus:border-accent-300 focus:shadow-[0_0_0_2px_rgba(143,175,217,0.2)]" placeholder="{% raw %}{{ Enter your Jinja2 template here }}{% endraw %}" value={templateText} onChange={(e) => { setTemplateText(e.target.value); if (error) setError(null); }} disabled={creating} spellCheck={false} />
+            <textarea id="prompt-template-text" className="w-full rounded-lg border border-surface-700 bg-surface-950 p-4 text-sm font-mono leading-relaxed text-surface-100 placeholder-surface-500 outline-none resize-y min-h-[300px] transition-all duration-150 focus:border-accent-300 focus:shadow-[0_0_0_2px_rgba(120,169,242,0.2)]" placeholder="{% raw %}{{ Enter your Jinja2 template here }}{% endraw %}" value={templateText} onChange={(e) => { setTemplateText(e.target.value); if (error) setError(null); }} disabled={creating} spellCheck={false} />
           </Field>
           {error && (<div className="rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error flex items-center gap-2"><AlertCircle size={14} />{error}</div>)}
           <div className="flex items-center justify-end gap-3 pt-2 border-t border-surface-800">

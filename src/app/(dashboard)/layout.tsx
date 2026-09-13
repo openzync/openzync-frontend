@@ -137,10 +137,10 @@ function SidebarLink({
         }}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
+          "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors duration-150",
           centerCollapsed && collapsed && "justify-center px-0",
           active
-            ? "bg-brand-500/10 text-brand-300 border-l-[3px] border-brand-500"
+            ? "text-signal border-l-[3px] border-signal"
             : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
         )}
       >
@@ -205,8 +205,8 @@ function Sidebar({
     <aside
       aria-label="Sidebar"
       className={cn(
-        "flex h-full flex-col border-r border-surface-800 bg-surface-900 transition-all duration-300",
-        collapsed ? "w-16" : "w-56",
+        "flex h-full flex-col border-r border-surface-800 bg-surface-900 transition-[width] duration-150 ease-out",
+        collapsed ? "w-16" : "w-[236px]",
       )}
     >
       {/* Logo */}
@@ -214,10 +214,10 @@ function Sidebar({
         {collapsed ? (
           <button onClick={onToggle} className="flex items-center justify-center w-full group" title="Expand sidebar">
             <svg viewBox="0 0 28 28" width="24" height="24" className="group-hover:hidden" xmlns="http://www.w3.org/2000/svg">
-              <rect x="1" y="1" width="26" height="26" rx="13" fill="#040507"/>
-              <path d="M5.5 8.5h17l-8.5 6.5 8.5 6.5h-17l8.5-6.5z" fill="#78a8f1"/>
+              <rect x="1" y="1" width="26" height="26" rx="13" fill="#0B0D12"/>
+              <path d="M5.5 8.5h17l-8.5 6.5 8.5 6.5h-17l8.5-6.5z" fill="#78A9F2"/>
             </svg>
-            <ChevronRight size={20} className="hidden group-hover:block text-brand-300" />
+            <ChevronRight size={20} className="hidden group-hover:block text-signal" />
           </button>
         ) : (
           <>
@@ -227,12 +227,12 @@ function Sidebar({
             {/* Close button — mobile only */}
             <button
               onClick={onClose}
-              className="sm:hidden rounded-md p-1.5 text-surface-400 hover:bg-surface-800"
+              className="min-[980px]:hidden rounded-md p-1.5 text-surface-400 hover:bg-surface-800"
               aria-label="Close sidebar"
             >
               <X size={18} />
             </button>
-            <button onClick={onToggle} className="hidden sm:flex p-1.5 rounded-md text-surface-400 hover:text-surface-200 hover:bg-surface-800" title="Collapse sidebar">
+            <button onClick={onToggle} className="hidden min-[980px]:flex p-1.5 rounded-md text-surface-400 hover:text-surface-200 hover:bg-surface-800" title="Collapse sidebar">
               <ChevronLeft size={18} />
             </button>
           </>
@@ -248,7 +248,7 @@ function Sidebar({
               {collapsed ? (
                 <div className="h-px bg-surface-700" />
               ) : (
-                <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
+                <h2 className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-dim">
                   Insights
                 </h2>
               )}
@@ -265,7 +265,7 @@ function Sidebar({
                     title={entry.label}
                     onClick={onClose}
                   >
-                    <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
+                    <span className={cn("shrink-0", active ? "text-signal" : "text-surface-400")}>
                       <Icon size={18} />
                     </span>
                     <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{entry.label}</span>
@@ -282,7 +282,7 @@ function Sidebar({
             {collapsed ? (
               <div className="h-px bg-surface-700" />
             ) : (
-              <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
+              <h2 className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-dim">
                 Projects
               </h2>
             )}
@@ -301,7 +301,7 @@ function Sidebar({
                   title={p.name}
                   onClick={onClose}
                 >
-                  <span className={cn("shrink-0", isActiveProject ? "text-brand-300" : "text-surface-400")}>
+                  <span className={cn("shrink-0", isActiveProject ? "text-signal" : "text-surface-400")}>
                     <MapPin size={18} />
                   </span>
                   <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{p.name}</span>
@@ -347,7 +347,7 @@ function Sidebar({
                       title={item.label}
                       onClick={onClose}
                     >
-                      <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
+                      <span className={cn("shrink-0", active ? "text-signal" : "text-surface-400")}>
                         {item.icon}
                       </span>
                       {!collapsed && <span className="truncate">{item.label}</span>}
@@ -367,7 +367,7 @@ function Sidebar({
               {collapsed ? (
                 <div className="h-px bg-surface-700" />
               ) : (
-                <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
+                <h2 className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-dim">
                   Project Settings
                 </h2>
               )}
@@ -387,7 +387,7 @@ function Sidebar({
                     title={item.label}
                     onClick={onClose}
                   >
-                    <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
+                    <span className={cn("shrink-0", active ? "text-signal" : "text-surface-400")}>
                       {item.icon}
                     </span>
                     <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{item.label}</span>
@@ -411,7 +411,7 @@ function Sidebar({
                   {collapsed ? (
                     <div className="h-px bg-surface-700" />
                   ) : (
-                    <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
+                    <h2 className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-dim">
                       Administration
                     </h2>
                   )}
@@ -428,7 +428,7 @@ function Sidebar({
                         title={entry.label}
                         onClick={onClose}
                       >
-                        <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
+                        <span className={cn("shrink-0", active ? "text-signal" : "text-surface-400")}>
                           <Icon size={18} />
                         </span>
                         <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{entry.label}</span>
@@ -451,7 +451,7 @@ function Sidebar({
                   {collapsed ? (
                     <div className="h-px bg-surface-700" />
                   ) : (
-                    <h2 className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
+                    <h2 className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-dim">
                       System
                     </h2>
                   )}
@@ -468,7 +468,7 @@ function Sidebar({
                         title={entry.label}
                         onClick={onClose}
                       >
-                        <span className={cn("shrink-0", active ? "text-brand-300" : "text-surface-400")}>
+                        <span className={cn("shrink-0", active ? "text-signal" : "text-surface-400")}>
                           <Icon size={18} />
                         </span>
                         <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{entry.label}</span>
@@ -518,7 +518,7 @@ function Sidebar({
               title={collapsed ? currentUserLabel : undefined}
             >
               <Avatar className="h-6 w-6">
-                <AvatarFallback className="rounded-full bg-brand-500 text-[10px] font-bold text-white">
+                <AvatarFallback className="rounded-full bg-signal text-[0.68rem] font-bold text-ink">
                   {(currentUserLabel?.[0] || "U").toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -611,7 +611,7 @@ export default function DashboardLayout({
       {!mobileOpen && (
         <button
           onClick={() => setMobileOpen(true)}
-          className="fixed top-3 left-3 z-30 sm:hidden rounded-md p-2 bg-surface-900 border border-surface-800 text-surface-400 shadow-lg hover:bg-surface-800"
+          className="fixed top-3 left-3 z-30 min-[980px]:hidden rounded-md p-2 bg-surface-900 border border-surface-800 text-surface-400 hover:bg-surface-800"
           aria-label="Open sidebar"
         >
           <Menu size={20} />
@@ -621,7 +621,7 @@ export default function DashboardLayout({
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 sm:hidden"
+          className="fixed inset-0 z-40 bg-black/50 min-[980px]:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -629,7 +629,7 @@ export default function DashboardLayout({
       {/* Mobile sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-56 transition-transform duration-300 sm:hidden",
+          "fixed inset-y-0 left-0 z-50 w-[236px] transition-transform duration-150 ease-out min-[980px]:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -637,7 +637,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden sm:block">
+      <div className="hidden min-[980px]:block">
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}

@@ -33,36 +33,36 @@ export function StatCard({
     >
       {Icon ? (
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-500/10">
-            <Icon size={22} className={color} />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-signal/10">
+              <Icon size={22} className={color ?? "text-signal"} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs text-surface-400 truncate">{label}</div>
+            <div className="text-[0.68rem] text-muted truncate">{label}</div>
             {loading ? (
               <div className="h-6 w-16 mt-1 rounded bg-surface-800 animate-pulse" />
             ) : (
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-xl font-semibold">
+                <span className="font-display text-[1.6rem] font-normal tabular-nums leading-tight">
                   {value != null ? value : "—"}
                 </span>
                 {trend === "up" && <TrendingUp size={14} className="text-success shrink-0" />}
-                {trend === "down" && <TrendingDown size={14} className="text-success shrink-0" />}
+                {trend === "down" && <TrendingDown size={14} className="text-error shrink-0" />}
               </div>
             )}
           </div>
         </div>
       ) : (
         <div>
-          <div className="text-xs text-surface-400 truncate">{label}</div>
+          <div className="text-[0.68rem] text-muted truncate">{label}</div>
           {loading ? (
             <div className="h-6 w-16 mt-1 rounded bg-surface-800 animate-pulse" />
           ) : (
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-xl font-semibold">
+              <span className="font-display text-[1.6rem] font-normal tabular-nums leading-tight">
                 {value != null ? value : "—"}
               </span>
               {trend === "up" && <TrendingUp size={14} className="text-success shrink-0" />}
-              {trend === "down" && <TrendingDown size={14} className="text-success shrink-0" />}
+              {trend === "down" && <TrendingDown size={14} className="text-error shrink-0" />}
             </div>
           )}
         </div>

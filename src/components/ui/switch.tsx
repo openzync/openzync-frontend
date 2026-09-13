@@ -13,8 +13,8 @@ interface SwitchProps {
  * Minimal toggle switch — pure CSS, no extra dependencies.
  *
  * Visual:
- *   Track (gray when off, accent-300 when on)
- *   Knob (white circle, slides left/right)
+ *   Track 32×17 — off: raised fill + line border; on: signal 15% fill +
+ *   signal-dim border. Knob slides via left offset; signal when on.
  */
 export function Switch({
   checked,
@@ -31,18 +31,18 @@ export function Switch({
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full",
-        "transition-colors duration-200 ease-in-out",
+        "relative inline-flex h-[17px] w-8 shrink-0 cursor-pointer items-center rounded-full border",
+        "transition-colors duration-150 ease-in-out",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-300",
-        checked ? "bg-accent-300" : "bg-surface-700",
+        checked ? "border-signal-dim bg-signal/15" : "border-line bg-panel-raised",
         disabled && "cursor-not-allowed opacity-50",
       )}
     >
       <span
         className={cn(
-          "inline-block h-4 w-4 rounded-full bg-white shadow-sm",
-          "transition-transform duration-200 ease-in-out",
-          checked ? "translate-x-[22px]" : "translate-x-[3px]",
+          "absolute top-1/2 h-[13px] w-[13px] -translate-y-1/2 rounded-full",
+          "transition-all duration-150 ease-in-out",
+          checked ? "left-[17px] bg-signal" : "left-[2px] bg-muted",
         )}
       />
     </button>

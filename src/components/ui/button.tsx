@@ -14,14 +14,16 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
+  // Inverted primary: solid text fill on dark, signal on hover. ONE per screen.
   primary:
-    "bg-brand-500 text-white hover:bg-brand-600 shadow-sm hover:shadow-[0_0_20px_color-mix(in_srgb,var(--color-brand-500)_30%,transparent)]",
+    "bg-text-primary text-surface-950 hover:bg-signal hover:text-surface-950",
+  // Ghost default: transparent, line border, muted text.
   secondary:
-    "bg-transparent text-surface-100 border border-surface-700 hover:bg-surface-800 hover:text-white",
+    "bg-transparent text-muted border border-line hover:border-signal-dim hover:text-text",
   ghost:
-    "bg-transparent text-surface-300 hover:bg-surface-800 hover:text-white",
+    "bg-transparent text-muted border border-line hover:border-signal-dim hover:text-text",
   danger:
-    "bg-error text-white hover:bg-error-600 shadow-sm hover:shadow-[0_0_20px_color-mix(in_srgb,var(--color-error-500)_30%,transparent)]",
+    "bg-transparent text-error border border-error/40 hover:border-error hover:text-error",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -47,7 +49,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center font-medium transition-all duration-150",
+        "inline-flex items-center justify-center font-medium transition-colors duration-150",
         "focus-visible:outline-2 focus-visible:outline-accent-300 focus-visible:outline-offset-2",
         "disabled:pointer-events-none disabled:opacity-50",
         "cursor-pointer",

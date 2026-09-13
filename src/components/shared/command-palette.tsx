@@ -163,7 +163,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           )}
         >
           <Command
-            className="rounded-xl border border-surface-800 bg-surface-900 shadow-2xl shadow-black/40 overflow-hidden focus:outline-none"
+            className="rounded-xl border border-surface-800 bg-surface-900 overflow-hidden focus:outline-none"
             shouldFilter={false}
           >
             {/* ── Input bar ─────────────────────────────────────────────── */}

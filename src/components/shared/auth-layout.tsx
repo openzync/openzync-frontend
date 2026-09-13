@@ -51,7 +51,7 @@ export function AuthLayout({
     <div className="flex min-h-screen">
       {/* Left brand panel */}
       <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-brand-500 to-surface-950">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(143,175,217,0.08)_0%,transparent_50%),radial-gradient(circle_at_25%_30%,rgba(20,72,140,0.12)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(120,169,242,0.08)_0%,transparent_50%),radial-gradient(circle_at_25%_30%,rgba(120,169,242,0.12)_0%,transparent_50%)]" />
         <div className="relative z-10 text-center px-8">
           <h1 className="text-5xl font-extrabold text-text-primary tracking-tight mb-2">
             OpenZync

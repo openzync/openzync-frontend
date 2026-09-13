@@ -30,8 +30,8 @@ export function abbrevDate(dateStr: string): string {
 
 /** Resolve a CSS custom property (e.g. "--color-brand-500") to its value. */
 export function cssVar(name: string): string {
-  if (typeof window === "undefined") return "#14488C";
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#14488C";
+  if (typeof window === "undefined") return "#78A9F2";
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#78A9F2";
 }
 
 // ═══ Sizing ════════════════════════════════════════════════════════════════════
@@ -175,7 +175,7 @@ function ChartTooltip({
       className="absolute pointer-events-none z-10 animate-fade-in"
       style={{ left, top }}
     >
-      <div className={`card-base shadow-lg shadow-black/40 text-xs ${multi ? "p-2.5 space-y-1.5 min-w-[130px]" : "p-2 min-w-[112px]"}`}>
+      <div className={`card-base text-xs tabular-nums ${multi ? "p-2.5 space-y-1.5 min-w-[130px]" : "p-2 min-w-[112px]"}`}>
         <p className={`text-surface-400 font-medium border-b border-surface-800 ${multi ? "pb-1.5 mb-1" : "pb-1 mb-1"}`}>
           {date ? new Date(date).toLocaleDateString("en-US", dateFormat) : ""}
         </p>

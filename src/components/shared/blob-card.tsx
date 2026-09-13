@@ -83,8 +83,8 @@ export function BlobCard({
       disabled={!blob.download_url}
       className={cn(
         "group flex items-center gap-2.5 rounded-lg border border-surface-700",
-        "bg-surface-800/50 px-3 py-2 text-left transition-colors",
-        "hover:bg-surface-700/50 hover:border-surface-600",
+        "bg-surface-800/50 px-3 py-2 text-left transition-colors duration-150",
+        "hover:bg-surface-700/50 hover:border-signal-dim",
         "disabled:opacity-50 disabled:cursor-not-allowed",
         "max-w-[260px] min-w-0",
         className,

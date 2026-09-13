@@ -85,12 +85,12 @@ const STAT_CARDS = [
 ];
 
 const SMALL_CHARTS = [
-  { dataKey: "episode_count" as const, color: "--color-accent-300", label: "Episodes" },
-  { dataKey: "session_count" as const, color: "--color-success", label: "Sessions" },
-  { dataKey: "fact_count" as const, color: "--color-brand-500", label: "Facts" },
-  { dataKey: "extraction_count" as const, color: "--color-warning-500", label: "Extractions" },
-  { dataKey: "observation_count" as const, color: "--color-info-500", label: "Observations" },
-  { dataKey: "classification_count" as const, color: "--color-accent-500", label: "Classifications" },
+  { dataKey: "episode_count" as const, color: "--color-signal", label: "Episodes" },
+  { dataKey: "session_count" as const, color: "--color-signal-dim", label: "Sessions" },
+  { dataKey: "fact_count" as const, color: "--color-muted", label: "Facts" },
+  { dataKey: "extraction_count" as const, color: "--color-amber", label: "Extractions" },
+  { dataKey: "observation_count" as const, color: "--color-dim", label: "Observations" },
+  { dataKey: "classification_count" as const, color: "--color-signal-dim", label: "Classifications" },
 ] as const;
 
 // Fresh-org quickstart — all destinations point at /projects (this page does not
@@ -272,8 +272,8 @@ function OverviewInner() {
         height={260}
         tooltipShowYear
         series={[
-          { label: "Nodes", color: "--color-brand-500", value: (p) => p.node_count ?? 0 },
-          { label: "Edges", color: "--color-accent-300", value: (p) => p.edge_count ?? 0, baseOpacity: 0.65 },
+          { label: "Nodes", color: "--color-signal", value: (p) => p.node_count ?? 0 },
+          { label: "Edges", color: "--color-signal-dim", value: (p) => p.edge_count ?? 0, baseOpacity: 0.65 },
         ]}
       />
     );
@@ -317,13 +317,13 @@ function OverviewInner() {
                 <button
                   type="button"
                   onClick={() => router.push(s.href)}
-                  className="group flex w-full items-start gap-3 rounded-md border border-surface-800 bg-surface-950/50 p-3 text-left transition-colors hover:border-brand-500/50 hover:bg-surface-900"
+                  className="group flex w-full items-start gap-3 rounded-md border border-surface-800 bg-surface-950/50 p-3 text-left transition-colors duration-150 hover:border-signal-dim hover:bg-surface-900"
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-500/10 text-brand-300">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal/10 text-signal">
                     <s.icon size={14} />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium text-surface-100 group-hover:text-white">
+                    <span className="block truncate text-sm font-medium text-surface-100 group-hover:text-text">
                       {s.title}
                     </span>
                     <span className="mt-0.5 block text-xs text-surface-300">{s.description}</span>
@@ -342,7 +342,7 @@ function OverviewInner() {
           onRetry={statsQuery.refetch}
         />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="stat-grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
           {STAT_CARDS.map((card) => (
             <StatCard
               key={card.key}
@@ -471,11 +471,11 @@ function OverviewInner() {
         {usage.length > 0 && !usageLoading && (
           <div className="flex gap-5 mt-3 pt-3 border-t border-surface-800">
             <div className="flex items-center gap-1.5 text-xs text-surface-400">
-              <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-brand-500") }} />
+              <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-signal") }} />
               Nodes
             </div>
             <div className="flex items-center gap-1.5 text-xs text-surface-400">
-              <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-accent-300") }} />
+              <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: cssVar("--color-signal-dim") }} />
               Edges
             </div>
           </div>
@@ -504,13 +504,13 @@ function OverviewInner() {
                   key={action.label + action.href}
                   onClick={() => router.push(action.href)}
                   title={action.description}
-                  className="group flex w-full items-start gap-3 rounded-md border border-surface-800 bg-surface-950/50 p-3 text-left transition-colors hover:border-brand-500/50 hover:bg-surface-900"
+                  className="group flex w-full items-start gap-3 rounded-md border border-surface-800 bg-surface-950/50 p-3 text-left transition-colors duration-150 hover:border-signal-dim hover:bg-surface-900"
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-500/10 text-brand-300">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal/10 text-signal">
                     <Icon size={14} />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium text-surface-100 group-hover:text-white">
+                    <span className="block truncate text-sm font-medium text-surface-100 group-hover:text-text">
                       {action.label}
                     </span>
                     {action.description && (

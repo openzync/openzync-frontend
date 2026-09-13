@@ -1,17 +1,27 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
-const inter = Inter({
+/* Display serif — H1/H2 only. UI — body/controls. Mono — data only. */
+const display = Fraunces({
   subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const plexSans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
+  weight: ["400", "500"],
   variable: "--font-mono",
   display: "swap",
 });
@@ -30,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}
+        className={`${display.variable} ${plexSans.variable} ${plexMono.variable} font-sans`}
       >
         {/* Skip navigation links — visible on focus for keyboard users */}
         <a

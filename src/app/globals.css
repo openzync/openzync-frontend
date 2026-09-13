@@ -5,108 +5,135 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 @theme {
-  /* ── Brand Colors ─────────────────────────────────────────────────────── */
-  /* brand = identity, primary actions, active states                       */
-  /* accent = chart and data emphasis, secondary emphasis                   */
-  --color-brand-50: #E8F0FE;
-  --color-brand-100: #C2D6F5;
-  --color-brand-200: #9BB8EB;
-  --color-brand-300: #6A96D9;
-  --color-brand-400: #4A7FC7;
-  --color-brand-500: #14488C;
-  --color-brand-600: #103F7F;
-  --color-brand-700: #0D3668;
-  --color-brand-800: #0B2F5F;
-  --color-brand-900: #0A2A5A;
+  /* ── Ink system (authoritative) ─────────────────────────────────────── */
+  --color-ink: #0B0D12; /* app bg */
+  --color-panel: #12151C; /* card / sidebar */
+  --color-panel-raised: #161B24; /* inputs, toggles, sub-rows */
+  --color-line: #232838; /* ALL borders / dividers */
+  --color-text: #E7E9EE;
+  --color-muted: #8A93A6;
+  --color-dim: #5B6478;
+  --color-signal: #78A9F2; /* live / active only — logo periwinkle */
+  --color-signal-dim: #4C6A9C;
+  --color-amber: #F0B65C; /* one flagged stat at a time */
+  --color-red: #E5807A; /* errors / negative only */
 
-  --color-accent-50: #F2F7FF;
-  --color-accent-100: #E0ECFF;
-  --color-accent-200: #B8D4F0;
-  --color-accent-300: #8FAFD9;
-  --color-accent-400: #7A9BC4;
-  --color-accent-500: #6A8DB8;
-  --color-accent-600: #5A7DA8;
-  --color-accent-700: #4A6D96;
-  --color-accent-800: #3A5D86;
-  --color-accent-900: #2A4D76;
+  /* Amber scale overridden to the single token so existing
+     amber-200/300/400/500 classes resolve to --amber. */
+  --color-amber-200: #F0B65C;
+  --color-amber-300: #F0B65C;
+  --color-amber-400: #F0B65C;
+  --color-amber-500: #F0B65C;
 
-  /* ── Neutral / Surface ────────────────────────────────────────────────── */
+  /* ── Brand ramp → signal family ─────────────────────────────────────── */
+  /* Existing bg-brand and text-brand classes keep working, remapped. */
+  --color-brand-50: #0C1626;
+  --color-brand-100: #101E33;
+  --color-brand-200: #1A2C47;
+  --color-brand-300: #78A9F2;
+  --color-brand-400: #6B97DD;
+  --color-brand-500: #4C6A9C;
+  --color-brand-600: #3E577F;
+  --color-brand-700: #314665;
+  --color-brand-800: #233349;
+  --color-brand-900: #16222F;
+
+  /* accent-300 is the focus-ring alias — MUST stay signal so existing
+     focus-visible:outline-accent-300 classes keep working. */
+  --color-accent-50: #0C1626;
+  --color-accent-100: #101E33;
+  --color-accent-200: #1A2C47;
+  --color-accent-300: #78A9F2;
+  --color-accent-400: #6B97DD;
+  --color-accent-500: #4C6A9C;
+  --color-accent-600: #3E577F;
+  --color-accent-700: #314665;
+  --color-accent-800: #233349;
+  --color-accent-900: #16222F;
+
+  /* ── Neutral / Surface → ink system ─────────────────────────────────── */
+  /* surface-800/900/950 are bg fills → panel-raised/panel/ink;
+     surface-700 is the universal border stop → line;
+     surface-500/600 (low-contrast text) are uplifted to muted/dim. */
   --color-surface-50: #F8F9FA;
   --color-surface-100: #E8EDF2;
   --color-surface-200: #D0D7E0;
-  --color-surface-300: #A8B5C5;
-  --color-surface-400: #8A99AB;
-  --color-surface-500: #6C7A8E;
-  --color-surface-600: #4E5A6E;
-  --color-surface-700: #303A4E;
-  --color-surface-800: #1A2332;
-  --color-surface-900: #161B22;
-  --color-surface-950: #0D1117;
+  --color-surface-300: #B9C1CF;
+  --color-surface-400: #8A93A6;
+  --color-surface-500: #8A93A6;
+  --color-surface-600: #5B6478;
+  --color-surface-700: #232838;
+  --color-surface-800: #161B24;
+  --color-surface-900: #12151C;
+  --color-surface-950: #0B0D12;
 
-  /* ── Semantic ─────────────────────────────────────────────────────────── */
-  --color-success-50: #F0FAF1;
-  --color-success-100: #DCF3DE;
-  --color-success-200: #C2E8C6;
-  --color-success-300: #A0D9A6;
-  --color-success-400: #83CB8A;
-  --color-success-500: #66BB6A;
-  --color-success-600: #4FA554;
-  --color-success-700: #3F8A44;
-  --color-success-800: #2F6F34;
-  --color-success-900: #205423;
+  /* ── Semantic → signal / amber / red ────────────────────────────────── */
+  /* success = signal, warning = amber, error = red, info = signal-dim.    */
+  --color-success-50: #0C1626;
+  --color-success-100: #101E33;
+  --color-success-200: #1A2C47;
+  --color-success-300: #6B97DD;
+  --color-success-400: #6B97DD;
+  --color-success-500: #78A9F2;
+  --color-success-600: #4C6A9C;
+  --color-success-700: #3E577F;
+  --color-success-800: #233349;
+  --color-success-900: #16222F;
 
-  --color-warning-50: #FFF8E1;
-  --color-warning-100: #FFECB3;
-  --color-warning-200: #FFE082;
-  --color-warning-300: #FFD54F;
-  --color-warning-400: #FFCA28;
-  --color-warning-500: #FFA726;
-  --color-warning-600: #FB8C00;
-  --color-warning-700: #F57C00;
-  --color-warning-800: #EF6C00;
-  --color-warning-900: #E65100;
+  --color-warning-50: #2A2111;
+  --color-warning-100: #3A2E15;
+  --color-warning-200: #54401B;
+  --color-warning-300: #F0B65C;
+  --color-warning-400: #F0B65C;
+  --color-warning-500: #F0B65C;
+  --color-warning-600: #D19A48;
+  --color-warning-700: #A67A38;
+  --color-warning-800: #755727;
+  --color-warning-900: #4E3A1A;
 
-  --color-error-50: #FEF0EF;
-  --color-error-100: #FBDCDB;
-  --color-error-200: #F6BFBE;
-  --color-error-300: #EF9A98;
-  --color-error-400: #F27370;
-  --color-error-500: #EF5350;
-  --color-error-600: #D32F2F;
-  --color-error-700: #B71C1C;
-  --color-error-800: #9A1616;
-  --color-error-900: #7F1212;
+  --color-error-50: #2A1512;
+  --color-error-100: #3A1D18;
+  --color-error-200: #552820;
+  --color-error-300: #E5807A;
+  --color-error-400: #E5807A;
+  --color-error-500: #E5807A;
+  --color-error-600: #C96A65;
+  --color-error-700: #A25450;
+  --color-error-800: #743C39;
+  --color-error-900: #4E2826;
 
-  --color-info-50: #F4F8FC;
-  --color-info-100: #E4EDF8;
-  --color-info-200: #C8D9F0;
-  --color-info-300: #ACC5E7;
-  --color-info-400: #9DB8DF;
-  --color-info-500: #8FAFD9;
-  --color-info-600: #7196C4;
-  --color-info-700: #5A7FB0;
-  --color-info-800: #466A98;
-  --color-info-900: #35537A;
+  --color-info-50: #0C1626;
+  --color-info-100: #101E33;
+  --color-info-200: #1A2C47;
+  --color-info-300: #6B97DD;
+  --color-info-400: #6B97DD;
+  --color-info-500: #4C6A9C;
+  --color-info-600: #3E577F;
+  --color-info-700: #314665;
+  --color-info-800: #233349;
+  --color-info-900: #16222F;
 
-  /* Legacy single-stop aliases — keep existing classes working */
-  --color-success: var(--color-success-500);
-  --color-warning: var(--color-warning-500);
-  --color-error: var(--color-error-500);
-  --color-info: var(--color-info-500);
+  /* Single-stop aliases — keep existing classes working, repointed */
+  --color-success: var(--color-signal);
+  --color-warning: var(--color-amber);
+  --color-error: var(--color-red);
+  --color-info: var(--color-signal-dim);
 
   /* ── Text ─────────────────────────────────────────────────────────────── */
-  --color-text-primary: #F2F2F2;
-  --color-text-secondary: var(--color-surface-400);
-  --color-text-muted: var(--color-surface-500);
+  --color-text-primary: #E7E9EE;
+  --color-text-secondary: var(--color-muted);
+  --color-text-muted: var(--color-muted);
 
   /* ── Elevation ────────────────────────────────────────────────────────── */
-  --shadow-elevation-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
-  --shadow-elevation-md: 0 4px 12px -2px rgb(0 0 0 / 0.5);
-  --shadow-elevation-lg: 0 12px 32px -4px rgb(0 0 0 / 0.6);
+  /* NO box-shadows anywhere — borders (line) carry all separation. */
+  --shadow-elevation-sm: none;
+  --shadow-elevation-md: none;
+  --shadow-elevation-lg: none;
 
   /* ── Fonts ────────────────────────────────────────────────────────────── */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-display: "Fraunces", Georgia, serif;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -114,7 +141,7 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 * {
-  border-color: var(--color-surface-800);
+  border-color: var(--color-line);
 }
 
 html {
@@ -122,12 +149,36 @@ html {
 }
 
 body {
-  background-color: var(--color-surface-950);
-  color: var(--color-text-primary);
+  background-color: var(--color-ink);
+  color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: var(--font-sans);
   min-height: 100vh;
+}
+
+/* Tabular numerals on all data — tables, mono readouts, stat values */
+table,
+.font-mono,
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 2px solid signal focus ring, offset 2px — every focusable element */
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+/* NO box-shadows anywhere — utility kill-rule so shadow-* bypasses
+   (dialog, dropdown, command-palette, tooltips, modals) comply. */
+.shadow-sm,
+.shadow,
+.shadow-md,
+.shadow-lg,
+.shadow-xl,
+.shadow-2xl {
+  box-shadow: none !important;
 }
 
 /* Scrollbar styling */
@@ -139,42 +190,57 @@ body {
   background: var(--color-surface-950);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-surface-800);
+  background: var(--color-line);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-brand-500);
+  background: var(--color-signal-dim);
 }
 
 /* ─── Card patterns ─────────────────────────────────────────────────────── */
+/* Panels: 10–12px radii, header row (title + one right link, bottom border)
+   + body composition lives in the components; separation is border-only. */
 
 .card-base {
-  border-radius: 8px;
-  border: 1px solid var(--color-surface-800);
-  background-color: var(--color-surface-900);
+  border-radius: 12px;
+  border: 1px solid var(--color-line);
+  background-color: var(--color-panel);
 }
 
 .card-interactive {
-  border-radius: 8px;
-  border: 1px solid var(--color-surface-800);
-  background-color: var(--color-surface-900);
-  transition: all 0.2s ease;
+  border-radius: 12px;
+  border: 1px solid var(--color-line);
+  background-color: var(--color-panel);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .card-interactive:hover {
-  border-color: var(--color-surface-700);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  border-color: var(--color-signal-dim);
 }
 
 .stat-card {
-  border-radius: 8px;
-  border: 1px solid var(--color-surface-800);
-  background-color: var(--color-surface-900);
+  border-radius: 12px;
+  border: 1px solid var(--color-line);
+  background-color: var(--color-panel);
   padding: 16px;
-  transition: all 0.2s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .stat-card:hover {
-  border-color: var(--color-surface-700);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  border-color: var(--color-signal-dim);
+}
+
+/* Stat grid: 1px gap filled with --line, no per-cell borders */
+.stat-grid {
+  display: grid;
+  gap: 1px;
+  background-color: var(--color-line);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.stat-grid > * {
+  background-color: var(--color-panel);
+  border: 0;
+  border-radius: 0;
 }
 
 /* ─── Input patterns ────────────────────────────────────────────────────── */
@@ -184,20 +250,21 @@ body {
   height: 36px;
   width: 100%;
   border-radius: 6px;
-  border: 1px solid var(--color-surface-700);
-  background-color: var(--color-surface-950);
+  border: 1px solid var(--color-line);
+  background-color: var(--color-panel-raised);
   padding: 0 12px;
   font-size: 14px;
-  color: var(--color-text-primary);
+  color: var(--color-text);
   outline: none;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .input-base::placeholder {
-  color: var(--color-surface-500);
+  color: var(--color-muted);
 }
 .input-base:focus {
-  border-color: var(--color-accent-300);
-  box-shadow: 0 0 0 2px rgba(143, 175, 217, 0.2);
+  border-color: var(--color-signal);
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
 }
 .input-base:disabled {
   cursor: not-allowed;
@@ -205,6 +272,27 @@ body {
 }
 
 /* ─── Animations ────────────────────────────────────────────────────────── */
+/* Motion budget: (1) live dot pulse, (2) active graph dash,
+   (3) 0.15s ease hover on border/background/color. No lifts. */
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@keyframes graph-dash {
+  to { stroke-dashoffset: -20; }
+}
+
+/* Class names retained (referenced by tests / chart tooltips) but reduced
+   to opacity-only — no translateY lifts. */
+.animate-fade-in {
+  animation: fadeIn 0.15s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.15s ease-out;
+}
 
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -212,25 +300,18 @@ body {
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.2s ease-out;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.25s ease-out;
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .animate-pulse-dot {
   animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Single active graph path — dashed signal loop, 3.2s linear */
+.graph-active-edge {
+  stroke-dasharray: 6 4;
+  animation: graph-dash 3.2s linear infinite;
 }
 
 /* ─── Reduced motion ────────────────────────────────────────────────────── */

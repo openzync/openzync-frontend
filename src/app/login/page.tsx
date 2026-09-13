@@ -154,7 +154,7 @@ export default function LoginPage() {
 
             <Link
               href="/login/otp"
-              className="flex items-center justify-center gap-2 rounded-lg border border-surface-700 px-4 py-2.5 text-sm font-medium text-surface-300 transition-all duration-150 hover:border-accent-300/30 hover:text-accent-300 hover:shadow-[0_0_12px_rgba(143,175,217,0.06)]"
+              className="flex items-center justify-center gap-2 rounded-lg border border-surface-700 px-4 py-2.5 text-sm font-medium text-surface-300 transition-all duration-150 hover:border-accent-300/30 hover:text-accent-300 hover:shadow-[0_0_12px_rgba(120,169,242,0.06)]"
             >
               <Mail size={16} />
               Sign in with a magic code

@@ -72,7 +72,7 @@ export function Dialog({
             "w-[calc(100%-2rem)] px-0",
             sizeMap[size],
             "rounded-xl border border-surface-700",
-            "bg-surface-900 shadow-2xl",
+            "bg-surface-900",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",

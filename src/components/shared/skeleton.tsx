@@ -31,7 +31,7 @@ export function TableSkeleton({
   return (
     <>
       {Array.from({ length: rows }, (_, i) => (
-        <tr key={`skel-${i}`} className={i % 2 === 0 ? "bg-surface-950/50" : ""}>
+        <tr key={`skel-${i}`}>
           {Array.from({ length: cols }, (_, j) => (
             <td key={j} className="px-4 py-3">
               <Skeleton

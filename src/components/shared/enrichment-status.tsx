@@ -43,7 +43,7 @@ function StageNode({ state }: { state: StageState }) {
   if (state === "active") {
     return (
       <span
-        className="size-2 shrink-0 rounded-full bg-brand-300 animate-pulse-dot"
+        className="size-2 shrink-0 rounded-full bg-signal animate-pulse-dot"
         aria-hidden="true"
       />
     );
@@ -71,7 +71,7 @@ export function EnrichmentStatus({
     return (
       <div role="status" aria-label="Enrichment pipeline status" className="flex flex-col gap-2 text-sm">
         <div className="flex items-center gap-2">
-          <Loader2 className="size-4 shrink-0 animate-spin text-brand-300" aria-hidden="true" />
+          <Loader2 className="size-4 shrink-0 animate-spin text-signal" aria-hidden="true" />
           <span className="font-medium text-surface-200">{status}</span>
         </div>
         {jobId && (
@@ -101,7 +101,7 @@ export function EnrichmentStatus({
               className={cn(
                 "flex items-center gap-1.5 text-xs font-medium",
                 stage.state === "done" && "text-surface-200",
-                stage.state === "active" && "text-brand-300",
+                stage.state === "active" && "text-signal",
                 stage.state === "pending" && "text-surface-500",
               )}
             >
