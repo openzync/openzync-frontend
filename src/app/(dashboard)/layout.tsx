@@ -137,13 +137,16 @@ function SidebarLink({
         }}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors duration-150",
+          "relative flex w-full items-center gap-3 rounded-md py-2 pr-2 pl-[11px] text-sm transition-colors duration-150",
           centerCollapsed && collapsed && "justify-center px-0",
           active
-            ? "text-signal border-l-[3px] border-signal"
-            : "text-surface-300 hover:bg-surface-800 hover:text-text-primary border-l-[3px] border-transparent",
+            ? "text-signal"
+            : "text-surface-300 hover:bg-surface-800 hover:text-text-primary",
         )}
       >
+        {active && (
+          <span aria-hidden className="absolute top-1/2 left-0 h-5 w-[3px] -translate-y-1/2 rounded-r bg-signal" />
+        )}
         {children}
       </Link>
     </CollapsedTip>
