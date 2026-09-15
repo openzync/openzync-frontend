@@ -563,6 +563,21 @@ export function getRegistrationStatus(): Promise<RegistrationStatus> {
   return get<RegistrationStatus>("/v1/auth/registration-status", { skipAuthRetry: true });
 }
 
+// ─── Project pin endpoints ────────────────────────────────────────────────────
+
+/**
+ * POST /v1/projects/{id}/pin — pin a project (idempotent, 204).
+ * 4th pin → 422; non-member/archived → 404.
+ */
+export function pinProject(id: string): Promise<void> {
+  return post<void>(`/v1/projects/${encodeURIComponent(id)}/pin`);
+}
+
+/** DELETE /v1/projects/{id}/pin — unpin a project (always 204). */
+export function unpinProject(id: string): Promise<void> {
+  return del<void>(`/v1/projects/${encodeURIComponent(id)}/pin`);
+}
+
 // ─── Re-export base URL for edge cases ───────────────────────────────────────
 
 export { API_BASE, getAccessToken, storeTokens, clearTokens, uploadWithBlobs };

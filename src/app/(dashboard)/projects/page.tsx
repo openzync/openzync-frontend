@@ -184,7 +184,7 @@ export default function ProjectsPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        togglePin(project.id, project.name);
+                        void togglePin(project.id, project.name);
                       }}
                       disabled={isMaxPinned && !isPinned(project.id)}
                       title={
