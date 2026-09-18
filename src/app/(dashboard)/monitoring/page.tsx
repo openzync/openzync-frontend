@@ -14,6 +14,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sortChronological } from "@/lib/chart-order";
 import { get, ApiError, apiErrorMessage } from "@/lib/api-client";
 import { timeAgo } from "@/lib/utils";
 import { PageGuide, GuideDashboard } from "@/components/guides";
@@ -312,8 +313,8 @@ export default function MonitoringPage() {
             <>
               <LineChart
                 lines={[
-                  { label: "Context", color: "--color-brand-500", data: summary.retrieval_timeseries.context_retrievals.map((d) => ({ x: d.timestamp, y: d.value })) },
-                  { label: "Graph", color: "--color-accent-300", data: summary.retrieval_timeseries.graph_retrievals.map((d) => ({ x: d.timestamp, y: d.value })) },
+                  { label: "Context", color: "--color-brand-500", data: sortChronological(summary.retrieval_timeseries.context_retrievals, (d) => d.timestamp).map((d) => ({ x: d.timestamp, y: d.value })) },
+                  { label: "Graph", color: "--color-accent-300", data: sortChronological(summary.retrieval_timeseries.graph_retrievals, (d) => d.timestamp).map((d) => ({ x: d.timestamp, y: d.value })) },
                 ]}
               />
               <div className="flex items-center gap-5 mt-2 pt-2 border-t border-surface-800">
@@ -336,7 +337,7 @@ export default function MonitoringPage() {
             <div className="h-[220px] rounded bg-surface-800 animate-pulse" />
           ) : summary?.error_timeseries && summary.error_timeseries.length > 0 ? (
             <>
-              <StackedBarChart data={summary.error_timeseries} />
+              <StackedBarChart data={sortChronological(summary.error_timeseries, (d) => d.date)} />
               <div className="flex items-center gap-5 mt-2 pt-2 border-t border-surface-800">
                 <div className="flex items-center gap-1.5 text-xs text-surface-400">
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cssVar("--color-warning") }} />4xx
@@ -380,9 +381,9 @@ export default function MonitoringPage() {
             <>
               <LineChart
                 lines={[
-                  { label: "p50", color: "--color-success", data: summary.context_latency_timeseries.map((d) => ({ x: d.date, y: d.p50 })) },
-                  { label: "p95", color: "--color-warning", data: summary.context_latency_timeseries.map((d) => ({ x: d.date, y: d.p95 })) },
-                  { label: "p99", color: "--color-error", data: summary.context_latency_timeseries.map((d) => ({ x: d.date, y: d.p99 })) },
+                  { label: "p50", color: "--color-success", data: sortChronological(summary.context_latency_timeseries, (d) => d.date).map((d) => ({ x: d.date, y: d.p50 })) },
+                  { label: "p95", color: "--color-warning", data: sortChronological(summary.context_latency_timeseries, (d) => d.date).map((d) => ({ x: d.date, y: d.p95 })) },
+                  { label: "p99", color: "--color-error", data: sortChronological(summary.context_latency_timeseries, (d) => d.date).map((d) => ({ x: d.date, y: d.p99 })) },
                 ]}
               />
               <div className="flex items-center gap-5 mt-2 pt-2 border-t border-surface-800">
@@ -410,9 +411,9 @@ export default function MonitoringPage() {
             <>
               <LineChart
                 lines={[
-                  { label: "p50", color: "--color-success", data: summary.graph_latency_timeseries.map((d) => ({ x: d.date, y: d.p50 })) },
-                  { label: "p95", color: "--color-warning", data: summary.graph_latency_timeseries.map((d) => ({ x: d.date, y: d.p95 })) },
-                  { label: "p99", color: "--color-error", data: summary.graph_latency_timeseries.map((d) => ({ x: d.date, y: d.p99 })) },
+                  { label: "p50", color: "--color-success", data: sortChronological(summary.graph_latency_timeseries, (d) => d.date).map((d) => ({ x: d.date, y: d.p50 })) },
+                  { label: "p95", color: "--color-warning", data: sortChronological(summary.graph_latency_timeseries, (d) => d.date).map((d) => ({ x: d.date, y: d.p95 })) },
+                  { label: "p99", color: "--color-error", data: sortChronological(summary.graph_latency_timeseries, (d) => d.date).map((d) => ({ x: d.date, y: d.p99 })) },
                 ]}
               />
               <div className="flex items-center gap-5 mt-2 pt-2 border-t border-surface-800">

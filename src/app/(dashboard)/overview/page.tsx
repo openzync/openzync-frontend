@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Users,
@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { get } from "@/lib/api-client";
+import { sortChronological } from "@/lib/chart-order";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
@@ -229,10 +230,18 @@ function OverviewInner() {
     () => get<UsagePoint[] | { data?: UsagePoint[] }>(`/v1/admin/stats/usage?${qsString}`),
     { refreshKey: windowKey },
   );
-  const usage: UsagePoint[] = Array.isArray(usageQuery.data)
-    ? usageQuery.data
-    : usageQuery.data?.data ?? [];
+  const usage: UsagePoint[] = useMemo(
+    () =>
+      Array.isArray(usageQuery.data)
+        ? usageQuery.data
+        : usageQuery.data?.data ?? [],
+    [usageQuery.data],
+  );
   const usageLoading = usageQuery.isLoading;
+
+  // Charts map index 0 to the left — usage arrives newest-first, so sort
+  // oldest-first before render.
+  const usageSorted = useMemo(() => sortChronological(usage, (p) => p.date), [usage]);
 
   // ── Big Graph render helpers ───────────────────────────────────────────────
 
@@ -254,8 +263,8 @@ function OverviewInner() {
   }
 
   function renderGraphChart() {
-    if (loading || (usageLoading && usage.length === 0)) return renderGraphSkeleton();
-    const hasGraphData = usage.some((p) => (p.node_count ?? 0) > 0 || (p.edge_count ?? 0) > 0);
+    if (loading || (usageLoading && usageSorted.length === 0)) return renderGraphSkeleton();
+    const hasGraphData = usageSorted.some((p) => (p.node_count ?? 0) > 0 || (p.edge_count ?? 0) > 0);
     if (!hasGraphData) {
       return (
         <div className="flex flex-col items-center justify-center h-[260px] text-surface-500">
@@ -267,8 +276,8 @@ function OverviewInner() {
     }
     return (
       <BarChart
-        data={usage}
-        dates={usage.map((p) => p.date)}
+        data={usageSorted}
+        dates={usageSorted.map((p) => p.date)}
         height={260}
         tooltipShowYear
         series={[
@@ -437,7 +446,7 @@ function OverviewInner() {
       {/* Small graphs — 6 charts, 2 rows of 3 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {SMALL_CHARTS.map((cfg) => {
-          const hasData = usage.some((p) => ((p[cfg.dataKey] as number) ?? 0) > 0);
+          const hasData = usageSorted.some((p) => ((p[cfg.dataKey] as number) ?? 0) > 0);
           return (
             <div key={cfg.dataKey} className="card-base p-5">
               <h3 className="text-sm font-medium mb-4">{cfg.label}</h3>
@@ -451,8 +460,8 @@ function OverviewInner() {
                 </div>
               ) : (
                 <BarChart
-                  data={usage}
-                  dates={usage.map((p) => p.date)}
+                  data={usageSorted}
+                  dates={usageSorted.map((p) => p.date)}
                   height={200}
                   series={[{ label: cfg.label, color: cfg.color, value: (p) => (p[cfg.dataKey] as number) ?? 0 }]}
                 />
