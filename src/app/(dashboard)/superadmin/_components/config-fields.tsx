@@ -51,9 +51,8 @@ export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
       { value: "sentence_transformers", label: "Sentence Transformers" },
       { value: "openai_like", label: "OpenAI-compatible" },
     ],
+    hint: "Frozen model snowflake-arctic-embed-m-v1.5 (768d); swap provider only if dim-compatible",
   },
-  { key: "embedding_model", label: "Embedding Model", kind: "text" },
-  { key: "embedding_dim", label: "Embedding Dimensions", kind: "number" },
   { key: "embedding_openai_like_base_url", label: "Embedding OpenAI-compatible Base URL", kind: "text" },
   {
     key: "graph_backend",

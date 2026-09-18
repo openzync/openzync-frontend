@@ -39,8 +39,6 @@ interface UpdateOrgConfigRequest {
   azure_openai_endpoint?: string | null;
   azure_openai_key?: string | null;
   embedding_backend?: string | null;
-  embedding_model?: string | null;
-  embedding_dim?: number | null;
   embedding_api_key?: string | null;
   embedding_provider?: string | null;
   embedding_openai_like_base_url?: string | null;
@@ -261,7 +259,7 @@ function OnboardingWizard() {
     ...(form.ollama_base_url ? [{ label: "Ollama Base URL", value: form.ollama_base_url }] : []),
     ...(form.openai_like_base_url ? [{ label: "OpenAI-compatible Base URL", value: form.openai_like_base_url }] : []),
     { label: "Embedding Backend", value: form.embedding_backend ?? "openai" },
-    { label: "Embedding Model", value: form.embedding_model || "Not set" },
+    { label: "Embedding Model (frozen)", value: "snowflake-arctic-embed-m-v1.5 (768d)" },
     { label: "Embedding Provider", value: form.embedding_provider || "Not set" },
     ...(form.embedding_openai_like_base_url
       ? [{ label: "Embedding OpenAI-compatible Base URL", value: form.embedding_openai_like_base_url }]
@@ -501,7 +499,21 @@ function OnboardingWizard() {
         {step === 1 && (
           <>
             <div className="card-base p-6 mb-6">
-              <SectionHeader icon={<AudioWaveform size={20} />} title="Embeddings" description="Vector embedding model configuration" />
+              <SectionHeader icon={<AudioWaveform size={20} />} title="Embeddings" description="Vector embedding provider configuration" />
+
+              <div
+                role="note"
+                aria-label="Frozen embedding model"
+                className="mb-4 rounded-md border border-surface-700 bg-surface-900/50 px-4 py-3 text-sm text-surface-300"
+              >
+                <p className="font-medium text-surface-100">
+                  Embedding model is frozen: snowflake-arctic-embed-m-v1.5 (768d)
+                </p>
+                <p className="mt-1 text-xs text-surface-400">
+                  Dev fallback is nomic-embed-text via Ollama. Swap providers only when the
+                  replacement is dim-compatible (768d vectors).
+                </p>
+              </div>
 
               <div className="space-y-4 max-w-md">
                 {/* embedding_backend */}
@@ -518,42 +530,16 @@ function OnboardingWizard() {
                   </select>
                 </Field>
 
-                {/* embedding_model */}
-                <Field label="Model" htmlFor="onb-embedding-model">
+                {/* embedding_provider */}
+                <Field label="Provider Name" htmlFor="onb-embedding-provider">
                   <input
-                    id="onb-embedding-model"
+                    id="onb-embedding-provider"
                     className="input-base w-full"
-                    placeholder="text-embedding-3-small, ..."
-                    value={form.embedding_model ?? ""}
-                    onChange={(e) => updateField("embedding_model", e.target.value)}
+                    placeholder="openai, azure, ..."
+                    value={form.embedding_provider ?? ""}
+                    onChange={(e) => updateField("embedding_provider", e.target.value)}
                   />
                 </Field>
-
-                <div className="flex gap-4">
-                  {/* embedding_dim */}
-                  <Field label="Embedding Dimensions" htmlFor="onb-embedding-dim" className="flex-1">
-                    <input
-                      id="onb-embedding-dim"
-                      className="input-base w-full"
-                      type="number"
-                      min="64"
-                      max="4096"
-                      value={form.embedding_dim ?? 1536}
-                      onChange={(e) => updateField("embedding_dim", parseInt(e.target.value) || 0)}
-                    />
-                  </Field>
-
-                  {/* embedding_provider */}
-                  <Field label="Provider Name" htmlFor="onb-embedding-provider" className="flex-1">
-                    <input
-                      id="onb-embedding-provider"
-                      className="input-base w-full"
-                      placeholder="openai, azure, ..."
-                      value={form.embedding_provider ?? ""}
-                      onChange={(e) => updateField("embedding_provider", e.target.value)}
-                    />
-                  </Field>
-                </div>
 
                 {/* embedding_openai_like_base_url — only for OpenAI-compatible backend */}
                 {form.embedding_backend === "openai_like" && (

@@ -30,8 +30,6 @@ type EmbeddingBackend = "openai" | "ollama" | "huggingface" | "sentence_transfor
 
 interface FormState {
   embedding_backend: EmbeddingBackend;
-  embedding_model: string;
-  embedding_dim: number;
   embedding_api_key: string;
   embedding_provider: string;
   embedding_openai_like_base_url: string;
@@ -41,8 +39,6 @@ interface FormState {
 
 const FIELDS: (keyof FormState)[] = [
   "embedding_backend",
-  "embedding_model",
-  "embedding_dim",
   "embedding_api_key",
   "embedding_provider",
   "embedding_openai_like_base_url",
@@ -60,12 +56,16 @@ const BACKEND_OPTIONS: { value: EmbeddingBackend; label: string }[] = [
 
 const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
   embedding_backend: "Reset embedding backend to default",
-  embedding_model: "Reset embedding model to default",
-  embedding_dim: "Reset embedding dimensions to default",
   embedding_api_key: "Reset API key to default",
   embedding_provider: "Reset provider to default",
   embedding_openai_like_base_url: "Reset OpenAI-compatible base URL to default",
 };
+
+// Frozen canonical embedding model — the backend pins vectors to 768d.
+// Providers may be swapped only when dim-compatible.
+const FROZEN_EMBEDDING_MODEL = "snowflake-arctic-embed-m-v1.5";
+const FROZEN_EMBEDDING_DIM = 768;
+const DEV_FALLBACK_MODEL = "nomic-embed-text (Ollama, dev only)";
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -74,8 +74,6 @@ export default function EmbeddingsConfigPage() {
   const conn = useConnectionTest();
   const [form, setForm] = useState<FormState>({
     embedding_backend: "openai",
-    embedding_model: "",
-    embedding_dim: 1536,
     embedding_api_key: "",
     embedding_provider: "",
     embedding_openai_like_base_url: "",
@@ -129,8 +127,6 @@ export default function EmbeddingsConfigPage() {
       (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
     const current: FormState = {
       embedding_backend: val("embedding_backend", "openai") as EmbeddingBackend,
-      embedding_model: val("embedding_model", "") as string,
-      embedding_dim: val("embedding_dim", 1536) as number,
       embedding_api_key: val("embedding_api_key", "") as string,
       embedding_provider: val("embedding_provider", "") as string,
       embedding_openai_like_base_url: val("embedding_openai_like_base_url", "") as string,
@@ -164,7 +160,6 @@ export default function EmbeddingsConfigPage() {
   function handleStageReset(field: keyof FormState) {
     const defaults: Partial<Record<keyof FormState, unknown>> = {
       embedding_backend: "openai",
-      embedding_dim: 1536,
     };
     stageReset(field, defaults[field] ?? "");
   }
@@ -200,8 +195,6 @@ export default function EmbeddingsConfigPage() {
   function handleTestConnection(): Promise<ConnectionTestResult | null> {
     return conn.test("embeddings", {
       embedding_backend: form.embedding_backend,
-      embedding_model: form.embedding_model,
-      embedding_dim: form.embedding_dim,
       embedding_api_key: form.embedding_api_key,
       embedding_provider: form.embedding_provider,
       embedding_openai_like_base_url: form.embedding_openai_like_base_url,
@@ -241,6 +234,19 @@ export default function EmbeddingsConfigPage() {
         ) : (
           <>
             {error && <ErrorState message={error} onRetry={configQuery.refetch} />}
+            <div
+              role="note"
+              aria-label="Frozen embedding model"
+              className="rounded-md border border-surface-700 bg-surface-900/50 px-4 py-3 text-sm text-surface-300 max-w-md"
+            >
+              <p className="font-medium text-surface-100">
+                Embedding model is frozen: {FROZEN_EMBEDDING_MODEL} ({FROZEN_EMBEDDING_DIM}d)
+              </p>
+              <p className="mt-1 text-xs text-surface-400">
+                Dev fallback is {DEV_FALLBACK_MODEL}. Swap providers only when the
+                replacement is dim-compatible ({FROZEN_EMBEDDING_DIM}d vectors).
+              </p>
+            </div>
             <div className="space-y-4 max-w-md">
               {/* embedding_backend */}
               <div>
@@ -266,64 +272,6 @@ export default function EmbeddingsConfigPage() {
                   )}
                 </div>
                 {pendingResets.has("embedding_backend") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                )}
-              </div>
-
-              {/* embedding_model */}
-              <div>
-                <label htmlFor="embedding-model" className="block text-sm font-medium text-surface-300 mb-1">
-                  Model
-                </label>
-                <div className="flex gap-2 items-start">
-                  <input
-                    id="embedding-model"
-                    className="input-base flex-1"
-                    placeholder="text-embedding-3-small, ..."
-                    value={form.embedding_model}
-                    onChange={(e) => updateField("embedding_model", e.target.value)}
-                  />
-                  {isFieldSet("embedding_model") && (
-                    <Button
-                      onClick={() => handleStageReset("embedding_model")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title={RESET_TITLES.embedding_model}
-                    >
-                      <RotateCcw size={14} />
-                    </Button>
-                  )}
-                </div>
-                {pendingResets.has("embedding_model") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                )}
-              </div>
-
-              {/* embedding_dim */}
-              <div>
-                <label htmlFor="embedding-dim" className="block text-sm font-medium text-surface-300 mb-1">
-                  Embedding Dimensions
-                </label>
-                <div className="flex gap-2 items-start">
-                  <input
-                    id="embedding-dim"
-                    className="input-base flex-1"
-                    type="number"
-                    min="64"
-                    max="4096"
-                    value={form.embedding_dim}
-                    onChange={(e) => updateField("embedding_dim", parseInt(e.target.value) || 0)}
-                  />
-                  {isFieldSet("embedding_dim") && (
-                    <Button
-                      onClick={() => handleStageReset("embedding_dim")}
-                      variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title={RESET_TITLES.embedding_dim}
-                    >
-                      <RotateCcw size={14} />
-                    </Button>
-                  )}
-                </div>
-                {pendingResets.has("embedding_dim") && (
                   <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
                 )}
               </div>
