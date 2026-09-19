@@ -18,6 +18,7 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { ErrorState } from "@/components/shared/error-state";
+import { Skeleton } from "@/components/shared/skeleton";
 import { BarChart, cssVar } from "@/components/shared/charts";
 import { Button } from "@/components/ui/button";
 import { PageGuide, GuideDashboard } from "@/components/guides";
@@ -250,11 +251,11 @@ function OverviewInner() {
 
   function renderGraphSkeleton() {
     return (
-      <div className="flex items-end gap-1 h-[260px] pt-5">
+      <div className="flex items-end gap-1 h-[260px] pt-5" role="status" aria-label="Loading graph data">
         {Array.from({ length: 20 }, (_, i) => (
-          <div
+          <Skeleton
             key={i}
-            className="flex-1 rounded-t bg-surface-800 animate-pulse"
+            className="flex-1 rounded-t"
             style={{ height: `${SKELETON_HEIGHTS[i % SKELETON_HEIGHTS.length]}%`, opacity: SKELETON_OPACITIES[i % SKELETON_OPACITIES.length] }}
           />
         ))}

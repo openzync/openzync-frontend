@@ -43,6 +43,15 @@ export function useProject(): ProjectContextValue {
   return ctx;
 }
 
+/**
+ * Null-safe read for layouts mounted above the ProjectProvider
+ * (e.g. the dashboard shell) — returns null outside project routes
+ * instead of throwing.
+ */
+export function useProjectOptional(): ProjectContextValue | null {
+  return useContext(ProjectContext) ?? null;
+}
+
 // ─── Provider ──────────────────────────────────────────────────────────────────
 
 export function ProjectProvider({ children }: { children: ReactNode }) {

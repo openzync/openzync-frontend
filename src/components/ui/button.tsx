@@ -17,11 +17,12 @@ const variantStyles: Record<ButtonVariant, string> = {
   // Inverted primary: solid text fill on dark, signal on hover. ONE per screen.
   primary:
     "bg-text-primary text-surface-950 hover:bg-signal hover:text-surface-950",
-  // Ghost default: transparent, line border, muted text.
+  // Secondary: raised fill for actions on panel surfaces.
   secondary:
-    "bg-transparent text-muted border border-line hover:border-signal-dim hover:text-text",
+    "bg-panel-raised text-text border border-line hover:border-signal-dim",
+  // Ghost: transparent, borderless — text action only.
   ghost:
-    "bg-transparent text-muted border border-line hover:border-signal-dim hover:text-text",
+    "bg-transparent text-muted hover:text-text hover:bg-panel-raised",
   danger:
     "bg-transparent text-error border border-error/40 hover:border-error hover:text-error",
 };

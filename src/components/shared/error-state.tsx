@@ -12,7 +12,7 @@ interface ErrorStateProps {
  */
 export function ErrorState({ message, onRetry }: ErrorStateProps) {
   return (
-    <div className="rounded-md bg-error/10 border border-error/30 px-4 py-3 text-sm text-error flex items-center gap-2">
+    <div role="alert" className="rounded-md bg-error/10 border border-error/30 px-4 py-3 text-sm text-error flex items-center gap-2">
       <AlertCircle size={14} className="shrink-0" />
       <span className="flex-1">{message}</span>
       {onRetry && (

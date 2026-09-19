@@ -8,7 +8,7 @@ import { Skeleton } from "./skeleton";
  */
 export function DashboardLoading() {
   return (
-    <div className="space-y-6" aria-busy="true">
+    <div className="space-y-6" role="status" aria-busy="true">
       <span className="sr-only">Loading</span>
       {/* PageHeader-shaped */}
       <div className="space-y-2">

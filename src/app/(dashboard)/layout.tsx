@@ -33,6 +33,7 @@ import { get, getAccessToken, clearTokens } from "@/lib/api-client";
 import { getJwtPayload } from "@/lib/jwt";
 import { RequireAuth } from "./require-auth";
 import { useUser } from "@/contexts/user-context";
+import { useProjectOptional } from "@/stores/project-context";
 import { ConfigDirtyProvider, useConfigDirty } from "@/contexts/config-dirty";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { usePinnedProjects } from "@/hooks/use-pinned-projects";
@@ -565,30 +566,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const inProject = isInProject(pathname);
-  const projectId = extractProjectId(pathname);
-  const [projectName, setProjectName] = useState<string | null>(null);
-
-  // Fetch project name when inside a project
-  // ProjectProvider is mounted at projects/[id]/layout.tsx (below this layout), so
-  // useProject() here would always be the default null — use the typed client instead.
-  useEffect(() => {
-    if (projectId) {
-      get<{ name: string }>(`/v1/projects/${projectId}`)
-        .then((data) => setProjectName(data?.name ?? null))
-        .catch((err) => {
-          console.error("Failed to fetch project name", err);
-          setProjectName(null); // null state triggers error boundary
-        });
-    } else {
-      setProjectName(null);
-    }
-  }, [projectId]);
+  // Single source: ProjectProvider (root layout) owns GET /v1/projects/:id
+  // with a requestIdRef stale-guard — the shell only reads the name.
+  const projectCtx = useProjectOptional();
 
   // Open command palette on Cmd+K / Ctrl+K
   useEffect(() => {
@@ -602,8 +586,18 @@ export default function DashboardLayout({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Escape closes the mobile sidebar
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [mobileOpen]);
+
   // Breadcrumb from the nav manifest + project-path ladder (src/lib/nav.ts)
-  const breadcrumbItems = resolveBreadcrumb(pathname, projectName);
+  const breadcrumbItems = resolveBreadcrumb(pathname, projectCtx?.project?.name ?? null);
 
   return (
     <RequireAuth>
@@ -623,9 +617,11 @@ export default function DashboardLayout({
 
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 min-[980px]:hidden"
+        <button
+          type="button"
+          aria-label="Close sidebar"
           onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-40 bg-black/50 min-[980px]:hidden cursor-default focus-visible:outline-none"
         />
       )}
 

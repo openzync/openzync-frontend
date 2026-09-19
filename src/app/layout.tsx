@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ProjectProvider } from "@/stores/project-context";
 import "./globals.css";
 
 /* Display serif — H1/H2 only. UI — body/controls. Mono — data only. */
@@ -62,7 +63,9 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          {children}
+          {/* Single source for GET /v1/projects/:id — dashboard shell and
+              project pages consume via useProject()/useProjectOptional(). */}
+          <ProjectProvider>{children}</ProjectProvider>
         </ThemeProvider>
         <Toaster theme="dark" />
       </body>

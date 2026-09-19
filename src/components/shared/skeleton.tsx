@@ -1,12 +1,17 @@
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 interface SkeletonProps {
   className?: string;
-  /** How many skeleton rows to render (for tables) */
+  style?: CSSProperties;
+}
+
+interface TableSkeletonProps {
+  /** How many skeleton rows to render */
   rows?: number;
-  /** How many columns per row (for table skeletons) */
+  /** How many columns per row */
   cols?: number;
-  /** Width variants per column (for table skeletons) */
+  /** Width variants per column */
   colWidths?: string[];
 }
 
@@ -14,9 +19,9 @@ interface SkeletonProps {
  * Shared skeleton loader for tables and cards.
  * Replaces per-page `animate-pulse` divs.
  */
-export function Skeleton({ className }: SkeletonProps) {
+export function Skeleton({ className, style }: SkeletonProps) {
   return (
-    <div className={cn("h-4 rounded bg-surface-800 animate-pulse", className)} />
+    <div style={style} className={cn("h-4 rounded bg-surface-800 animate-pulse", className)} />
   );
 }
 
@@ -27,7 +32,7 @@ export function TableSkeleton({
   rows = 5,
   cols = 4,
   colWidths,
-}: SkeletonProps) {
+}: TableSkeletonProps) {
   return (
     <>
       {Array.from({ length: rows }, (_, i) => (

@@ -1,11 +1,11 @@
 "use client";
 
-import { ProjectProvider } from "@/stores/project-context";
-
+// ProjectProvider lives at the root layout (single source for
+// GET /v1/projects/:id) — this segment is a passthrough.
 export default function ProjectLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <ProjectProvider>{children}</ProjectProvider>;
+  return <>{children}</>;
 }

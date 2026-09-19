@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { get } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
+import { cssVar } from "@/components/shared/charts";
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║ Public Types                                                                ║
@@ -85,27 +87,30 @@ interface NodeDetailResponse {
 // ║ Constants & Helpers                                                         ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-const NODE_COLORS: Record<string, string> = {
-  person: "#4C6A9C",
-  organization: "#5B7A8C",
-  location: "#6E7F99",
-  event: "#8A93A6",
-  concept: "#5B6478",
-  community: "#F0B65C",
+// Ink tokens (src/app/globals.css) — resolved lazily via cssVar so D3 gets
+// concrete strings. Module scope must NOT call cssVar (SSR would bake the
+// fallback); getColor resolves at render/effect time in the browser.
+const NODE_COLOR_VARS: Record<string, string> = {
+  person: "--color-signal-dim",
+  organization: "--color-brand-400",
+  location: "--color-brand-600",
+  event: "--color-muted",
+  concept: "--color-dim",
+  community: "--color-amber",
 };
-const DEFAULT_NODE_COLOR = "#5B6478";
+const DEFAULT_NODE_COLOR_VAR = "--color-dim";
 
 const ENTITY_TYPE_LEGEND = [
-  { type: "person", label: "Person", color: NODE_COLORS.person },
-  { type: "organization", label: "Organization", color: NODE_COLORS.organization },
-  { type: "location", label: "Location", color: NODE_COLORS.location },
-  { type: "event", label: "Event", color: NODE_COLORS.event },
-  { type: "concept", label: "Concept", color: NODE_COLORS.concept },
-  { type: "community", label: "Community", color: NODE_COLORS.community },
+  { type: "person", label: "Person", colorVar: NODE_COLOR_VARS.person },
+  { type: "organization", label: "Organization", colorVar: NODE_COLOR_VARS.organization },
+  { type: "location", label: "Location", colorVar: NODE_COLOR_VARS.location },
+  { type: "event", label: "Event", colorVar: NODE_COLOR_VARS.event },
+  { type: "concept", label: "Concept", colorVar: NODE_COLOR_VARS.concept },
+  { type: "community", label: "Community", colorVar: NODE_COLOR_VARS.community },
 ];
 
 function getColor(type: string | undefined): string {
-  return NODE_COLORS[type?.toLowerCase() ?? ""] ?? DEFAULT_NODE_COLOR;
+  return cssVar(NODE_COLOR_VARS[type?.toLowerCase() ?? ""] ?? DEFAULT_NODE_COLOR_VAR);
 }
 
 function timeAgo(dateStr: string): string {
@@ -285,6 +290,19 @@ export function ForceGraph({
     return allNodes.filter((n) => neighborIds.has(n.id));
   }, [selectedNode, allNodes, connectedEdges]);
 
+  // Legend swatches — resolve ink tokens once per mount instead of
+  // calling getComputedStyle per row per render.
+  const legendColors = useMemo(() => {
+    const resolved = new Map<string, string>();
+    for (const entry of ENTITY_TYPE_LEGEND) {
+      if (!resolved.has(entry.colorVar)) resolved.set(entry.colorVar, cssVar(entry.colorVar));
+    }
+    if (!resolved.has(DEFAULT_NODE_COLOR_VAR)) {
+      resolved.set(DEFAULT_NODE_COLOR_VAR, cssVar(DEFAULT_NODE_COLOR_VAR));
+    }
+    return resolved;
+  }, []);
+
   // ── Fetch node detail when selected ────────────────────────────────────
   useEffect(() => {
     if (!selectedNode) {
@@ -341,6 +359,15 @@ export function ForceGraph({
     const container = containerRef.current;
     if (!container || !filteredData || filteredData.nodes.length === 0) return;
 
+    // Ink tokens — resolved once per render (D3 attrs need concrete strings).
+    // cssVar returns 6-digit hex in the browser, so alpha is an 8-digit suffix.
+    const lineColor = cssVar("--color-line");
+    const mutedColor = cssVar("--color-muted");
+    const signalColor = cssVar("--color-signal");
+    const textColor = cssVar("--color-text");
+    const edgeActive = `${signalColor}A6`; // signal @ 65%
+    const edgeDim = `${signalColor}0F`; // signal @ 6%
+
     // ── Measure ──────────────────────────────────────────────────────────
     const width = container.clientWidth;
 
@@ -370,7 +397,7 @@ export function ForceGraph({
       .attr("dx", 0)
       .attr("dy", 0)
       .attr("stdDeviation", 3)
-      .attr("flood-color", "rgba(120, 169, 242, 0.18)");
+      .attr("flood-color", `${signalColor}2E`); // signal @ 18%
 
     // ── Main group for zoom/pan ───────────────────────────────────────────
     const g = svg.append("g");
@@ -474,8 +501,8 @@ export function ForceGraph({
           const sid = typeof l.source === "object" ? sourceObj.id : l.source;
           const tid = typeof l.target === "object" ? targetObj.id : l.target;
           return memberSet.has(sid) || memberSet.has(tid)
-            ? "rgba(120,169,242,0.65)"
-            : "rgba(120,169,242,0.06)";
+            ? edgeActive
+            : edgeDim;
         });
         link.classed("graph-active-edge", (l) => {
           const sourceObj = l.source as unknown as D3Node;
@@ -488,7 +515,7 @@ export function ForceGraph({
       })
       .on("mouseleave", () => {
         node.attr("opacity", 1);
-        link.attr("stroke", "#232838").classed("graph-active-edge", false);
+        link.attr("stroke", lineColor).classed("graph-active-edge", false);
         hullPath.attr("fill-opacity", 0.12);
       })
       .on("click", (_event: MouseEvent, d: CommunityHullData) => {
@@ -503,7 +530,7 @@ export function ForceGraph({
       .selectAll<SVGLineElement, D3Link & { source: D3Node; target: D3Node }>("line")
       .data(links, (d) => d.id)
       .join("line")
-      .attr("stroke", "#232838")
+      .attr("stroke", lineColor)
       .attr("stroke-width", 1.5)
       .attr("stroke-linecap", "round");
 
@@ -517,7 +544,7 @@ export function ForceGraph({
       .text((d) => d.type)
       .attr("font-size", 9)
       .attr("font-family", "'IBM Plex Mono', monospace")
-      .attr("fill", "#8A93A6")
+      .attr("fill", mutedColor)
       .attr("text-anchor", "middle")
       .attr("pointer-events", "none");
 
@@ -535,7 +562,7 @@ export function ForceGraph({
       .append("circle")
       .attr("r", (d) => d.r)
       .attr("fill", (d) => getColor(d.type))
-      .attr("stroke", "rgba(255,255,255,0.08)")
+      .attr("stroke", `${textColor}14`) // text @ 8%
       .attr("stroke-width", 1.5)
       .attr("filter", "url(#node-glow)");
 
@@ -547,7 +574,7 @@ export function ForceGraph({
       .attr("text-anchor", "middle")
       .attr("font-size", 11)
       .attr("font-family", "'IBM Plex Sans', sans-serif")
-      .attr("fill", "#8A93A6")
+      .attr("fill", mutedColor)
       .attr("pointer-events", "none")
       .text((d) => (d.name.length > 20 ? `${d.name.slice(0, 18)}…` : d.name));
 
@@ -598,7 +625,7 @@ export function ForceGraph({
               connectedIds.add(sid);
               connectedIds.add(tid);
             }
-            return isConnected ? "rgba(120,169,242,0.65)" : "rgba(120,169,242,0.06)";
+            return isConnected ? edgeActive : edgeDim;
           })
           .attr("stroke-width", (l) => {
             const sourceObj = l.source as unknown as D3Node;
@@ -626,7 +653,7 @@ export function ForceGraph({
       })
       .on("mouseleave", () => {
         link
-          .attr("stroke", "#232838")
+          .attr("stroke", lineColor)
           .attr("stroke-width", 1.5)
           .classed("graph-active-edge", false);
         node.attr("opacity", 1);
@@ -874,8 +901,8 @@ export function ForceGraph({
       <div className="card-base overflow-hidden">
         <div
           ref={containerRef}
-          className="relative"
-          style={{ height: isFullscreen ? 'calc(100vh - 130px)' : `${height}px` }}
+          className={cn("relative", isFullscreen && "h-[calc(100vh-130px)]")}
+          style={isFullscreen ? undefined : { height }}
         >
           {/* Loading overlay */}
           {loading && (
@@ -1080,7 +1107,7 @@ export function ForceGraph({
               <div key={entry.type} className="flex items-center gap-2">
                 <span
                   className="block h-2.5 w-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: entry.color }}
+                  style={{ backgroundColor: legendColors.get(entry.colorVar) }}
                 />
                 <span className="text-xs text-surface-400">{entry.label}</span>
               </div>
@@ -1088,7 +1115,7 @@ export function ForceGraph({
             <div className="flex items-center gap-2">
               <span
                 className="block h-2.5 w-2.5 rounded-full shrink-0"
-                style={{ backgroundColor: DEFAULT_NODE_COLOR }}
+                style={{ backgroundColor: legendColors.get(DEFAULT_NODE_COLOR_VAR) }}
               />
               <span className="text-xs text-surface-400">Other</span>
             </div>
