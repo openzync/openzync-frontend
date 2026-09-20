@@ -23,6 +23,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { fieldCountOf } from "@/components/schemas/schema-builder";
+import { labelCountOf } from "@/components/schemas/label-set-builder";
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ export default function SchemasPage() {
           <TableHeader>
             <TableHead>Name</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead align="center">Fields</TableHead>
+            <TableHead align="center">Fields / Labels</TableHead>
             <TableHead>Updated</TableHead>
             <TableHead align="right">Actions</TableHead>
           </TableHeader>
@@ -138,7 +139,9 @@ export default function SchemasPage() {
                   </TableCell>
                   <TableCell align="center">
                     <span className="text-xs tabular-nums text-surface-300">
-                      {fieldCountOf(schema.json_schema)}
+                      {schema.type === "classification"
+                        ? labelCountOf(schema.json_schema)
+                        : fieldCountOf(schema.json_schema)}
                     </span>
                   </TableCell>
                   <TableCell>

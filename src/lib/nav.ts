@@ -8,7 +8,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
-  FileCode,
   FileJson,
   FileText,
   LayoutDashboard,
@@ -16,7 +15,6 @@ import {
   Settings,
   Shield,
   ShieldCheck,
-  SlidersHorizontal,
   Users,
   Webhook,
 } from "lucide-react";
@@ -61,8 +59,6 @@ export const NAV_SECTIONS: NavSection[] = [
       // Users/org member management → members:read; config surfaces → configuration:read.
       { label: "Users", href: "/users", icon: Users, permission: "members:read" },
       { label: "Extraction Schemas", href: "/settings/schemas", icon: FileJson, permission: "configuration:read" },
-      { label: "Classifications", href: "/settings/classifications", icon: FileCode, permission: "configuration:read" },
-      { label: "Extractions", href: "/settings/extractions", icon: SlidersHorizontal, permission: "configuration:read" },
       { label: "Webhooks", href: "/settings/webhooks", icon: Webhook, permission: "configuration:read" },
       { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: FileText, permission: "configuration:read" },
       { label: "Prompt Templates", href: "/settings/prompts", icon: MessageSquare, permission: "configuration:read" },

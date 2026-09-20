@@ -16,6 +16,10 @@ import {
   fieldsFromJsonSchema,
   type SchemaBuilderInput,
 } from "@/components/schemas/schema-builder";
+import {
+  LabelSetBuilder,
+  labelsFromJsonSchema,
+} from "@/components/schemas/label-set-builder";
 
 interface EditSchemaPageProps {
   params: Promise<{ id: string }>;
@@ -26,6 +30,7 @@ export default function EditSchemaPage({ params }: EditSchemaPageProps) {
   const router = useRouter();
   const schemaQuery = useApiQuery(() => getSchema(id));
   const schema = schemaQuery.data;
+  const isClassification = schema?.type === "classification";
 
   const handleSubmit = async (input: SchemaBuilderInput) => {
     if (!schema) return;
@@ -45,7 +50,11 @@ export default function EditSchemaPage({ params }: EditSchemaPageProps) {
     <div className="space-y-6">
       <PageHeader
         title={schema?.name ?? "Edit Schema"}
-        description="Structured schema builder — fields on the left, live preview on the right"
+        description={
+          isClassification
+            ? "Classification label sets — edit on the left, live preview on the right"
+            : "Structured schema builder — fields on the left, live preview on the right"
+        }
       />
 
       {schemaQuery.isLoading && (
@@ -62,14 +71,18 @@ export default function EditSchemaPage({ params }: EditSchemaPageProps) {
         <ErrorState message={schemaQuery.error} onRetry={schemaQuery.refetch} />
       )}
 
-      {schema && schema.type !== "structured" && (
-        <ErrorState
-          message={`"${schema.name}" is a ${schema.type} schema — only structured schemas can be edited in this builder.`}
-          onRetry={() => router.push("/settings/schemas")}
+      {schema && isClassification && (
+        <LabelSetBuilder
+          key={schema.id}
+          initialName={schema.name}
+          initialLabels={labelsFromJsonSchema(schema.json_schema)}
+          initialPromptTemplate={schema.prompt_template ?? ""}
+          submitLabel="Save Changes"
+          onSubmit={handleSubmit}
         />
       )}
 
-      {schema && schema.type === "structured" && (
+      {schema && !isClassification && (
         <SchemaBuilder
           key={schema.id}
           initialName={schema.name}
