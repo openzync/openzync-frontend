@@ -373,7 +373,7 @@ export default function QueryPlaygroundPage() {
               ) : (
                 <>
                   <div className="card-base overflow-x-auto">
-                    <Table>
+                    <Table storageKey="query">
                       <TableHeader>
                         {result.columns.map((col, i) => (
                           <TableHead

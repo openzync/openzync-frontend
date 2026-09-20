@@ -224,7 +224,7 @@ export default function SuperadminOrgsPage() {
       {error && <ErrorState message={error} onRetry={loadOrgs} />}
 
       <div className="card-base overflow-hidden">
-        <Table zebra={false}>
+        <Table zebra={false} storageKey="orgs">
           <TableHeader>
             <TableHead>Name</TableHead>
             <TableHead>Status</TableHead>

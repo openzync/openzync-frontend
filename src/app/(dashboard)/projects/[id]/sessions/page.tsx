@@ -201,7 +201,7 @@ export default function ProjectSessionsPage() {
           />
         ) : (
           <>
-            <Table zebra={false}>
+            <Table zebra={false} storageKey="sessions">
               <TableHeader>
                 <TableHead>External ID</TableHead>
                 <TableHead>Status</TableHead>

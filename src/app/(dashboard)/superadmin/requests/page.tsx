@@ -81,7 +81,7 @@ export default function SuperadminRequestsPage() {
       {error && <ErrorState message={error} onRetry={requestsQuery.refetch} />}
 
       <div className="card-base overflow-hidden">
-        <Table zebra={false}>
+        <Table zebra={false} storageKey="requests">
           <TableHeader>
             <TableHead>Name</TableHead>
             <TableHead>Status</TableHead>

@@ -193,7 +193,7 @@ export default function ProjectApiKeysPage() {
 
       {/* Table */}
       <div className="card-base overflow-hidden">
-        <Table>
+        <Table storageKey="api-keys">
           <TableHeader>
             <TableHead>Name</TableHead>
             <TableHead>Prefix</TableHead>

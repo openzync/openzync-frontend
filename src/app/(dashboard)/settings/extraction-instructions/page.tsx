@@ -143,7 +143,7 @@ export default function ExtractionInstructionsPage() {
 
       {/* Table */}
       <div className="card-base overflow-hidden">
-        <Table>
+        <Table storageKey="extraction-instructions">
           <TableHeader>
             <TableHead>Name</TableHead>
             <TableHead>Instruction</TableHead>

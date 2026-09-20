@@ -635,7 +635,7 @@ export default function PromptsPage() {
       {/* Table */}
       <div className="card-base overflow-hidden">
         {/* zebra off: tbody interleaves type group-header rows with data rows */}
-        <Table zebra={false}>
+        <Table zebra={false} storageKey="prompts">
           <TableHeader>
             <TableHead>Name</TableHead>
             <TableHead>Version</TableHead>

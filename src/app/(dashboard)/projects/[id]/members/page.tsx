@@ -206,7 +206,7 @@ export default function ProjectMembersPage() {
           />
         ) : (
           <div className="card-base overflow-hidden">
-            <Table zebra={false}>
+            <Table zebra={false} storageKey="members">
               <TableHeader>
                 <TableHead>User ID</TableHead>
                 <TableHead>Role</TableHead>

@@ -419,7 +419,7 @@ export default function WebhooksPage() {
 
       {/* Table */}
       <div className="card-base overflow-hidden">
-        <Table>
+        <Table storageKey="webhooks">
           <TableHeader>
             <TableHead>Name</TableHead>
             <TableHead>URL</TableHead>

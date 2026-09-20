@@ -378,7 +378,7 @@ function AuditLogInner() {
 
       {/* Table */}
       <div className="card-base overflow-hidden">
-        <Table>
+        <Table storageKey="audit">
           <TableHeader>
             <TableHead>Time</TableHead>
             <TableHead>Action</TableHead>

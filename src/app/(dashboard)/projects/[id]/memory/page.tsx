@@ -369,7 +369,7 @@ function SearchTab({ projectId }: { projectId: string }) {
           ) : (
             <div className="overflow-x-auto rounded-md border border-surface-800">
               {/* note: canonical table style — was a denser px-3 variant, normalized for consistency */}
-              <Table zebra={false}>
+              <Table zebra={false} storageKey="memory">
                 <TableHeader>
                   <TableHead className="w-24">Type</TableHead>
                   <TableHead>Content</TableHead>

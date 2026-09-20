@@ -455,7 +455,7 @@ export default function MonitoringPage() {
             description="Targets will appear once Prometheus scrape jobs are configured."
           />
         ) : (
-          <Table>
+          <Table storageKey="monitoring">
             <TableHeader>
               <TableHead>Job</TableHead>
               <TableHead>Instance</TableHead>

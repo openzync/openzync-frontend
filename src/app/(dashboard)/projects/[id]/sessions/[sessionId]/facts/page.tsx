@@ -195,7 +195,7 @@ export default function SessionFactsPage() {
           description="Facts will appear here once the session is processed." />
       ) : (
         <div className="card-base overflow-hidden">
-          <Table>
+          <Table storageKey="facts">
             <TableHeader>
               <TableHead>Content</TableHead>
               <TableHead>Triple</TableHead>

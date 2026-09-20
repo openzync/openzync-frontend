@@ -373,7 +373,7 @@ export default function UsersPage() {
 
       {/* Users table */}
       <div className="card-base overflow-hidden">
-        <Table>
+        <Table storageKey="users">
           <TableHeader>
             <TableHead>External ID</TableHead>
             <TableHead>Name</TableHead>

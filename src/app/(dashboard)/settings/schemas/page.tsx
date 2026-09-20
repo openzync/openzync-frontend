@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileJson, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, FileJson, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   ApiError,
@@ -17,6 +17,7 @@ import { PageGuide, GuideData } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -24,6 +25,65 @@ import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { fieldCountOf } from "@/components/schemas/schema-builder";
 import { labelCountOf } from "@/components/schemas/label-set-builder";
+
+// ─── View dialog (read-only) ───────────────────────────────────────────────────
+
+function ViewDialog({ schema, onClose }: { schema: ExtractionSchema; onClose: () => void }) {
+  const count =
+    schema.type === "classification"
+      ? labelCountOf(schema.json_schema)
+      : fieldCountOf(schema.json_schema);
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+      title={schema.name}
+      size="lg"
+      footer={
+        <Button variant="primary" size="sm" onClick={onClose}>Close</Button>
+      }
+    >
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <span className="text-xs text-surface-500 block">Type</span>
+          <span className="text-sm text-surface-200 capitalize">{schema.type}</span>
+        </div>
+        <div>
+          <span className="text-xs text-surface-500 block">Status</span>
+          <Badge variant={schema.is_active ? "success" : "default"} size="sm">
+            {schema.is_active ? "Active" : "Inactive"}
+          </Badge>
+        </div>
+        <div>
+          <span className="text-xs text-surface-500 block">Updated</span>
+          <span className="text-sm text-surface-200">{formatDate(schema.updated_at)}</span>
+        </div>
+        <div>
+          <span className="text-xs text-surface-500 block">
+            {schema.type === "classification" ? "Labels" : "Fields"}
+          </span>
+          <span className="text-sm tabular-nums text-surface-200">{count}</span>
+        </div>
+      </div>
+      <div className="mb-4">
+        <span className="text-xs font-medium text-surface-400 block mb-1.5">JSON Schema</span>
+        <div className="bg-surface-950 border border-surface-700 font-mono text-xs p-4 rounded overflow-x-auto max-h-64 overflow-y-auto">
+          <pre className="text-surface-200 whitespace-pre">{JSON.stringify(schema.json_schema, null, 2)}</pre>
+        </div>
+      </div>
+      {schema.prompt_template && (
+        <div>
+          <span className="text-xs font-medium text-surface-400 block mb-1.5">Prompt Template</span>
+          <div className="bg-surface-950 border border-surface-700 font-mono text-xs p-4 rounded overflow-x-auto max-h-40 overflow-y-auto">
+            <pre className="text-surface-200 whitespace-pre-wrap">{schema.prompt_template}</pre>
+          </div>
+        </div>
+      )}
+    </Dialog>
+  );
+}
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
@@ -38,6 +98,7 @@ export default function SchemasPage() {
 
   // Delete dialog + locally-removed rows (filter instead of refetch).
   const [deleteTarget, setDeleteTarget] = useState<ExtractionSchema | null>(null);
+  const [viewTarget, setViewTarget] = useState<ExtractionSchema | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
 
@@ -90,10 +151,10 @@ export default function SchemasPage() {
 
       {/* Table */}
       <div className="card-base overflow-hidden">
-        <Table zebra={false}>
+        <Table zebra={false} storageKey="schemas">
           <TableHeader>
             <TableHead>Name</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead align="center">Fields / Labels</TableHead>
             <TableHead>Updated</TableHead>
             <TableHead align="right">Actions</TableHead>
@@ -120,21 +181,11 @@ export default function SchemasPage() {
               schemas.map((schema) => (
                 <TableRow key={schema.id}>
                   <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/settings/schemas/${schema.id}`)}
-                      className="cursor-pointer font-medium text-surface-200 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-accent-300"
-                    >
-                      {schema.name}
-                    </button>{" "}
-                    <Badge variant={schema.type === "classification" ? "info" : "brand"} size="sm">
-                      {schema.type}
-                    </Badge>
+                    <span className="text-surface-100 font-medium">{schema.name}</span>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={schema.is_active ? "success" : "default"} size="sm">
-                      <span className={`mr-1.5 h-1.5 w-1.5 rounded-full inline-block ${schema.is_active ? "bg-success" : "bg-surface-500"}`} />
-                      {schema.is_active ? "Active" : "Inactive"}
+                    <Badge variant={schema.type === "classification" ? "info" : "brand"} size="sm">
+                      {schema.type}
                     </Badge>
                   </TableCell>
                   <TableCell align="center">
@@ -154,9 +205,23 @@ export default function SchemasPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => setViewTarget(schema)}
+                            className="p-1.5"
+                            aria-label="View schema"
+                          >
+                            <Eye size={15} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>View schema</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => router.push(`/settings/schemas/${schema.id}`)}
                             className="p-1.5"
-                            aria-label={`Edit ${schema.name}`}
+                            aria-label="Edit schema"
                           >
                             <Pencil size={15} />
                           </Button>
@@ -169,8 +234,8 @@ export default function SchemasPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setDeleteTarget(schema)}
-                            className="text-surface-400 hover:text-error"
-                            aria-label={`Delete ${schema.name}`}
+                            className="p-1.5 text-surface-400 hover:text-error"
+                            aria-label="Delete schema"
                           >
                             <Trash2 size={15} />
                           </Button>
@@ -185,6 +250,9 @@ export default function SchemasPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* ── View Dialog (read-only) ─────────────────────────────────────────────── */}
+      {viewTarget && <ViewDialog schema={viewTarget} onClose={() => setViewTarget(null)} />}
 
       {/* ── Delete Confirm Dialog ────────────────────────────────────────────── */}
       <ConfirmDialog

@@ -87,7 +87,7 @@ export default function OrgMembersAdminPage() {
       {error && <ErrorState message={error} onRetry={membersQuery.refetch} />}
 
       <div className="card-base overflow-hidden">
-        <Table zebra={false}>
+        <Table zebra={false} storageKey="org-members">
           <TableHeader>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
