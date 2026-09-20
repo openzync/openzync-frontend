@@ -578,6 +578,113 @@ export function unpinProject(id: string): Promise<void> {
   return del<void>(`/v1/projects/${encodeURIComponent(id)}/pin`);
 }
 
+// ─── Extraction schema endpoints ────────────────────────────────────────────
+
+export type ExtractionSchemaType = "structured" | "classification";
+
+export interface ExtractionSchema {
+  id: string;
+  organization_id: string;
+  name: string;
+  type: string;
+  json_schema: Record<string, unknown>;
+  prompt_template: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExtractionSchemaListResponse {
+  data: ExtractionSchema[];
+  total: number;
+}
+
+export interface CreateSchemaRequest {
+  name: string;
+  json_schema: Record<string, unknown>;
+  type?: ExtractionSchemaType;
+  prompt_template?: string | null;
+}
+
+export interface UpdateSchemaRequest {
+  name?: string;
+  json_schema?: Record<string, unknown>;
+  prompt_template?: string | null;
+  is_active?: boolean;
+}
+
+export interface PreviewSchemaRequest {
+  json_schema: Record<string, unknown>;
+  sample_text: string;
+}
+
+/** POST /v1/admin/schemas/preview — tolerant shape; the server may return the
+ *  extraction under `data`, `extracted`, or `result`. */
+export interface PreviewSchemaResponse {
+  data?: unknown;
+  extracted?: unknown;
+  result?: unknown;
+  validation_errors?: Array<string | { loc?: Array<string | number>; msg?: string; message?: string }>;
+  [key: string]: unknown;
+}
+
+export interface SchemaTemplate {
+  key: string;
+  name: string;
+  description: string;
+  json_schema: Record<string, unknown>;
+  sample_text: string;
+}
+
+/** GET /v1/admin/schemas — list schemas for the org, optional filters. */
+export function listSchemas(params?: {
+  type?: ExtractionSchemaType;
+  is_active?: boolean;
+}): Promise<ExtractionSchemaListResponse> {
+  const query = new URLSearchParams();
+  if (params?.type) query.set("type", params.type);
+  if (params?.is_active !== undefined) query.set("is_active", String(params.is_active));
+  const suffix = query.size ? `?${query}` : "";
+  return get<ExtractionSchemaListResponse>(`/v1/admin/schemas${suffix}`);
+}
+
+/** GET /v1/admin/schemas/{id} — single schema scoped to the org. */
+export function getSchema(id: string): Promise<ExtractionSchema> {
+  return get<ExtractionSchema>(`/v1/admin/schemas/${encodeURIComponent(id)}`);
+}
+
+/** POST /v1/admin/schemas — create a new schema (201). */
+export function createSchema(data: CreateSchemaRequest): Promise<ExtractionSchema> {
+  return post<ExtractionSchema>("/v1/admin/schemas", data);
+}
+
+/** PUT /v1/admin/schemas/{id} — update a schema; `type` is immutable. */
+export function updateSchema(
+  id: string,
+  data: UpdateSchemaRequest,
+): Promise<ExtractionSchema> {
+  return put<ExtractionSchema>(`/v1/admin/schemas/${encodeURIComponent(id)}`, data);
+}
+
+/** DELETE /v1/admin/schemas/{id} — soft-delete (is_active → false, 204). */
+export function deleteSchema(id: string): Promise<void> {
+  return del<void>(`/v1/admin/schemas/${encodeURIComponent(id)}`);
+}
+
+/** POST /v1/admin/schemas/preview — dry-run a schema against sample text. */
+export function previewSchema(
+  data: PreviewSchemaRequest,
+): Promise<PreviewSchemaResponse> {
+  return post<PreviewSchemaResponse>("/v1/admin/schemas/preview", data);
+}
+
+/** GET /v1/admin/schemas/templates — starter templates for the builder gallery.
+ *  Backend returns a bare array; a `{data:[...]}` envelope is tolerated. */
+export async function getTemplates(): Promise<SchemaTemplate[]> {
+  const raw = await get<unknown>("/v1/admin/schemas/templates");
+  return extractList<SchemaTemplate>(raw);
+}
+
 // ─── Re-export base URL for edge cases ───────────────────────────────────────
 
 export { API_BASE, getAccessToken, storeTokens, clearTokens, uploadWithBlobs };

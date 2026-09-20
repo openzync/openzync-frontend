@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Plus,
-  Eye,
-  Trash2,
-  FileJson,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { FileJson, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { get, post, del, ApiError } from "@/lib/api-client";
+import {
+  ApiError,
+  deleteSchema,
+  listSchemas,
+  type ExtractionSchema,
+} from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
@@ -17,110 +17,41 @@ import { PageGuide, GuideData } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Field } from "@/components/ui/field";
-import { SimpleSelect } from "@/components/ui/select";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
-
-interface Schema {
-  id: string;
-  name: string;
-  type: string;
-  json_schema: Record<string, unknown>;
-  prompt_template: string | null;
-  is_active: boolean;
-  created_at: string;
-}
+import { fieldCountOf } from "@/components/schemas/schema-builder";
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SchemasPage() {
-  const schemasQuery = useApiQuery<{ data: Schema[] }>(() =>
-    get<{ data: Schema[] }>("/v1/admin/schemas"),
-  );
-  const schemas = schemasQuery.data?.data ?? [];
+  const router = useRouter();
+  const schemasQuery = useApiQuery(() => listSchemas());
   const loading = schemasQuery.isLoading;
   // Mutation failures share the banner with load errors but retry re-runs the
   // GET (the mutation itself is surfaced by its toast).
   const [actionError, setActionError] = useState<string | null>(null);
   const error = schemasQuery.error ?? actionError;
 
-  // Create dialog
-  const [showCreate, setShowCreate] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newType, setNewType] = useState<"structured" | "classification">("structured");
-  const [newSchema, setNewSchema] = useState("{\n  \n}");
-  const [newPrompt, setNewPrompt] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [schemaError, setSchemaError] = useState<string | null>(null);
-
-  // View dialog
-  const [viewTarget, setViewTarget] = useState<Schema | null>(null);
-
-  // Delete dialog
-  const [deleteTarget, setDeleteTarget] = useState<Schema | null>(null);
+  // Delete dialog + locally-removed rows (filter instead of refetch).
+  const [deleteTarget, setDeleteTarget] = useState<ExtractionSchema | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
 
-  // ── Create ─────────────────────────────────────────────────────────────────
+  const schemas: ExtractionSchema[] = (schemasQuery.data?.data ?? []).filter(
+    (schema) => schema.is_active && !removedIds.includes(schema.id),
+  );
 
-  const handleCreate = async () => {
-    if (!newName.trim()) return;
-    setSchemaError(null);
-
-    // Validate JSON schema
-    try {
-      JSON.parse(newSchema);
-    } catch {
-      setSchemaError("Invalid JSON schema");
-      return;
-    }
-
-    setCreating(true);
-    try {
-      const payload: Record<string, unknown> = {
-        name: newName.trim(),
-        type: newType,
-        json_schema: JSON.parse(newSchema),
-      };
-      if (newPrompt.trim()) payload.prompt_template = newPrompt.trim();
-
-      await post("/v1/admin/schemas", payload);
-      setShowCreate(false);
-      resetCreateForm();
-      toast.success("Schema created");
-      schemasQuery.refetch();
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to create schema";
-      setActionError(msg);
-      toast.error(msg);
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const resetCreateForm = () => {
-    setNewName("");
-    setNewType("structured");
-    setNewSchema("{\n  \n}");
-    setNewPrompt("");
-    setSchemaError(null);
-  };
-
-  // ── Delete ─────────────────────────────────────────────────────────────────
-
-  const handleDelete = async () => {
+  const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await del(`/v1/admin/schemas/${deleteTarget.id}`);
+      await deleteSchema(deleteTarget.id);
+      setRemovedIds((prev) => [...prev, deleteTarget.id]);
       setDeleteTarget(null);
-      toast.success("Schema deleted");
-      schemasQuery.refetch();
+      toast.success(`"${deleteTarget.name}" deleted`);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to delete schema";
       setActionError(msg);
@@ -136,16 +67,21 @@ export default function SchemasPage() {
     <div className="space-y-6">
       <PageHeader
         title="Extraction Schemas"
-        description="Define schemas for structured extractions and classifications"
+        description="Structured schemas for extraction — build fields visually, preview live JSON Schema"
         actions={
-          <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>
-            Create Schema
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Plus size={14} />}
+            onClick={() => router.push("/settings/schemas/new")}
+          >
+            New Schema
           </Button>
         }
       />
 
       <PageGuide title="Extraction schemas" illustration={<GuideData />}>
-        <p>Define JSON Schemas that control how structured data and classifications are extracted from conversations. Each schema defines the shape of extracted data and can optionally be paired with a custom prompt template.</p>
+        <p>Define JSON Schemas that control how structured data is extracted from conversations. Open a schema to edit its fields in the visual builder, or create a new one from a starter template.</p>
       </PageGuide>
 
       {/* Error */}
@@ -153,26 +89,29 @@ export default function SchemasPage() {
 
       {/* Table */}
       <div className="card-base overflow-hidden">
-        <Table>
+        <Table zebra={false}>
           <TableHeader>
             <TableHead>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead align="center">Status</TableHead>
-            <TableHead align="center">Template</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead align="center" className="w-20">Actions</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead align="center">Fields</TableHead>
+            <TableHead>Updated</TableHead>
+            <TableHead align="right">Actions</TableHead>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableSkeleton rows={4} cols={6} colWidths={["w-36", "w-24", "w-16", "w-16", "w-24", "w-16"]} />
+              <TableSkeleton rows={4} cols={5} colWidths={["w-36", "w-20", "w-16", "w-28", "w-16"]} />
             ) : schemas.length === 0 ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={5}>
                   <EmptyState
                     icon={FileJson}
                     title="No schemas yet"
-                    description="Create your first extraction schema"
-                    action={<Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>Create Schema</Button>}
+                    description="Create your first structured extraction schema"
+                    action={
+                      <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => router.push("/settings/schemas/new")}>
+                        New Schema
+                      </Button>
+                    }
                   />
                 </td>
               </tr>
@@ -180,46 +119,61 @@ export default function SchemasPage() {
               schemas.map((schema) => (
                 <TableRow key={schema.id}>
                   <TableCell>
-                    <span className="text-surface-200 font-medium">{schema.name}</span>
-                  </TableCell>
-                  <TableCell>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/settings/schemas/${schema.id}`)}
+                      className="cursor-pointer font-medium text-surface-200 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-accent-300"
+                    >
+                      {schema.name}
+                    </button>{" "}
                     <Badge variant={schema.type === "classification" ? "info" : "brand"} size="sm">
                       {schema.type}
                     </Badge>
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell>
                     <Badge variant={schema.is_active ? "success" : "default"} size="sm">
+                      <span className={`mr-1.5 h-1.5 w-1.5 rounded-full inline-block ${schema.is_active ? "bg-success" : "bg-surface-500"}`} />
                       {schema.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
                   <TableCell align="center">
-                    <span className="text-xs text-surface-400">
-                      {schema.prompt_template ? "Yes" : "—"}
+                    <span className="text-xs tabular-nums text-surface-300">
+                      {fieldCountOf(schema.json_schema)}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-surface-400 text-xs">{formatDate(schema.created_at)}</span>
+                    <span className="text-xs text-surface-400">{formatDate(schema.updated_at)}</span>
                   </TableCell>
-                  <TableCell align="center">
-                    <div className="flex items-center justify-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setViewTarget(schema)}
-                        className="rounded-md text-surface-400 hover:text-white"
-                        title="View schema"
-                      >
-                        <Eye size={14} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteTarget(schema)}
-                        className="rounded-md text-surface-400 hover:text-error"
-                        title="Delete schema"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
+                  <TableCell align="right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/settings/schemas/${schema.id}`)}
+                            className="p-1.5"
+                            aria-label={`Edit ${schema.name}`}
+                          >
+                            <Pencil size={15} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit schema</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteTarget(schema)}
+                            className="text-surface-400 hover:text-error"
+                            aria-label={`Delete ${schema.name}`}
+                          >
+                            <Trash2 size={15} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete schema</TooltipContent>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -229,138 +183,15 @@ export default function SchemasPage() {
         </Table>
       </div>
 
-      {/* ── Create Dialog ──────────────────────────────────────────────────────── */}
-      <Dialog
-        open={showCreate}
-        onOpenChange={(o) => {
-          if (!o) {
-            setShowCreate(false);
-            resetCreateForm();
-          }
-        }}
-        title="Create Schema"
-        size="lg"
-        persistent={creating}
-        footer={
-          <>
-            <Button variant="secondary" size="sm" onClick={() => { setShowCreate(false); resetCreateForm(); }}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleCreate} loading={creating} disabled={!newName.trim()}>
-              Create
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          {/* Name */}
-          <Field label="Name" htmlFor="schema-name">
-            <input
-              id="schema-name"
-              className="input-base"
-              placeholder="e.g. invoice_data"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              autoFocus
-            />
-          </Field>
-
-          {/* Type */}
-          <Field label="Type" htmlFor="schema-type">
-            <SimpleSelect
-              id="schema-type"
-              options={[
-                { value: "structured", label: "Structured" },
-                { value: "classification", label: "Classification" },
-              ]}
-              value={newType}
-              onValueChange={(value) => setNewType(value as "structured" | "classification")}
-            />
-          </Field>
-
-          {/* JSON Schema */}
-          <Field label="JSON Schema" htmlFor="schema-json" error={schemaError ?? undefined}>
-            <textarea
-              id="schema-json"
-              className="input-base min-h-[120px] pt-2 font-mono text-xs"
-              placeholder='{"type": "object", "properties": {...}}'
-              value={newSchema}
-              onChange={(e) => setNewSchema(e.target.value)}
-            />
-          </Field>
-
-          {/* Prompt Template (optional) */}
-          <Field label="Prompt Template" htmlFor="schema-prompt" hint="Optional">
-            <textarea
-              id="schema-prompt"
-              className="input-base min-h-[80px] pt-2 font-mono text-xs"
-              placeholder="Extract the following fields from the text..."
-              value={newPrompt}
-              onChange={(e) => setNewPrompt(e.target.value)}
-            />
-          </Field>
-        </div>
-      </Dialog>
-
-      {/* ── View Dialog ────────────────────────────────────────────────────────── */}
-      <Dialog
-        open={!!viewTarget}
-        onOpenChange={(o) => {
-          if (!o) setViewTarget(null);
-        }}
-        title={viewTarget?.name ?? ""}
-        size="lg"
-        footer={
-          <Button variant="secondary" size="sm" onClick={() => setViewTarget(null)}>Close</Button>
-        }
-      >
-        <div className="space-y-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-surface-400">Type</span>
-            <Badge variant={viewTarget?.type === "classification" ? "info" : "brand"} size="sm">{viewTarget?.type}</Badge>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-surface-400">Status</span>
-            <Badge variant={viewTarget?.is_active ? "success" : "default"} size="sm">
-              {viewTarget?.is_active ? "Active" : "Inactive"}
-            </Badge>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-surface-400">Created</span>
-            <span className="text-surface-200">{viewTarget ? formatDate(viewTarget.created_at) : ""}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-surface-400">ID</span>
-            <code className="text-xs text-surface-400 font-mono">{viewTarget?.id.slice(0, 12)}...</code>
-          </div>
-
-          <div>
-            <span className="text-surface-400 block mb-1">JSON Schema</span>
-            <pre className="bg-surface-950 rounded-lg p-3 text-xs font-mono text-surface-300 overflow-x-auto max-h-40">
-              {viewTarget ? JSON.stringify(viewTarget.json_schema, null, 2) : ""}
-            </pre>
-          </div>
-
-          {viewTarget?.prompt_template && (
-            <div>
-              <span className="text-surface-400 block mb-1">Prompt Template</span>
-              <pre className="bg-surface-950 rounded-lg p-3 text-xs font-mono text-surface-300 overflow-x-auto max-h-32 whitespace-pre-wrap">
-                {viewTarget.prompt_template}
-              </pre>
-            </div>
-          )}
-        </div>
-      </Dialog>
-
-      {/* ── Delete Confirm Dialog ──────────────────────────────────────────────── */}
+      {/* ── Delete Confirm Dialog ────────────────────────────────────────────── */}
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete Schema"
-        message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? It will stop being used for new extractions.`}
         confirmLabel="Delete"
         variant="danger"
         loading={deleting}
-        onConfirm={handleDelete}
+        onConfirm={() => void handleConfirmDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
     </div>
