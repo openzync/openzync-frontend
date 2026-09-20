@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { FileText } from "lucide-react";
 import { apiErrorMessage, get, post, ApiError } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Skeleton, TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 
 interface FactRow {
   id: string;
@@ -58,6 +60,19 @@ function confidenceVariant(score: number): "success" | "warning" | "error" {
 }
 
 export default function SessionFactsPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <SessionFactsInner />
+    </Suspense>
+  );
+}
+
+// Backend whitelist for session facts (default created_at/desc).
+const FACT_SORT_FIELDS = ["created_at", "confidence", "subject"] as const;
+
+function SessionFactsInner() {
   const params = useParams();
   const sessionId = params.sessionId as string;
   const { project } = useProject();
@@ -84,14 +99,23 @@ export default function SessionFactsPage() {
   // (state in a closure is stale by the time a slow fetch resolves).
   const historyTargetRef = useRef<FactRow | null>(null);
 
+  // Server-side sort, URL-synced. Sort changes reload from page 1
+  // (backend cursors encode their sort and fail closed on mismatch).
+  const { sortBy, sortDir, onSort, withSort } = useSortQuery({
+    defaultSort: { sortBy: "created_at", sortDir: "desc" },
+    allowedFields: FACT_SORT_FIELDS,
+    timestampFields: ["created_at"],
+  });
+
   const loadFacts = useCallback(
     async (showSpinner = true) => {
       if (!projectId) return;
       if (showSpinner) setLoading(true);
       setError("");
       try {
+        const params = withSort(new URLSearchParams({ limit: "50" }));
         const json = await get<FactsResponse>(
-          `/v1/projects/${projectId}/sessions/${sessionId}/facts?limit=50`,
+          `/v1/projects/${projectId}/sessions/${sessionId}/facts?${params}`,
         );
         setFacts(json.data ?? []);
         setCursor(json.next_cursor ?? null);
@@ -103,7 +127,7 @@ export default function SessionFactsPage() {
         if (showSpinner) setLoading(false);
       }
     },
-    [projectId, sessionId],
+    [projectId, sessionId, withSort],
   );
 
   useEffect(() => {
@@ -114,8 +138,10 @@ export default function SessionFactsPage() {
     if (!projectId || !cursor || loadingMore) return;
     setLoadingMore(true);
     try {
+      const params = withSort(new URLSearchParams({ limit: "50" }));
+      params.set("cursor", cursor);
       const json = await get<FactsResponse>(
-        `/v1/projects/${projectId}/sessions/${sessionId}/facts?limit=50&cursor=${encodeURIComponent(cursor)}`,
+        `/v1/projects/${projectId}/sessions/${sessionId}/facts?${params}`,
       );
       setFacts((prev) => [...prev, ...(json.data ?? [])]);
       setCursor(json.next_cursor ?? null);
@@ -198,9 +224,9 @@ export default function SessionFactsPage() {
           <Table storageKey="facts">
             <TableHeader>
               <TableHead>Content</TableHead>
-              <TableHead>Triple</TableHead>
-              <TableHead align="center">Confidence</TableHead>
-              <TableHead align="right">Extracted</TableHead>
+              <SortableHead field="subject" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Triple</SortableHead>
+              <SortableHead field="confidence" sortBy={sortBy} sortDir={sortDir} onSort={onSort} align="center">Confidence</SortableHead>
+              <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort} align="right">Extracted</SortableHead>
               <TableHead align="right">Actions</TableHead>
             </TableHeader>
             <TableBody>

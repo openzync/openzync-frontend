@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Play, Database, TableIcon, Code } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { ErrorState } from "@/components/shared/error-state";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
@@ -34,7 +36,7 @@ interface QueryResult {
 type SortDirection = "asc" | "desc";
 
 interface SortState {
-  colIndex: number;
+  col: string;
   direction: SortDirection;
 }
 
@@ -95,6 +97,18 @@ function CardSkeleton() {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function QueryPlaygroundPage() {
+  // Sort state lives in the URL — needs a Suspense boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <QueryPlaygroundInner />
+    </Suspense>
+  );
+}
+
+function QueryPlaygroundInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const queriesQuery = useApiQuery<{ queries: QueryDefinition[] }>(() =>
     get<{ queries: QueryDefinition[] }>("/metrics/queries"),
   );
@@ -113,9 +127,32 @@ export default function QueryPlaygroundPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [sort, setSort] = useState<SortState | null>(null);
+  // Sort key is the column NAME (stable across results); synced to the URL
+  // so sorted views are shareable. Null = backend default order.
+  const [sort, setSort] = useState<SortState | null>(() => {
+    const col = searchParams.get("sort_by");
+    const dir = searchParams.get("sort_dir");
+    if (!col) return null;
+    return { col, direction: dir === "desc" ? "desc" : "asc" };
+  });
   const [page, setPage] = useState(0);
   const [showRaw, setShowRaw] = useState(false);
+  // False once the backend rejects sort params — sorting then stays
+  // client-side for the session. Latched per endpoint, not per query.
+  const [serverSortSupported, setServerSortSupported] = useState(true);
+
+  function syncSortUrl(next: SortState | null) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next) {
+      params.set("sort_by", next.col);
+      params.set("sort_dir", next.direction);
+    } else {
+      params.delete("sort_by");
+      params.delete("sort_dir");
+    }
+    params.delete("page");
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
 
   // Pre-select first query once loaded
   useEffect(() => {
@@ -135,30 +172,26 @@ export default function QueryPlaygroundPage() {
     return queries.filter((q) => q.category === activeCategory.toLowerCase());
   }, [queries, activeCategory]);
 
-  // Sorted + paginated rows
+  // Sorted + paginated rows. Server-side sort is authoritative once the
+  // backend accepts sort params; until then the client stableCompare
+  // fallback orders the fetched rows (see runQuery).
   const { sortedRows, totalPages } = useMemo(() => {
     if (!result) return { sortedRows: [], totalPages: 0 };
-    let rows = [...result.rows];
-    if (sort) {
-      rows.sort((a, b) => {
-        const cmp = stableCompare(a[sort.colIndex], b[sort.colIndex]);
-        return sort.direction === "asc" ? cmp : -cmp;
-      });
+    const rows = [...result.rows];
+    if (sort && !serverSortSupported) {
+      const colIndex = result.columns.indexOf(sort.col);
+      if (colIndex >= 0) {
+        rows.sort((a, b) => {
+          const cmp = stableCompare(a[colIndex], b[colIndex]);
+          return sort.direction === "asc" ? cmp : -cmp;
+        });
+      }
     }
     const total = Math.ceil(rows.length / PAGE_SIZE);
     return { sortedRows: rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), totalPages: total };
-  }, [result, sort, page]);
+  }, [result, sort, page, serverSortSupported]);
 
-  const handleSort = (colIndex: number) => {
-    setSort((prev) => {
-      if (prev?.colIndex === colIndex) {
-        return prev.direction === "asc" ? { colIndex, direction: "desc" } : null;
-      }
-      return { colIndex, direction: "asc" };
-    });
-  };
-
-  const handleRun = async () => {
+  const runQuery = async (activeSort: SortState | null) => {
     if (!selectedQuery) return;
     setLoading(true);
     setError("");
@@ -167,13 +200,48 @@ export default function QueryPlaygroundPage() {
       const params = new URLSearchParams({ query: selectedQuery.name });
       if (selectedQuery.params.includes("days")) params.set("days", String(days));
       if (selectedQuery.params.includes("limit")) params.set("limit", String(limit));
-      const res = await get<QueryResult>(`/metrics/query?${params}`);
-      setResult(res);
+      if (activeSort && serverSortSupported) {
+        params.set("sort_by", activeSort.col);
+        params.set("sort_dir", activeSort.direction);
+      }
+      try {
+        const res = await get<QueryResult>(`/metrics/query?${params}`);
+        setResult(res);
+      } catch (err) {
+        // Backend predates server-side sort for metric queries (422 on the
+        // unknown sort_by; 422 is also "unknown query name", so the retry
+        // below surfaces the real error when the query itself is bad).
+        if (activeSort && err instanceof ApiError && err.status === 422) {
+          setServerSortSupported(false);
+          params.delete("sort_by");
+          params.delete("sort_dir");
+          const res = await get<QueryResult>(`/metrics/query?${params}`);
+          setResult(res);
+        } else {
+          throw err;
+        }
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Query failed");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRun = () => {
+    setPage(0);
+    void runQuery(sort);
+  };
+
+  const handleSort = (col: string) => {
+    const next: SortState =
+      sort?.col === col
+        ? { col, direction: sort.direction === "asc" ? "desc" : "asc" }
+        : { col, direction: "asc" };
+    setSort(next);
+    setPage(0);
+    syncSortUrl(next);
+    void runQuery(next);
   };
 
   const selectedParams = selectedQuery?.params ?? [];
@@ -344,6 +412,11 @@ export default function QueryPlaygroundPage() {
               </span>
               <span>{result.total} row{result.total !== 1 ? "s" : ""}</span>
               <Badge variant="success" size="sm">Org Scoped</Badge>
+              {!serverSortSupported && sort && (
+                <Badge variant="default" size="sm" title="The backend does not sort metric queries yet — rows are ordered in the browser">
+                  Client sort
+                </Badge>
+              )}
             </div>
             <button
               onClick={() => setShowRaw(!showRaw)}
@@ -375,24 +448,16 @@ export default function QueryPlaygroundPage() {
                   <div className="card-base overflow-x-auto">
                     <Table storageKey="query">
                       <TableHeader>
-                        {result.columns.map((col, i) => (
-                          <TableHead
+                        {result.columns.map((col) => (
+                          <SortableHead
                             key={col}
-                            onClick={() => handleSort(i)}
-                            className={cn(
-                              "cursor-pointer hover:text-surface-200 transition-colors select-none",
-                              sort?.colIndex === i && "text-brand-300",
-                            )}
+                            field={col}
+                            sortBy={sort?.col ?? ""}
+                            sortDir={sort?.direction ?? "asc"}
+                            onSort={handleSort}
                           >
-                            <span className="inline-flex items-center gap-1">
-                              {col}
-                              {sort?.colIndex === i && (
-                                <span className="text-[10px]">
-                                  {sort.direction === "asc" ? "\u25B2" : "\u25BC"}
-                                </span>
-                              )}
-                            </span>
-                          </TableHead>
+                            {col}
+                          </SortableHead>
                         ))}
                       </TableHeader>
                       <TableBody>

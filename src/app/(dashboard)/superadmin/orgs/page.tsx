@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import {
   Building2,
   Check,
@@ -23,6 +23,8 @@ import { Badge } from "@/components/ui/badge";
 import { Field } from "@/components/ui/field";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 import { Button } from "@/components/ui/button";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -116,7 +118,20 @@ function CreateOrgDialog({
 
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
+// Backend whitelist for GET /admin/system/orgs (default created_at/desc).
+const ORG_SORT_FIELDS = ["name", "created_at"] as const;
+
 export default function SuperadminOrgsPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <SuperadminOrgsInner />
+    </Suspense>
+  );
+}
+
+function SuperadminOrgsInner() {
   const [orgs, setOrgs] = useState<OrgListEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -131,9 +146,17 @@ export default function SuperadminOrgsPage() {
 
   const PAGE_SIZE = 50; // backend default limit for /admin/system/orgs
 
+  // Server-side sort, URL-synced. Sort changes reload from page 1.
+  const { sortBy, sortDir, onSort, withSort } = useSortQuery({
+    defaultSort: { sortBy: "created_at", sortDir: "desc" },
+    allowedFields: ORG_SORT_FIELDS,
+    timestampFields: ["created_at"],
+  });
+
   const fetchOrgs = useCallback(async (pageNum: number): Promise<OrgListResponse> => {
-    return get<OrgListResponse>(`/admin/system/orgs?page=${pageNum}&limit=${PAGE_SIZE}`);
-  }, []);
+    const params = withSort(new URLSearchParams({ page: String(pageNum), limit: String(PAGE_SIZE) }));
+    return get<OrgListResponse>(`/admin/system/orgs?${params}`);
+  }, [withSort]);
 
   const loadOrgs = useCallback(async () => {
     setLoading(true);
@@ -226,9 +249,9 @@ export default function SuperadminOrgsPage() {
       <div className="card-base overflow-hidden">
         <Table zebra={false} storageKey="orgs">
           <TableHeader>
-            <TableHead>Name</TableHead>
+            <SortableHead field="name" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Name</SortableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Created</TableHead>
+            <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Created</SortableHead>
             <TableHead align="right">Actions</TableHead>
           </TableHeader>
           <TableBody>

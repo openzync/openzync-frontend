@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   Activity,
@@ -25,6 +25,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { RequirePermission } from "@/components/shared/require-permission";
 import { LineChart, StackedBarChart, cssVar } from "@/components/shared/charts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -154,13 +156,53 @@ function LatencyCard({ title, icon: Icon, data }: {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
+// /metrics/targets proxies Prometheus — there is no server-side list to
+// sort, so target sorting is client-side over the fetched snapshot. Keys
+// follow the backend MonitorTargetSortBy contract (name/created_at/status).
+const TARGET_SORT_FIELDS = ["name", "created_at", "status"] as const;
+
 export default function MonitoringPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <MonitoringInner />
+    </Suspense>
+  );
+}
+
+function MonitoringInner() {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [targets, setTargets] = useState<ScrapeTarget[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const { sortBy, sortDir, onSort } = useSortQuery({
+    defaultSort: { sortBy: "name", sortDir: "asc" },
+    allowedFields: TARGET_SORT_FIELDS,
+    timestampFields: ["created_at"],
+  });
+
+  // Client-side sort over the Prometheus snapshot (see note above).
+  const sortedTargets = useMemo(() => {
+    const rows = [...targets];
+    const dir = sortDir === "asc" ? 1 : -1;
+    rows.sort((a, b) => {
+      if (sortBy === "status") return dir * a.health.localeCompare(b.health);
+      if (sortBy === "created_at") {
+        const at = a.last_scrape ? Date.parse(a.last_scrape) : NaN;
+        const bt = b.last_scrape ? Date.parse(b.last_scrape) : NaN;
+        if (Number.isNaN(at) && Number.isNaN(bt)) return 0;
+        if (Number.isNaN(at)) return 1;
+        if (Number.isNaN(bt)) return -1;
+        return dir * (at - bt);
+      }
+      return dir * a.job.localeCompare(b.job);
+    });
+    return rows;
+  }, [targets, sortBy, sortDir]);
 
   const fetchData = useCallback(async (initial: boolean) => {
     if (initial) setLoading(true); else setRefreshing(true);
@@ -457,14 +499,14 @@ export default function MonitoringPage() {
         ) : (
           <Table storageKey="monitoring">
             <TableHeader>
-              <TableHead>Job</TableHead>
+              <SortableHead field="name" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Job</SortableHead>
               <TableHead>Instance</TableHead>
-              <TableHead>Health</TableHead>
-              <TableHead>Last Scrape</TableHead>
+              <SortableHead field="status" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Health</SortableHead>
+              <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Last Scrape</SortableHead>
               <TableHead>Last Error</TableHead>
             </TableHeader>
             <TableBody>
-              {targets.map((t, i) => {
+              {sortedTargets.map((t, i) => {
                 const isUp = t.health?.toLowerCase() === "up";
                 return (
                   <TableRow key={`${t.job}-${t.instance}-${i}`}>

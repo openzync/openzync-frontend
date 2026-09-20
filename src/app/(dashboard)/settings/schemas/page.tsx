@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, FileJson, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +23,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 import { fieldCountOf } from "@/components/schemas/schema-builder";
 import { labelCountOf } from "@/components/schemas/label-set-builder";
 
@@ -87,9 +89,33 @@ function ViewDialog({ schema, onClose }: { schema: ExtractionSchema; onClose: ()
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
+// Backend whitelist for GET /v1/admin/schemas (default created_at/desc).
+// `updated_at` is not whitelisted server-side, so Updated stays a plain
+// header — only Name sorts.
+const SCHEMA_SORT_FIELDS = ["name", "created_at"] as const;
+
 export default function SchemasPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <SchemasInner />
+    </Suspense>
+  );
+}
+
+function SchemasInner() {
   const router = useRouter();
-  const schemasQuery = useApiQuery(() => listSchemas());
+  // Server-side sort, URL-synced. Single-page list — the refreshKey
+  // refetches in the new order.
+  const { sortBy, sortDir, onSort } = useSortQuery({
+    defaultSort: { sortBy: "created_at", sortDir: "desc" },
+    allowedFields: SCHEMA_SORT_FIELDS,
+    timestampFields: ["created_at"],
+  });
+  const schemasQuery = useApiQuery(() => listSchemas({ sort_by: sortBy, sort_dir: sortDir }), {
+    refreshKey: `${sortBy}:${sortDir}`,
+  });
   const loading = schemasQuery.isLoading;
   // Mutation failures share the banner with load errors but retry re-runs the
   // GET (the mutation itself is surfaced by its toast).
@@ -153,7 +179,7 @@ export default function SchemasPage() {
       <div className="card-base overflow-hidden">
         <Table zebra={false} storageKey="schemas">
           <TableHeader>
-            <TableHead>Name</TableHead>
+            <SortableHead field="name" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Name</SortableHead>
             <TableHead>Type</TableHead>
             <TableHead align="center">Fields / Labels</TableHead>
             <TableHead>Updated</TableHead>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Check, Inbox, X } from "lucide-react";
 import { get, post, apiErrorMessage, type OrgListEntry, type OrgListResponse } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
@@ -12,6 +12,8 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -20,8 +22,29 @@ import { Button } from "@/components/ui/button";
  * move the row out of the queue on the next refetch.
  */
 export default function SuperadminRequestsPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <SuperadminRequestsInner />
+    </Suspense>
+  );
+}
+
+// Backend whitelist for GET /admin/system/orgs (default created_at/desc).
+const REQUEST_SORT_FIELDS = ["name", "created_at"] as const;
+
+function SuperadminRequestsInner() {
+  // Server-side sort, URL-synced. Single-page list — the refreshKey
+  // refetches in the new order.
+  const { sortBy, sortDir, onSort, withSort } = useSortQuery({
+    defaultSort: { sortBy: "created_at", sortDir: "desc" },
+    allowedFields: REQUEST_SORT_FIELDS,
+    timestampFields: ["created_at"],
+  });
   const requestsQuery = useApiQuery<OrgListResponse>(() =>
-    get<OrgListResponse>("/admin/system/orgs?limit=100"),
+    get<OrgListResponse>(`/admin/system/orgs?${withSort(new URLSearchParams({ limit: "100" }))}`),
+    { refreshKey: `${sortBy}:${sortDir}` },
   );
   const pending = (requestsQuery.data?.data ?? []).filter(
     (org) => org.status === "pending",
@@ -83,9 +106,9 @@ export default function SuperadminRequestsPage() {
       <div className="card-base overflow-hidden">
         <Table zebra={false} storageKey="requests">
           <TableHeader>
-            <TableHead>Name</TableHead>
+            <SortableHead field="name" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Name</SortableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Requested</TableHead>
+            <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Requested</SortableHead>
             <TableHead align="right">Actions</TableHead>
           </TableHeader>
           <TableBody>

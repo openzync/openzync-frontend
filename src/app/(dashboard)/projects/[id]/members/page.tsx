@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import {
   Users,
   Plus,
@@ -26,6 +26,8 @@ import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Field } from "@/components/ui/field";
 
@@ -53,15 +55,38 @@ function getUserLabel(user: UserItem): string {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
+// Backend whitelist for project members (default created_at/asc).
+const MEMBER_SORT_FIELDS = ["created_at", "role"] as const;
+
 export default function ProjectMembersPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <ProjectMembersInner />
+    </Suspense>
+  );
+}
+
+function ProjectMembersInner() {
   const { project, loading: projectLoading } = useProject();
   const { can, loading: roleLoading } = useUser();
   const canManage = can("project:manage");
   const projectId = project?.id;
 
+  // Server-side sort, URL-synced. The list is unpaginated, so no
+  // cursor/offset reset is needed — the refreshKey refetches in new order.
+  const { sortBy, sortDir, onSort, withSort } = useSortQuery({
+    defaultSort: { sortBy: "created_at", sortDir: "asc" },
+    allowedFields: MEMBER_SORT_FIELDS,
+    timestampFields: ["created_at"],
+  });
+
   const membersQuery = useApiQuery<Member[] | { data: Member[] }>(
-    () => get<Member[] | { data: Member[] }>(`/v1/projects/${projectId}/members`),
-    { enabled: !!projectId },
+    () => get<Member[] | { data: Member[] }>(
+      `/v1/projects/${projectId}/members?${withSort(new URLSearchParams())}`,
+    ),
+    { enabled: !!projectId, refreshKey: `${sortBy}:${sortDir}` },
   );
   // Optimistic removal writes a local override; server data wins on refetch.
   const [override, setOverride] = useState<Member[] | null>(null);
@@ -209,8 +234,8 @@ export default function ProjectMembersPage() {
             <Table zebra={false} storageKey="members">
               <TableHeader>
                 <TableHead>User ID</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Added</TableHead>
+                <SortableHead field="role" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Role</SortableHead>
+                <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Added</SortableHead>
                 <TableHead align="right">Actions</TableHead>
               </TableHeader>
               <TableBody>

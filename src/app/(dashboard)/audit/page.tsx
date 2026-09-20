@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge, ActorTypeBadge, actorTypeLabel } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 import { SimpleSelect } from "@/components/ui/select";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -51,9 +53,11 @@ interface ActorOption { id: string; label: string; group: string }
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 25;
-
 const ACTOR_TYPES = ["all", "user", "api_key", "system"] as const;
 const STATUSES = ["all", "2xx", "4xx", "5xx"] as const;
+
+// Backend whitelist for GET /v1/admin/audit-logs (default created_at/desc).
+const AUDIT_SORT_FIELDS = ["created_at", "action", "status_code", "actor_id"] as const;
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -93,9 +97,18 @@ function AuditLogInner() {
   const rawPage = Number(searchParams.get("page"));
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
 
+  // Server-side sort, URL-synced (default created_at/desc). Sort changes
+  // drop `page` from the URL via the hook, so sorting restarts at page 1.
+  const { sortBy, sortDir, onSort, withSort } = useSortQuery({
+    defaultSort: { sortBy: "created_at", sortDir: "desc" },
+    allowedFields: AUDIT_SORT_FIELDS,
+    timestampFields: ["created_at"],
+  });
+
   /** Merge param updates into the URL; empty/"all"/null values are removed.
    * Built from this page's own derived state (not searchParams iteration) so
-   * the written URL always contains exactly the five params we own. */
+   * the written URL always contains exactly the params we own. Sort params
+   * are always present (explicit sort contract); filter changes preserve them. */
   function setParams(updates: Record<string, string | null>) {
     const current: Record<string, string | null> = {
       action: filterAction || null,
@@ -103,6 +116,8 @@ function AuditLogInner() {
       status: filterStatus !== "all" ? filterStatus : null,
       actor_id: filterActorId || null,
       page: page > 1 ? String(page) : null,
+      sort_by: sortBy,
+      sort_dir: sortDir,
     };
     const merged = { ...current, ...updates };
     const params = new URLSearchParams();
@@ -129,10 +144,10 @@ function AuditLogInner() {
     setError(null);
 
     try {
-      const params = new URLSearchParams({
+      const params = withSort(new URLSearchParams({
         limit: String(PAGE_SIZE),
         offset: String(currentOffset),
-      });
+      }));
       if (filterAction.trim()) params.set("action", filterAction.trim());
       if (filterActorType !== "all") params.set("actor_type", filterActorType);
       if (filterActorId.trim()) params.set("actor_id", filterActorId.trim());
@@ -151,7 +166,7 @@ function AuditLogInner() {
     } finally {
       setLoading(false);
     }
-  }, [filterAction, filterActorType, filterActorId, filterStatus]);
+  }, [filterAction, filterActorType, filterActorId, filterStatus, withSort]);
 
   useEffect(() => { fetchLogs(offset); }, [offset, fetchLogs]);
 
@@ -380,11 +395,11 @@ function AuditLogInner() {
       <div className="card-base overflow-hidden">
         <Table storageKey="audit">
           <TableHeader>
-            <TableHead>Time</TableHead>
-            <TableHead>Action</TableHead>
-            <TableHead>Actor</TableHead>
+            <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Time</SortableHead>
+            <SortableHead field="action" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Action</SortableHead>
+            <SortableHead field="actor_id" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Actor</SortableHead>
             <TableHead>Type</TableHead>
-            <TableHead align="center">Status</TableHead>
+            <SortableHead field="status_code" sortBy={sortBy} sortDir={sortDir} onSort={onSort} align="center">Status</SortableHead>
             <TableHead>Method</TableHead>
             <TableHead>Path</TableHead>
             <TableHead>IP</TableHead>

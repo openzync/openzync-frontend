@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, ShieldCheck, ShieldOff, UsersIcon } from "lucide-react";
@@ -14,6 +14,8 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 import { Button } from "@/components/ui/button";
 
 interface OrgMember {
@@ -38,9 +40,30 @@ interface MembersResponse {
  * the current session's org users until the backend adds one.
  */
 export default function OrgMembersAdminPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <OrgMembersAdminInner />
+    </Suspense>
+  );
+}
+
+// Backend whitelist for GET /v1/users (default created_at/desc).
+const ORG_MEMBER_SORT_FIELDS = ["created_at", "name", "email"] as const;
+
+function OrgMembersAdminInner() {
   const { id: orgId } = useParams<{ id: string }>();
+  // Server-side sort, URL-synced. Single-page list — the refreshKey
+  // refetches in the new order.
+  const { sortBy, sortDir, onSort, withSort } = useSortQuery({
+    defaultSort: { sortBy: "created_at", sortDir: "desc" },
+    allowedFields: ORG_MEMBER_SORT_FIELDS,
+    timestampFields: ["created_at"],
+  });
   const membersQuery = useApiQuery<MembersResponse>(() =>
-    get<MembersResponse>("/v1/users?limit=50"),
+    get<MembersResponse>(`/v1/users?${withSort(new URLSearchParams({ limit: "50" }))}`),
+    { refreshKey: `${sortBy}:${sortDir}` },
   );
   const members = membersQuery.data?.data ?? [];
   const loading = membersQuery.isLoading;
@@ -89,10 +112,10 @@ export default function OrgMembersAdminPage() {
       <div className="card-base overflow-hidden">
         <Table zebra={false} storageKey="org-members">
           <TableHeader>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
+            <SortableHead field="name" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Name</SortableHead>
+            <SortableHead field="email" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Email</SortableHead>
             <TableHead>Role</TableHead>
-            <TableHead>Created</TableHead>
+            <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Created</SortableHead>
             <TableHead align="right">Actions</TableHead>
           </TableHeader>
           <TableBody>

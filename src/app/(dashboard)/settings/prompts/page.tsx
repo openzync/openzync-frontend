@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import {
   Download,
   FileText,
@@ -30,6 +30,8 @@ import { Field } from "@/components/ui/field";
 import { SimpleSelect } from "@/components/ui/select";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -539,7 +541,20 @@ function DeleteDialog({ templateName, templateDisplay, onClose, onConfirm }: {
 // Main Page
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Backend whitelist for GET /admin/org/prompts (default name/asc).
+const PROMPT_SORT_FIELDS = ["name", "created_at"] as const;
+
 export default function PromptsPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <PromptsInner />
+    </Suspense>
+  );
+}
+
+function PromptsInner() {
   const [templates, setTemplates] = useState<PromptTemplateSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [editTarget, setEditTarget] = useState<PromptTemplateDetail | null>(null);
@@ -551,15 +566,23 @@ export default function PromptsPage() {
 
   // ── Fetch templates ──────────────────────────────────────────────────────
 
+  // Server-side sort, URL-synced. Type grouping below is presentational:
+  // rows within each group keep server arrival order.
+  const { sortBy, sortDir, onSort, withSort } = useSortQuery({
+    defaultSort: { sortBy: "name", sortDir: "asc" },
+    allowedFields: PROMPT_SORT_FIELDS,
+    timestampFields: ["created_at"],
+  });
+
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await get<{ data: PromptTemplateSummary[] }>("/admin/org/prompts");
+      const data = await get<{ data: PromptTemplateSummary[] }>(`/admin/org/prompts?${withSort(new URLSearchParams())}`);
       setTemplates(data.data ?? []);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to load prompt templates");
     } finally { setLoading(false); }
-  }, []);
+  }, [withSort]);
 
   useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
 
@@ -637,7 +660,7 @@ export default function PromptsPage() {
         {/* zebra off: tbody interleaves type group-header rows with data rows */}
         <Table zebra={false} storageKey="prompts">
           <TableHeader>
-            <TableHead>Name</TableHead>
+            <SortableHead field="name" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Name</SortableHead>
             <TableHead>Version</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Updated</TableHead>
@@ -654,11 +677,14 @@ export default function PromptsPage() {
               </tr>
             ) : (
               (() => {
+                // Group headers stay alphabetical by type; rows within a
+                // group keep server arrival order (name/asc default). The
+                // comparator must stay type-only — sorting by version here
+                // would silently override the server sort.
                 const sorted = [...templates].sort((a, b) => {
                   const typeA = a.type || "\uffff";
                   const typeB = b.type || "\uffff";
-                  if (typeA !== typeB) return typeA.localeCompare(typeB);
-                  return b.version - a.version;
+                  return typeA.localeCompare(typeB);
                 });
                 const rows: React.ReactNode[] = [];
                 let currentType: string | null = null;

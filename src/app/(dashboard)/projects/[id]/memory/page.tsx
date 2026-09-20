@@ -308,7 +308,15 @@ function ContextTab({ projectId }: { projectId: string }) {
 
 // ─── Search Tab ────────────────────────────────────────────────────────────────
 
+// Matches the backend SearchSort contract (relevance = RRF score order,
+// recent = recency order). The Score column is this toggle, not an
+// asc/desc sortable header.
+type SearchSortMode = "relevance" | "recent";
+
 function SearchTab({ projectId }: { projectId: string }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [searchEpisodes, setSearchEpisodes] = useState(true);
   const [searchFacts, setSearchFacts] = useState(true);
@@ -317,7 +325,19 @@ function SearchTab({ projectId }: { projectId: string }) {
   const [results, setResults] = useState<SearchResultItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = useCallback(async () => {
+  // URL-synced so sorted views survive reload/share. Unknown values clamp
+  // to the backend default (relevance).
+  const rawMode = searchParams.get("search_sort");
+  const sortMode: SearchSortMode = rawMode === "recent" ? "recent" : "relevance";
+
+  const writeSortMode = useCallback((mode: SearchSortMode) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (mode === "relevance") params.delete("search_sort");
+    else params.set("search_sort", mode);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [searchParams, router, pathname]);
+
+  const runSearch = useCallback(async (mode: SearchSortMode) => {
     if (!query.trim()) { setError("Please enter a query"); return; }
     setSearching(true); setError(null); setResults(null);
     try {
@@ -328,11 +348,23 @@ function SearchTab({ projectId }: { projectId: string }) {
       const params = new URLSearchParams();
       params.set("query", query.trim());
       if (selectedTypes.length > 0 && selectedTypes.length < 3) params.set("type", selectedTypes.join(","));
+      params.set("sort", mode);
       const data = await get<SearchResponse>(`/v1/projects/${projectId}/search?${params.toString()}`);
       setResults(Array.isArray(data.results ?? data.items) ? (data.results ?? data.items ?? []) : []);
     } catch (err) { setError(err instanceof Error ? err.message : "Search failed"); }
     finally { setSearching(false); }
   }, [projectId, query, searchEpisodes, searchFacts, searchEntities]);
+
+  const handleSearch = useCallback(() => {
+    void runSearch(sortMode);
+  }, [runSearch, sortMode]);
+
+  const handleSortModeChange = useCallback((mode: SearchSortMode) => {
+    writeSortMode(mode);
+    // Re-run in the new order when results are on screen; otherwise the
+    // next search picks the mode up from the URL.
+    if (results !== null) void runSearch(mode);
+  }, [writeSortMode, results, runSearch]);
 
   return (
     <div className="card-base p-5 space-y-5">
@@ -363,7 +395,27 @@ function SearchTab({ projectId }: { projectId: string }) {
       {error && (<div className="flex items-start gap-2 rounded-md bg-error/10 border border-error/30 p-3 text-sm text-error"><AlertCircle size={16} className="mt-0.5 shrink-0" /><span>{error}</span></div>)}
       {results !== null && (
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">Results <span className="text-surface-500 font-normal normal-case">({results.length})</span></h3>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">Results <span className="text-surface-500 font-normal normal-case">({results.length})</span></h3>
+            <div className="flex items-center gap-1 rounded-md border border-surface-800 bg-surface-950 p-0.5" role="group" aria-label="Result order">
+              {(["relevance", "recent"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => handleSortModeChange(mode)}
+                  aria-pressed={sortMode === mode}
+                  className={cn(
+                    "rounded px-2 py-1 text-[11px] font-medium capitalize transition-colors focus-visible:outline-2 focus-visible:outline-accent-300",
+                    sortMode === mode
+                      ? "bg-surface-700 text-surface-100"
+                      : "text-surface-500 hover:text-surface-300",
+                  )}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
           {results.length === 0 ? (
             <div className="rounded-md bg-surface-950 border border-surface-800 p-6 text-center text-sm text-surface-500">No results found for this query.</div>
           ) : (

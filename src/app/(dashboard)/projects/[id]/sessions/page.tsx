@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -23,6 +23,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -46,7 +48,20 @@ interface SessionsApiResponse {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
+// Backend whitelist for session list (default created_at/desc).
+const SESSION_SORT_FIELDS = ["external_id", "created_at", "updated_at"] as const;
+
 export default function ProjectSessionsPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <ProjectSessionsInner />
+    </Suspense>
+  );
+}
+
+function ProjectSessionsInner() {
   const router = useRouter();
   const { project, loading: projectLoading } = useProject();
   const projectId = project?.id;
@@ -70,6 +85,14 @@ export default function ProjectSessionsPage() {
 
   // ── Fetch sessions ────────────────────────────────────────────────────────
 
+  // Server-side sort, URL-synced. Sort changes reload from page 1
+  // (backend cursors encode their sort and fail closed on mismatch).
+  const { sortBy, sortDir, onSort, withSort } = useSortQuery({
+    defaultSort: { sortBy: "created_at", sortDir: "desc" },
+    allowedFields: SESSION_SORT_FIELDS,
+    timestampFields: ["created_at", "updated_at"],
+  });
+
   const fetchSessions = useCallback(
     async (cursorVal: string | null) => {
       if (!projectId) return;
@@ -78,9 +101,9 @@ export default function ProjectSessionsPage() {
       else { setLoadingMore(true); }
 
       try {
-        let url = `/v1/projects/${projectId}/sessions?limit=50&include_closed=true`;
-        if (cursorVal) url += `&cursor=${encodeURIComponent(cursorVal)}`;
-        const json = await get<SessionsApiResponse>(url);
+        const params = withSort(new URLSearchParams({ limit: "50", include_closed: "true" }));
+        if (cursorVal) params.set("cursor", cursorVal);
+        const json = await get<SessionsApiResponse>(`/v1/projects/${projectId}/sessions?${params}`);
         const items = json.data ?? [];
         if (isInitial) { setSessions(items); }
         else { setSessions((prev) => [...prev, ...items]); }
@@ -98,7 +121,7 @@ export default function ProjectSessionsPage() {
         setLoadingMore(false);
       }
     },
-    [projectId],
+    [projectId, withSort],
   );
 
   useEffect(() => {
@@ -203,11 +226,11 @@ export default function ProjectSessionsPage() {
           <>
             <Table zebra={false} storageKey="sessions">
               <TableHeader>
-                <TableHead>External ID</TableHead>
+                <SortableHead field="external_id" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>External ID</SortableHead>
                 <TableHead>Status</TableHead>
                 <TableHead align="center">Messages</TableHead>
                 <TableHead align="center">Facts</TableHead>
-                <TableHead>Created</TableHead>
+                <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Created</SortableHead>
                 <TableHead align="right">Actions</TableHead>
               </TableHeader>
               <TableBody>

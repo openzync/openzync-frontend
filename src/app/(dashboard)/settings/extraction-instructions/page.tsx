@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import {
   Plus,
   FileText,
@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -30,14 +32,45 @@ interface CustomInstruction {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
+// This endpoint stores one document holding the whole instruction list
+// (PUT replaces it), so there is no server-side list to sort — sorting is
+// client-side over the fetched list. The name/asc default matches the
+// backend's `order_by(name)` so the initial render is unchanged.
+const INSTRUCTION_SORT_FIELDS = ["name"] as const;
+
 export default function ExtractionInstructionsPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <ExtractionInstructionsInner />
+    </Suspense>
+  );
+}
+
+function ExtractionInstructionsInner() {
+  const { sortBy, sortDir, onSort } = useSortQuery({
+    defaultSort: { sortBy: "name", sortDir: "asc" },
+    allowedFields: INSTRUCTION_SORT_FIELDS,
+  });
   const instructionsQuery = useApiQuery<{ data: CustomInstruction[] }>(() =>
     get<{ data: CustomInstruction[] }>("/admin/org/custom-instructions"),
   );
   // Optimistic writes replace the list locally; the hook's server data stays
   // untouched until a real refetch (retry / failed mutation recovery).
   const [override, setOverride] = useState<CustomInstruction[] | null>(null);
-  const instructions = override ?? instructionsQuery.data?.data ?? [];
+  const instructions = useMemo(
+    () => override ?? instructionsQuery.data?.data ?? [],
+    [override, instructionsQuery.data],
+  );
+  const sortedInstructions = useMemo(() => {
+    const rows = [...instructions];
+    rows.sort((a, b) =>
+      sortDir === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name),
+    );
+    return rows;
+    // note: single sortable field (name) — sortBy is constant here.
+  }, [instructions, sortDir]);
   const loading = instructionsQuery.isLoading;
   const [actionError, setActionError] = useState<string | null>(null);
   const error = instructionsQuery.error ?? actionError;
@@ -145,7 +178,7 @@ export default function ExtractionInstructionsPage() {
       <div className="card-base overflow-hidden">
         <Table storageKey="extraction-instructions">
           <TableHeader>
-            <TableHead>Name</TableHead>
+            <SortableHead field="name" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Name</SortableHead>
             <TableHead>Instruction</TableHead>
             <TableHead align="center" className="w-20">Actions</TableHead>
           </TableHeader>
@@ -164,7 +197,7 @@ export default function ExtractionInstructionsPage() {
                 </td>
               </tr>
             ) : (
-              instructions.map((inst, idx) => (
+              sortedInstructions.map((inst) => (
                 <TableRow key={inst.name}>
                   <TableCell>
                     <span className="text-surface-200 font-medium">{inst.name}</span>
@@ -179,7 +212,7 @@ export default function ExtractionInstructionsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => openEdit(idx)}
+                        onClick={() => openEdit(instructions.indexOf(inst))}
                         className="rounded-md text-surface-400 hover:text-white"
                         title="Edit instruction"
                       >

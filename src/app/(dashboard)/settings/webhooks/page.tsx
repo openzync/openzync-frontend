@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import {
   Plus,
   Webhook,
@@ -27,6 +27,8 @@ import { Badge } from "@/components/ui/badge";
 import { Field } from "@/components/ui/field";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -329,9 +331,30 @@ function CreateDialog({
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
+// Backend whitelist for GET /v1/admin/webhooks (default created_at/desc).
+const WEBHOOK_SORT_FIELDS = ["name", "created_at"] as const;
+
 export default function WebhooksPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <WebhooksInner />
+    </Suspense>
+  );
+}
+
+function WebhooksInner() {
+  // Server-side sort, URL-synced. Single-page list — the refreshKey
+  // refetches in the new order.
+  const { sortBy, sortDir, onSort, withSort } = useSortQuery({
+    defaultSort: { sortBy: "created_at", sortDir: "desc" },
+    allowedFields: WEBHOOK_SORT_FIELDS,
+    timestampFields: ["created_at"],
+  });
   const endpointsQuery = useApiQuery<{ data: WebhookEndpoint[] }>(() =>
-    get<{ data: WebhookEndpoint[] }>("/v1/admin/webhooks"),
+    get<{ data: WebhookEndpoint[] }>(`/v1/admin/webhooks?${withSort(new URLSearchParams())}`),
+    { refreshKey: `${sortBy}:${sortDir}` },
   );
   // Optimistic delete removes locally; server data refreshes via refetch.
   const [override, setOverride] = useState<WebhookEndpoint[] | null>(null);
@@ -421,12 +444,12 @@ export default function WebhooksPage() {
       <div className="card-base overflow-hidden">
         <Table storageKey="webhooks">
           <TableHeader>
-            <TableHead>Name</TableHead>
+            <SortableHead field="name" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Name</SortableHead>
             <TableHead>URL</TableHead>
             <TableHead>Events</TableHead>
             <TableHead align="center">Status</TableHead>
             <TableHead>Last Delivery</TableHead>
-            <TableHead>Created</TableHead>
+            <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Created</SortableHead>
             <TableHead align="right">Actions</TableHead>
           </TableHeader>
           <TableBody>

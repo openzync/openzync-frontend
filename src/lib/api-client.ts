@@ -365,14 +365,35 @@ async function uploadWithBlobs<T>(
 
 // ─── Pagination helpers ───────────────────────────────────────────────────────
 
+/** Sort direction — mirrors the backend `SortDir` Literal (`asc`|`desc`). */
+export type SortDirection = "asc" | "desc";
+
 export interface CursorPageParams {
   limit?: number;
   cursor?: string;
+  sort_by?: string;
+  sort_dir?: SortDirection;
 }
 
 export interface OffsetPageParams {
   limit?: number;
   offset?: number;
+  sort_by?: string;
+  sort_dir?: SortDirection;
+}
+
+/**
+ * Append `sort_by`/`sort_dir` to an in-progress query — the single choke
+ * point every list fetcher uses so no endpoint forgets sort params.
+ */
+export function appendSortParams(
+  params: URLSearchParams,
+  sortBy: string,
+  sortDir: SortDirection,
+): URLSearchParams {
+  params.set("sort_by", sortBy);
+  params.set("sort_dir", sortDir);
+  return params;
 }
 
 // ─── Auth endpoints ───────────────────────────────────────────────────────────
@@ -640,10 +661,14 @@ export interface SchemaTemplate {
 export function listSchemas(params?: {
   type?: ExtractionSchemaType;
   is_active?: boolean;
+  sort_by?: string;
+  sort_dir?: SortDirection;
 }): Promise<ExtractionSchemaListResponse> {
   const query = new URLSearchParams();
   if (params?.type) query.set("type", params.type);
   if (params?.is_active !== undefined) query.set("is_active", String(params.is_active));
+  if (params?.sort_by) query.set("sort_by", params.sort_by);
+  if (params?.sort_dir) query.set("sort_dir", params.sort_dir);
   const suffix = query.size ? `?${query}` : "";
   return get<ExtractionSchemaListResponse>(`/v1/admin/schemas${suffix}`);
 }

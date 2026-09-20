@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import {
   Plus,
   Key,
@@ -25,6 +25,8 @@ import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -51,13 +53,33 @@ interface ApiKeyCreateResponse {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
+// Backend whitelist for project API keys (default created_at/desc).
+const API_KEY_SORT_FIELDS = ["name", "created_at", "last_used_at"] as const;
+
 export default function ProjectApiKeysPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <ProjectApiKeysInner />
+    </Suspense>
+  );
+}
+
+function ProjectApiKeysInner() {
   const { project, loading: projectLoading } = useProject();
   const { can, loading: roleLoading } = useUser();
   const canManage = can("project:manage");
+  // Server-side sort, URL-synced. The list is unpaginated, so no
+  // cursor/offset reset is needed — the refreshKey refetches in new order.
+  const { sortBy, sortDir, onSort, withSort } = useSortQuery({
+    defaultSort: { sortBy: "created_at", sortDir: "desc" },
+    allowedFields: API_KEY_SORT_FIELDS,
+    timestampFields: ["created_at", "last_used_at"],
+  });
   const keysQuery = useApiQuery<{ data: ApiKey[] }>(
-    () => get<{ data: ApiKey[] }>(`/v1/projects/${project?.id}/api-keys`),
-    { enabled: !!project?.id && canManage },
+    () => get<{ data: ApiKey[] }>(`/v1/projects/${project?.id}/api-keys?${withSort(new URLSearchParams())}`),
+    { enabled: !!project?.id && canManage, refreshKey: `${sortBy}:${sortDir}` },
   );
   const keys = keysQuery.data?.data ?? [];
   const loading = keysQuery.isLoading;
@@ -195,11 +217,11 @@ export default function ProjectApiKeysPage() {
       <div className="card-base overflow-hidden">
         <Table storageKey="api-keys">
           <TableHeader>
-            <TableHead>Name</TableHead>
+            <SortableHead field="name" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Name</SortableHead>
             <TableHead>Prefix</TableHead>
             <TableHead>Permissions</TableHead>
-            <TableHead>Last Used</TableHead>
-            <TableHead>Created</TableHead>
+            <SortableHead field="last_used_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Last Used</SortableHead>
+            <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Created</SortableHead>
             <TableHead align="center">Status</TableHead>
             <TableHead align="center" className="w-20">Actions</TableHead>
           </TableHeader>

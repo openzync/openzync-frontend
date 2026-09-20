@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import {
   Plus, Edit, Trash2, RefreshCw, UsersIcon, AlertCircle, Eye, ShieldCheck, ShieldOff, UserPlus, Ban,
 } from "lucide-react";
@@ -20,6 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { CopyButton } from "@/components/shared/copy-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { SortableHead } from "@/components/shared/sortable-head";
+import { useSortQuery } from "@/hooks/use-sort-query";
 import { useUser } from "@/contexts/user-context";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -196,7 +198,20 @@ function InviteMemberDialog({
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
+// Backend whitelist for GET /v1/users (default created_at/desc).
+const USER_SORT_FIELDS = ["external_id", "name", "email", "created_at"] as const;
+
 export default function UsersPage() {
+  // Sort state lives in the URL via useSortQuery — needs a Suspense
+  // boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <UsersPageInner />
+    </Suspense>
+  );
+}
+
+function UsersPageInner() {
   const { can, user: me, loading: roleLoading } = useUser();
   const canRead = can("members:read");
   const canWrite = can("members:write");
@@ -220,11 +235,19 @@ export default function UsersPage() {
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
+  // Server-side sort, URL-synced. Sort changes reset the cursor to page 1
+  // (backend cursors encode their sort and fail closed on mismatch).
+  const { sortBy, sortDir, onSort, withSort } = useSortQuery({
+    defaultSort: { sortBy: "created_at", sortDir: "desc" },
+    allowedFields: USER_SORT_FIELDS,
+    timestampFields: ["created_at"],
+  });
+
   const fetchUsers = useCallback(async (cursor?: string): Promise<UsersResponse> => {
-    const params = new URLSearchParams({ limit: "50" });
+    const params = withSort(new URLSearchParams({ limit: "50" }));
     if (cursor) params.set("cursor", cursor);
     return get<UsersResponse>(`/v1/users?${params}`);
-  }, []);
+  }, [withSort]);
 
   const loadUsers = useCallback(async () => {
     setLoading(true); setError(null);
@@ -375,11 +398,11 @@ export default function UsersPage() {
       <div className="card-base overflow-hidden">
         <Table storageKey="users">
           <TableHeader>
-            <TableHead>External ID</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
+            <SortableHead field="external_id" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>External ID</SortableHead>
+            <SortableHead field="name" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Name</SortableHead>
+            <SortableHead field="email" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Email</SortableHead>
             <TableHead>Role</TableHead>
-            <TableHead>Created</TableHead>
+            <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Created</SortableHead>
             <TableHead align="right">Actions</TableHead>
           </TableHeader>
           <TableBody>
