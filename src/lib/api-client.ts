@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // Every API call in the frontend goes through this module.
-//   - Reads NEXT_PUBLIC_API_URL from env (fallback: http://localhost:8000)
+//   - Reads NEXT_PUBLIC_API_URL from env (fallback: "" — same-origin relative URLs)
 //   - Injects Authorization header from localStorage
 //   - Handles 401 → redirect to login
 //   - Provides typed request helpers so every page gets consistent error handling
@@ -11,8 +11,7 @@
 // Never hardcode the base URL in a page file again.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const API_BASE: string =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_BASE: string = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 /**
  * Single-flight token refresh: concurrent 401s share one in-flight promise
@@ -31,7 +30,9 @@ function refreshOnce(): Promise<string | null> {
 /**
  * Shared 401 handling for request() and uploadWithBlobs(): await the shared
  * refresh, then retry the original request exactly once with the new token.
- * On refresh failure every awaiter clears tokens, redirects, and throws.
+ * Only auth rejection (refresh returns null) clears tokens, redirects, and
+ * throws. Transport/transient refresh failures throw through with tokens
+ * intact so callers surface retry/offline UI instead of logging out.
  */
 async function refreshAndRetry(
   retry: (newToken: string) => Promise<Response>,
@@ -71,40 +72,54 @@ function clearTokens(): void {
 
 /**
  * Attempt to exchange a refresh token for a new access token.
- * Returns the new access token, or null if the refresh fails.
+ * Returns the new access token, or null only when the backend rejects the
+ * refresh (401/403 — expired or revoked; tokens already cleared).
+ * Transport failures (offline/DNS/CORS abort) and transient non-auth
+ * failures (5xx, 429, …) throw an ApiError with tokens intact — the UI
+ * shows retry/offline state instead of logging the user out.
  */
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
 
+  let res: Response;
   try {
-    const res = await fetch(`${API_BASE}/v1/auth/refresh`, {
+    res = await fetch(`${API_BASE}/v1/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
-
-    if (!res.ok) {
-      // Refresh failed (e.g. expired or revoked) — force re-login.
-      clearTokens();
-      return null;
-    }
-
-    const body = (await res.json()) as {
-      access_token: string;
-      refresh_token?: string;
-    };
-
-    // Store the new pair (the backend may also issue a new refresh token).
-    storeTokens(body.access_token, body.refresh_token ?? refreshToken);
-    return body.access_token;
   } catch {
-    // Network error during refresh — returns null like any other refresh
-    // failure, so callers clear the session and redirect to login.
-    // TODO: distinguish transport errors from auth rejection so a transient
-    // network blip doesn't log the user out.
+    // Offline/DNS/CORS abort — the request never reached the backend.
+    // Keep tokens, no redirect: callers surface retry/offline state.
+    throw new ApiError("Network unavailable — check your connection", 0, null);
+  }
+
+  if (res.status === 401 || res.status === 403) {
+    // Refresh rejected (expired or revoked) — force re-login.
+    clearTokens();
     return null;
   }
+
+  if (!res.ok) {
+    // Transient backend failure — keep tokens so a retry can succeed once
+    // the backend recovers; never log the user out here.
+    const errorBody: unknown = await res.json().catch(() => null);
+    throw new ApiError(
+      parseApiErrorMessage(errorBody, res.status),
+      res.status,
+      errorBody,
+    );
+  }
+
+  const body = (await res.json()) as {
+    access_token: string;
+    refresh_token?: string;
+  };
+
+  // Store the new pair (the backend may also issue a new refresh token).
+  storeTokens(body.access_token, body.refresh_token ?? refreshToken);
+  return body.access_token;
 }
 
 function getAuthHeaders(): Record<string, string> {
