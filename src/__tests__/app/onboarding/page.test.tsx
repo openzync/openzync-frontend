@@ -25,7 +25,7 @@ vi.mock("sonner", () => ({
 }));
 
 // The page calls the api-client helpers against API_BASE
-// (http://localhost:8000 by default) — match on URL suffix + method.
+// ("" by default — same-origin relative URLs) — match on URL suffix + method.
 const mockFetch = vi.fn();
 mockFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input);

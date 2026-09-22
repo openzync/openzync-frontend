@@ -415,13 +415,13 @@ describe("401 token refresh", () => {
     expect(localStorage.getItem("mg_refresh_token")).toBe("new-refresh");
   });
 
-  it("clears tokens and throws when refresh fails", async () => {
+  it("clears tokens and throws when refresh is rejected (401)", async () => {
     mockFetch
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(
-        // Refresh endpoint returns 400 (invalid refresh token)
+        // Refresh endpoint returns 401 (expired/revoked refresh token)
         new Response(JSON.stringify({ detail: "Invalid refresh token" }), {
-          status: 400,
+          status: 401,
           headers: { "Content-Type": "application/json" },
         }),
       );
@@ -435,6 +435,46 @@ describe("401 token refresh", () => {
     await expect(promise2).rejects.toThrow("Unauthorized");
     expect(localStorage.getItem("mg_access_token")).toBeNull();
     expect(localStorage.getItem("mg_refresh_token")).toBeNull();
+  });
+
+  it("keeps tokens and throws the retryable error when refresh fails transiently (400)", async () => {
+    localStorage.setItem("mg_access_token", "expired-token");
+    localStorage.setItem("mg_refresh_token", "valid-refresh");
+    mockFetch
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(
+        // 400 is NOT an auth rejection — tokens stay, real status/body surfaces.
+        new Response(JSON.stringify({ detail: "Invalid refresh token" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    const promise = get("/v1/test");
+    await expect(promise).rejects.toMatchObject({
+      name: "ApiError",
+      status: 400,
+      message: "Invalid refresh token",
+    });
+    expect(localStorage.getItem("mg_access_token")).toBe("expired-token");
+    expect(localStorage.getItem("mg_refresh_token")).toBe("valid-refresh");
+  });
+
+  it("keeps tokens and throws with status 0 when refresh fetch itself throws (offline)", async () => {
+    localStorage.setItem("mg_access_token", "expired-token");
+    localStorage.setItem("mg_refresh_token", "valid-refresh");
+    mockFetch
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockRejectedValueOnce(new TypeError("fetch failed"));
+
+    const promise = get("/v1/test");
+    await expect(promise).rejects.toMatchObject({
+      name: "ApiError",
+      status: 0,
+      message: "Network unavailable — check your connection",
+    });
+    expect(localStorage.getItem("mg_access_token")).toBe("expired-token");
+    expect(localStorage.getItem("mg_refresh_token")).toBe("valid-refresh");
   });
 
   it("does not loop if refresh itself returns 401", async () => {
@@ -501,7 +541,8 @@ describe("401 token refresh", () => {
       const u = String(url);
       if (u.endsWith("/v1/auth/refresh")) {
         refreshCalls++;
-        return new Response(null, { status: 400 });
+        // 401 = refresh rejected → both callers clear tokens and throw.
+        return new Response(null, { status: 401 });
       }
       return new Response(null, { status: 401 });
     });
