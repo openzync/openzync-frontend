@@ -45,10 +45,10 @@ interface SearchResponse {
 
 type TabId = "ingest" | "context" | "search";
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "ingest", label: "Ingest", icon: <Upload size={16} /> },
-  { id: "context", label: "Context", icon: <FileText size={16} /> },
-  { id: "search", label: "Search", icon: <Search size={16} /> },
+const TABS: { id: TabId; label: string }[] = [
+  { id: "ingest", label: "Ingest" },
+  { id: "context", label: "Context" },
+  { id: "search", label: "Search" },
 ];
 
 const ROLES = ["user", "assistant", "system", "tool"] as const;
@@ -519,7 +519,7 @@ function PlaygroundPageInner() {
         <TabsList>
           {TABS.map((tab) => (
             <TabsTrigger key={tab.id} value={tab.id}>
-              {tab.icon}{tab.label}
+              {tab.label}
             </TabsTrigger>
           ))}
         </TabsList>

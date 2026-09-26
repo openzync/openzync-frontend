@@ -9,7 +9,7 @@ type TabsVariant = "underline" | "pill";
 const TabsVariantContext = createContext<TabsVariant>("underline");
 
 interface TabsProps extends React.ComponentProps<typeof TabsPrimitive.Root> {
-  /** "underline": bottom-bar tabs (session detail). "pill": segmented control (memory page). */
+  /** "underline": bottom-bar tabs (session detail). "pill": card-base segmented control (playground, org-config tab-bar language). */
   variant?: TabsVariant;
 }
 
@@ -32,7 +32,7 @@ export function TabsList({
         variant === "underline"
           ? cn("flex items-center gap-4 border-b border-surface-700", className)
           : cn(
-              "inline-flex items-center gap-1 rounded-lg bg-surface-900 p-1",
+              "card-base inline-flex items-center gap-1 p-1 w-fit flex-wrap",
               className,
             )
       }
@@ -54,7 +54,7 @@ export function TabsTrigger({
         "disabled:pointer-events-none disabled:opacity-50",
         variant === "underline"
           ? "-mb-px border-b-2 border-transparent pb-2 text-surface-400 hover:text-text-secondary data-[state=active]:border-brand-500 data-[state=active]:text-text-primary"
-          : "rounded-md px-3 py-1.5 text-surface-400 hover:text-text-secondary data-[state=active]:bg-surface-800 data-[state=active]:text-text-primary",
+          : "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-surface-400 hover:text-white hover:bg-surface-800 data-[state=active]:bg-brand-500 data-[state=active]:text-white",
         className,
       )}
       {...props}

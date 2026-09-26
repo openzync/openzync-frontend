@@ -1,9 +1,7 @@
 "use client";
 
-import { useParams, usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
+import { useParams, usePathname } from "next/navigation";
 import {
-  ArrowLeft,
   Calendar,
   Clock,
   MessageSquare,
@@ -23,7 +21,6 @@ import { PageGuide, GuideConversation } from "@/components/guides";
 import SessionTabs, { SESSION_TABS, type SessionTab } from "./tabs";
 import { SessionMessages } from "./session-messages";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -67,7 +64,6 @@ function MetadataRow({
 export default function SessionDetailPage() {
   const params = useParams();
   const pathname = usePathname();
-  const router = useRouter();
 
   const sessionId = params.sessionId as string;
   const { project, loading: projectLoading } = useProject();
@@ -100,26 +96,6 @@ export default function SessionDetailPage() {
   const loading = sessionQuery.isLoading;
   const error = sessionQuery.error ?? "";
 
-  // Breadcrumb
-  function Breadcrumb() {
-    return (
-      <nav className="flex items-center gap-2 text-sm text-surface-400 mb-4">
-        <Link
-          href={`/projects/${projectId}/sessions`}
-          className="hover:text-surface-200 transition-colors"
-        >
-          Sessions
-        </Link>
-        <span className="text-surface-600">/</span>
-        <span className="text-surface-100 font-medium">
-          {loading
-            ? "…"
-            : session?.external_id ?? sessionId.slice(0, 8)}
-        </span>
-      </nav>
-    );
-  }
-
   // Loading guard
   if (projectLoading) {
     return (
@@ -132,20 +108,6 @@ export default function SessionDetailPage() {
   // Render
   return (
     <div className="space-y-6">
-      {/* Back button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => router.push(`/projects/${projectId}/sessions`)}
-        className="-ml-2"
-      >
-        <ArrowLeft size={14} />
-        Back to Sessions
-      </Button>
-
-      {/* Breadcrumb */}
-      {projectId && <Breadcrumb />}
-
       <PageGuide title="Session details" illustration={<GuideConversation />}>
         <p>View all data for a single session: messages, extracted facts, graph relationships, classifications, and structured extractions. Each tab shows a different aspect of the processed conversation.</p>
       </PageGuide>

@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import * as d3 from "d3";
 import {
-  Search,
   ZoomIn,
   ZoomOut,
   RotateCcw,
@@ -884,13 +883,9 @@ export function ForceGraph({
       {(showFilter || showControls) && (
         <div className="flex items-center gap-3 flex-wrap">
           {showFilter && (
-            <div className="relative flex-1 min-w-[200px] max-w-sm">
-              <Search
-                size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-500 pointer-events-none"
-              />
+            <div className="flex-1 min-w-[200px] max-w-sm">
               <input
-                className="input-base pl-9 pr-3 text-sm"
+                className="input-base px-3 text-sm"
                 placeholder="Filter by name or type…"
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
