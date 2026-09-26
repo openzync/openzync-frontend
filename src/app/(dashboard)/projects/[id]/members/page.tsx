@@ -6,7 +6,6 @@ import {
   Plus,
   Trash2,
   AlertTriangle,
-  User as UserIcon,
 } from "lucide-react";
 import {
   get,
@@ -38,6 +37,12 @@ interface Member {
   user_id: string;
   role: "owner" | "member";
   created_at: string;
+  user: {
+    id: string;
+    external_id: string;
+    name: string | null;
+    email: string | null;
+  } | null;
 }
 
 interface UserItem {
@@ -56,7 +61,7 @@ function getUserLabel(user: UserItem): string {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 // Backend whitelist for project members (default created_at/asc).
-const MEMBER_SORT_FIELDS = ["created_at", "role"] as const;
+const MEMBER_SORT_FIELDS = ["created_at", "role", "name", "email"] as const;
 
 export default function ProjectMembersPage() {
   // Sort state lives in the URL via useSortQuery — needs a Suspense
@@ -169,7 +174,7 @@ function ProjectMembersInner() {
     return (
         <div className="space-y-6">
           <PageHeader title="Members" description="Project members" />
-          <TableSkeleton rows={4} cols={3} colWidths={["w-32", "w-20", "w-16"]} />
+          <TableSkeleton rows={4} cols={4} colWidths={["w-32", "w-36", "w-20", "w-16"]} />
         </div>
     );
   }
@@ -200,8 +205,8 @@ function ProjectMembersInner() {
         {loading ? (
           <TableSkeleton
             rows={4}
-            cols={3}
-            colWidths={["w-32", "w-20", "w-16"]}
+            cols={4}
+            colWidths={["w-32", "w-36", "w-20", "w-16"]}
           />
         ) : fetchError ? (
           <div className="card-base p-12 flex flex-col items-center justify-center">
@@ -233,7 +238,8 @@ function ProjectMembersInner() {
           <div className="card-base overflow-hidden">
             <Table zebra={false} storageKey="members">
               <TableHeader>
-                <TableHead>User ID</TableHead>
+                <SortableHead field="name" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Name</SortableHead>
+                <SortableHead field="email" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Email</SortableHead>
                 <SortableHead field="role" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Role</SortableHead>
                 <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Added</SortableHead>
                 <TableHead align="right">Actions</TableHead>
@@ -241,13 +247,11 @@ function ProjectMembersInner() {
               <TableBody>
                 {members.map((member) => (
                   <TableRow key={member.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <UserIcon size={14} className="text-surface-500" />
-                        <span className="font-mono text-xs text-surface-200">
-                          {member.user_id.slice(0, 8)}...
-                        </span>
-                      </div>
+                    <TableCell className="text-surface-200">
+                      {member.user?.name ?? <span className="text-surface-500 italic">—</span>}
+                    </TableCell>
+                    <TableCell className="text-surface-200">
+                      {member.user?.email ?? <span className="text-surface-500 italic">—</span>}
                     </TableCell>
                     <TableCell>
                       <Badge
