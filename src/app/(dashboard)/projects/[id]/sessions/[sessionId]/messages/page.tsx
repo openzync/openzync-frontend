@@ -1,8 +1,9 @@
 "use client";
 
+import { useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
-import SessionTabs from "../tabs";
-import { PageGuide, GuideConversation } from "@/components/guides";
+import { ArrowUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { SessionMessages } from "../session-messages";
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
@@ -10,14 +11,26 @@ import { SessionMessages } from "../session-messages";
 export default function MessagesPage() {
   const params = useParams();
   const sessionId = params.sessionId as string;
+  const scrollToBottomRef = useRef<(() => void) | null>(null);
+  const handleScrollReady = useCallback((fn: () => void) => {
+    scrollToBottomRef.current = fn;
+  }, []);
 
   return (
     <div className="space-y-4">
-      <SessionTabs sessionId={sessionId} activeTab="messages" />
-      <PageGuide title="Conversation messages" illustration={<GuideConversation />}>
-        <p>Browse all messages in this session in chronological order. Messages are the raw input that the enrichment pipeline processes to extract entities, facts, classifications, and structured data.</p>
-      </PageGuide>
-      <SessionMessages sessionId={sessionId} />
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => scrollToBottomRef.current?.()}
+          className="flex items-center gap-1"
+          title="Scroll to bottom"
+        >
+          <ArrowUp size={14} className="rotate-180" />
+          Latest
+        </Button>
+      </div>
+      <SessionMessages sessionId={sessionId} embedded onScrollReady={handleScrollReady} />
     </div>
   );
 }

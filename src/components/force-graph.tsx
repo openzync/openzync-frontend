@@ -284,6 +284,10 @@ export function ForceGraph({
   // ── D3 refs ─────────────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
   const simulationRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null);
+  // Width tick — re-runs the D3 render when the container's measured width
+  // settles after layout (e.g. half-width column in session overview).
+  const [containerWidth, setContainerWidth] = useState(0);
+  const lastWidthRef = useRef(0);
 
   // ── Debounce the filter (200ms) ────────────────────────────────────────
   useEffect(() => {
@@ -430,6 +434,28 @@ export function ForceGraph({
     return () => { cancelled = true; };
   }, [selectedNode, apiConfig.projectId, detailNonce]);
 
+  // ── Track container width (debounced) ───────────────────────────────────
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const observer = new ResizeObserver((entries) => {
+      const next = Math.round(entries[0]?.contentRect.width ?? 0);
+      if (next === 0 || next === lastWidthRef.current) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        lastWidthRef.current = next;
+        setContainerWidth(next);
+      }, 150);
+    });
+    lastWidthRef.current = Math.round(el.clientWidth);
+    observer.observe(el);
+    return () => {
+      if (timer) clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, []);
+
   // ╔══════════════════════════════════════════════════════════════════════╗
   // ║ D3 Force Graph Rendering                                            ║
   // ╚══════════════════════════════════════════════════════════════════════╝
@@ -449,6 +475,7 @@ export function ForceGraph({
 
     // ── Measure ──────────────────────────────────────────────────────────
     const width = container.clientWidth;
+    if (width === 0) return;
 
     // ── Clear previous render ─────────────────────────────────────────────
     d3.select(container).selectAll("svg, .d3-overlay").remove();
@@ -830,7 +857,7 @@ export function ForceGraph({
       simulationRef.current = null;
       d3.select(container).selectAll("svg, .d3-overlay").remove();
     };
-  }, [filteredData, height]);
+  }, [filteredData, height, containerWidth]);
 
   // ╔══════════════════════════════════════════════════════════════════════╗
   // ║ Zoom controls                                                       ║

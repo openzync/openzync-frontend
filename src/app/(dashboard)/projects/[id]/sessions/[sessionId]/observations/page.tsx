@@ -1,12 +1,9 @@
 "use client";
 
-import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Eye } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
-import SessionTabs from "../tabs";
-import { PageGuide, GuideData } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { Badge } from "@/components/ui/badge";
@@ -40,8 +37,6 @@ const typeConfig: Record<
 };
 
 export default function SessionObservationsPage() {
-  const params = useParams();
-  const sessionId = params.sessionId as string;
   const { project } = useProject();
   const projectId = project?.id;
 
@@ -74,10 +69,6 @@ export default function SessionObservationsPage() {
 
   return (
     <div>
-      <SessionTabs sessionId={sessionId} activeTab="observations" />
-      <PageGuide title="Observations" illustration={<GuideData />}>
-        <p>Observations are insights derived from analyzing entity behavior across sessions — co-occurrence patterns, temporal sequences, and behavioral trends. They reveal how entities interact over time.</p>
-      </PageGuide>
       {loading ? (
         <div className="divide-y divide-surface-800">
           {[1, 2, 3].map((i) => (

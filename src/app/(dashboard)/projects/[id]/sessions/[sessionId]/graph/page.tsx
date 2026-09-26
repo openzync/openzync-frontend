@@ -4,10 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { GraphNodeData, GraphEdgeData } from "@/components/force-graph";
-import { PageGuide, GuideGraph } from "@/components/guides";
 import { get, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
-import SessionTabs from "../tabs";
 
 // d3 is heavy and browser-only — load the graph lazily, client-side.
 const ForceGraph = dynamic(
@@ -89,7 +87,6 @@ export default function SessionGraphPage() {
   if (!projectId) {
     return (
       <div>
-        <SessionTabs sessionId={sessionId} activeTab="graph" />
         <div className="card-base p-8 flex flex-col items-center justify-center gap-3 text-surface-500 mt-4">
           <p className="text-sm">No project selected.</p>
         </div>
@@ -99,10 +96,6 @@ export default function SessionGraphPage() {
 
   return (
     <div>
-      <SessionTabs sessionId={sessionId} activeTab="graph" />
-      <PageGuide title="Session graph" illustration={<GuideGraph />}>
-        <p>Visualize the knowledge graph extracted from this specific session. Nodes represent entities mentioned in the conversation, and edges show how they relate to each other.</p>
-      </PageGuide>
       <ForceGraph
         nodes={graphData?.nodes ?? []}
         edges={graphData?.edges ?? []}

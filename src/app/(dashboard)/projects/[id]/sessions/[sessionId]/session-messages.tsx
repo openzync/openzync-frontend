@@ -62,10 +62,13 @@ function RoleIcon({ role }: { role: string }) {
 export function SessionMessages({
   sessionId,
   embedded = false,
+  onScrollReady,
 }: {
   sessionId: string;
   /** Embedded in the session detail page — skips the redundant page heading. */
   embedded?: boolean;
+  /** Receives the scroll-to-bottom fn so a parent header can trigger it. */
+  onScrollReady?: (scrollToBottom: () => void) => void;
 }) {
   const { project, loading: projectLoading } = useProject();
   const projectId = project?.id;
@@ -156,9 +159,13 @@ export function SessionMessages({
   };
 
   // Scroll to bottom
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
+
+  useEffect(() => {
+    onScrollReady?.(scrollToBottom);
+  }, [scrollToBottom, onScrollReady]);
 
   if (!projectId && !projectLoading) {
     return (
@@ -172,31 +179,7 @@ export function SessionMessages({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      {!embedded && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Messages</h1>
-            <p className="text-sm text-surface-400 mt-1">
-              Session:{" "}
-              <span className="font-mono text-surface-300 text-xs" title={sessionId}>
-                {sessionId.slice(0, 8)}…
-              </span>
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={scrollToBottom}
-            className="flex items-center gap-1"
-            title="Scroll to bottom"
-          >
-            <ArrowUp size={14} className="rotate-180" />
-            Latest
-          </Button>
-        </div>
-      )}
-      {embedded && (
+      {embedded && !onScrollReady && (
         <div className="flex justify-end">
           <Button
             variant="ghost"

@@ -7,8 +7,6 @@ import { apiErrorMessage, get, post, ApiError } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { useProject } from "@/stores/project-context";
 import { toast } from "sonner";
-import SessionTabs from "../tabs";
-import { PageGuide, GuideData } from "@/components/guides";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -208,10 +206,6 @@ function SessionFactsInner() {
 
   return (
     <div>
-      <SessionTabs sessionId={sessionId} activeTab="facts" />
-      <PageGuide title="Extracted facts" illustration={<GuideData />}>
-        <p>Facts are discrete pieces of information extracted from conversation messages — statements, attributes, and relationships about entities. Each fact is verified and stored in the knowledge graph.</p>
-      </PageGuide>
       {loading ? (
         <TableSkeleton rows={5} cols={3} colWidths={["w-48", "w-32", "w-16"]} />
       ) : error ? (

@@ -32,6 +32,7 @@ import { Field } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/shared/error-state";
 import { CopyButton } from "@/components/shared/copy-button";
+import { MetadataRow } from "@/components/shared/metadata-row";
 import { useUser, ALL_PERMISSIONS } from "@/contexts/user-context";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -88,28 +89,6 @@ function formatDateTime(dateStr: string): string {
 function shortId(id: string): string {
   if (id.length <= 12) return id;
   return `${id.slice(0, 6)}\u2026${id.slice(-4)}`;
-}
-
-// ─── Metadata Row ──────────────────────────────────────────────────────────────
-
-function MetadataRow({
-  icon,
-  label,
-  children,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 text-surface-500 shrink-0">{icon}</div>
-      <div className="min-w-0 flex-1">
-        <div className="text-xs text-surface-500 mb-0.5">{label}</div>
-        <div className="text-sm text-surface-200">{children}</div>
-      </div>
-    </div>
-  );
 }
 
 // ─── Stat Card ─────────────────────────────────────────────────────────────────
