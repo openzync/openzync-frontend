@@ -39,6 +39,7 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { usePinnedProjects } from "@/hooks/use-pinned-projects";
 import { CommandPalette } from "@/components/shared/command-palette";
 import { AppVersion } from "@/components/shared/app-version";
+import { SidebarEnrichment } from "@/components/shared/sidebar-enrichment";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -487,6 +488,7 @@ function Sidebar({
 
       {/* Bottom section */}
       <div className="mt-auto border-t border-surface-800 p-2 space-y-1">
+        <SidebarEnrichment collapsed={collapsed} />
         {/* View all projects — bottom section when inside a project */}
         {inProject && (
           <CollapsedTip show={collapsed} label="View all projects">
