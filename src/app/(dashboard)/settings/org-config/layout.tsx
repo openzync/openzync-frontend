@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { PageGuide, GuideSettings } from "@/components/guides";
+import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { RequirePermission } from "@/components/shared/require-permission";
@@ -33,12 +34,10 @@ function OrgConfigLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Organization Configuration</h1>
-        <p className="text-sm text-surface-400 mt-1">
-          Manage settings for LLM, embeddings, graph, and behaviour
-        </p>
-      </div>
+      <PageHeader
+        title="Organization Configuration"
+        description="Manage settings for LLM, embeddings, graph, and behaviour"
+      />
 
       <PageGuide title="Organization configuration" illustration={<GuideSettings />}>
         <p>Configure your organization LLM backend, embedding models, graph database, behaviour settings, and blob storage. These settings control how the system processes, enriches, and stores data across all projects.</p>
