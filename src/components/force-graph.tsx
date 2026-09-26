@@ -60,12 +60,15 @@ interface D3Node extends GraphNodeData {
   r: number;
 }
 
-/** D3 link — source/target are string IDs until resolved by forceLink. */
+/** D3 link — source/target are string IDs until resolved by forceLink. `curve` is
+ *  a render-only perpendicular offset (px) assigned per unordered node pair so
+ *  parallel edges fan out instead of stacking. */
 interface D3Link {
   id: string;
   source: string;
   target: string;
   type: string;
+  curve: number;
 }
 
 /** Community grouping for convex hull visualization. */
@@ -122,6 +125,83 @@ function timeAgo(dateStr: string): string {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
+}
+
+// Perpendicular step (px) between parallel edges sharing a node pair, and the
+// clamp on total fan-out so 5+ edges don't balloon. Render-only — physics stays straight.
+const CURVE_STEP = 18;
+const MAX_CURVE = 72;
+// Radius (px) of the self-loop arc drawn above a node for source===target edges.
+const SELF_LOOP_RADIUS = 24;
+
+/** Direction-independent pair key — [min,max] of the two endpoint id strings. */
+function pairKey(a: string, b: string): string {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
+
+/**
+ * Assign symmetric perpendicular offsets per unordered node pair: middle edge
+ * gets 0 when the group count is odd, else ±step, ±2·step alternating sides.
+ */
+function assignEdgeCurvature(links: D3Link[]): void {
+  const groups = new Map<string, D3Link[]>();
+  for (const l of links) {
+    const key = pairKey(l.source, l.target);
+    const group = groups.get(key);
+    if (group) group.push(l);
+    else groups.set(key, [l]);
+  }
+  for (const group of groups.values()) {
+    const n = group.length;
+    // Stable order so API reorder doesn't flip which edge sits at 0/±side.
+    group.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    // Scale the step down once the fan would exceed ±MAX_CURVE, so outer
+    // pairs never hard-pin to the same clamped value and break symmetry.
+    const step = n <= 1 ? 0 : Math.min(CURVE_STEP, (MAX_CURVE * 2) / n);
+    group.forEach((l, i) => {
+      // Odd: (i - (n-1)/2) gives …, -1, 0, +1, … × step. Even: skip 0 so the
+      // two middle edges sit at ±step instead of ±step/2.
+      const raw =
+        n % 2 === 1
+          ? (i - (n - 1) / 2) * step
+          : (i < n / 2 ? i - n / 2 : i - n / 2 + 1) * step;
+      // edgePath offsets along the directed (s→t) normal, which flips when
+      // the edge direction flips. Normalize by pair orientation so symmetric
+      // offsets always fan to opposite visual sides regardless of direction.
+      l.curve = l.source > l.target ? -raw : raw;
+    });
+  }
+}
+
+/** Edge path between two node centres. Straight `L` when curve is 0, else quadratic. */
+function edgePath(sx: number, sy: number, tx: number, ty: number, curve: number): string {
+  if (curve === 0) return `M ${sx} ${sy} L ${tx} ${ty}`;
+  const dx = tx - sx;
+  const dy = ty - sy;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  // Overlapping distinct nodes — no direction to offset along; draw straight.
+  if (len < 1e-6) return `M ${sx} ${sy} L ${tx} ${ty}`;
+  const cx = (sx + tx) / 2 + (-dy / len) * curve;
+  const cy = (sy + ty) / 2 + (dx / len) * curve;
+  return `M ${sx} ${sy} Q ${cx} ${cy} ${tx} ${ty}`;
+}
+
+/** Label anchor: quadratic apex (midpoint + perpendicular × curve/2). */
+function edgeLabelPos(
+  sx: number,
+  sy: number,
+  tx: number,
+  ty: number,
+  curve: number,
+): { x: number; y: number } {
+  const dx = tx - sx;
+  const dy = ty - sy;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (curve === 0 || len < 1e-6) return { x: (sx + tx) / 2, y: (sy + ty) / 2 };
+  return {
+    x: (sx + tx) / 2 + (-dy / len) * (curve / 2),
+    y: (sy + ty) / 2 + (dx / len) * (curve / 2),
+  };
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -459,7 +539,9 @@ export function ForceGraph({
       source: l.source_id,
       target: l.target_id,
       type: l.type,
+      curve: 0,
     }));
+    assignEdgeCurvature(links);
 
     // ── Force simulation ──────────────────────────────────────────────
     const simulation = d3
@@ -527,9 +609,10 @@ export function ForceGraph({
     const linkGroup = g.append("g").attr("class", "links");
 
     const link = linkGroup
-      .selectAll<SVGLineElement, D3Link & { source: D3Node; target: D3Node }>("line")
+      .selectAll<SVGPathElement, D3Link & { source: D3Node; target: D3Node }>("path")
       .data(links, (d) => d.id)
-      .join("line")
+      .join("path")
+      .attr("fill", "none")
       .attr("stroke", lineColor)
       .attr("stroke-width", 1.5)
       .attr("stroke-linecap", "round");
@@ -662,15 +745,33 @@ export function ForceGraph({
 
     // ── Tick handler ──────────────────────────────────────────────────
     simulation.on("tick", () => {
-      link
-        .attr("x1", (d) => (d.source as unknown as D3Node).x!)
-        .attr("y1", (d) => (d.source as unknown as D3Node).y!)
-        .attr("x2", (d) => (d.target as unknown as D3Node).x!)
-        .attr("y2", (d) => (d.target as unknown as D3Node).y!);
+      link.attr("d", (d) => {
+        const s = d.source as unknown as D3Node;
+        const t = d.target as unknown as D3Node;
+        // Self-loop: small cubic loop above the node; size grows slightly
+        // with |curve| so parallel self-loops don't stack. Never divides.
+        if (s.id === t.id && s.x != null && s.y != null) {
+          const r = SELF_LOOP_RADIUS + Math.abs(d.curve) * 0.3;
+          return `M ${s.x} ${s.y} C ${s.x + r} ${s.y - r} ${s.x - r} ${s.y - r} ${s.x} ${s.y}`;
+        }
+        return edgePath(s.x!, s.y!, t.x!, t.y!, d.curve);
+      });
 
       linkLabel
-        .attr("x", (d) => ((d.source as unknown as D3Node).x! + (d.target as unknown as D3Node).x!) / 2)
-        .attr("y", (d) => ((d.source as unknown as D3Node).y! + (d.target as unknown as D3Node).y!) / 2);
+        .attr("x", (d) => {
+          const s = d.source as unknown as D3Node;
+          const t = d.target as unknown as D3Node;
+          if (s.id === t.id && s.x != null && s.y != null) return s.x;
+          return edgeLabelPos(s.x!, s.y!, t.x!, t.y!, d.curve).x;
+        })
+        .attr("y", (d) => {
+          const s = d.source as unknown as D3Node;
+          const t = d.target as unknown as D3Node;
+          if (s.id === t.id && s.x != null && s.y != null) {
+            return s.y - (SELF_LOOP_RADIUS + Math.abs(d.curve) * 0.3) - 6;
+          }
+          return edgeLabelPos(s.x!, s.y!, t.x!, t.y!, d.curve).y;
+        });
 
       node.attr("transform", (d) => `translate(${d.x},${d.y})`);
 
