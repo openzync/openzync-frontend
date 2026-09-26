@@ -336,7 +336,7 @@ function Sidebar({
                 <div className={cn("my-1", collapsed ? "border-t border-surface-700" : "border-t border-surface-800")} />
                 {[
                   { label: "Sessions", href: `/projects/${projectId}/sessions`, icon: <MessageSquare size={18} /> },
-                  { label: "Memory", href: `/projects/${projectId}/memory`, icon: <BrainCircuit size={18} /> },
+                  { label: "Playground", href: `/projects/${projectId}/playground`, icon: <BrainCircuit size={18} /> },
                   { label: "Graph Explorer", href: `/projects/${projectId}/graph`, icon: <GitBranch size={18} /> },
                   { label: "Communities", href: `/projects/${projectId}/graph/communities`, icon: <Shield size={18} /> },
                 ].map((item) => {

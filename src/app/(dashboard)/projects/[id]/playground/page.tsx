@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn, formatFileSize } from "@/lib/utils";
 import { get, uploadWithBlobs } from "@/lib/api-client";
+import { parseContextJson, type ContextResponse, type SearchResultItem } from "@/lib/context-mapper";
 import { toast } from "sonner";
 import { BlobCard, type BlobCardData } from "@/components/shared/blob-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
@@ -34,21 +35,6 @@ interface IngestResponse {
   blob_count?: number;
   status?: string;
   message?: string;
-}
-
-interface ContextResult {
-  context?: string;
-  results?: unknown[];
-  content?: string;
-  [key: string]: unknown;
-}
-
-interface SearchResultItem {
-  type?: string;
-  content?: string;
-  score?: number;
-  id?: string;
-  [key: string]: unknown;
 }
 
 interface SearchResponse {
@@ -260,7 +246,7 @@ function ContextTab({ projectId }: { projectId: string }) {
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(10);
   const [fetching, setFetching] = useState(false);
-  const [result, setResult] = useState<ContextResult | null>(null);
+  const [result, setResult] = useState<ContextResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleGetContext = useCallback(async () => {
@@ -268,11 +254,13 @@ function ContextTab({ projectId }: { projectId: string }) {
     setFetching(true); setError(null); setResult(null);
     try {
       const encodedQuery = encodeURIComponent(query.trim());
-      const data = await get<ContextResult>(`/v1/projects/${projectId}/context?query=${encodedQuery}&limit=${limit}`);
+      const data = await get<ContextResponse>(`/v1/projects/${projectId}/context?query=${encodedQuery}&limit=${limit}&format=json`);
       setResult(data);
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to fetch context"); }
     finally { setFetching(false); }
   }, [projectId, query, limit]);
+
+  const parsedItems = result ? parseContextJson(result.context) : null;
 
   return (
     <div className="card-base p-5 space-y-5">
@@ -299,9 +287,66 @@ function ContextTab({ projectId }: { projectId: string }) {
       {result && (
         <div className="space-y-2">
           <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">Context Results</h3>
-          <pre className="rounded-md bg-surface-950 border border-surface-800 p-4 text-sm text-surface-200 font-mono overflow-x-auto whitespace-pre-wrap max-h-96 overflow-y-auto">{JSON.stringify(result, null, 2)}</pre>
+          {parsedItems === null ? (
+            <pre className="rounded-md bg-surface-950 border border-surface-800 p-4 text-sm text-surface-200 font-mono overflow-x-auto whitespace-pre-wrap max-h-96 overflow-y-auto">{JSON.stringify(result, null, 2)}</pre>
+          ) : (
+            <>
+              {result.metadata && (
+                <p className="text-xs text-surface-500">
+                  {result.metadata.total_items ?? "?"} items · assembled in {result.metadata.assembly_time_ms ?? "?"} ms · {result.metadata.cache_hit ? "cache hit" : "cache miss"}
+                </p>
+              )}
+              <MemoryResultsTable items={parsedItems} />
+            </>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Shared results table ────────────────────────────────────────────────────
+
+// Stateless rendering of SearchResultItem rows — shared by SearchTab and
+// ContextTab so both views stay visually consistent.
+function MemoryResultsTable({ items }: { items: SearchResultItem[] }) {
+  if (items.length === 0) {
+    return (
+      <div className="rounded-md bg-surface-950 border border-surface-800 p-6 text-center text-sm text-surface-500">No results found for this query.</div>
+    );
+  }
+  return (
+    <div className="overflow-x-auto rounded-md border border-surface-800">
+      {/* note: canonical table style — was a denser px-3 variant, normalized for consistency */}
+      <Table zebra={false} storageKey="memory">
+        <TableHeader>
+          <TableHead className="w-24">Type</TableHead>
+          <TableHead>Content</TableHead>
+          <TableHead align="right" className="w-20">Score</TableHead>
+        </TableHeader>
+        <TableBody>
+          {items.map((item, i) => (
+            <TableRow key={item.id ?? i}>
+              <TableCell>
+                <Badge variant={
+                  item.type === "episode" || item.type === "episodes" ? "info"
+                  : item.type === "fact" || item.type === "facts" ? "success"
+                  : item.type === "entity" || item.type === "entities" ? "warning"
+                  : "default"
+                } size="sm">{item.type ?? "unknown"}</Badge>
+              </TableCell>
+              <TableCell title={typeof item.content === "string" ? item.content : undefined} className="text-surface-200 max-w-md truncate">{item.content ?? JSON.stringify(item)}</TableCell>
+              <TableCell align="right">
+                {item.score !== undefined ? (
+                  <span className={cn("font-mono text-xs font-medium",
+                    item.score >= 0.7 ? "text-success" : item.score >= 0.4 ? "text-warning" : "text-surface-400"
+                  )}>{(item.score * 100).toFixed(0)}%</span>
+                ) : <span className="text-surface-600">—</span>}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -416,42 +461,7 @@ function SearchTab({ projectId }: { projectId: string }) {
               ))}
             </div>
           </div>
-          {results.length === 0 ? (
-            <div className="rounded-md bg-surface-950 border border-surface-800 p-6 text-center text-sm text-surface-500">No results found for this query.</div>
-          ) : (
-            <div className="overflow-x-auto rounded-md border border-surface-800">
-              {/* note: canonical table style — was a denser px-3 variant, normalized for consistency */}
-              <Table zebra={false} storageKey="memory">
-                <TableHeader>
-                  <TableHead className="w-24">Type</TableHead>
-                  <TableHead>Content</TableHead>
-                  <TableHead align="right" className="w-20">Score</TableHead>
-                </TableHeader>
-                <TableBody>
-                  {results.map((item, i) => (
-                    <TableRow key={item.id ?? i}>
-                      <TableCell>
-                        <Badge variant={
-                          item.type === "episode" || item.type === "episodes" ? "info"
-                          : item.type === "fact" || item.type === "facts" ? "success"
-                          : item.type === "entity" || item.type === "entities" ? "warning"
-                          : "default"
-                        } size="sm">{item.type ?? "unknown"}</Badge>
-                      </TableCell>
-                      <TableCell className="text-surface-200 max-w-md truncate">{item.content ?? JSON.stringify(item)}</TableCell>
-                      <TableCell align="right">
-                        {item.score !== undefined ? (
-                          <span className={cn("font-mono text-xs font-medium",
-                            item.score >= 0.7 ? "text-success" : item.score >= 0.4 ? "text-warning" : "text-surface-400"
-                          )}>{(item.score * 100).toFixed(0)}%</span>
-                        ) : <span className="text-surface-600">—</span>}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <MemoryResultsTable items={results} />
         </div>
       )}
     </div>
@@ -460,16 +470,16 @@ function SearchTab({ projectId }: { projectId: string }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-export default function MemoryPage() {
+export default function PlaygroundPage() {
   // useSearchParams requires a Suspense boundary during prerender.
   return (
     <Suspense fallback={null}>
-      <MemoryPageInner />
+      <PlaygroundPageInner />
     </Suspense>
   );
 }
 
-function MemoryPageInner() {
+function PlaygroundPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -488,7 +498,7 @@ function MemoryPageInner() {
   if (!projectId) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Memory" description="Ingest messages, query context, and search across memory" />
+        <PageHeader title="Playground" description="Ingest messages, query context, and search across memory" />
         <div className="card-base p-8 flex flex-col items-center justify-center text-surface-500">
           <AlertCircle size={24} className="mb-2" />
           <p className="text-sm">Select a project to access memory features.</p>
@@ -499,7 +509,7 @@ function MemoryPageInner() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Memory" description={`Ingest messages, query context, and search across memory${project ? ` · ${project.name}` : ""}`} />
+      <PageHeader title="Playground" description={`Ingest messages, query context, and search across memory${project ? ` · ${project.name}` : ""}`} />
 
       <PageGuide title="Knowledge memory" illustration={<GuideMemory />}>
         <p>Memory stores accumulated knowledge across all sessions — entities, facts, and relationships extracted from conversations. This persistent knowledge graph enables your AI to recall context from past interactions.</p>

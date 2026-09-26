@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vite
 import { useEffect, useReducer } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import MemoryPage from "@/app/(dashboard)/projects/[id]/memory/page";
+import PlaygroundPage from "@/app/(dashboard)/projects/[id]/playground/page";
 import { post, uploadWithBlobs, ApiError } from "@/lib/api-client";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ const { mockReplace, mockSearchParamsGet, setSearchParams, onMockReplace } =
   });
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/projects/project-123/memory",
+  usePathname: () => "/projects/project-123/playground",
   useRouter: () => ({ push: vi.fn(), replace: mockReplace, prefetch: vi.fn() }),
   useSearchParams: () => ({ get: (key: string) => mockSearchParamsGet(key) }),
 }));
@@ -114,7 +114,7 @@ afterEach(() => {
 
 // Re-renders the page whenever the URL mock changes — the stand-in for
 // Next.js re-rendering useSearchParams consumers after router.replace.
-function MemoryPageHarness() {
+function PlaygroundPageHarness() {
   const [, force] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
     const unsub = onMockReplace(force);
@@ -122,13 +122,13 @@ function MemoryPageHarness() {
       unsub();
     };
   }, []);
-  return <MemoryPage />;
+  return <PlaygroundPage />;
 }
 
 // The submit button and the Ingest tab share the accessible name "Ingest" —
 // scope queries to the ingest card via its heading.
 function renderIngestCard() {
-  render(<MemoryPageHarness />);
+  render(<PlaygroundPageHarness />);
   const heading = screen.getByText("Ingest Messages");
   const card = heading.closest(".card-base");
   if (!card) throw new Error("Ingest card not found");
@@ -147,7 +147,7 @@ async function selectSession(card: ReturnType<typeof within>, sessionId = "sessi
 
 // ─── Tests ────────────────────────────────────────────────────────────────────────
 
-describe("MemoryPage Ingest", () => {
+describe("PlaygroundPage Ingest", () => {
   it("uploads messages via uploadWithBlobs and wires EnrichmentStatus on successful ingest", async () => {
     const user = userEvent.setup();
     const card = renderIngestCard();
@@ -272,14 +272,14 @@ describe("MemoryPage Ingest", () => {
 
 // ─── ?tab= URL state ──────────────────────────────────────────────────────────────
 
-describe("MemoryPage tabs (?tab= URL state)", () => {
+describe("PlaygroundPage tabs (?tab= URL state)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setSearchParams({});
   });
 
   it("defaults to the ingest tab when ?tab= is absent", () => {
-    render(<MemoryPageHarness />);
+    render(<PlaygroundPageHarness />);
     expect(screen.getByRole("tab", { name: /Ingest/i })).toHaveAttribute(
       "aria-selected",
       "true",
@@ -290,12 +290,12 @@ describe("MemoryPage tabs (?tab= URL state)", () => {
 
   it("clicking Context writes ?tab=context via router.replace (no scroll) and switches panels", async () => {
     const user = userEvent.setup();
-    render(<MemoryPageHarness />);
+    render(<PlaygroundPageHarness />);
 
     await user.click(screen.getByRole("tab", { name: /Context/i }));
 
     expect(mockReplace).toHaveBeenCalledWith(
-      "/projects/project-123/memory?tab=context",
+      "/projects/project-123/playground?tab=context",
       { scroll: false },
     );
     expect(await screen.findByText("Query Context")).toBeInTheDocument();
@@ -304,14 +304,14 @@ describe("MemoryPage tabs (?tab= URL state)", () => {
 
   it("deep-links straight into a tab from ?tab=search", () => {
     setSearchParams({ tab: "search" });
-    render(<MemoryPageHarness />);
+    render(<PlaygroundPageHarness />);
     expect(screen.getByText("Search Memory")).toBeInTheDocument();
     expect(screen.queryByText("Ingest Messages")).not.toBeInTheDocument();
   });
 
   it("clamps an invalid ?tab= value back to ingest", () => {
     setSearchParams({ tab: "bogus" });
-    render(<MemoryPageHarness />);
+    render(<PlaygroundPageHarness />);
     expect(screen.getByText("Ingest Messages")).toBeInTheDocument();
     expect(screen.queryByText("Search Memory")).not.toBeInTheDocument();
   });

@@ -8,6 +8,15 @@ const nextConfig: NextConfig = {
    * URL e.g. https://app.openzync.tech). */
   output: "standalone",
   allowedDevOrigins: ["192.168.0.109"],
+  async redirects() {
+    return [
+      {
+        source: "/projects/:id/memory",
+        destination: "/projects/:id/playground",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

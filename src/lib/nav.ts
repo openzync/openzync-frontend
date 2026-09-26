@@ -91,7 +91,7 @@ export function isVisible(
 
 const PROJECT_PAGE_LABELS: Record<string, string> = {
   sessions: "Sessions",
-  memory: "Memory",
+  playground: "Playground",
   graph: "Graph Explorer",
   communities: "Communities",
   members: "Members",
