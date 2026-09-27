@@ -62,7 +62,8 @@ function renderLayout() {
 
 // The sidebar renders twice (mobile + desktop, CSS-hidden in jsdom), so
 // visible labels appear twice for who can see them and zero times otherwise.
-const CONFIG_READ_LABELS = ["Configuration", "Extraction Schemas", "Classifications", "Extractions", "Webhooks", "Extraction Instructions", "Prompt Templates"];
+// Mirrors NAV_SECTIONS in src/lib/nav.ts — keep the two in step.
+const CONFIG_READ_LABELS = ["Configuration", "Extraction Schemas", "Webhooks", "Extraction Instructions", "Prompt Templates"];
 const MEMBERS_READ_LABELS = ["Users", "Monitoring", "Audit Log"];
 const ADMIN_ONLY_LABELS = [...MEMBERS_READ_LABELS, ...CONFIG_READ_LABELS];
 

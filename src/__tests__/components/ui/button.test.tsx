@@ -14,7 +14,9 @@ describe("Button", () => {
   });
   it("applies secondary variant", () => {
     render(<Button variant="secondary">Secondary</Button>);
-    expect(screen.getByRole("button")).toHaveClass("bg-transparent");
+    // Secondary is the raised fill (ghost is the transparent one).
+    expect(screen.getByRole("button")).toHaveClass("bg-panel-raised");
+    expect(screen.getByRole("button")).not.toHaveClass("bg-transparent");
   });
   it("applies ghost variant", () => {
     render(<Button variant="ghost">Ghost</Button>);

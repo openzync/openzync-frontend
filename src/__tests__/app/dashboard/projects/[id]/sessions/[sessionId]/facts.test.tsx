@@ -9,6 +9,11 @@ import { toast } from "sonner";
 
 vi.mock("next/navigation", () => ({
   useParams: () => ({ id: "project-123", sessionId: "session-1" }),
+  // The list is server-sorted through useSortQuery, so the page reads the
+  // query string and rewrites it on header clicks.
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/projects/project-123/sessions/session-1/facts",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const mockProject = {
@@ -157,7 +162,7 @@ describe("SessionFactsPage", () => {
       expect(get).toHaveBeenCalledTimes(2);
       expect(get).toHaveBeenNthCalledWith(
         2,
-        "/v1/projects/project-123/sessions/session-1/facts?limit=50",
+        "/v1/projects/project-123/sessions/session-1/facts?limit=50&sort_by=created_at&sort_dir=desc",
       );
       expect(vi.mocked(toast.success)).toHaveBeenCalledWith("Fact retracted");
     },

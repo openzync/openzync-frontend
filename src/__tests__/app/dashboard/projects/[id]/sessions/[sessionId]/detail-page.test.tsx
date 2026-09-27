@@ -1,13 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import SessionDetailPage from "@/app/(dashboard)/projects/[id]/sessions/[sessionId]/page";
+import SessionTabs from "@/app/(dashboard)/projects/[id]/sessions/[sessionId]/tabs";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────────
 
+const { mockPush } = vi.hoisted(() => ({ mockPush: vi.fn() }));
+
 vi.mock("next/navigation", () => ({
-  useParams: () => ({ sessionId: "s-1" }),
+  useParams: () => ({ id: "p-1", sessionId: "s-1" }),
   usePathname: () => "/projects/p-1/sessions/s-1",
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  useRouter: () => ({ push: mockPush, replace: vi.fn(), prefetch: vi.fn() }),
 }));
 
 vi.mock("@/stores/project-context", () => ({
@@ -32,7 +36,9 @@ vi.mock("@/lib/api-client", () => ({
         created_at: "2025-01-01T00:00:00Z",
       });
     }
-    if (path === "/v1/projects/p-1/sessions/s-1/messages?limit=100") {
+    // The landing page renders previews, not full tables — messages preview
+    // the last 5 messages.
+    if (path === "/v1/projects/p-1/sessions/s-1/messages?limit=5") {
       return Promise.resolve({
         data: [
           { id: "m-1", role: "user", content: "Hello from the user", created_at: "2025-01-01T00:00:01Z" },
@@ -69,16 +75,60 @@ describe("SessionDetailPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders the shared tab bar; on the landing no subtab is marked current", async () => {
+  // The tab bar moved to the [sessionId] layout (it owns the header + tabs
+  // above every child page), so the landing page renders no tabs of its own.
+  it("no longer renders its own tab bar — the [sessionId] layout owns it", async () => {
     render(<SessionDetailPage />);
 
-    // Landing path /sessions/<id> matches no subtab → nothing is aria-current.
-    const messagesTab = await screen.findByRole("link", { name: "Messages" });
-    expect(messagesTab).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("link", { name: "Facts" })).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("link", { name: "Observations" })).toHaveAttribute(
-      "href",
+    expect(await screen.findByText("Hello from the user")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Messages" })).not.toBeInTheDocument();
+  });
+
+  // Covers the shared tab bar contract the landing route depends on: the
+  // layout resolves the bare path to the "overview" tab, and every subtab
+  // routes to its artifact path.
+  it("marks the Overview tab current on the bare session path and routes subtab clicks", async () => {
+    const user = userEvent.setup();
+    render(<SessionTabs sessionId="s-1" activeTab="overview" />);
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual([
+      "Overview",
+      "Messages",
+      "Facts",
+      "Graph",
+      "Classifications",
+      "Extractions",
+      "Observations",
+    ]);
+
+    // Landing = the overview tab, and only that one.
+    expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tab", { name: "Messages" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+    expect(screen.getByRole("tab", { name: "Facts" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+
+    // Subtab clicks push the artifact path (previously asserted as hrefs).
+    await user.click(screen.getByRole("tab", { name: "Observations" }));
+    expect(mockPush).toHaveBeenCalledWith(
       "/projects/p-1/sessions/s-1/observations",
     );
+
+    // Overview's href is "" — from any subtab it routes to the bare path.
+    // (On the landing itself the tab is already current, so Radix fires no
+    // change event for a re-click.)
+    const { rerender } = render(<SessionTabs sessionId="s-1" activeTab="overview" />);
+    rerender(<SessionTabs sessionId="s-1" activeTab="messages" />);
+    const overviewTabs = screen.getAllByRole("tab", { name: "Overview" });
+    await user.click(overviewTabs[overviewTabs.length - 1]);
+    expect(mockPush).toHaveBeenLastCalledWith("/projects/p-1/sessions/s-1");
   });
 });

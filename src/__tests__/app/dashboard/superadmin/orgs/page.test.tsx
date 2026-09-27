@@ -10,6 +10,14 @@ const { mockGet, mockPost } = vi.hoisted(() => ({
   mockPost: vi.fn(),
 }));
 
+// Sort state is URL-synced through useSortQuery, which reads the query string
+// and rewrites it on header clicks.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/superadmin/orgs",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock("@/lib/api-client", () => {
   class ApiError extends Error {
     status: number;
@@ -171,7 +179,9 @@ describe("SuperadminOrgsPage", () => {
     renderPage();
 
     await screen.findByText("Acme Corp");
-    expect(mockGet).toHaveBeenCalledWith("/admin/system/orgs?page=1&limit=50");
+    expect(mockGet).toHaveBeenCalledWith(
+      "/admin/system/orgs?page=1&limit=50&sort_by=created_at&sort_dir=desc",
+    );
     expect(screen.queryByRole("button", { name: /Load More/i })).not.toBeInTheDocument();
   });
 
@@ -191,7 +201,9 @@ describe("SuperadminOrgsPage", () => {
     await user.click(screen.getByRole("button", { name: /Load More/i }));
 
     expect(await screen.findByText("Tail Org")).toBeInTheDocument();
-    expect(mockGet).toHaveBeenLastCalledWith("/admin/system/orgs?page=2&limit=50");
+    expect(mockGet).toHaveBeenLastCalledWith(
+      "/admin/system/orgs?page=2&limit=50&sort_by=created_at&sort_dir=desc",
+    );
     expect(screen.queryByRole("button", { name: /Load More/i })).not.toBeInTheDocument();
   });
 });

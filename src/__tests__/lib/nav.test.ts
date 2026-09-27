@@ -101,10 +101,11 @@ describe("resolveBreadcrumb", () => {
   });
 
   it("matches the longest manifest prefix", () => {
-    // /settings/extractions must not be swallowed by a shorter /settings rule.
-    expect(resolveBreadcrumb("/settings/extractions")).toEqual([
+    // A nested route resolves to its nearest manifest ancestor, not to a
+    // sibling entry, and a path with no manifest match stays empty.
+    expect(resolveBreadcrumb("/settings/schemas/deep/nested")).toEqual([
       { label: "Administration" },
-      { label: "Extractions" },
+      { label: "Extraction Schemas" },
     ]);
     expect(resolveBreadcrumb("/users/u-1")).toEqual([
       { label: "Administration" },

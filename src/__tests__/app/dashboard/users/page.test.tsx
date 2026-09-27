@@ -16,6 +16,14 @@ const { mockUseUser, mockGet, mockPatch, mockPost, mockDel, mockInviteUser, mock
   mockRevokeInvite: vi.fn(),
 }));
 
+// Sort state is URL-synced through useSortQuery, which reads the query string
+// and rewrites it on header clicks.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/users",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock("@/contexts/user-context", () => ({
   useUser: () => mockUseUser(),
 }));

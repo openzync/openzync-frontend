@@ -13,10 +13,29 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+// The page gates the Unarchive action on project:manage.
+vi.mock("@/contexts/user-context", () => ({
+  useUser: () => ({
+    user: { id: "user-1", email: "admin@acme.com", name: "Admin", role: "admin", permissions: [] },
+    role: "admin",
+    isAdmin: true,
+    isSuperadmin: false,
+    can: () => true,
+    loading: false,
+  }),
+}));
+
+const { mockPin, mockUnpin } = vi.hoisted(() => ({
+  mockPin: vi.fn(),
+  mockUnpin: vi.fn(),
+}));
+
 vi.mock("@/lib/api-client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api-client")>()),
   get: vi.fn(),
   post: vi.fn(),
+  pinProject: mockPin,
+  unpinProject: mockUnpin,
   ApiError: class ApiError extends Error {
     status: number;
     body: unknown;
@@ -171,9 +190,15 @@ describe("ProjectsPage", () => {
 
   it("retry button refetches projects", async () => {
     const { ApiError } = await import("@/lib/api-client");
-    (get as ReturnType<typeof vi.fn>)
-      .mockRejectedValueOnce(new ApiError("Failed to load", 500, null))
-      .mockResolvedValueOnce({ data: mockProjects });
+    // Scoped to the list endpoint: the page also fetches ?pinned_only=true for
+    // the pin rail, so global "once" sequencing would land on the wrong call.
+    const listCalls = () =>
+      (get as ReturnType<typeof vi.fn>).mock.calls.filter(([p]) => p === "/v1/projects");
+    (get as ReturnType<typeof vi.fn>).mockImplementation((path: string) =>
+      path === "/v1/projects" && listCalls().length === 1
+        ? Promise.reject(new ApiError("Failed to load", 500, null))
+        : Promise.resolve({ data: mockProjects }),
+    );
 
     const user = userEvent.setup();
     render(<ProjectsPage />);
@@ -184,7 +209,7 @@ describe("ProjectsPage", () => {
     expect(
       await screen.findByText("Customer Support Bot"),
     ).toBeInTheDocument();
-    expect(get).toHaveBeenCalledTimes(2);
+    expect(listCalls()).toHaveLength(2);
   });
 
   it("opens create dialog when Create Project is clicked", async () => {
@@ -371,10 +396,15 @@ describe("ProjectsPage", () => {
     const user = userEvent.setup();
     render(<ProjectsPage />);
 
-    // One pin button per project card
+    // The rail loads both projects as pinned (the hook's ?pinned_only=true
+    // fetch resolves from the same `get` mock), so the first card's pin
+    // button is an Unpin.
     const pinButtons = await screen.findAllByTitle(/pin project/i);
+    expect(pinButtons[0]).toHaveAttribute("title", "Unpin project");
     await user.click(pinButtons[0]);
 
+    // The pin action must not bubble into the card's navigation handler.
+    expect(mockUnpin).toHaveBeenCalledWith("proj-1");
     expect(mockPush).not.toHaveBeenCalled();
   });
 });

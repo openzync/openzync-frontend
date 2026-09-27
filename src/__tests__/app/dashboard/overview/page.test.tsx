@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useEffect, useReducer } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import OverviewPage from "@/app/(dashboard)/overview/page";
 import { get } from "@/lib/api-client";
@@ -21,10 +21,10 @@ function OverviewPageHarness() {
 // ─── Mocks ────────────────────────────────────────────────────────────────────────
 
 const mockPush = vi.fn();
-// Stateful URL simulation: router.replace writes ?days= back into the
+// Stateful URL simulation: router.replace writes the query string back into the
 // search-param mock and notifies subscribers, mirroring how real Next.js
 // re-renders useSearchParams consumers after a replace.
-const { mockReplace, mockSearchParamsGet, setSearchParams, onMockReplace } =
+const { mockReplace, mockSearchParamsGet, setSearchParams, onMockReplace, searchParams } =
   vi.hoisted(() => {
     const params = new Map<string, string>();
     const listeners = new Set<() => void>();
@@ -43,57 +43,64 @@ const { mockReplace, mockSearchParamsGet, setSearchParams, onMockReplace } =
         listeners.add(cb);
         return () => listeners.delete(cb);
       },
+      // A real URLSearchParams: the page rebuilds the query string from
+      // searchParams.toString(), so a `{get}`-only stub would serialise
+      // "[object Object]" as a param name.
+      searchParams: () => new URLSearchParams([...params]),
     };
   });
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, prefetch: vi.fn() }),
   usePathname: () => "/overview",
-  useSearchParams: () => ({ get: (key: string) => mockSearchParamsGet(key) }),
+  useSearchParams: () => searchParams(),
   useParams: () => ({}),
 }));
 
+const PROJECTS = [
+  { id: "p-1", name: "Customer Support Bot" },
+  { id: "p-2", name: "Data Extraction Pipeline" },
+];
+
+/** Query string of a fetched path, e.g. "/v1/admin/stats/usage?days=30". */
+function qs(path: string): URLSearchParams {
+  return new URLSearchParams(path.split("?")[1] ?? "");
+}
+
+const ORG_STATS = {
+  total_episodes: 25,
+  total_sessions: 100,
+  total_facts: 200,
+  total_extractions: 40,
+  total_observations: 12,
+  total_classifications: 7,
+};
+
+const USAGE = [
+  // Newest-first on the wire — the page sorts oldest-first before charting.
+  { date: "2025-07-02", episode_count: 12, session_count: 3, fact_count: 20, extraction_count: 4, observation_count: 2, classification_count: 1, node_count: 40, edge_count: 90 },
+  { date: "2025-07-01", episode_count: 10, session_count: 2, fact_count: 15, extraction_count: 3, observation_count: 1, classification_count: 1, node_count: 30, edge_count: 70 },
+];
+
 // Named base implementation so tests can override `get` and later delegate
 // back to the original behaviour without capturing a previous override.
+// Every dashboard endpoint is windowed with `?<qs>` (days=… or from/to, plus an
+// optional project_id) — so dispatch on the path, not the exact URL.
 const baseGetImpl = (path: string) => {
-  if (path === "/v1/admin/stats/org") {
-    return Promise.resolve({
-      total_users: 10,
-      total_sessions: 100,
-      total_messages: 5000,
-      total_api_keys: 3,
-      total_episodes: 25,
-      total_facts: 200,
-    });
+  if (path === "/v1/projects?limit=100") {
+    return Promise.resolve({ data: PROJECTS });
   }
-  if (path === "/v1/admin/audit-logs?limit=5") {
-    return Promise.resolve({
-      items: [
-        {
-          id: "1",
-          action: "auth.login",
-          actor_id: "user-1",
-          actor_type: "user",
-          created_at: new Date().toISOString(),
-          status_code: 200,
-          display_name: "User logged in",
-        },
-      ],
-    });
+  if (path.startsWith("/v1/admin/stats/org")) {
+    return Promise.resolve(ORG_STATS);
+  }
+  if (path.startsWith("/v1/admin/stats/usage")) {
+    return Promise.resolve({ data: USAGE });
   }
   if (path === "/v1/admin/quick-actions") {
     return Promise.resolve({
       actions: [
         { label: "View Sessions", href: "/projects", icon: "folder-kanban" },
         { label: "View Analytics", href: "/analytics", icon: "bar-chart-3" },
-      ],
-    });
-  }
-  if (path === "/v1/admin/stats/usage?days=7") {
-    return Promise.resolve({
-      data: [
-        { date: "2025-07-01", message_count: 100, session_count: 10 },
-        { date: "2025-07-02", message_count: 150, session_count: 12 },
       ],
     });
   }
@@ -104,9 +111,6 @@ vi.mock("@/lib/api-client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api-client")>()),
   get: vi.fn().mockImplementation((path: string) => baseGetImpl(path)),
 }));
-
-const mockFetch = vi.fn();
-globalThis.fetch = mockFetch;
 
 vi.mock("@/components/shared/page-header", () => ({
   PageHeader: ({ title, description }: { title: string; description?: string }) => (
@@ -126,6 +130,13 @@ vi.mock("@/components/shared/stat-card", () => ({
   ),
 }));
 
+// recharts needs real layout metrics; the panels and their headings are the
+// contract under test, not the SVG internals.
+vi.mock("@/components/shared/charts", () => ({
+  BarChart: () => <div data-testid="bar-chart" />,
+  cssVar: (name: string) => `var(${name})`,
+}));
+
 vi.mock("@/components/guides", () => ({
   PageGuide: ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div>
@@ -136,12 +147,23 @@ vi.mock("@/components/guides", () => ({
   GuideDashboard: () => <div>Guide Icon</div>,
 }));
 
+/** URLs of every usage-window fetch, oldest-to-newest. */
+function usageCalls(): string[] {
+  return vi
+    .mocked(get)
+    .mock.calls.map(([path]) => String(path))
+    .filter((p) => p.startsWith("/v1/admin/stats/usage"));
+}
+
+function timeRange() {
+  return screen.getByLabelText("Filter by time range") as HTMLSelectElement;
+}
+
 beforeEach(() => {
   mockPush.mockReset();
   mockReplace.mockClear();
   mockSearchParamsGet.mockClear();
   setSearchParams({});
-  mockFetch.mockReset();
 });
 
 afterEach(() => {
@@ -159,13 +181,12 @@ describe("OverviewPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the stat cards", () => {
+  it("renders the stat cards", async () => {
     render(<OverviewPage />);
-    // Stat-card labels repeat elsewhere on the page ("Messages"/"Sessions" in
-    // the chart legend, "Users"/"Episodes" as trend mini-chart headings), so
-    // every label must be queried with getAllByText. Labels are static — they
-    // render synchronously regardless of API state.
-    for (const label of ["Messages", "Sessions", "Facts", "Users", "Episodes", "API Keys"]) {
+    // Labels repeat as trend-panel headings, so every label must be queried
+    // with getAllByText. Labels are static — they render synchronously
+    // regardless of API state.
+    for (const label of ["Episodes", "Sessions", "Facts", "Extractions", "Observations", "Classifications"]) {
       expect(screen.getAllByText(label).length).toBeGreaterThanOrEqual(1);
     }
   });
@@ -174,6 +195,9 @@ describe("OverviewPage", () => {
     render(<OverviewPage />);
     const statCards = await screen.findAllByTestId("stat-card");
     expect(statCards).toHaveLength(6);
+    // The mocked card renders the raw value — the first card is Episodes.
+    expect(statCards[0]).toHaveTextContent("Episodes");
+    expect(statCards[0]).toHaveTextContent("25");
   });
 
   it("renders quick actions section", async () => {
@@ -183,64 +207,139 @@ describe("OverviewPage", () => {
     expect(await screen.findByText("View Analytics")).toBeInTheDocument();
   });
 
-  it("renders recent activity section", async () => {
+  it("renders a trend panel per artifact plus the graph section", async () => {
     render(<OverviewPage />);
-    expect(await screen.findByText("Recent Activity")).toBeInTheDocument();
-    expect(await screen.findByText("User logged in")).toBeInTheDocument();
+
+    // One panel per artifact series, each a chart once usage arrives.
+    await screen.findAllByTestId("bar-chart");
+    for (const label of ["Episodes", "Sessions", "Facts", "Extractions", "Observations", "Classifications"]) {
+      expect(screen.getByRole("heading", { name: label })).toBeInTheDocument();
+    }
+    // The big graph panel is a 7th chart (nodes/edges), so 7 total.
+    expect(screen.getAllByTestId("bar-chart")).toHaveLength(7);
+    expect(screen.getByRole("heading", { name: "Graph" })).toBeInTheDocument();
   });
 
-  it("renders view all link in recent activity", async () => {
+  it("populates the project filter from the project list endpoint", async () => {
     render(<OverviewPage />);
-    expect(await screen.findByText(/View all/)).toBeInTheDocument();
+
+    const select = (await screen.findByLabelText(
+      "Filter by project",
+    )) as HTMLSelectElement;
+    expect(select).toHaveValue("");
+    expect(
+      within(select).getByRole("option", { name: "All projects" }),
+    ).toBeInTheDocument();
+    for (const p of PROJECTS) {
+      expect(within(select).getByRole("option", { name: p.name })).toBeInTheDocument();
+    }
+    expect(get).toHaveBeenCalledWith("/v1/projects?limit=100");
   });
 
-  it("renders daily usage chart section", async () => {
+  it("renders the time range filter with the 7/30/90-day presets and a custom option", () => {
     render(<OverviewPage />);
-    expect(await screen.findByText("Daily Usage")).toBeInTheDocument();
+
+    const select = timeRange();
+    expect(
+      Array.from(select.options).map((o) => [o.value, o.textContent]),
+    ).toEqual([
+      ["7", "Last 7 days"],
+      ["30", "Last 30 days"],
+      ["90", "Last 90 days"],
+      ["custom", "Custom range"],
+    ]);
+    // Default window is 30 days.
+    expect(select).toHaveValue("30");
   });
 
-  it("renders day filter buttons (7d, 30d, 90d)", async () => {
-    render(<OverviewPage />);
-    expect(await screen.findByText("7d")).toBeInTheDocument();
-    expect(await screen.findByText("30d")).toBeInTheDocument();
-    expect(await screen.findByText("90d")).toBeInTheDocument();
+  it("filters the window by project: ?project= becomes project_id on both fetches", async () => {
+    const user = userEvent.setup();
+    render(<OverviewPageHarness />);
+    await screen.findByText("Quick Actions");
+
+    await user.selectOptions(screen.getByLabelText("Filter by project"), "p-1");
+
+    // Only the params the page owns are written — days stays implicit at 30.
+    expect(mockReplace).toHaveBeenCalledWith(
+      "/overview?project=p-1",
+      { scroll: false },
+    );
+    await vi.waitFor(() => {
+      expect(
+        usageCalls().some((p) => qs(p).get("project_id") === "p-1"),
+      ).toBe(true);
+    });
+    expect(vi.mocked(get).mock.calls.some(
+      ([p]) => String(p).startsWith("/v1/admin/stats/org") && qs(String(p)).get("project_id") === "p-1",
+    )).toBe(true);
   });
 
   // ── ?days= URL state ────────────────────────────────────────────────────────
 
-  it("clamps an invalid ?days= value to the default range", async () => {
+  it("clamps an unsupported ?days= value to the 30-day default", async () => {
     setSearchParams({ days: "42" });
     render(<OverviewPage />);
-    await screen.findByText("Daily Usage");
+    await screen.findByText("Quick Actions");
 
     // The usage fetch must use the clamped value, never the raw param.
-    expect(get).toHaveBeenCalledWith("/v1/admin/stats/usage?days=7");
+    expect(get).toHaveBeenCalledWith("/v1/admin/stats/usage?days=30");
     expect(get).not.toHaveBeenCalledWith("/v1/admin/stats/usage?days=42");
-    // The 7d pill is the active one.
-    expect(screen.getByRole("button", { name: "7d" })).toHaveClass("bg-brand-500");
+    expect(timeRange()).toHaveValue("30");
   });
 
   it("honours a valid ?days= deep link", async () => {
-    setSearchParams({ days: "30" });
+    setSearchParams({ days: "7" });
     render(<OverviewPage />);
-    await screen.findByText("Daily Usage");
+    await screen.findByText("Quick Actions");
 
-    expect(get).toHaveBeenCalledWith("/v1/admin/stats/usage?days=30");
-    expect(screen.getByRole("button", { name: "30d" })).toHaveClass("bg-brand-500");
+    expect(get).toHaveBeenCalledWith("/v1/admin/stats/usage?days=7");
+    expect(timeRange()).toHaveValue("7");
   });
 
-  it("selecting a range pill writes ?days= via router.replace and refetches", async () => {
+  it("selecting a range writes ?days= via router.replace and refetches", async () => {
     const user = userEvent.setup();
     render(<OverviewPageHarness />);
-    await screen.findByText("Daily Usage");
+    await screen.findByText("Quick Actions");
 
     vi.mocked(get).mockClear();
-    await user.click(screen.getByRole("button", { name: "90d" }));
+    await user.selectOptions(timeRange(), "90");
 
     expect(mockReplace).toHaveBeenCalledWith("/overview?days=90", { scroll: false });
-    expect(
-      vi.mocked(get).mock.calls.some(([path]) => path === "/v1/admin/stats/usage?days=90"),
-    ).toBe(true);
+    await vi.waitFor(() => {
+      expect(usageCalls()).toContain("/v1/admin/stats/usage?days=90");
+    });
+  });
+
+  it("applies a custom from/to range, replacing the days preset", async () => {
+    const user = userEvent.setup();
+    setSearchParams({ days: "7" });
+    render(<OverviewPageHarness />);
+    await screen.findByText("Quick Actions");
+
+    await user.selectOptions(timeRange(), "custom");
+    // Date inputs don't take per-key typing in jsdom — set the value directly.
+    fireEvent.change(screen.getByLabelText("From date"), {
+      target: { value: "2025-06-01" },
+    });
+    fireEvent.change(screen.getByLabelText("To date"), {
+      target: { value: "2025-06-30" },
+    });
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+
+    // The custom window replaces the preset, and Clear restores days=30.
+    expect(mockReplace).toHaveBeenLastCalledWith(
+      "/overview?from=2025-06-01&to=2025-06-30",
+      { scroll: false },
+    );
+    expect(usageCalls()).toContain(
+      "/v1/admin/stats/usage?from=2025-06-01&to=2025-06-30",
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Clear" }));
+    expect(mockReplace).toHaveBeenLastCalledWith(
+      "/overview?days=30",
+      { scroll: false },
+    );
   });
 
   it("renders guide section with dashboard illustration", async () => {
@@ -250,17 +349,19 @@ describe("OverviewPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the quickstart panel for a fresh org with zero messages", async () => {
+  it("renders the quickstart panel for a fresh org with zero episodes", async () => {
+    // Path-scoped (not ...Once): the project dropdown fetches /v1/projects
+    // before the stats window, so a positional override would miss.
     const defaultImpl = vi.mocked(get).getMockImplementation() as (path: string) => Promise<unknown>;
-    vi.mocked(get).mockImplementationOnce((path: string) => {
-      if (path === "/v1/admin/stats/org") {
+    vi.mocked(get).mockImplementation((path: string) => {
+      if (path.startsWith("/v1/admin/stats/org")) {
         return Promise.resolve({
-          total_users: 0,
-          total_sessions: 0,
-          total_messages: 0,
-          total_api_keys: 0,
           total_episodes: 0,
+          total_sessions: 0,
           total_facts: 0,
+          total_extractions: 0,
+          total_observations: 0,
+          total_classifications: 0,
         });
       }
       return defaultImpl(path);
@@ -269,17 +370,18 @@ describe("OverviewPage", () => {
     render(<OverviewPage />);
     expect(await screen.findByText("Get started in 3 steps")).toBeInTheDocument();
     expect(await screen.findByText("Create your first project")).toBeInTheDocument();
+    expect(await screen.findByText("Create a project")).toBeInTheDocument();
     expect(await screen.findByText("Ingest a conversation")).toBeInTheDocument();
     expect(await screen.findByText("Explore the knowledge graph")).toBeInTheDocument();
   });
 
   // ── Error-state regressions ──────────────────────────────────────────────────
-  // The three fetches used to swallow errors with bare catch{} blocks, which
-  // rendered a misleading "No recent activity found." on failure.
+  // The stat/usage fetches used to swallow errors with bare catch{} blocks,
+  // which rendered a misleading "No data for this period." on failure.
 
-  it("shows an error state instead of 'No recent activity' when activity fetch fails", async () => {
+  it("shows an error state instead of the stat cards when the stats fetch fails", async () => {
     vi.mocked(get).mockImplementation((path: string) =>
-      path === "/v1/admin/audit-logs?limit=5"
+      path.startsWith("/v1/admin/stats/org")
         ? Promise.reject(new Error("network down"))
         : baseGetImpl(path),
     );
@@ -287,28 +389,28 @@ describe("OverviewPage", () => {
     render(<OverviewPage />);
 
     expect(
-      await screen.findByText("Couldn't load recent activity."),
+      await screen.findByText("Couldn't load organization stats."),
     ).toBeInTheDocument();
-    expect(screen.queryByText("No recent activity found.")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("stat-card")).not.toBeInTheDocument();
   });
 
-  it("retry re-invokes the failed activity fetch", async () => {
+  it("retry re-invokes the failed stats fetch", async () => {
     const user = userEvent.setup();
     let fail = true;
     vi.mocked(get).mockImplementation((path: string) => {
-      if (path === "/v1/admin/audit-logs?limit=5") {
+      if (path.startsWith("/v1/admin/stats/org")) {
         return fail ? Promise.reject(new Error("network down")) : baseGetImpl(path);
       }
       return baseGetImpl(path);
     });
 
     render(<OverviewPage />);
-    await screen.findByText("Couldn't load recent activity.");
+    await screen.findByText("Couldn't load organization stats.");
 
     fail = false;
     await user.click(screen.getByRole("button", { name: /retry/i }));
 
-    expect(await screen.findByText("User logged in")).toBeInTheDocument();
+    expect(await screen.findAllByTestId("stat-card")).toHaveLength(6);
   });
 
   it("shows an error state for quick actions failure", async () => {
@@ -321,18 +423,5 @@ describe("OverviewPage", () => {
     render(<OverviewPage />);
     expect(await screen.findByText("Couldn't load quick actions.")).toBeInTheDocument();
     expect(screen.queryByText("View Sessions")).not.toBeInTheDocument();
-  });
-
-  it("shows an error state for stats failure", async () => {
-    vi.mocked(get).mockImplementation((path: string) =>
-      path === "/v1/admin/stats/org"
-        ? Promise.reject(new Error("network down"))
-        : baseGetImpl(path),
-    );
-
-    render(<OverviewPage />);
-    expect(
-      await screen.findByText("Couldn't load organization stats."),
-    ).toBeInTheDocument();
   });
 });

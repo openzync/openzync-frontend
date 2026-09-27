@@ -224,7 +224,15 @@ describe("AuditLogPage URL state", () => {
     await user.click(screen.getByRole("button", { name: "Clear" }));
 
     await vi.waitFor(() => {
-      expect(lastReplaceUrl()).toBe("/audit");
+      const url = lastReplaceUrl();
+      // Every filter and page param is dropped…
+      expect(url).not.toContain("action=");
+      expect(url).not.toContain("actor_type=");
+      expect(url).not.toContain("status=");
+      expect(url).not.toContain("page=");
+      // …but the explicit sort contract is always present, not a filter.
+      expect(url).toContain("sort_by=created_at");
+      expect(url).toContain("sort_dir=desc");
     });
   });
 });

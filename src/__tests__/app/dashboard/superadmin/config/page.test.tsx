@@ -92,7 +92,16 @@ describe("SuperadminConfigPage", () => {
     mockGetSettings.mockResolvedValue(SETTINGS_FIXTURE);
   });
 
-  it("PATCHes the right body when the policy and scope change", async () => {
+  // Timeout raised deliberately, matching the note in
+  // __tests__/app/dashboard/projects/[id]/sessions/[sessionId]/facts.test.tsx:
+  // this is the only test here that drives the Radix Select (open combobox →
+  // portal → click option) after a label click, and it runs first in the file,
+  // so it also pays the cold-start cost of the whole Select path. Under
+  // parallel-worker load the chain stretches past the 5s default; verified to
+  // pass comfortably when this file runs in isolation.
+  it(
+    "PATCHes the right body when the policy and scope change",
+    async () => {
     const user = userEvent.setup();
     mockGet.mockResolvedValue(ALLOW_ALL_CONFIG);
     mockPatch.mockResolvedValue({ ...ALLOW_ALL_CONFIG, org_creation_policy: "approvals", approval_scope: "public_signup" });
@@ -112,7 +121,9 @@ describe("SuperadminConfigPage", () => {
         approval_scope: "public_signup",
       });
     });
-  });
+  },
+  15_000,
+  );
 
   it("disables the scope select when the policy is not approvals", async () => {
     mockGet.mockResolvedValue(ALLOW_ALL_CONFIG);

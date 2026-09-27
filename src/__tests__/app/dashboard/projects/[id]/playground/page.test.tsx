@@ -148,7 +148,16 @@ async function selectSession(card: ReturnType<typeof within>, sessionId = "sessi
 // ─── Tests ────────────────────────────────────────────────────────────────────────
 
 describe("PlaygroundPage Ingest", () => {
-  it("uploads messages via uploadWithBlobs and wires EnrichmentStatus on successful ingest", async () => {
+  // Timeout raised deliberately, matching the note in
+  // __tests__/app/dashboard/projects/[id]/sessions/[sessionId]/facts.test.tsx:
+  // the type → select → click chain is the longest sequential user-event run
+  // in this file, and when all 58 files execute in parallel workers on a
+  // saturated box each dispatch stretches several-fold wall-clock. Verified
+  // to pass well inside the 5s default when this file runs in isolation —
+  // scheduler starvation, not a logic race.
+  it(
+    "uploads messages via uploadWithBlobs and wires EnrichmentStatus on successful ingest",
+    async () => {
     const user = userEvent.setup();
     const card = renderIngestCard();
 
@@ -183,7 +192,9 @@ describe("PlaygroundPage Ingest", () => {
       [],
     );
     expect(post).not.toHaveBeenCalled();
-  });
+  },
+  15_000,
+  );
 
   it("sends text-only ingests (no files) through uploadWithBlobs with an empty file list", async () => {
     const user = userEvent.setup();
