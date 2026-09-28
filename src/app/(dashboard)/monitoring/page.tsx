@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 interface EpisodesMetrics {
   added_total: number; added_24h: number; in_progress: number; enrichment_pending: number;
   fully_enriched: number; with_embeddings: number; fully_enriched_pct: number;
+  archived_episodes: number; enrichable_total: number;
 }
 
 interface GraphsMetrics {
@@ -232,6 +233,9 @@ function MonitoringInner() {
   }, [fetchData]);
 
   const queueTotal = summary ? summary.queue_depth.high + summary.queue_depth.low : null;
+  // Archived episodes are excluded from enrichment, so the tile only earns a
+  // slot in the mini row once there is something to disclose.
+  const showArchived = summary != null && summary.episodes.archived_episodes > 0;
 
   return (
     <RequirePermission permission="members:read">
@@ -279,7 +283,7 @@ function MonitoringInner() {
             </div>
             {summary && (
               <span className="text-xs text-surface-500">
-                {summary.episodes.fully_enriched.toLocaleString()} / {summary.episodes.added_total.toLocaleString()}
+                {summary.episodes.fully_enriched.toLocaleString()} / {summary.episodes.enrichable_total.toLocaleString()}
               </span>
             )}
           </div>
@@ -316,7 +320,7 @@ function MonitoringInner() {
           )}
 
           {/* Mini stat row */}
-          <div className="grid grid-cols-3 gap-2 pt-1">
+          <div className={cn("grid gap-2 pt-1", showArchived ? "grid-cols-4" : "grid-cols-3")}>
             <div className="text-center">
               <div className="text-lg font-semibold text-surface-200 font-mono">
                 {loading ? '—' : summary?.episodes.fully_enriched.toLocaleString() ?? '—'}
@@ -335,6 +339,14 @@ function MonitoringInner() {
               </div>
               <div className="text-[10px] text-surface-500 uppercase tracking-wider">Pending</div>
             </div>
+            {showArchived && (
+              <div className="text-center">
+                <div className="text-lg font-semibold text-surface-200 font-mono">
+                  {loading ? '—' : summary?.episodes.archived_episodes.toLocaleString() ?? '—'}
+                </div>
+                <div className="text-[10px] text-surface-500 uppercase tracking-wider">Archived</div>
+              </div>
+            )}
           </div>
         </div>
         <StatCard label="Error Rate" value={summary != null ? `${summary.error_rate_pct.toFixed(2)}%` : null} icon={AlertTriangle}

@@ -19,6 +19,8 @@ interface EpisodesMetrics {
   fully_enriched: number;
   with_embeddings: number;
   fully_enriched_pct: number;
+  archived_episodes: number;
+  enrichable_total: number;
 }
 
 interface SummaryResponse {
@@ -76,32 +78,50 @@ function EnrichmentDetails({
 }) {
   const rawPct = data.fully_enriched_pct;
   const pct = Number.isFinite(rawPct) ? rawPct : 0;
+  // 0/0 is an undefined ratio, not 0%. An org with nothing enrichable gets
+  // wording instead of a percentage the counts cannot support: everything
+  // archived is done, a never-ingested org has no work and no rows to show.
+  const hasEnrichable = data.enrichable_total > 0;
+  const noEpisodes = !hasEnrichable && data.archived_episodes === 0;
+  const headerLabel = noEpisodes ? "Nothing to enrich" : "Complete";
+  const headerValue = noEpisodes
+    ? "No episodes"
+    : hasEnrichable
+      ? `${pct.toFixed(1)}%`
+      : "All enriched";
   const rows: Array<{ label: string; value: number }> = [
     { label: "Enriched", value: data.fully_enriched },
     { label: "Embedded", value: data.with_embeddings ?? 0 },
     { label: "In progress", value: data.in_progress },
     { label: "Pending", value: data.enrichment_pending },
+    ...(data.archived_episodes > 0
+      ? [{ label: "Archived", value: data.archived_episodes }]
+      : []),
   ];
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="text-sm text-surface-400">Complete</span>
+        <span className="text-sm text-surface-400">{headerLabel}</span>
         <span
-          className={`font-mono text-sm tabular-nums ${done ? "text-success" : "text-signal"}`}
+          className={`font-mono text-sm tabular-nums ${
+            noEpisodes ? "text-surface-400" : done ? "text-success" : "text-signal"
+          }`}
         >
-          {pct.toFixed(1)}%
+          {headerValue}
         </span>
       </div>
-      <dl className="mt-2 space-y-1">
-        {rows.map(({ label, value }) => (
-          <div key={label} className="flex items-baseline justify-between">
-            <dt className="text-sm text-surface-400">{label}</dt>
-            <dd className="font-mono text-sm tabular-nums text-text-primary">
-              {value.toLocaleString()}
-            </dd>
-          </div>
-        ))}
-      </dl>
+      {!noEpisodes && (
+        <dl className="mt-2 space-y-1">
+          {rows.map(({ label, value }) => (
+            <div key={label} className="flex items-baseline justify-between">
+              <dt className="text-sm text-surface-400">{label}</dt>
+              <dd className="font-mono text-sm tabular-nums text-text-primary">
+                {value.toLocaleString()}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
       <Link
         href="/monitoring"
         className="mt-3 block text-sm text-signal hover:underline"
@@ -139,11 +159,18 @@ export function SidebarEnrichment({ collapsed }: { collapsed: boolean }) {
   const rawPct = data.fully_enriched_pct;
   const pct = Number.isFinite(rawPct) ? rawPct : 0;
   const enriched = data.fully_enriched.toLocaleString();
-  const total = data.added_total.toLocaleString();
+  const total = data.enrichable_total.toLocaleString();
   const inProgress = data.in_progress.toLocaleString();
   const detail = `${enriched} / ${total} · ${pct.toFixed(1)}% · ${inProgress} in progress`;
 
-  if (pct >= 100 && data.enrichment_pending === 0 && data.in_progress === 0) {
+  // Same zero-denominator reading as the popover header: everything archived is
+  // done, a never-ingested org has nothing to be congratulated for.
+  const noEpisodes = data.enrichable_total === 0 && data.archived_episodes === 0;
+  const doneStatus = noEpisodes ? "No episodes" : "All enriched";
+
+  // An org that has archived every project has no enrichable work left, so
+  // 0/0 is "done", not "0% and permanently stuck".
+  if (data.enrichable_total === 0 || (pct >= 100 && data.enrichment_pending === 0 && data.in_progress === 0)) {
     if (collapsed) {
       return (
         <div className="flex justify-center">
@@ -153,14 +180,14 @@ export function SidebarEnrichment({ collapsed }: { collapsed: boolean }) {
                 <PopoverPrimitive.Trigger asChild>
                   <button
                     type="button"
-                    aria-label="Enrichment progress: all enriched"
+                    aria-label={`Enrichment progress: ${doneStatus}`}
                     className="flex cursor-pointer justify-center rounded-md py-2 text-success bg-success/10 hover:bg-success/15 transition-colors duration-150"
                   >
                     <CheckCircle2 size={18} />
                   </button>
                 </PopoverPrimitive.Trigger>
               </TooltipTrigger>
-              <TooltipContent side="right">All enriched</TooltipContent>
+              <TooltipContent side="right">{doneStatus}</TooltipContent>
             </Tooltip>
             <PopoverPrimitive.Portal>
               <PopoverPrimitive.Content
@@ -182,8 +209,8 @@ export function SidebarEnrichment({ collapsed }: { collapsed: boolean }) {
           <button
             type="button"
             role="status"
-            title="Enrichment progress: all enriched"
-            aria-label="Enrichment progress: all enriched"
+            title={`Enrichment progress: ${doneStatus}`}
+            aria-label={`Enrichment progress: ${doneStatus}`}
             className={`${ROW_CLASSES} cursor-pointer bg-success/10 hover:bg-success/15`}
           >
             <CheckCircle2 size={18} className="shrink-0 text-success" />

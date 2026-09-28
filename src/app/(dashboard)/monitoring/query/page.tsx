@@ -10,6 +10,7 @@ import { ErrorState } from "@/components/shared/error-state";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/shared/table";
 import { SortableHead } from "@/components/shared/sortable-head";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
@@ -122,6 +123,7 @@ function QueryPlaygroundInner() {
 
   const [days, setDays] = useState(7);
   const [limit, setLimit] = useState(20);
+  const [includeArchived, setIncludeArchived] = useState(false);
 
   const [result, setResult] = useState<QueryResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -200,6 +202,7 @@ function QueryPlaygroundInner() {
       const params = new URLSearchParams({ query: selectedQuery.name });
       if (selectedQuery.params.includes("days")) params.set("days", String(days));
       if (selectedQuery.params.includes("limit")) params.set("limit", String(limit));
+      if (selectedQuery.params.includes("include_archived")) params.set("include_archived", String(includeArchived));
       if (activeSort && serverSortSupported) {
         params.set("sort_by", activeSort.col);
         params.set("sort_dir", activeSort.direction);
@@ -374,6 +377,18 @@ function QueryPlaygroundInner() {
                     value={limit}
                     onChange={(e) => setLimit(Math.max(1, Math.min(100, Number(e.target.value) || 20)))}
                     className="input-base w-20 text-sm"
+                  />
+                </label>
+              )}
+              {selectedParams.includes("include_archived") && (
+                <label htmlFor="include-archived" className="space-y-1">
+                  <span className="text-[11px] font-medium text-surface-400 uppercase tracking-wider">
+                    Include Archived
+                  </span>
+                  <Switch
+                    id="include-archived"
+                    checked={includeArchived}
+                    onCheckedChange={setIncludeArchived}
                   />
                 </label>
               )}
