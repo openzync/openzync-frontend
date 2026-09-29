@@ -10,7 +10,6 @@ import {
   X,
   Search,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { get, apiErrorMessage } from "@/lib/api-client";
 import { smartTimestamp } from "@/lib/utils";
 import { PageGuide, GuideSecurity } from "@/components/guides";
@@ -24,7 +23,6 @@ import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { SortableHead } from "@/components/shared/sortable-head";
 import { useSortQuery } from "@/hooks/use-sort-query";
-import { SimpleSelect } from "@/components/ui/select";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -132,9 +130,8 @@ function AuditLogInner() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
-  // Auto-refresh
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  // Auto-refresh is permanently on.
+  const [autoRefresh] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
@@ -160,7 +157,6 @@ function AuditLogInner() {
       const data = await get<AuditResponse>(`/v1/admin/audit-logs?${params}`);
       setEntries(data.items ?? []);
       setTotal(data.total ?? 0);
-      setLastUpdated(new Date().toLocaleTimeString());
     } catch (err) {
       setError(apiErrorMessage(err, "Failed to load audit logs"));
     } finally {
@@ -230,7 +226,7 @@ function AuditLogInner() {
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  // Filters refetch as they change; Apply's remaining job is resetting to the
+  // Filters refetch as they change; Enter on the action input resets to the
   // first page of the filtered result set.
   const applyFilters = () => setParams({ page: null });
 
@@ -261,15 +257,15 @@ function AuditLogInner() {
       </PageGuide>
 
       {/* Filter bar */}
-      <div className="card-base p-3">
-        <div className="flex flex-wrap items-end gap-3">
+      <div className="card-base p-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Action filter */}
-          <div className="flex-1 min-w-[160px]">
-            <label htmlFor="audit-filter-action" className="block text-xs font-medium text-surface-400 mb-1">Action</label>
-            <div className="relative">
+          <label htmlFor="audit-filter-action" className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Action</span>
+            <div className="relative flex-1 min-w-0">
               <input
                 id="audit-filter-action"
-                className="input-base pl-8 text-sm"
+                className="input-base h-8 text-xs w-full pl-8 border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
                 placeholder="e.g. session.create"
                 value={filterAction}
                 onChange={(e) => setParams({ action: e.target.value, page: null })}
@@ -277,14 +273,14 @@ function AuditLogInner() {
               />
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-surface-500 pointer-events-none" />
             </div>
-          </div>
+          </label>
 
-          {/* Actor ID filter — native select: optgroups aren't supported by SimpleSelect */}
-          <div className="w-64">
-            <label htmlFor="audit-filter-actor-id" className="block text-xs font-medium text-surface-400 mb-1">Actor ID</label>
+          {/* Actor ID filter — native select for optgroup support */}
+          <label htmlFor="audit-filter-actor-id" className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Actor ID</span>
             <select
               id="audit-filter-actor-id"
-              className="input-base appearance-none cursor-pointer text-sm"
+              className="input-base h-8 text-xs flex-1 min-w-0 truncate border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
               value={filterActorId}
               onChange={(e) => setParams({ actor_id: e.target.value || null, page: null })}
               disabled={filterActorType === "all"}
@@ -309,86 +305,53 @@ function AuditLogInner() {
                 ))
               )}
             </select>
-          </div>
+          </label>
 
           {/* Actor Type filter */}
-          <div className="w-36">
-            <label htmlFor="audit-filter-actor-type" className="block text-xs font-medium text-surface-400 mb-1">Actor Type</label>
-            <SimpleSelect
+          <label htmlFor="audit-filter-actor-type" className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Actor Type</span>
+            <select
               id="audit-filter-actor-type"
-              className="text-sm"
-              options={[
-                { value: "all", label: "All" },
-                { value: "user", label: "User" },
-                { value: "api_key", label: "API Key" },
-                { value: "system", label: "System" },
-              ]}
+              className="input-base h-8 text-xs flex-1 min-w-0 truncate border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
               value={filterActorType}
-              onValueChange={(value) =>
+              onChange={(e) =>
                 // Changing type invalidates the selected actor — a stale ID
                 // from the previous type is meaningless.
-                setParams({ actor_type: value, actor_id: null, page: null })
+                setParams({ actor_type: e.target.value, actor_id: null, page: null })
               }
-            />
-          </div>
+            >
+              <option value="all">All</option>
+              <option value="user">User</option>
+              <option value="api_key">API Key</option>
+              <option value="system">System</option>
+            </select>
+          </label>
 
           {/* Status filter */}
-          <div className="w-28">
-            <label htmlFor="audit-filter-status" className="block text-xs font-medium text-surface-400 mb-1">Status</label>
-            <SimpleSelect
+          <label htmlFor="audit-filter-status" className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Status</span>
+            <select
               id="audit-filter-status"
-              className="text-sm"
-              options={[
-                { value: "all", label: "All" },
-                { value: "2xx", label: "2xx" },
-                { value: "4xx", label: "4xx" },
-                { value: "5xx", label: "5xx" },
-              ]}
+              className="input-base h-8 text-xs flex-1 min-w-0 truncate border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
               value={filterStatus}
-              onValueChange={(value) => setParams({ status: value, page: null })}
-            />
-          </div>
-
-          <div className="flex items-center gap-2 pb-0.5">
-            <Button variant="primary" size="sm" onClick={applyFilters}>Apply</Button>
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-surface-400">
-                <X size={14} />
-                Clear
-              </Button>
-            )}
-          </div>
-
-          <div className="flex-1" />
-
-          {/* Auto-refresh toggle — accessible switch pattern */}
-          <div className="flex items-center gap-2 pb-0.5">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={autoRefresh}
-              onClick={() => setAutoRefresh((prev) => !prev)}
-              className={cn(
-                "relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors",
-                "focus-visible:outline-2 focus-visible:outline-accent-300 focus-visible:outline-offset-2",
-                "cursor-pointer",
-                autoRefresh ? "bg-brand-500" : "bg-surface-700",
-              )}
-              aria-label="Toggle auto-refresh"
+              onChange={(e) => setParams({ status: e.target.value, page: null })}
             >
-              <span
-                className={cn(
-                  "inline-block h-4 w-4 rounded-full bg-white transition-transform pointer-events-none",
-                  autoRefresh ? "translate-x-4" : "translate-x-0",
-                )}
-              />
-            </button>
-            <span className="text-xs text-surface-400 select-none">Auto-refresh</span>
-            {lastUpdated && (
-              <span className="text-[11px] text-surface-500">Updated {lastUpdated}</span>
-            )}
-          </div>
+              <option value="all">All</option>
+              <option value="2xx">2xx</option>
+              <option value="4xx">4xx</option>
+              <option value="5xx">5xx</option>
+            </select>
+          </label>
         </div>
+
+        {hasActiveFilters && (
+          <div className="flex justify-end">
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-surface-400">
+              <X size={14} />
+              Clear
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Table */}

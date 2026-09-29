@@ -1,18 +1,12 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import type { LucideIcon } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  Activity,
   AlertTriangle,
-  BarChart2,
   BarChart3,
-  Database,
   Info,
   Timer,
-  TrendingUp,
-  Users,
 } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import { sortChronological } from "@/lib/chart-order";
@@ -142,29 +136,23 @@ const BATCH_LIMIT = 20;
 
 // Per-day ingestion charts: one single-series bar chart each.
 const INGESTION_CARDS = [
-  { query: "episodes_per_day", title: "Episodes per Day", color: "--color-signal" },
-  { query: "messages_per_day", title: "Messages per Day", color: "--color-signal-dim" },
-  { query: "facts_per_day", title: "Facts per Day", color: "--color-muted" },
-  { query: "users_per_day", title: "Active Users per Day", color: "--color-amber" },
+  { query: "activity_per_day", title: "Activity per Day", color: "--color-amber" },
   { query: "entities_per_day", title: "Entities per Day", color: "--color-dim" },
 ] as const;
 
-type IconType = LucideIcon;
-
-const ENRICHMENT_PANELS: Array<{ query: string; title: string; icon: IconType }> = [
-  { query: "enrichment_progress", title: "Enrichment Progress", icon: BarChart2 },
-  { query: "queue_depth_over_time", title: "Queue Depth over Time", icon: Activity },
+const ENRICHMENT_PANELS: Array<{ query: string; title: string; emptyHint?: string }> = [
+  { query: "queue_depth_over_time", title: "Queue Depth over Time", emptyHint: "Queue empty — all episodes enriched." },
 ];
 
-const PERF_PANELS: Array<{ query: string; title: string; icon: IconType }> = [
-  { query: "latency_percentiles", title: "Latency Percentiles", icon: Timer },
-  { query: "context_retrieval_rate", title: "Context Retrieval Rate", icon: TrendingUp },
-  { query: "error_rate_by_day", title: "Error Rate by Day", icon: AlertTriangle },
+const PERF_PANELS: Array<{ query: string; title: string; emptyHint?: string }> = [
+  { query: "latency_percentiles", title: "Latency Percentiles", emptyHint: "No latency observations in this window — make API requests to populate percentiles." },
+  { query: "context_retrieval_rate", title: "Context Retrieval Rate", emptyHint: "No retrievals in this window — retrieve context or search the graph to generate activity." },
+  { query: "error_rate_by_day", title: "Error Rate by Day", emptyHint: "No errors in this window — healthy." },
 ];
 
-const TOP_TABLES: Array<{ query: string; title: string; icon: IconType; storageKey: string; noun: string }> = [
-  { query: "top_projects_by_episodes", title: "Top Projects by Episodes", icon: BarChart2, storageKey: "monitoring-top-projects", noun: "projects" },
-  { query: "top_users_by_messages", title: "Top Users by Messages", icon: Users, storageKey: "monitoring-top-users", noun: "users" },
+const TOP_TABLES: Array<{ query: string; title: string; storageKey: string; noun: string }> = [
+  { query: "top_projects_by_episodes", title: "Top Projects by Episodes", storageKey: "monitoring-top-projects", noun: "projects" },
+  { query: "top_users_by_messages", title: "Top Users by Messages", storageKey: "monitoring-top-users", noun: "users" },
 ];
 
 // /metrics/targets proxies Prometheus — there is no server-side list to
@@ -173,11 +161,11 @@ const TOP_TABLES: Array<{ query: string; title: string; icon: IconType; storageK
 const TARGET_SORT_FIELDS = ["name", "created_at", "status"] as const;
 
 const SERIES_COLORS = [
-  "--color-brand-500",
-  "--color-accent-300",
-  "--color-success",
-  "--color-warning",
-  "--color-error",
+  "--color-signal",
+  "--color-signal-dim",
+  "--color-muted",
+  "--color-amber",
+  "--color-dim",
 ] as const;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -248,19 +236,10 @@ function isNumericColumn(rows: BatchCell[][], index: number): boolean {
   return seen;
 }
 
-/** Sum the first numeric (non-date) column — the window total for per-day queries. */
-function sumFirstNumeric(result: BatchResultLike | null): number | null {
-  if (!result || result.rows.length === 0) return null;
-  const dateIdx = dateColumnIndex(result.columns);
-  const valueIdx = result.columns.findIndex((_, i) => i !== dateIdx && isNumericColumn(result.rows, i));
-  if (valueIdx < 0) return null;
-  return result.rows.reduce((sum, row) => sum + toNumber(row[valueIdx]), 0);
-}
-
 // ─── Latency Card ──────────────────────────────────────────────────────────────
 
-function LatencyCard({ title, icon: Icon, data }: {
-  title: string; icon: IconType; data: LatencyMetrics;
+function LatencyCard({ title, data }: {
+  title: string; data: LatencyMetrics;
 }) {
   const percentiles = [
     { key: "p50" as const, label: "p50" },
@@ -269,16 +248,19 @@ function LatencyCard({ title, icon: Icon, data }: {
   ];
   return (
     <div className="card-base p-4 space-y-3 hover:border-surface-700 transition-colors">
-      <div className="flex items-center gap-2 text-xs font-medium text-surface-400"><Icon size={14} />{title}</div>
+      <div className="text-xs font-medium text-surface-400">{title}</div>
       <div className="space-y-1.5">
         {percentiles.map(({ key, label }) => {
           const val = data[key];
+          // A 0.0 percentile means "no observations" (empty-result/NaN-sanitize
+          // paths) — never a real sub-millisecond bucket, so show no value/dot.
+          const isZero = val === 0;
           return (
             <div key={key} className="flex items-center justify-between text-sm">
               <span className="text-surface-500 uppercase text-[11px] font-mono tracking-wider">{label}</span>
               <div className="flex items-center gap-2">
-                <span className={cn("font-mono font-medium", latencyColor(val))}>{formatMs(val)}</span>
-                <span className={cn("h-2 w-2 rounded-full", latencyDot(val))} />
+                <span className={cn("font-mono font-medium", !isZero && latencyColor(val))}>{isZero ? "—" : formatMs(val)}</span>
+                {!isZero && <span className={cn("h-2 w-2 rounded-full", latencyDot(val))} />}
               </div>
             </div>
           );
@@ -370,9 +352,9 @@ function IngestionChartCard({ title, color, result, queryError, fetchError, load
 
 // ─── Auto panel — schema-agnostic view over one batch result ───────────────────
 
-function BatchAutoPanel({ title, icon: Icon, result, queryError, fetchError, loading, onRetry }: BatchSectionProps & {
+function BatchAutoPanel({ title, emptyHint, result, queryError, fetchError, loading, onRetry }: BatchSectionProps & {
   title: string;
-  icon?: IconType;
+  emptyHint?: string;
 }) {
   const columns = result?.columns ?? [];
   const rows = result?.rows ?? [];
@@ -395,12 +377,25 @@ function BatchAutoPanel({ title, icon: Icon, result, queryError, fetchError, loa
       }))
     : [];
 
+  // Honest empty copy — a provided hint names the healthy-empty reason,
+  // otherwise the generic window copy stands.
+  const emptyCopy = emptyHint ?? "No data for this window";
+  // An all-zero table (every numeric cell 0) is an empty window wearing a
+  // table costume — e.g. latency percentiles with no observations.
+  const numericCells: number[] = [];
+  for (const row of rows) {
+    for (let i = 0; i < columns.length; i++) {
+      const value = row[i];
+      if (typeof value === "number" && Number.isFinite(value)) numericCells.push(value);
+      else if (typeof value === "boolean") numericCells.push(value ? 1 : 0);
+      else if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) numericCells.push(Number(value));
+    }
+  }
+  const allNumericZero = numericCells.length > 0 && numericCells.every((n) => n === 0);
+
   return (
     <div className="card-base p-5">
-      <h3 className="text-sm font-medium flex items-center gap-1.5 mb-4">
-        {Icon && <Icon size={16} className="text-brand-300" aria-hidden />}
-        {title}
-      </h3>
+      <h3 className="text-sm font-medium mb-4">{title}</h3>
       {loading && rows.length === 0 ? (
         <div className="h-[220px] rounded bg-surface-800 animate-pulse" aria-hidden />
       ) : fetchError && rows.length === 0 ? (
@@ -417,7 +412,7 @@ function BatchAutoPanel({ title, icon: Icon, result, queryError, fetchError, loa
       ) : isSnapshot ? (
         rows.length === 0 ? (
           <div className="flex items-center justify-center h-[120px] text-surface-500 text-xs">
-            No data for this window
+            {emptyCopy}
           </div>
         ) : (
           <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -438,7 +433,11 @@ function BatchAutoPanel({ title, icon: Icon, result, queryError, fetchError, loa
         )
       ) : rows.length === 0 ? (
         <div className="flex items-center justify-center h-[220px] text-surface-500 text-xs">
-          No data for this window
+          {emptyCopy}
+        </div>
+      ) : allNumericZero && emptyHint ? (
+        <div className="flex items-center justify-center h-[220px] text-surface-500 text-xs">
+          {emptyHint}
         </div>
       ) : (
         <Table>
@@ -478,9 +477,8 @@ function BatchAutoPanel({ title, icon: Icon, result, queryError, fetchError, loa
 
 // ─── Toplist table — batch toplists with header count and resizable columns ────
 
-function TopTableCard({ title, icon: Icon, storageKey, noun, result, queryError, fetchError, loading, onRetry }: BatchSectionProps & {
+function TopTableCard({ title, storageKey, noun, result, queryError, fetchError, loading, onRetry }: BatchSectionProps & {
   title: string;
-  icon: IconType;
   storageKey: string;
   noun: string;
 }) {
@@ -489,10 +487,7 @@ function TopTableCard({ title, icon: Icon, storageKey, noun, result, queryError,
   return (
     <div className="card-base overflow-hidden">
       <div className="px-5 py-4 border-b border-surface-800 flex items-center justify-between">
-        <h3 className="text-sm font-medium flex items-center gap-1.5">
-          <Icon size={16} className="text-brand-300" aria-hidden />
-          {title}
-        </h3>
+        <h3 className="text-sm font-medium">{title}</h3>
         {!loading && rows.length > 0 && (
           <span className="text-[11px] text-surface-500">
             {rows.length.toLocaleString()} {noun}
@@ -528,7 +523,7 @@ function TopTableCard({ title, icon: Icon, storageKey, noun, result, queryError,
             <tr>
               <td colSpan={Math.max(columns.length, 1)}>
                 <EmptyState
-                  icon={Icon}
+                  icon={BarChart3}
                   title="No data for this window"
                   description="Try selecting a different time range."
                 />
@@ -600,6 +595,9 @@ function MonitoringInner() {
   const [customFrom, setCustomFrom] = useState(from ?? "");
   const [customTo, setCustomTo] = useState(to ?? "");
   const [pendingRange, setPendingRange] = useState<string>(isCustom ? "custom" : String(days));
+  // ISO date strings (YYYY-MM-DD) compare lexicographically, so a plain
+  // string comparison is a correct from>=to guard without Date parsing.
+  const isCustomRangeInvalid = Boolean(customFrom && customTo && customFrom >= customTo);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setCustomFrom(from ?? ""); }, [from]);
@@ -632,8 +630,9 @@ function MonitoringInner() {
   const projectsQuery = useApiQuery<ProjectOption[] | { data: ProjectOption[] }>(async () => {
     try {
       return await get<ProjectOption[] | { data: ProjectOption[] }>("/v1/projects?limit=100");
-    } catch {
+    } catch (err) {
       // Fallback endpoint if the primary shape returns 404 in some deployments.
+      if (!(err instanceof ApiError && err.isNotFound)) throw err;
       return await get<ProjectOption[] | { data: ProjectOption[] }>("/v1/projects/list");
     }
   });
@@ -657,18 +656,35 @@ function MonitoringInner() {
   const batchQsString = batchQs.toString();
   const windowKey = `${days}-${from}-${to}-${projectId}`;
 
+  // Window params for /metrics/summary — mirrors batchQs minus limit and
+  // minus project_id. Backend contract (openzync-core
+  // routers/admin_metrics.py:get_metrics_summary) accepts the same window
+  // params (days XOR from+to; omitted window defaults to last 24h): range
+  // series obey the toolbar, while instant queries and DB totals stay
+  // snapshot. Summary is org-wide, so its refresh key excludes project_id
+  // and changing Project never refetches it.
+  const summaryQs = new URLSearchParams();
+  if (isCustom && from && to) {
+    summaryQs.set("from", from);
+    summaryQs.set("to", to);
+  } else {
+    summaryQs.set("days", String(days));
+  }
+  const summaryQsString = summaryQs.toString();
+  const summaryRefreshKey = `${days}-${from}-${to}`;
+
   // Each section fails independently so one bad endpoint never blanks the
   // whole page. Errors clear on success only, so a retry visibly keeps the
   // error until it actually resolves.
   const summaryQuery = useApiQuery<SummaryResponse>(async () => {
     try {
-      return await get<SummaryResponse>("/metrics/summary");
+      return await get<SummaryResponse>(`/metrics/summary?${summaryQsString}`);
     } catch (err) {
       // Metrics endpoints are admin-gated — members see a clear message, not a blank page.
       if (err instanceof ApiError && err.isForbidden) throw new Error("Admin access required");
       throw err;
     }
-  });
+  }, { refreshKey: summaryRefreshKey });
   const targetsQuery = useApiQuery<TargetsResponse>(() => get<TargetsResponse>("/metrics/targets"));
   const batchQuery = useApiQuery<BatchResponse>(
     () => get<BatchResponse>(`/metrics/batch?${batchQsString}`),
@@ -736,8 +752,9 @@ function MonitoringInner() {
   // ── Stat values ────────────────────────────────────────────────────────────
 
   const queueTotal = summary?.queue_depth ? summary.queue_depth.high + summary.queue_depth.low : null;
-  const episodesInWindow = sumFirstNumeric(batchQuery.data?.results["episodes_per_day"] ?? null);
-  const hasActiveFilters = !!projectId || isCustom;
+  const enrichableTotal = summary?.episodes.enrichable_total ?? 0;
+  const embeddedPct = enrichableTotal > 0 ? (summary!.episodes.with_embeddings / enrichableTotal) * 100 : 0;
+  const inProgressPct = enrichableTotal > 0 ? (summary!.episodes.in_progress / enrichableTotal) * 100 : 0;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -759,13 +776,18 @@ function MonitoringInner() {
         ) : (
           <div className="stat-grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             <StatCard
-              label="Episodes in window"
-              value={episodesInWindow != null ? episodesInWindow.toLocaleString() : null}
-              loading={batchQuery.isLoading && episodesInWindow == null}
-            />
-            <StatCard
               label="Enriched"
               value={summary != null ? `${summary.episodes.fully_enriched_pct.toFixed(1)}%` : null}
+              loading={summaryLoading}
+            />
+            <StatCard
+              label="Embedded"
+              value={summary != null ? `${embeddedPct.toFixed(1)}%` : null}
+              loading={summaryLoading}
+            />
+            <StatCard
+              label="In Progress"
+              value={summary != null ? `${inProgressPct.toFixed(1)}%` : null}
               loading={summaryLoading}
             />
             <StatCard
@@ -776,11 +798,6 @@ function MonitoringInner() {
             <StatCard
               label="Queue depth"
               value={queueTotal != null ? queueTotal.toLocaleString() : null}
-              loading={summaryLoading}
-            />
-            <StatCard
-              label="Users"
-              value={summary != null ? summary.users_total.toLocaleString() : null}
               loading={summaryLoading}
             />
             <StatCard
@@ -856,7 +873,7 @@ function MonitoringInner() {
                   size="sm"
                   variant="primary"
                   onClick={() => setParams({ from: customFrom, to: customTo, days: null })}
-                  disabled={!customFrom || !customTo}
+                  disabled={!customFrom || !customTo || isCustomRangeInvalid}
                   className="h-8 flex-1 sm:flex-none"
                 >
                   Apply
@@ -867,24 +884,17 @@ function MonitoringInner() {
                   </Button>
                 )}
               </div>
-            </div>
-          )}
-          {hasActiveFilters && pendingRange !== "custom" && !isCustom && (
-            <div className="flex justify-end">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setParams({ project_id: null })}
-                className="h-8 text-surface-400"
-              >
-                Clear filters
-              </Button>
+              {isCustomRangeInvalid && (
+                <p className="text-xs text-error" role="alert">
+                  Start date must be before end date.
+                </p>
+              )}
             </div>
           )}
         </div>
 
         {/* Per-day ingestion charts */}
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 gap-4">
           {INGESTION_CARDS.map((card) => (
             <IngestionChartCard
               key={card.query}
@@ -895,21 +905,19 @@ function MonitoringInner() {
           ))}
         </div>
 
-        {/* Enrichment + queue */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {ENRICHMENT_PANELS.map((panel) => (
-            <BatchAutoPanel
-              key={panel.query}
-              title={panel.title}
-              icon={panel.icon}
-              {...batchSectionProps(panel.query)}
-            />
-          ))}
-        </div>
+        {/* Enrichment + queue — single full-width card */}
+        {ENRICHMENT_PANELS.map((panel) => (
+          <BatchAutoPanel
+            key={panel.query}
+            title={panel.title}
+            emptyHint={panel.emptyHint}
+            {...batchSectionProps(panel.query)}
+          />
+        ))}
 
         {/* Latency */}
         <div className="card-base p-5">
-          <h3 className="text-sm font-medium flex items-center gap-1.5 mb-4"><Timer size={16} className="text-brand-300" />Latency</h3>
+          <h3 className="text-sm font-medium mb-4">Latency</h3>
           {summaryLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (<div key={i} className="h-28 rounded-lg bg-surface-800 animate-pulse" />))}
@@ -918,9 +926,9 @@ function MonitoringInner() {
             <ErrorState message="Couldn’t load latency data." onRetry={summaryQuery.refetch} />
           ) : summary ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <LatencyCard title="Overall API" icon={Activity} data={summary.overall_latency_ms} />
-              <LatencyCard title="Context Assembly" icon={Timer} data={summary.context_latency_ms} />
-              <LatencyCard title="Graph Search" icon={Database} data={summary.graph_search_latency_ms} />
+              <LatencyCard title="Overall API" data={summary.overall_latency_ms} />
+              <LatencyCard title="Context Assembly" data={summary.context_latency_ms} />
+              <LatencyCard title="Graph Search" data={summary.graph_search_latency_ms} />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-28 text-surface-500"><Timer size={28} className="mb-2 opacity-40" /><p className="text-sm">No latency data available</p></div>
@@ -929,7 +937,7 @@ function MonitoringInner() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="card-base p-5">
-            <h3 className="text-sm font-medium flex items-center gap-1.5 mb-4"><Timer size={16} className="text-brand-300" />Context Search Latency</h3>
+            <h3 className="text-sm font-medium mb-4">Context Search Latency</h3>
             {summaryLoading ? (
               <div className="h-[220px] rounded bg-surface-800 animate-pulse" />
             ) : summaryQuery.isError && !summary ? (
@@ -950,12 +958,12 @@ function MonitoringInner() {
                 ]} />
               </>
             ) : (
-              <div className="flex items-center justify-center h-[220px] text-surface-500 text-xs">No latency data</div>
+              <div className="flex items-center justify-center h-[220px] text-surface-500 text-xs">No context searches in this window — run a context retrieval to populate this chart.</div>
             )}
           </div>
 
           <div className="card-base p-5">
-            <h3 className="text-sm font-medium flex items-center gap-1.5 mb-4"><Database size={16} className="text-accent-300" />Graph Search Latency</h3>
+            <h3 className="text-sm font-medium mb-4">Graph Search Latency</h3>
             {summaryLoading ? (
               <div className="h-[220px] rounded bg-surface-800 animate-pulse" />
             ) : summaryQuery.isError && !summary ? (
@@ -976,7 +984,7 @@ function MonitoringInner() {
                 ]} />
               </>
             ) : (
-              <div className="flex items-center justify-center h-[220px] text-surface-500 text-xs">No latency data</div>
+              <div className="flex items-center justify-center h-[220px] text-surface-500 text-xs">No graph searches in this window — run a graph search to populate this chart.</div>
             )}
           </div>
         </div>
@@ -986,7 +994,7 @@ function MonitoringInner() {
             <BatchAutoPanel
               key={panel.query}
               title={panel.title}
-              icon={panel.icon}
+              emptyHint={panel.emptyHint}
               {...batchSectionProps(panel.query)}
             />
           ))}
@@ -994,7 +1002,7 @@ function MonitoringInner() {
 
         {/* Retrieval activity */}
         <div className="card-base p-5">
-          <h3 className="text-sm font-medium flex items-center gap-1.5 mb-4"><TrendingUp size={16} className="text-brand-300" />Retrieval Activity</h3>
+          <h3 className="text-sm font-medium mb-4">Retrieval Activity</h3>
           {summaryLoading ? (
             <div className="h-[220px] rounded bg-surface-800 animate-pulse" />
           ) : summaryQuery.isError && !summary ? (
@@ -1003,24 +1011,24 @@ function MonitoringInner() {
             <>
               <LineChart
                 lines={[
-                  { label: "Context", color: "--color-brand-500", data: sortChronological(summary.retrieval_timeseries.context_retrievals, (d) => d.timestamp).map((d) => ({ x: d.timestamp, y: d.value })) },
-                  { label: "Graph", color: "--color-accent-300", data: sortChronological(summary.retrieval_timeseries.graph_retrievals, (d) => d.timestamp).map((d) => ({ x: d.timestamp, y: d.value })) },
+                  { label: "Context", color: "--color-signal", data: sortChronological(summary.retrieval_timeseries.context_retrievals, (d) => d.timestamp).map((d) => ({ x: d.timestamp, y: d.value })) },
+                  { label: "Graph", color: "--color-signal-dim", data: sortChronological(summary.retrieval_timeseries.graph_retrievals, (d) => d.timestamp).map((d) => ({ x: d.timestamp, y: d.value })) },
                 ]}
               />
               <ChartLegend items={[
-                { label: "Context", color: "--color-brand-500" },
-                { label: "Graph", color: "--color-accent-300" },
+                { label: "Context", color: "--color-signal" },
+                { label: "Graph", color: "--color-signal-dim" },
               ]} />
             </>
           ) : (
-            <div className="flex items-center justify-center h-[220px] text-surface-500 text-xs">No retrieval data</div>
+            <div className="flex items-center justify-center h-[220px] text-surface-500 text-xs">No retrievals in this window — retrieve context or search the graph to generate activity.</div>
           )}
         </div>
 
         {/* Errors */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="card-base p-5">
-            <h3 className="text-sm font-medium flex items-center gap-1.5 mb-4"><AlertTriangle size={16} className="text-warning" />Error by Type</h3>
+            <h3 className="text-sm font-medium mb-4">Error by Type</h3>
             {summaryLoading ? (
               <div className="h-[220px] rounded bg-surface-800 animate-pulse" />
             ) : summaryQuery.isError && !summary ? (
@@ -1034,12 +1042,12 @@ function MonitoringInner() {
                 ]} />
               </>
             ) : (
-              <div className="flex items-center justify-center h-[220px] text-surface-500 text-xs">No error data</div>
+              <div className="flex items-center justify-center h-[220px] text-surface-500 text-xs">No errors in this window — healthy.</div>
             )}
           </div>
           <BatchAutoPanel
             title="Error Rate by Day"
-            icon={AlertTriangle}
+            emptyHint={PERF_PANELS.find((p) => p.query === "error_rate_by_day")?.emptyHint}
             {...batchSectionProps("error_rate_by_day")}
           />
         </div>
@@ -1050,7 +1058,6 @@ function MonitoringInner() {
             <TopTableCard
               key={table.query}
               title={table.title}
-              icon={table.icon}
               storageKey={table.storageKey}
               noun={table.noun}
               {...batchSectionProps(table.query)}
@@ -1068,7 +1075,7 @@ function MonitoringInner() {
         {/* Scrape Targets table */}
         <div className="card-base overflow-hidden">
           <div className="px-5 py-4 border-b border-surface-800 flex items-center justify-between">
-            <h3 className="text-sm font-medium flex items-center gap-1.5"><Info size={16} className="text-brand-300" />Scrape Targets</h3>
+            <h3 className="text-sm font-medium">Scrape Targets</h3>
             {!targetsLoading && <span className="text-[11px] text-surface-500">{targets.length} target{targets.length !== 1 ? "s" : ""}</span>}
           </div>
           {targetsQuery.error && !targetsLoading && targets.length === 0 ? (
