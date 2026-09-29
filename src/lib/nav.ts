@@ -8,6 +8,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
+  BarChart3,
   FileJson,
   FileText,
   LayoutDashboard,
@@ -50,6 +51,8 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Overview", href: "/overview", icon: LayoutDashboard },
       // Monitoring is gated on members:read (org-level read access)
       { label: "Monitoring", href: "/monitoring", icon: Activity, permission: "members:read" },
+      // LLM usage is tracking-only (tokens + latency, no cost fields) — same org-read gate.
+      { label: "Usage", href: "/usage", icon: BarChart3, permission: "members:read" },
     ],
   },
   {
@@ -105,11 +108,6 @@ const SESSION_ARTIFACT_LABELS: Record<string, string> = {
   classifications: "Classifications",
   extractions: "Extractions",
   observations: "Observations",
-};
-
-/** Deep-link labels under non-project manifest entries (longest-prefix wins). */
-const SUBPATH_LABELS: Record<string, string> = {
-  "/monitoring/query": "Query Playground",
 };
 
 function titleCase(segment: string): string {
@@ -213,13 +211,5 @@ export function resolveBreadcrumb(
   }
   if (!best) return [];
 
-  const deepLabel = SUBPATH_LABELS[pathname];
-  if (deepLabel) {
-    return [
-      { label: best.section.label },
-      { label: best.entry.label, href: best.entry.href },
-      { label: deepLabel },
-    ];
-  }
   return [{ label: best.section.label }, { label: best.entry.label }];
 }

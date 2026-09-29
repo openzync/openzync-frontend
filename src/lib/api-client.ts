@@ -725,6 +725,70 @@ export async function getTemplates(): Promise<SchemaTemplate[]> {
   return extractList<SchemaTemplate>(raw);
 }
 
+// ─── LLM usage (tracking-only) ──────────────────────────────────────────────
+
+/**
+ * One metered LLM call. Tracking-only: token counts + duration, no
+ * cost/billing/credit fields exist on this contract by design.
+ */
+export interface LlmUsageRow {
+  id: string;
+  created_at: string;
+  /** Worker name; some deployments return `task_type` instead — both tolerated. */
+  worker: string;
+  task_type?: string;
+  provider: string;
+  model: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  reasoning_tokens: number;
+  total_tokens: number;
+  duration_ms: number;
+  project_id?: string | null;
+  episode_id?: string | null;
+  session_id?: string | null;
+}
+
+export interface LlmUsageSummary {
+  calls: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  reasoning_tokens: number;
+  total_tokens: number;
+  avg_duration_ms: number;
+}
+
+export interface LlmUsageResponse {
+  data: LlmUsageRow[];
+  total: number;
+  summary: LlmUsageSummary;
+}
+
+export interface LlmUsageParams extends OffsetPageParams {
+  days?: number;
+  from?: string;
+  to?: string;
+  project_id?: string;
+  worker?: string;
+  model?: string;
+}
+
+/** GET /v1/admin/llm-usage — offset-paginated, server-side sorted. */
+export function getLlmUsage(params: LlmUsageParams = {}): Promise<LlmUsageResponse> {
+  const query = new URLSearchParams();
+  if (params.days !== undefined) query.set("days", String(params.days));
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
+  if (params.project_id) query.set("project_id", params.project_id);
+  if (params.worker) query.set("worker", params.worker);
+  if (params.model) query.set("model", params.model);
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+  if (params.offset !== undefined) query.set("offset", String(params.offset));
+  if (params.sort_by) appendSortParams(query, params.sort_by, params.sort_dir ?? "desc");
+  const suffix = query.size ? `?${query}` : "";
+  return get<LlmUsageResponse>(`/v1/admin/llm-usage${suffix}`);
+}
+
 // ─── Re-export base URL for edge cases ───────────────────────────────────────
 
 export { API_BASE, getAccessToken, storeTokens, clearTokens, uploadWithBlobs };

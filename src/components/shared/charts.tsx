@@ -556,3 +556,18 @@ export function StackedBarChart({ data, height = 220 }: { data: ErrorTimeseriesP
     />
   );
 }
+
+// ═══ ChartLegend (shared dot legend) ═════════════════════════════════════════════
+
+export function ChartLegend({ items }: { items: Array<{ label: string; color: string }> }) {
+  return (
+    <div className="flex items-center gap-5 mt-2 pt-2 border-t border-surface-800">
+      {items.map((item) => (
+        <div key={item.label} className="flex items-center gap-1.5 text-xs text-surface-400">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cssVar(item.color) }} />
+          {item.label}
+        </div>
+      ))}
+    </div>
+  );
+}
