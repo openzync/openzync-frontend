@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { apiErrorMessage, post } from "@/lib/api-client";
 
-export type ConnectionTestDomain = "llm" | "embeddings" | "graph" | "blob";
+export type ConnectionTestDomain = "llm" | "graph" | "blob";
 
 export interface ConnectionTestResult {
   ok: boolean;

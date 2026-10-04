@@ -76,7 +76,7 @@ describe("OnboardingPage", () => {
 
     expect(await screen.findByText("Complete Your Setup")).toBeInTheDocument();
     expect(screen.getByText("LLM Provider")).toBeInTheDocument();
-    expect(screen.getByText("Embeddings & Graph")).toBeInTheDocument();
+    expect(screen.getByText("Graph & Behaviour")).toBeInTheDocument();
     expect(screen.getByText("Review & Save")).toBeInTheDocument();
     expect(screen.getByText("LLM Configuration")).toBeInTheDocument();
     expect(screen.queryByText("Knowledge Graph")).not.toBeInTheDocument();

@@ -10,7 +10,7 @@ import { RequirePermission } from "@/components/shared/require-permission";
 const TABS = [
   { label: "Organization", href: "/settings/org-config", id: "organization" },
   { label: "LLM", href: "/settings/org-config/llm", id: "llm" },
-  { label: "Embeddings", href: "/settings/org-config/embeddings", id: "embeddings" },
+  
   { label: "Graph", href: "/settings/org-config/graph", id: "graph" },
   { label: "Behaviour", href: "/settings/org-config/behaviour", id: "behaviour" },
   { label: "Blob Storage", href: "/settings/org-config/blob-storage", id: "blob-storage" },
@@ -36,11 +36,11 @@ function OrgConfigLayoutInner({ children }: { children: React.ReactNode }) {
       {/* Page header */}
       <PageHeader
         title="Organization Configuration"
-        description="Manage settings for LLM, embeddings, graph, and behaviour"
+        description="Manage settings for LLM, graph, behaviour, and storage"
       />
 
       <PageGuide title="Organization configuration" illustration={<GuideSettings />}>
-        <p>Configure your organization LLM backend, embedding models, graph database, behaviour settings, and blob storage. These settings control how the system processes, enriches, and stores data across all projects.</p>
+        <p>Configure your organization LLM backend, graph database, behaviour settings, and blob storage. Embeddings always run on a built-in local model (nomic-embed-text-v1.5, 768 dimensions) and need no configuration. These settings control how the system processes, enriches, and stores data across all projects.</p>
       </PageGuide>
 
       {/* Tab bar */}

@@ -41,20 +41,6 @@ export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
   },
   { key: "llm_max_tokens", label: "LLM Max Tokens", kind: "number" },
   {
-    key: "embedding_backend",
-    label: "Embedding Backend",
-    kind: "select",
-    options: [
-      { value: "openai", label: "OpenAI" },
-      { value: "ollama", label: "Ollama" },
-      { value: "huggingface", label: "Hugging Face" },
-      { value: "sentence_transformers", label: "Sentence Transformers" },
-      { value: "openai_like", label: "OpenAI-compatible" },
-    ],
-    hint: "Frozen model snowflake-arctic-embed-m-v1.5 (768d); swap provider only if dim-compatible",
-  },
-  { key: "embedding_openai_like_base_url", label: "Embedding OpenAI-compatible Base URL", kind: "text" },
-  {
     key: "graph_backend",
     label: "Graph Backend",
     kind: "select",

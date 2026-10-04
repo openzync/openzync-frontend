@@ -6,7 +6,6 @@ import {
   Loader2,
   Eye,
   Brain,
-  AudioWaveform,
   GitBranch,
   Settings2,
   Save,
@@ -38,10 +37,6 @@ interface UpdateOrgConfigRequest {
   ollama_base_url?: string | null;
   azure_openai_endpoint?: string | null;
   azure_openai_key?: string | null;
-  embedding_backend?: string | null;
-  embedding_api_key?: string | null;
-  embedding_provider?: string | null;
-  embedding_openai_like_base_url?: string | null;
   graph_backend?: string | null;
   graph_search_type?: string | null;
   graph_max_traversal_depth?: number | null;
@@ -56,7 +51,6 @@ interface UpdateOrgConfigRequest {
 }
 
 type LlmBackend = "openai" | "anthropic" | "ollama" | "openai_like" | "azure";
-type EmbeddingBackend = "openai" | "ollama" | "huggingface" | "sentence_transformers" | "openai_like";
 type GraphBackend = "surrealdb" | "falkordb" | "none";
 type GraphSearchType = "hybrid" | "bm25" | "vector";
 
@@ -67,14 +61,6 @@ const LLM_BACKEND_OPTIONS: { value: LlmBackend; label: string }[] = [
   { value: "anthropic", label: "Anthropic" },
   { value: "azure", label: "Azure OpenAI" },
   { value: "ollama", label: "Ollama" },
-  { value: "openai_like", label: "OpenAI-compatible" },
-];
-
-const EMBEDDING_BACKEND_OPTIONS: { value: EmbeddingBackend; label: string }[] = [
-  { value: "openai", label: "OpenAI" },
-  { value: "ollama", label: "Ollama" },
-  { value: "huggingface", label: "Hugging Face" },
-  { value: "sentence_transformers", label: "Sentence Transformers" },
   { value: "openai_like", label: "OpenAI-compatible" },
 ];
 
@@ -92,7 +78,7 @@ const SEARCH_TYPE_OPTIONS: { value: GraphSearchType; label: string }[] = [
 
 const STEPS = [
   { title: "LLM Provider", icon: <Brain size={16} /> },
-  { title: "Embeddings & Graph", icon: <AudioWaveform size={16} /> },
+  { title: "Graph & Behaviour", icon: <GitBranch size={16} /> },
   { title: "Review & Save", icon: <CheckCircle size={16} /> },
 ] as const;
 
@@ -163,7 +149,7 @@ function OnboardingWizard() {
   const [showOpenAiKey, setShowOpenAiKey] = useState(false);
   const [showAnthropicKey, setShowAnthropicKey] = useState(false);
   const [showAzureKey, setShowAzureKey] = useState(false);
-  const [showEmbeddingKey, setShowEmbeddingKey] = useState(false);
+  
   const [showSurrealDbPass, setShowSurrealDbPass] = useState(false);
 
   // ── Form state (lifted to top level — shared by all steps) ─────────────────
@@ -258,12 +244,7 @@ function OnboardingWizard() {
     ...(form.azure_openai_endpoint ? [{ label: "Azure Endpoint", value: form.azure_openai_endpoint }] : []),
     ...(form.ollama_base_url ? [{ label: "Ollama Base URL", value: form.ollama_base_url }] : []),
     ...(form.openai_like_base_url ? [{ label: "OpenAI-compatible Base URL", value: form.openai_like_base_url }] : []),
-    { label: "Embedding Backend", value: form.embedding_backend ?? "openai" },
-    { label: "Embedding Model (frozen)", value: "snowflake-arctic-embed-m-v1.5 (768d)" },
-    { label: "Embedding Provider", value: form.embedding_provider || "Not set" },
-    ...(form.embedding_openai_like_base_url
-      ? [{ label: "Embedding OpenAI-compatible Base URL", value: form.embedding_openai_like_base_url }]
-      : []),
+    { label: "Embedding Model", value: "nomic-embed-text-v1.5 (768d, fixed)" },
     { label: "Graph Backend", value: form.graph_backend ?? "falkordb" },
     { label: "Search Type", value: form.graph_search_type ?? "hybrid" },
     ...(form.graph_backend === "surrealdb" && form.surrealdb_url
@@ -303,7 +284,7 @@ function OnboardingWizard() {
           </div>
           <h1 className="text-2xl font-bold text-text-primary">Complete Your Setup</h1>
           <p className="text-sm text-surface-400 mt-1 max-w-md mx-auto">
-            Configure your organization&apos;s LLM, embeddings, graph, and behaviour settings.
+            Configure your organization&apos;s LLM, graph, and behaviour settings.
             Secrets like API keys must be filled in before you can use the platform.
           </p>
         </div>
@@ -495,79 +476,9 @@ function OnboardingWizard() {
           </>
         )}
 
-        {/* ── Step 2: Embeddings & Graph ───────────────────────────────────────── */}
+        {/* ── Step 2: Graph & Behaviour ────────────────────────────────────────── */}
         {step === 1 && (
           <>
-            <div className="card-base p-6 mb-6">
-              <SectionHeader icon={<AudioWaveform size={20} />} title="Embeddings" description="Vector embedding provider configuration" />
-
-              <div
-                role="note"
-                aria-label="Frozen embedding model"
-                className="mb-4 rounded-md border border-surface-700 bg-surface-900/50 px-4 py-3 text-sm text-surface-300"
-              >
-                <p className="font-medium text-surface-100">
-                  Embedding model is frozen: snowflake-arctic-embed-m-v1.5 (768d)
-                </p>
-                <p className="mt-1 text-xs text-surface-400">
-                  Dev fallback is nomic-embed-text via Ollama. Swap providers only when the
-                  replacement is dim-compatible (768d vectors).
-                </p>
-              </div>
-
-              <div className="space-y-4 max-w-md">
-                {/* embedding_backend */}
-                <Field label="Backend Provider" htmlFor="onb-embedding-backend">
-                  <select
-                    id="onb-embedding-backend"
-                    className="input-base w-full"
-                    value={form.embedding_backend ?? "openai"}
-                    onChange={(e) => updateField("embedding_backend", e.target.value)}
-                  >
-                    {EMBEDDING_BACKEND_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </Field>
-
-                {/* embedding_provider */}
-                <Field label="Provider Name" htmlFor="onb-embedding-provider">
-                  <input
-                    id="onb-embedding-provider"
-                    className="input-base w-full"
-                    placeholder="openai, azure, ..."
-                    value={form.embedding_provider ?? ""}
-                    onChange={(e) => updateField("embedding_provider", e.target.value)}
-                  />
-                </Field>
-
-                {/* embedding_openai_like_base_url — only for OpenAI-compatible backend */}
-                {form.embedding_backend === "openai_like" && (
-                  <Field label="OpenAI-compatible Base URL" htmlFor="onb-embedding-openai-like-url">
-                    <input
-                      id="onb-embedding-openai-like-url"
-                      className="input-base w-full"
-                      type="url"
-                      placeholder="https://api.together.xyz/v1"
-                      value={form.embedding_openai_like_base_url ?? ""}
-                      onChange={(e) => updateField("embedding_openai_like_base_url", e.target.value)}
-                    />
-                  </Field>
-                )}
-
-                {/* embedding_api_key */}
-                <SecretInput
-                  id="onb-embedding-key"
-                  label="Embedding API Key"
-                  value={form.embedding_api_key ?? ""}
-                  onChange={(v) => updateField("embedding_api_key", v)}
-                  placeholder="Embedding provider API key"
-                  visible={showEmbeddingKey}
-                  onToggleVisibility={() => setShowEmbeddingKey((prev) => !prev)}
-                />
-              </div>
-            </div>
-
             <div className="card-base p-6 mb-6">
               <SectionHeader icon={<GitBranch size={20} />} title="Knowledge Graph" description="Graph backend, search, and traversal settings" />
 
