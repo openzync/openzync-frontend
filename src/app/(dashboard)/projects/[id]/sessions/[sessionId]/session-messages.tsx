@@ -28,8 +28,15 @@ interface Message {
   content: string;
   created_at?: string;
   token_count?: number;
+  sequence_number?: number;
   blobs?: BlobCardData[];
   [key: string]: unknown;
+}
+
+interface MessagesResponse {
+  data: Message[];
+  next_cursor?: string | null;
+  has_more?: boolean;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -52,12 +59,32 @@ function RoleIcon({ role }: { role: string }) {
   return <MessageSquare size={14} />;
 }
 
+/**
+ * Collision-safe dedup key for messages. Uses the backend id when present;
+ * otherwise hashes role + content + sequence_number so two distinct id-less
+ * messages with identical text don't collapse into one.
+ */
+function messageKey(m: Message): string {
+  if (m.id) return m.id;
+  const raw = `${m.role}|${m.content}|${m.sequence_number ?? ""}`;
+  let hash = 5381;
+  for (let i = 0; i < raw.length; i++) {
+    hash = ((hash << 5) + hash + raw.charCodeAt(i)) | 0;
+  }
+  return `hash:${(hash >>> 0).toString(36)}`;
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 /**
  * The message list for a session — fetches, paginates backwards, and renders
  * chat bubbles. Shared by the Messages subtab page (full chrome) and the
  * session detail page, where it is the default landing tab (`embedded`).
+ *
+ * Pagination uses the backend's keyset cursor (`next_cursor`/`has_more`) to
+ * load older messages without re-transferring the already-loaded prefix.
+ * Initial load fetches the most recent page; "Load older" walks backward
+ * through history one page at a time.
  */
 export function SessionMessages({
   sessionId,
@@ -78,41 +105,49 @@ export function SessionMessages({
   const [error, setError] = useState<string | null>(null);
   const [loadOlderLoading, setLoadOlderLoading] = useState(false);
   const [allLoaded, setAllLoaded] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const initialScrollDone = useRef(false);
 
   const fetchMessages = useCallback(
-    async (limit: number, prepend: boolean = false) => {
+    async (cursor: string | null = null) => {
       if (!projectId || !sessionId) return;
 
-      const setLoadingFn = prepend ? setLoadOlderLoading : setLoading;
+      const isInitial = cursor === null;
+      const setLoadingFn = isInitial ? setLoading : setLoadOlderLoading;
       setLoadingFn(true);
       setError(null);
 
       try {
-        const json = await get<{ data: Message[] }>(
-          `/v1/projects/${projectId}/sessions/${sessionId}/messages?limit=${limit}`,
+        const params = new URLSearchParams({ limit: "100", sort_dir: "desc" });
+        if (cursor) params.set("cursor", cursor);
+        const json = await get<MessagesResponse>(
+          `/v1/projects/${projectId}/sessions/${sessionId}/messages?${params}`,
         );
         const items: Message[] = json.data ?? [];
         const msgList: Message[] = Array.isArray(items) ? items : [];
 
-        if (prepend) {
-          setMessages((prev) => {
-            const existingIds = new Set(prev.map((m) => m.id ?? m.content));
-            const newItems = msgList.filter((m) => !existingIds.has(m.id ?? m.content));
-            return [...newItems, ...prev];
-          });
-          if (msgList.length < limit) setAllLoaded(true);
-        } else {
+        if (isInitial) {
+          // Backend returns DESC (newest first); sort ASC for display.
           const sorted = [...msgList].sort(
             (a, b) =>
-              new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime(),
+              (a.sequence_number ?? 0) - (b.sequence_number ?? 0),
           );
           setMessages(sorted);
-          setAllLoaded(msgList.length < limit);
+        } else {
+          setMessages((prev) => {
+            const existing = new Set(prev.map(messageKey));
+            const newItems = msgList.filter((m) => !existing.has(messageKey(m)));
+            return [...newItems, ...prev].sort(
+              (a, b) =>
+                (a.sequence_number ?? 0) - (b.sequence_number ?? 0),
+            );
+          });
         }
+        setNextCursor(json.next_cursor ?? null);
+        setAllLoaded(!json.has_more);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Failed to load messages");
       } finally {
@@ -129,7 +164,9 @@ export function SessionMessages({
       return;
     }
     initialScrollDone.current = false;
-    fetchMessages(100, false);
+    setNextCursor(null);
+    setAllLoaded(false);
+    fetchMessages(null);
   }, [projectId, sessionId, fetchMessages]);
 
   // Auto-scroll to bottom on initial load
@@ -144,11 +181,11 @@ export function SessionMessages({
 
   // Load older
   const handleLoadOlder = () => {
-    if (loadOlderLoading || allLoaded) return;
+    if (loadOlderLoading || allLoaded || !nextCursor) return;
     const container = scrollContainerRef.current;
     const prevScrollHeight = container?.scrollHeight ?? 0;
 
-    fetchMessages(messages.length + 100, true).then(() => {
+    fetchMessages(nextCursor).then(() => {
       requestAnimationFrame(() => {
         if (container) {
           const newScrollHeight = container.scrollHeight;
@@ -209,7 +246,7 @@ export function SessionMessages({
               variant="ghost"
               size="sm"
               onClick={handleLoadOlder}
-              disabled={loadOlderLoading}
+              disabled={loadOlderLoading || !nextCursor}
             >
               {loadOlderLoading ? (
                 <>
@@ -237,7 +274,7 @@ export function SessionMessages({
         {/* Error state */}
         {error && !loading && (
           <div className="mx-4 mt-2 mb-4">
-            <ErrorState message={error} onRetry={() => fetchMessages(100, false)} />
+            <ErrorState message={error} onRetry={() => fetchMessages(null)} />
           </div>
         )}
 
@@ -253,22 +290,23 @@ export function SessionMessages({
         {/* Message bubbles */}
         {!loading && messages.length > 0 && (
           <div className="px-4 pb-4 space-y-4">
-            {messages.map((msg, idx) => {
+            {messages.map((msg) => {
               const isUser = isUserMessage(msg.role);
               const isAssistant = isAssistantMessage(msg.role);
               const isSysTool = isSystemOrTool(msg.role);
+              const key = messageKey(msg);
 
               if (isSysTool) {
                 return (
-                  <div key={msg.id ?? idx} className="flex justify-center">
+                  <div key={key} className="flex justify-center">
                     <div className="flex items-center gap-1.5 text-xs text-surface-500 bg-surface-800/40 px-3 py-1.5 rounded-full max-w-lg">
                       <RoleIcon role={msg.role} />
                       <span className="capitalize font-medium text-surface-400">{msg.role}</span>
-                      <span className="text-surface-600 mx-0.5">·</span>
+                      <span className="text-surface-600 mx-0.5">&middot;</span>
                       <span className="truncate">{msg.content}</span>
                       {msg.token_count !== undefined && (
                         <>
-                          <span className="text-surface-600 mx-0.5">·</span>
+                          <span className="text-surface-600 mx-0.5">&middot;</span>
                           <span title="Tokens">{msg.token_count} tok</span>
                         </>
                       )}
@@ -287,7 +325,7 @@ export function SessionMessages({
 
               return (
                 <div
-                  key={msg.id ?? idx}
+                  key={key}
                   className={cn("flex", isUser ? "justify-end" : "justify-start")}
                 >
                   <div className={cn("max-w-[75%] space-y-1", isUser ? "items-end" : "items-start")}>
@@ -308,14 +346,14 @@ export function SessionMessages({
                       )}
                     </div>
 
-                      {/* Attached files */}
-                      {msg.blobs && msg.blobs.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {msg.blobs.map((blob) => (
-                            <BlobCard key={blob.id} blob={blob} />
-                          ))}
-                        </div>
-                      )}
+                    {/* Attached files */}
+                    {msg.blobs && msg.blobs.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {msg.blobs.map((blob) => (
+                          <BlobCard key={blob.id} blob={blob} />
+                        ))}
+                      </div>
+                    )}
 
                     <div
                       className={cn(

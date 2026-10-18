@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
    * for cross-origin setups (local dev via .env.local, or a direct prod
    * URL e.g. https://app.openzync.tech). */
   output: "standalone",
-  allowedDevOrigins: ["192.168.0.109"],
+  allowedDevOrigins: process.env.DEV_ORIGINS?.split(",").map((s) => s.trim()).filter(Boolean) ?? [],
   async redirects() {
     return [
       {

@@ -221,7 +221,14 @@ function InviteForm() {
 
 export default function InvitePage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <div className="card-base p-10 flex flex-col items-center gap-3 text-surface-400">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-surface-700 border-t-brand-500" />
+          <p className="text-sm">Checking your invitation&hellip;</p>
+        </div>
+      }
+    >
       <InviteForm />
     </Suspense>
   );

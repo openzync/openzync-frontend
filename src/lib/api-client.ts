@@ -34,6 +34,12 @@ export function refreshOnce(): Promise<string | null> {
  * throws. Transport/transient refresh failures throw through with tokens
  * intact so callers surface retry/offline UI instead of logging out.
  */
+/**
+ * Custom event dispatched when auth fails and the user must re-login.
+ * Client components listen for this and perform client-side navigation.
+ */
+export const AUTH_REDIRECT_EVENT = "openzync:auth-redirect";
+
 async function refreshAndRetry(
   retry: (newToken: string) => Promise<Response>,
 ): Promise<Response> {
@@ -41,7 +47,11 @@ async function refreshAndRetry(
   if (!newToken) {
     clearTokens();
     if (typeof window !== "undefined") {
-      window.location.href = "/login?reason=not-signed-in";
+      window.dispatchEvent(
+        new CustomEvent(AUTH_REDIRECT_EVENT, {
+          detail: "/login?reason=not-signed-in",
+        }),
+      );
     }
     throw new ApiError("Unauthorized", 401, null);
   }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthLoadingScreen } from "@/components/shared/auth-loading-screen";
 import { UserProvider, useUser } from "@/contexts/user-context";
-import { clearTokens, getAccessToken, refreshOnce } from "@/lib/api-client";
+import { AUTH_REDIRECT_EVENT, clearTokens, getAccessToken, refreshOnce } from "@/lib/api-client";
 import { getTokenExp } from "@/lib/jwt";
 
 function isTokenExpired(): boolean {
@@ -33,10 +33,21 @@ function MustChangePasswordRedirect() {
 }
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
   const [refreshFailed, setRefreshFailed] = useState(false);
   const [wasOffline, setWasOffline] = useState(false);
   const [attempt, setAttempt] = useState(0);
+
+  // Client-side redirect on auth failure — preserves app shell state.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const url = (e as CustomEvent<string>).detail;
+      router.replace(url);
+    };
+    window.addEventListener(AUTH_REDIRECT_EVENT, handler);
+    return () => window.removeEventListener(AUTH_REDIRECT_EVENT, handler);
+  }, [router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +58,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
         // Fail closed: missing/unparseable token — no refresh to attempt.
         if (getTokenExp(getAccessToken()) === null) {
           clearTokens();
-          window.location.href = "/login?reason=not-signed-in";
+          router.replace("/login?reason=not-signed-in");
           return;
         }
         // Parseable but expired — try single-flight refresh before logging out.
@@ -55,7 +66,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
           const newToken = await refreshOnce();
           if (!newToken) {
             clearTokens();
-            window.location.href = "/login?reason=not-signed-in";
+            router.replace("/login?reason=not-signed-in");
             return;
           }
         } catch {
@@ -76,7 +87,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [attempt]);
+  }, [attempt, router]);
 
   // Network may flap while the failure screen shows — keep the offline
   // note live instead of frozen at the failure-time snapshot.

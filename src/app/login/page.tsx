@@ -84,7 +84,19 @@ export default function LoginPage() {
               Sign in to your organization dashboard
             </p>
 
-            <Suspense fallback={null}>
+            <Suspense
+              fallback={
+                <div className="card-base p-6 shadow-glow-sm">
+                  <div className="h-6 w-32 bg-surface-800 animate-pulse rounded mb-1" />
+                  <div className="h-4 w-48 bg-surface-800 animate-pulse rounded mb-6" />
+                  <div className="space-y-4">
+                    <div className="h-10 bg-surface-800 animate-pulse rounded" />
+                    <div className="h-10 bg-surface-800 animate-pulse rounded" />
+                    <div className="h-10 bg-surface-800 animate-pulse rounded" />
+                  </div>
+                </div>
+              }
+            >
               <LoginNotice />
             </Suspense>
 
@@ -99,11 +111,11 @@ export default function LoginPage() {
                 <input
                   ref={emailRef}
                   id="login-email"
-                  type="text"
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  autoComplete="username"
+                  autoComplete="email"
                   className="input-base w-full"
                   placeholder="you@example.com"
                   suppressHydrationWarning
