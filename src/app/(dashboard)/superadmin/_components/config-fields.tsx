@@ -66,13 +66,14 @@ export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
     label: "Reranker Backend",
     kind: "select",
     options: [
-      { value: "none", label: "None (disabled)" },
+      { value: "", label: "None (disabled)" },
+      { value: "sentence_transformers", label: "Sentence Transformers (local)" },
       { value: "cohere", label: "Cohere" },
-      { value: "voyage", label: "Voyage" },
-      { value: "openai", label: "OpenAI" },
     ],
   },
   { key: "reranker_model", label: "Reranker Model", kind: "text" },
+  { key: "reranker_top_k", label: "Reranker Top-K", kind: "number" },
+  { key: "reranker_top_n", label: "Reranker Top-N", kind: "number" },
   {
     key: "context_cache_ttl",
     label: "Context Cache TTL (seconds)",
@@ -103,10 +104,19 @@ export function ConfigFields({
             <SimpleSelect
               id={`system-default-${field.key}`}
               className="w-full"
-              options={field.options ?? []}
-              value={String(values[field.key] ?? "")}
+              options={(field.options ?? []).map((opt) => ({
+                ...opt,
+                value: opt.value === "" ? "__none__" : opt.value,
+              }))}
+              value={
+                String(values[field.key] ?? "") === ""
+                  ? "__none__"
+                  : String(values[field.key] ?? "")
+              }
               disabled={disabled}
-              onValueChange={(value) => onChange(field.key, value)}
+              onValueChange={(value) =>
+                onChange(field.key, value === "__none__" ? "" : value)
+              }
             />
           ) : (
             <input
