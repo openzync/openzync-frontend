@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Shield, ArrowLeft } from "lucide-react";
@@ -12,8 +12,14 @@ import { post, storeTokens } from "@/lib/api-client";
 function MfaChallengeForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const email = searchParams.get("email") ?? "";
-  const session = searchParams.get("session") ?? "";
+  // Snapshot the MFA params into state on first render — the effect below
+  // strips them from the URL, which re-renders useSearchParams empty.
+  const [email] = useState(searchParams.get("email") ?? "");
+  const [session] = useState(searchParams.get("session") ?? "");
+
+  useEffect(() => {
+    window.history.replaceState({}, "", "/login/mfa");
+  }, []);
 
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");

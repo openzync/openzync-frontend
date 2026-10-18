@@ -8,7 +8,13 @@
  * once the auth decision is made.
  */
 
-export function AuthLoadingScreen() {
+export function AuthLoadingScreen({
+  onRetry,
+  offline = false,
+}: {
+  onRetry?: () => void;
+  offline?: boolean;
+}) {
   return (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-surface-950">
       {/* Animated background glow */}
@@ -35,6 +41,26 @@ export function AuthLoadingScreen() {
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-surface-700 border-t-brand-500" />
         <span className="text-sm text-surface-500">Loading your workspace&hellip;</span>
       </div>
+
+      {/* Refresh-failure retry — shown only when the auth gate could not
+          refresh the session (5xx/offline). Stays on the loading screen so
+          an expired token never enters the dashboard shell. */}
+      {onRetry && (
+        <div className="relative mt-8 flex flex-col items-center gap-3">
+          <p className="text-sm text-surface-400">
+            {offline
+              ? "You appear to be offline — check your connection and try again."
+              : "Could not refresh your session — please try again."}
+          </p>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="h-9 rounded-md bg-surface-800 px-4 text-sm font-medium text-text-primary transition-colors hover:bg-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
+          >
+            Retry
+          </button>
+        </div>
+      )}
     </div>
   );
 }

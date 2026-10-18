@@ -10,7 +10,7 @@ import {
   X,
   Search,
 } from "lucide-react";
-import { get, apiErrorMessage } from "@/lib/api-client";
+import { get, apiErrorMessage, extractList } from "@/lib/api-client";
 import { smartTimestamp } from "@/lib/utils";
 import { PageGuide, GuideSecurity } from "@/components/guides";
 import { PageHeader } from "@/components/shared/page-header";
@@ -133,14 +133,17 @@ function AuditLogInner() {
   // Auto-refresh is permanently on.
   const [autoRefresh] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Monotonic fetch id — only foreground fetches join the sequence; background
+  // polls only observe it so they can never steal ownership from a foreground.
+  const fetchIdRef = useRef(0);
+  // True while a foreground fetch is in flight. Background polls check this
+  // after their await and bail instead of overwriting foreground rows.
+  const fgInFlightRef = useRef(false);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
-  const fetchLogs = useCallback(async (currentOffset: number) => {
-    setLoading(true);
-    setError(null);
-
-    try {
+  const fetchLogs = useCallback(async (currentOffset: number, background = false) => {
+    const buildParams = () => {
       const params = withSort(new URLSearchParams({
         limit: String(PAGE_SIZE),
         offset: String(currentOffset),
@@ -153,13 +156,44 @@ function AuditLogInner() {
         else if (filterStatus === "4xx") params.set("status_code", "4");
         else if (filterStatus === "5xx") params.set("status_code", "5");
       }
+      return params;
+    };
 
-      const data = await get<AuditResponse>(`/v1/admin/audit-logs?${params}`);
+    // Background poll: never joins the foreground sequence, never touches
+    // loading. Bails when a foreground is in flight or one ran since it
+    // started, so stale rows can never overwrite fresh foreground rows.
+    if (background) {
+      const seenId = fetchIdRef.current;
+      try {
+        const data = await get<AuditResponse>(`/v1/admin/audit-logs?${buildParams()}`);
+        if (fgInFlightRef.current || seenId !== fetchIdRef.current) return;
+        setEntries(data.items ?? []);
+        setTotal(data.total ?? 0);
+        setError(null);
+      } catch (err) {
+        if (fgInFlightRef.current || seenId !== fetchIdRef.current) return;
+        setError(apiErrorMessage(err, "Failed to load audit logs"));
+      }
+      return;
+    }
+
+    const myId = ++fetchIdRef.current;
+    fgInFlightRef.current = true;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await get<AuditResponse>(`/v1/admin/audit-logs?${buildParams()}`);
+      if (myId !== fetchIdRef.current) return;
       setEntries(data.items ?? []);
       setTotal(data.total ?? 0);
+      setError(null);
     } catch (err) {
+      if (myId !== fetchIdRef.current) return;
       setError(apiErrorMessage(err, "Failed to load audit logs"));
     } finally {
+      if (myId !== fetchIdRef.current) return;
+      fgInFlightRef.current = false;
       setLoading(false);
     }
   }, [filterAction, filterActorType, filterActorId, filterStatus, withSort]);
@@ -173,10 +207,12 @@ function AuditLogInner() {
       return;
     }
 
+    let cancelled = false;
     const fetchActors = async () => {
       try {
         if (filterActorType === "user") {
           const data = await get<{ data: Array<{ id: string; name: string | null; email: string | null }> }>("/v1/users");
+          if (cancelled) return;
           setAvailableActors(
             (data.data ?? []).map((u) => ({
               id: u.id,
@@ -185,39 +221,50 @@ function AuditLogInner() {
             }))
           );
         } else if (filterActorType === "api_key") {
-          const projects = await get<Array<{ id: string }>>("/v1/projects");
-          // Parallel fetch — Promise.all preserves project order, so the
-          // resulting actor list is stable. Any failure rejects into the
-          // outer catch (same behavior as the old serial loop).
-          const keyLists = await Promise.all(
+          const projectsRaw = await get<unknown>("/v1/projects");
+          const projects = extractList<{ id: string }>(projectsRaw);
+          if (cancelled) return;
+          // Parallel fetch — allSettled preserves project order for the
+          // fulfilled results, so the actor list stays stable. A 403 on one
+          // project no longer kills the whole list.
+          const results = await Promise.allSettled(
             projects.map((p) =>
               get<{ data: Array<{ id: string; name: string | null; prefix: string }> }>(
                 `/v1/projects/${p.id}/api-keys`
               )
             )
           );
-          const allKeys: ActorOption[] = keyLists.flatMap((res) =>
-            (res.data ?? []).map((k) => ({
-              id: k.id,
-              label: `${k.prefix}${k.name ? " — " + k.name : ""}`,
-              group: "API Keys",
-            }))
+          if (cancelled) return;
+          const allKeys: ActorOption[] = results.flatMap((r) =>
+            r.status === "fulfilled"
+              ? extractList<{ id: string; name: string | null; prefix: string }>(
+                  r.value
+                ).map((k) => ({
+                  id: k.id,
+                  label: `${k.prefix}${k.name ? " — " + k.name : ""}`,
+                  group: "API Keys",
+                }))
+              : []
           );
           setAvailableActors(allKeys);
         } else if (filterActorType === "system") {
+          if (cancelled) return;
           setAvailableActors([{ id: "system", label: "System", group: "System" }]);
         }
       } catch {
-        setAvailableActors([]);
+        if (!cancelled) setAvailableActors([]);
       }
     };
     fetchActors();
+    return () => {
+      cancelled = true;
+    };
   }, [filterActorType]);
 
   // Auto-refresh
   useEffect(() => {
     if (autoRefresh) {
-      intervalRef.current = setInterval(() => { fetchLogs(offset); }, 10000);
+      intervalRef.current = setInterval(() => { fetchLogs(offset, true); }, 10000);
     }
     return () => {
       if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }

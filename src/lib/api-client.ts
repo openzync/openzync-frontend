@@ -20,7 +20,7 @@ const API_BASE: string = process.env.NEXT_PUBLIC_API_URL ?? "";
  */
 let _refreshPromise: Promise<string | null> | null = null;
 
-function refreshOnce(): Promise<string | null> {
+export function refreshOnce(): Promise<string | null> {
   _refreshPromise ??= refreshAccessToken().finally(() => {
     _refreshPromise = null;
   });
