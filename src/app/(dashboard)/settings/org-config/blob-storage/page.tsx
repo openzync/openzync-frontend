@@ -249,7 +249,7 @@ export default function BlobStorageConfigPage() {
             <HardDrive size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Blob Storage Settings</h2>
+            <h2 className="font-display text-base font-medium">Blob Storage Settings</h2>
             <p className="text-xs text-surface-400">
               S3-compatible storage for file attachments and image extraction
             </p>

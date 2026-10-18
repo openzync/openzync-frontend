@@ -79,7 +79,7 @@ export default function LoginPage() {
   return (
     <AuthLayout variant="stats">
       <div className="card-base p-6 shadow-glow-sm">
-            <h2 className="text-xl font-semibold mb-1">Welcome back</h2>
+            <h2 className="font-display text-xl font-medium mb-1">Welcome back</h2>
             <p className="text-sm text-surface-400 mb-6">
               Sign in to your organization dashboard
             </p>

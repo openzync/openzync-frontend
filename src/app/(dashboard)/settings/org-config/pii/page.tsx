@@ -276,7 +276,7 @@ export default function PiiConfigPage() {
             <Shield size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">PII Protection</h2>
+            <h2 className="font-display text-base font-medium">PII Protection</h2>
             <p className="text-xs text-surface-400">Redact sensitive data before storage</p>
           </div>
         </div>

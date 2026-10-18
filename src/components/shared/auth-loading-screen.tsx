@@ -23,7 +23,7 @@ export function AuthLoadingScreen() {
       </div>
 
       {/* Brand name */}
-      <h1 className="relative text-2xl font-bold text-text-primary mb-1">
+      <h1 className="font-display relative text-2xl font-medium text-text-primary mb-1">
         OpenZync
       </h1>
       <p className="relative text-sm text-surface-500 mb-10">

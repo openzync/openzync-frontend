@@ -415,7 +415,7 @@ export default function LlmConfigPage() {
             <Brain size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">LLM Backend</h2>
+            <h2 className="font-display text-base font-medium">LLM Backend</h2>
             <p className="text-xs text-surface-400">Primary language model provider</p>
           </div>
         </div>
@@ -559,7 +559,7 @@ export default function LlmConfigPage() {
               <Eye size={20} className="text-warning" />
             </div>
             <div>
-              <h2 className="text-base font-semibold">{provider.title}</h2>
+              <h2 className="font-display text-base font-medium">{provider.title}</h2>
               <p className="text-xs text-surface-400">{provider.description}</p>
             </div>
           </div>
@@ -627,7 +627,7 @@ export default function LlmConfigPage() {
               <Zap size={20} className="text-brand-300" />
             </div>
             <div>
-              <h2 className="text-base font-semibold">Prompt Caching</h2>
+              <h2 className="font-display text-base font-medium">Prompt Caching</h2>
               <p className="text-xs text-surface-400">Anthropic prompt caching</p>
             </div>
           </div>

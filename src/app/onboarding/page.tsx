@@ -108,7 +108,7 @@ function SectionHeader({
         <div className="text-brand-300">{icon}</div>
       </div>
       <div>
-        <h2 className="text-base font-semibold">{title}</h2>
+        <h2 className="font-display text-base font-medium">{title}</h2>
         <p className="text-xs text-surface-400">{description}</p>
       </div>
     </div>
@@ -282,7 +282,7 @@ function OnboardingWizard() {
             <span className="text-brand-500 font-bold text-3xl">O</span>
             <span className="text-2xl font-bold text-text-primary">OpenZync</span>
           </div>
-          <h1 className="text-2xl font-bold text-text-primary">Complete Your Setup</h1>
+          <h1 className="font-display text-2xl font-medium text-text-primary">Complete Your Setup</h1>
           <p className="text-sm text-surface-400 mt-1 max-w-md mx-auto">
             Configure your organization&apos;s LLM, graph, and behaviour settings.
             Secrets like API keys must be filled in before you can use the platform.

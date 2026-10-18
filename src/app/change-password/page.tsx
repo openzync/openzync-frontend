@@ -53,7 +53,7 @@ export default function ChangePasswordPage() {
                 <KeyRound size={20} className="text-brand-300" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">Change Password</h2>
+                <h2 className="font-display text-xl font-medium">Change Password</h2>
                 <p className="text-sm text-surface-400">
                   Your password must be updated before you can continue
                 </p>

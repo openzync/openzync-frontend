@@ -307,7 +307,7 @@ function OverviewInner() {
         <div className="card-base p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-semibold">Get started in 3 steps</h2>
+              <h2 className="font-display text-base font-medium">Get started in 3 steps</h2>
               <p className="text-xs text-surface-300 mt-1">
                 Your workspace is ready — create a project, ingest a conversation, and watch the knowledge graph light up.
               </p>

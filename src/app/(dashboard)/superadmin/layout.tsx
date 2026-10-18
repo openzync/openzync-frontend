@@ -44,7 +44,7 @@ export default function SuperadminLayout({ children }: { children: React.ReactNo
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Platform Administration</h1>
+        <h1 className="font-display text-2xl font-medium tracking-tight">Platform Administration</h1>
         <p className="text-sm text-surface-400 mt-1">
           Registration policy, organization approvals, and system defaults
         </p>

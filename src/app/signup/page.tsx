@@ -109,7 +109,7 @@ export default function SignupPage() {
                   <Lock size={20} className="text-warning" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold">Registration is currently closed</h2>
+                  <h2 className="font-display text-xl font-medium">Registration is currently closed</h2>
                   <p className="text-sm text-surface-400 mt-0.5">
                     New accounts are not being accepted at this time
                   </p>
@@ -140,7 +140,7 @@ export default function SignupPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/10 mb-4">
                   <CheckCircle2 size={24} className="text-success" />
                 </div>
-                <h2 className="text-xl font-semibold">Request submitted for approval</h2>
+                <h2 className="font-display text-xl font-medium">Request submitted for approval</h2>
                 <p className="text-sm text-surface-400 mt-2 leading-relaxed">
                   {submittedMessage}
                 </p>
@@ -160,7 +160,7 @@ export default function SignupPage() {
   return (
     <AuthLayout variant="features" tagline="Get started with agent memory infrastructure">
       <div className="card-base p-6">
-            <h2 className="text-xl font-semibold mb-1">
+            <h2 className="font-display text-xl font-medium mb-1">
               {approvalsPublic
                 ? "Request access to OpenZync"
                 : mode === "create"

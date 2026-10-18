@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent-300/10 mb-4">
                 <Mail size={24} className="text-accent-300" />
               </div>
-              <h2 className="text-xl font-semibold mb-2">Check your email</h2>
+              <h2 className="font-display text-xl font-medium mb-2">Check your email</h2>
               <p className="text-sm text-surface-400 mb-2">
                 If an account exists for <strong className="text-surface-300">{email}</strong>,
                 you will receive a password reset code shortly.
@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthLayout variant="plain" tagline="Reset your password">
       <div className="card-base p-6">
-            <h2 className="text-xl font-semibold mb-1">Forgot password?</h2>
+            <h2 className="font-display text-xl font-medium mb-1">Forgot password?</h2>
             <p className="text-sm text-surface-400 mb-6">
               Enter your email and we&apos;ll send you a reset code.
             </p>

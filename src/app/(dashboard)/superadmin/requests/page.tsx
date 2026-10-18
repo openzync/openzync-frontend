@@ -89,7 +89,7 @@ function SuperadminRequestsInner() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold">Approval Requests</h2>
+          <h2 className="font-display text-lg font-medium">Approval Requests</h2>
           <p className="text-sm text-surface-400 mt-0.5">
             Organizations waiting for your decision
           </p>

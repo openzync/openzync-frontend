@@ -112,7 +112,7 @@ function PreviewSection({
   return (
     <section className="card-base min-w-0 p-5">
       <div className="mb-2 flex items-center justify-between gap-4">
-        <h2 className="text-base font-semibold text-surface-100">{title}</h2>
+        <h2 className="font-display text-base font-medium text-surface-100">{title}</h2>
         <Link
           href={href}
           aria-label={`View all ${label}`}

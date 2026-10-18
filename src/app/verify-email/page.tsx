@@ -74,7 +74,7 @@ function VerifyEmailForm() {
                 <Mail size={20} className="text-accent-300" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">Check your email</h2>
+                <h2 className="font-display text-xl font-medium">Check your email</h2>
                 <p className="text-sm text-surface-400">
                   We sent a verification code to
                 </p>

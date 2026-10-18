@@ -53,7 +53,7 @@ export function AuthLayout({
       <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-brand-500 to-surface-950">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(120,169,242,0.08)_0%,transparent_50%),radial-gradient(circle_at_25%_30%,rgba(120,169,242,0.12)_0%,transparent_50%)]" />
         <div className="relative z-10 text-center px-8">
-          <h1 className="text-5xl font-extrabold text-text-primary tracking-tight mb-2">
+          <h1 className="font-display text-5xl font-medium text-text-primary tracking-tight mb-2">
             OpenZync
           </h1>
           {variant === "stats" ? (
@@ -92,7 +92,7 @@ export function AuthLayout({
           {/* Mobile brand */}
           {mobileBrand && (
             <div className="md:hidden text-center mb-8">
-              <h1 className="text-2xl font-extrabold text-brand-500">OpenZync</h1>
+              <h1 className="font-display text-2xl font-medium text-brand-500">OpenZync</h1>
               <p className="text-xs text-surface-400">{AUTH_CLAIMS.mobileTagline}</p>
             </div>
           )}

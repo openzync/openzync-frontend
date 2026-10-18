@@ -153,7 +153,7 @@ function EditDialog({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-500/10 shrink-0"><FileText size={16} className="text-brand-300" /></div>
-            <div><h2 className="text-lg font-semibold">{templateDisplayName(template.name)}</h2><p className="text-xs text-surface-400">Version {template.version}</p></div>
+            <div><h2 className="font-display text-lg font-medium">{templateDisplayName(template.name)}</h2><p className="text-xs text-surface-400">Version {template.version}</p></div>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} className="rounded-md text-surface-400 hover:text-white p-1"><X size={18} /></Button>
         </div>
@@ -272,7 +272,7 @@ function VersionHistoryDialog({
         <div className="flex items-center justify-between mb-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-surface-800 shrink-0"><History size={16} className="text-surface-300" /></div>
-            <div><h2 className="text-lg font-semibold">Version History</h2><p className="text-xs text-surface-400">{templateDisplayName(templateName)}</p></div>
+            <div><h2 className="font-display text-lg font-medium">Version History</h2><p className="text-xs text-surface-400">{templateDisplayName(templateName)}</p></div>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} className="rounded-md text-surface-400 hover:text-white p-1"><X size={18} /></Button>
         </div>
@@ -390,7 +390,7 @@ function BrowserDialog({ onClose, onImported }: { onClose: () => void; onImporte
         <div className="flex items-center justify-between mb-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-surface-800 shrink-0"><Download size={16} className="text-surface-300" /></div>
-            <div><h2 className="text-lg font-semibold">Browse System Prompts</h2><p className="text-xs text-surface-400">Import system-default prompt templates into your organisation</p></div>
+            <div><h2 className="font-display text-lg font-medium">Browse System Prompts</h2><p className="text-xs text-surface-400">Import system-default prompt templates into your organisation</p></div>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} className="rounded-md text-surface-400 hover:text-white p-1"><X size={18} /></Button>
         </div>
@@ -469,7 +469,7 @@ function CreateDialog({ onClose, onCreate }: { onClose: () => void; onCreate: ()
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-500/10 shrink-0"><FileText size={16} className="text-brand-300" /></div>
-            <div><h2 className="text-lg font-semibold">New Prompt Template</h2><p className="text-xs text-surface-400">Create a custom prompt template for your organisation</p></div>
+            <div><h2 className="font-display text-lg font-medium">New Prompt Template</h2><p className="text-xs text-surface-400">Create a custom prompt template for your organisation</p></div>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} className="rounded-md text-surface-400 hover:text-white p-1"><X size={18} /></Button>
         </div>
@@ -521,7 +521,7 @@ function DeleteDialog({ templateName, templateDisplay, onClose, onConfirm }: {
       <div className="card-base w-full max-w-sm p-6 shadow-xl shadow-black/40 animate-slide-up" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-error/10 shrink-0"><Trash2 size={18} className="text-error" /></div>
-          <div><h2 className="text-lg font-semibold">Delete Template</h2><p className="text-sm text-surface-400">This action cannot be undone.</p></div>
+          <div><h2 className="font-display text-lg font-medium">Delete Template</h2><p className="text-sm text-surface-400">This action cannot be undone.</p></div>
         </div>
         <p className="text-sm text-surface-300 mb-2">Are you sure you want to delete</p>
         <p className="text-sm font-medium text-white mb-5">&ldquo;{templateDisplay}&rdquo;</p>

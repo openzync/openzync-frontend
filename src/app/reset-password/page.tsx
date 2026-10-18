@@ -61,7 +61,7 @@ function ResetPasswordForm() {
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/10 mb-4">
                 <CheckCircle size={24} className="text-success" />
               </div>
-              <h2 className="text-xl font-semibold mb-2">Password reset successful</h2>
+              <h2 className="font-display text-xl font-medium mb-2">Password reset successful</h2>
               <p className="text-sm text-surface-400">
                 Redirecting you to login...
               </p>
@@ -73,7 +73,7 @@ function ResetPasswordForm() {
   return (
     <AuthLayout variant="plain" tagline="Reset your password">
       <div className="card-base p-6">
-            <h2 className="text-xl font-semibold mb-1">Reset password</h2>
+            <h2 className="font-display text-xl font-medium mb-1">Reset password</h2>
             <p className="text-sm text-surface-400 mb-6">
               Enter the code sent to <strong className="text-surface-300">{email}</strong>
             </p>

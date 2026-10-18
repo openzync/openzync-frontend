@@ -96,7 +96,7 @@ export default function LoginOtpPage() {
                 <LogIn size={20} className="text-accent-300" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">
+                <h2 className="font-display text-xl font-medium">
                   {step === "email" ? "Sign in with a code" : "Enter the code"}
                 </h2>
                 <p className="text-sm text-surface-400">

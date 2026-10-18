@@ -22,7 +22,7 @@ export default function GlobalError({
     <html lang="en">
       <body className="flex min-h-screen items-center justify-center bg-surface-950 text-text-primary">
         <div className="flex flex-col items-center gap-3 text-center">
-          <h1 className="text-lg font-semibold">Something went wrong</h1>
+          <h1 className="font-display text-lg font-medium">Something went wrong</h1>
           <p className="max-w-md text-sm text-surface-400">
             An unexpected error occurred. Please try again.
           </p>

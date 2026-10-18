@@ -195,7 +195,7 @@ export default function BehaviourConfigPage() {
             <Settings2 size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Behaviour Settings</h2>
+            <h2 className="font-display text-base font-medium">Behaviour Settings</h2>
             <p className="text-xs text-surface-400">
               Caching and audit behaviour
             </p>

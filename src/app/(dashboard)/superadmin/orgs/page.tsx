@@ -238,7 +238,7 @@ function SuperadminOrgsInner() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold">All Organizations</h2>
+        <h2 className="font-display text-lg font-medium">All Organizations</h2>
         <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>
           Create Organization
         </Button>

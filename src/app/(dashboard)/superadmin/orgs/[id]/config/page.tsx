@@ -92,7 +92,7 @@ export default function OrgConfigAdminPage() {
             <ArrowLeft size={16} />
           </Link>
           <div>
-            <h2 className="text-lg font-semibold">Organization Configuration</h2>
+            <h2 className="font-display text-lg font-medium">Organization Configuration</h2>
             <p className="text-sm text-surface-400 mt-0.5">
               Cross-org defaults for organization <span className="font-mono text-xs">{orgId}</span>
             </p>
@@ -108,7 +108,7 @@ export default function OrgConfigAdminPage() {
             <Settings2 size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Non-secret Defaults</h2>
+            <h2 className="font-display text-base font-medium">Non-secret Defaults</h2>
             <p className="text-xs text-surface-400">
               Same fields as the org-config pages, managed at the platform level
             </p>

@@ -643,7 +643,7 @@ export default function UserDetailPage() {
             {/* Title row */}
             <div className="flex items-start justify-between mb-6">
               <div>
-                <h1 className="text-xl font-bold tracking-tight">
+                <h1 className="font-display text-xl font-medium tracking-tight">
                   {user.external_id}
                 </h1>
                 <p className="text-xs text-surface-500 mt-0.5">
@@ -763,7 +763,7 @@ export default function UserDetailPage() {
       {user && canWriteMembers && me?.id !== user.id && user.role !== "admin" && (
         <div className="card-base p-6">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
+            <h2 className="font-display text-lg font-medium flex items-center gap-2">
               <Shield size={18} className="text-surface-400" />
               Edit Permissions
             </h2>
@@ -832,7 +832,7 @@ export default function UserDetailPage() {
       <div className="card-base p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
+            <h2 className="font-display text-lg font-medium flex items-center gap-2">
               <FileText size={18} className="text-surface-400" />
               User Summary
             </h2>
@@ -891,7 +891,7 @@ export default function UserDetailPage() {
       <div className="card-base p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
+            <h2 className="font-display text-lg font-medium flex items-center gap-2">
               <BookOpen size={18} className="text-surface-400" />
               Summary Instructions
             </h2>

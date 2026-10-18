@@ -99,7 +99,7 @@ function OrgMembersAdminInner() {
             <ArrowLeft size={16} />
           </Link>
           <div>
-            <h2 className="text-lg font-semibold">Organization Members</h2>
+            <h2 className="font-display text-lg font-medium">Organization Members</h2>
             <p className="text-sm text-surface-400 mt-0.5">
               Manage roles for organization <span className="font-mono text-xs">{orgId}</span>
             </p>

@@ -267,7 +267,7 @@ export default function GraphConfigPage() {
             <GitBranch size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Graph Settings</h2>
+            <h2 className="font-display text-base font-medium">Graph Settings</h2>
             <p className="text-xs text-surface-400">Knowledge graph search and traversal</p>
           </div>
         </div>

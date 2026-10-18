@@ -194,7 +194,7 @@ export default function SuperadminConfigPage() {
             <ShieldCheck size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Registration Policy</h2>
+            <h2 className="font-display text-base font-medium">Registration Policy</h2>
             <p className="text-xs text-surface-400">Controls who can create or join organizations</p>
           </div>
         </div>
@@ -245,7 +245,7 @@ export default function SuperadminConfigPage() {
             <Settings2 size={20} className="text-warning" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">System Defaults</h2>
+            <h2 className="font-display text-base font-medium">System Defaults</h2>
             <p className="text-xs text-surface-400">
               Non-secret defaults applied to newly created organizations
             </p>
@@ -280,7 +280,7 @@ export default function SuperadminConfigPage() {
             <ServerCog size={20} className="text-accent-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">System Settings (runtime)</h2>
+            <h2 className="font-display text-base font-medium">System Settings (runtime)</h2>
             <p className="text-xs text-surface-400">
               Platform runtime configuration from the secrets backend — read-only
             </p>

@@ -126,7 +126,7 @@ export default function OrgConfigIndexPage() {
               <KeyRound size={20} />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold">Organization Code</h2>
+              <h2 className="font-display text-lg font-medium">Organization Code</h2>
               <p className="text-sm text-surface-400 mt-0.5">
                 Share this code with people you want to invite — they can join your
                 organization from the signup page (&ldquo;Join with code&rdquo;).
@@ -181,7 +181,7 @@ export default function OrgConfigIndexPage() {
               <UserPlus size={20} />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold">Self-registration</h2>
+              <h2 className="font-display text-lg font-medium">Self-registration</h2>
               <p className="text-sm text-surface-400 mt-0.5">
                 Control whether people can join your organization with this code.
               </p>

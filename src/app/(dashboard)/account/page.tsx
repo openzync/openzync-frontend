@@ -204,7 +204,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Account</h1>
+        <h1 className="font-display text-2xl font-medium tracking-tight">Account</h1>
         <p className="text-sm text-surface-400 mt-1">Manage your profile and organization</p>
       </div>
 
@@ -219,7 +219,7 @@ export default function SettingsPage() {
             <User size={20} className="text-brand-300" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Profile</h2>
+            <h2 className="font-display text-base font-medium">Profile</h2>
             <p className="text-xs text-surface-400">Your personal information</p>
           </div>
         </div>
@@ -294,7 +294,7 @@ export default function SettingsPage() {
             <Lock size={20} className="text-warning" />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Change Password</h2>
+            <h2 className="font-display text-base font-medium">Change Password</h2>
             <p className="text-xs text-surface-400">Update your account password</p>
           </div>
         </div>
@@ -374,7 +374,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3">
-                <h2 className="text-base font-semibold">Multi-Factor Authentication</h2>
+                <h2 className="font-display text-base font-medium">Multi-Factor Authentication</h2>
                 {localMfaEnabled && (
                   <span className="text-xs font-medium text-success bg-success/10 px-2 py-0.5 rounded-full border border-success/30 shrink-0">
                     Enabled

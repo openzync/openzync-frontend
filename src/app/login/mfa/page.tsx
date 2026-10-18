@@ -50,7 +50,7 @@ function MfaChallengeForm() {
                 <Shield size={20} className="text-accent-300" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">Verify your identity</h2>
+                <h2 className="font-display text-xl font-medium">Verify your identity</h2>
                 <p className="text-sm text-surface-400">
                   Enter the MFA code sent to
                 </p>

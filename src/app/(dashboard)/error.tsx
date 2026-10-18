@@ -21,7 +21,7 @@ export default function DashboardError({
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
       <AlertCircle size={28} className="text-error" />
-      <h1 className="text-lg font-semibold text-text-primary">
+      <h1 className="font-display text-lg font-medium text-text-primary">
         Something went wrong
       </h1>
       <p className="max-w-md text-sm text-surface-400">

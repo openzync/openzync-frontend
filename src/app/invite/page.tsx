@@ -108,7 +108,7 @@ function InviteForm() {
             </div>
           ) : invalid || !info ? (
             <div className="card-base p-6">
-              <h2 className="text-xl font-semibold mb-2">Invitation not found</h2>
+              <h2 className="font-display text-xl font-medium mb-2">Invitation not found</h2>
               <p className="text-sm text-surface-400 mb-5">{INVALID_MESSAGE}</p>
               <Link href="/login">
                 <Button variant="primary" className="w-full">
@@ -118,7 +118,7 @@ function InviteForm() {
             </div>
           ) : (
             <div className="card-base p-6">
-              <h2 className="text-xl font-semibold mb-1">
+              <h2 className="font-display text-xl font-medium mb-1">
                 You’ve been invited to join{" "}
                 <span className="text-brand-400">{info.org_name}</span>
               </h2>
