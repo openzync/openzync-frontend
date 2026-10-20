@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, FileJson, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -128,9 +128,30 @@ function SchemasInner() {
   const [deleting, setDeleting] = useState(false);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
 
-  const schemas: ExtractionSchema[] = (schemasQuery.data?.data ?? []).filter(
+  const serverSchemas = useMemo(
+    () => schemasQuery.data?.data ?? null,
+    [schemasQuery.data],
+  );
+  const schemas: ExtractionSchema[] = (serverSchemas ?? []).filter(
     (schema) => schema.is_active && !removedIds.includes(schema.id),
   );
+
+  // A removed id stays hidden only while the server still returns that row.
+  // The backend soft-deletes (is_active → false) and keeps returning the row,
+  // so "the server no longer has it" means "it is no longer an active row".
+  // Dropping those ids lets a re-activated schema render again and keeps the
+  // set from growing without bound.
+  useEffect(() => {
+    if (!serverSchemas) return;
+    const live = new Set(
+      serverSchemas.filter((schema) => schema.is_active).map((schema) => schema.id),
+    );
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRemovedIds((prev) => {
+      const next = prev.filter((id) => live.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [serverSchemas]);
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import {
   Users,
   Plus,
@@ -96,9 +96,25 @@ function ProjectMembersInner() {
   // Locally-removed rows are filtered out of the server data (the DELETE
   // returns no body); every other row comes from the server on each refetch.
   const [removedIds, setRemovedIds] = useState<string[]>([]);
-  const members = extractList<Member>(membersQuery.data).filter(
-    (m) => !removedIds.includes(m.id),
+  const serverMembers = useMemo(
+    () => (membersQuery.data ? extractList<Member>(membersQuery.data) : null),
+    [membersQuery.data],
   );
+  const members = (serverMembers ?? []).filter((m) => !removedIds.includes(m.id));
+
+  // A removed id stays hidden only while the server still returns that row.
+  // Once the server drops it, the id leaves the set — otherwise a re-added
+  // row with the same id would stay hidden forever and the set would grow
+  // without bound.
+  useEffect(() => {
+    if (!serverMembers) return;
+    const live = new Set(serverMembers.map((m) => m.id));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRemovedIds((prev) => {
+      const next = prev.filter((id) => live.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [serverMembers]);
   const loading = membersQuery.isLoading;
   const fetchError = membersQuery.error;
 

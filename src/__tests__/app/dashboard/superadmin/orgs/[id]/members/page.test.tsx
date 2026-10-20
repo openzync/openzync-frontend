@@ -81,9 +81,15 @@ describe("OrgMembersAdminPage — member list source", () => {
     expect(await screen.findByText("Ada Lovelace")).toBeInTheDocument();
 
     // The org in the URL must be the org the list comes from.
+    // Sorted by name/asc: `SystemMemberListItem` has no `created_at`, so
+    // sorting by it would order the list by a value the table never shows.
     expect(getPaths()).toContain(
-      "/admin/system/orgs/org-1/members?limit=200&sort_by=created_at&sort_dir=desc",
+      "/admin/system/orgs/org-1/members?limit=200&sort_by=name&sort_dir=asc",
     );
+
+    // GET /v1/users is scoped to the REQUESTER's own org — the list must
+    // never come from it.
+    expect(getPaths().filter((p) => p.startsWith("/v1/users"))).toEqual([]);
   });
 
   it("never falls back to GET /v1/users (scoped to the requester's own org)", async () => {

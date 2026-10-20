@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useMemo, useState, useCallback } from "react";
 import {
   Plus,
   Webhook,
@@ -359,9 +359,25 @@ function WebhooksInner() {
   // Locally-removed rows are filtered out of the server data (the DELETE
   // returns no body); every other row comes from the server on each refetch.
   const [removedIds, setRemovedIds] = useState<string[]>([]);
-  const endpoints = (endpointsQuery.data?.data ?? []).filter(
-    (e) => !removedIds.includes(e.id),
+  const serverEndpoints = useMemo(
+    () => endpointsQuery.data?.data ?? null,
+    [endpointsQuery.data],
   );
+  const endpoints = (serverEndpoints ?? []).filter((e) => !removedIds.includes(e.id));
+
+  // A removed id stays hidden only while the server still returns that row
+  // (the DELETE may not have landed yet). Once the server drops it, the id
+  // leaves the set — otherwise a re-created row with the same id would stay
+  // hidden forever and the set would grow without bound.
+  useEffect(() => {
+    if (!serverEndpoints) return;
+    const live = new Set(serverEndpoints.map((e) => e.id));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRemovedIds((prev) => {
+      const next = prev.filter((id) => live.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [serverEndpoints]);
   const loading = endpointsQuery.isLoading;
   const [actionError, setActionError] = useState<string | null>(null);
   const error = endpointsQuery.error ?? actionError;

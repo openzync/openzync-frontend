@@ -49,17 +49,19 @@ export default function OrgMembersAdminPage() {
   );
 }
 
-// Backend whitelist for GET /admin/system/orgs/{org_id}/members.
-const ORG_MEMBER_SORT_FIELDS = ["created_at", "name", "email"] as const;
+// Backend whitelist for GET /admin/system/orgs/{org_id}/members — restricted
+// to the fields SystemMemberListItem actually returns. It has no
+// `created_at`, and the table shows no "Created" column, so sorting by it
+// would order the list by a value the user cannot see.
+const ORG_MEMBER_SORT_FIELDS = ["name", "email"] as const;
 
 function OrgMembersAdminInner() {
   const { id: orgId } = useParams<{ id: string }>();
   // Server-side sort, URL-synced. Single-page list — the refreshKey
   // refetches in the new order.
   const { sortBy, sortDir, onSort, withSort } = useSortQuery({
-    defaultSort: { sortBy: "created_at", sortDir: "desc" },
+    defaultSort: { sortBy: "name", sortDir: "asc" },
     allowedFields: ORG_MEMBER_SORT_FIELDS,
-    timestampFields: ["created_at"],
   });
   const membersQuery = useApiQuery<MembersResponse>(() =>
     get<MembersResponse>(
