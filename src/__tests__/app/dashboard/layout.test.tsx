@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DashboardLayout from "@/app/(dashboard)/layout";
 import { useConfigDirty } from "@/contexts/config-dirty";
@@ -199,7 +199,15 @@ describe("DashboardLayout unsaved-changes guard (SidebarLink)", () => {
     );
 
     await screen.findAllByText("admin@acme.com");
-    markDirty!();
+    // act(): setDirty outside act() schedules the update without flushing
+    // it, so the sidebar's onClick closure would still read the stale
+    // isDirty=false and navigate instead of intercepting. The update only
+    // lands because userEvent's click happens to yield a macrotask first —
+    // a timing detail that makes the test load-dependent. act() makes the
+    // transition deterministic.
+    act(() => {
+      markDirty!();
+    });
 
     // Sidebar renders twice (mobile + desktop); click the first Overview link.
     const overviewLinks = screen.getAllByRole("link", { name: "Overview" });
@@ -219,7 +227,11 @@ describe("DashboardLayout unsaved-changes guard (SidebarLink)", () => {
     const links = screen.getAllByRole("link", { name: "Overview" });
     await user.click(links[0]);
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
-  });
+    // Explicit timeout: this test renders the whole dashboard shell twice and
+    // drives three user interactions, so it can overrun vitest's default 5s
+    // testTimeout on a loaded machine (observed: "Test timed out in 5000ms").
+    // The assertions are unchanged — only the wall-clock budget is.
+  }, 20_000);
 
   it("shows no confirm dialog when navigating while clean", async () => {
     const user = userEvent.setup();
@@ -233,7 +245,7 @@ describe("DashboardLayout unsaved-changes guard (SidebarLink)", () => {
       // the guard stays silent.
     });
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
-  });
+  }, 20_000);
 });
 
 describe("DashboardLayout user menu (DropdownMenu)", () => {
@@ -264,7 +276,7 @@ describe("DashboardLayout user menu (DropdownMenu)", () => {
     expect(within(menu).getByText("admin@acme.com")).toBeInTheDocument();
     expect(within(menu).getByRole("menuitem", { name: /account/i })).toBeInTheDocument();
     expect(within(menu).getByRole("menuitem", { name: /sign out/i })).toBeInTheDocument();
-  });
+  }, 20_000);
 
   it("Sign Out clears tokens and routes to /login", async () => {
     const user = userEvent.setup();
@@ -277,5 +289,5 @@ describe("DashboardLayout user menu (DropdownMenu)", () => {
 
     expect(clearTokens).toHaveBeenCalled();
     expect(mockPush).toHaveBeenCalledWith("/login");
-  });
+  }, 20_000);
 });

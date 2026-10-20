@@ -107,11 +107,13 @@ export default function LoginPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <Field label="Email" htmlFor="login-email">
+              {/* The platform root user signs in with the literal "root" —
+                  type="email" would block the submit on HTML5 validation. */}
+              <Field label="Email or username" htmlFor="login-email">
                 <input
                   ref={emailRef}
                   id="login-email"
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

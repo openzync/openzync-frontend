@@ -113,11 +113,17 @@ describe("resolveBreadcrumb", () => {
     ]);
   });
 
-  it("labels deep links via the subpath map", () => {
+  it("resolves a deep link to its nearest manifest ancestor", () => {
+    // The Query Playground page (and its subpath crumb) was deleted in
+    // dae5f74 — /monitoring/query now resolves to the Monitoring entry
+    // like any other deep link under a manifest href.
     expect(resolveBreadcrumb("/monitoring/query")).toEqual([
       { label: "Insights" },
-      { label: "Monitoring", href: "/monitoring" },
-      { label: "Query Playground" },
+      { label: "Monitoring" },
+    ]);
+    expect(resolveBreadcrumb("/monitoring/query/deep")).toEqual([
+      { label: "Insights" },
+      { label: "Monitoring" },
     ]);
   });
 

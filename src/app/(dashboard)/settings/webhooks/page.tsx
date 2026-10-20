@@ -356,9 +356,12 @@ function WebhooksInner() {
     get<{ data: WebhookEndpoint[] }>(`/v1/admin/webhooks?${withSort(new URLSearchParams())}`),
     { refreshKey: `${sortBy}:${sortDir}` },
   );
-  // Optimistic delete removes locally; server data refreshes via refetch.
-  const [override, setOverride] = useState<WebhookEndpoint[] | null>(null);
-  const endpoints = override ?? endpointsQuery.data?.data ?? [];
+  // Locally-removed rows are filtered out of the server data (the DELETE
+  // returns no body); every other row comes from the server on each refetch.
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const endpoints = (endpointsQuery.data?.data ?? []).filter(
+    (e) => !removedIds.includes(e.id),
+  );
   const loading = endpointsQuery.isLoading;
   const [actionError, setActionError] = useState<string | null>(null);
   const error = endpointsQuery.error ?? actionError;
@@ -407,7 +410,7 @@ function WebhooksInner() {
     setDeleting(true);
     try {
       await del(`/v1/admin/webhooks/${deleteTarget.id}`);
-      setOverride(endpoints.filter((e) => e.id !== deleteTarget.id));
+      setRemovedIds((prev) => [...prev, deleteTarget.id]);
       setDeleteTarget(null);
       toast.success("Webhook endpoint deleted");
     } catch (err) {

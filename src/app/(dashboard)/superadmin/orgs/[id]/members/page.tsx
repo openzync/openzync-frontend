@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, ShieldCheck, ShieldOff, UsersIcon } from "lucide-react";
 import { get, patch, apiErrorMessage } from "@/lib/api-client";
-import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -20,24 +19,25 @@ import { Button } from "@/components/ui/button";
 
 interface OrgMember {
   id: string;
-  external_id: string;
   name: string | null;
-  email: string | null;
+  /** Falls back to the user's external_id server-side — never null. */
+  email: string;
   role: "admin" | "member" | "superadmin";
-  created_at: string;
+  is_active: boolean;
 }
 
 interface MembersResponse {
   data: OrgMember[];
-  next_cursor: string | null;
-  has_more: boolean;
+  total: number;
+  page: number;
+  limit: number;
 }
 
 /**
- * Cross-org member administration — role changes go through the superadmin
- * endpoint. The member LIST reuses the org users endpoint (GET /v1/users);
- * the contract has no org-scoped member-list endpoint, so this resolves to
- * the current session's org users until the backend adds one.
+ * Cross-org member administration — the list comes from the superadmin
+ * endpoint (GET /admin/system/orgs/{org_id}/members), which is scoped to the
+ * org in the URL. GET /v1/users is scoped to the REQUESTER's own org, so it
+ * can never be used here.
  */
 export default function OrgMembersAdminPage() {
   // Sort state lives in the URL via useSortQuery — needs a Suspense
@@ -49,7 +49,7 @@ export default function OrgMembersAdminPage() {
   );
 }
 
-// Backend whitelist for GET /v1/users (default created_at/desc).
+// Backend whitelist for GET /admin/system/orgs/{org_id}/members.
 const ORG_MEMBER_SORT_FIELDS = ["created_at", "name", "email"] as const;
 
 function OrgMembersAdminInner() {
@@ -62,7 +62,9 @@ function OrgMembersAdminInner() {
     timestampFields: ["created_at"],
   });
   const membersQuery = useApiQuery<MembersResponse>(() =>
-    get<MembersResponse>(`/v1/users?${withSort(new URLSearchParams({ limit: "50" }))}`),
+    get<MembersResponse>(
+      `/admin/system/orgs/${orgId}/members?${withSort(new URLSearchParams({ limit: "200" }))}`,
+    ),
     { refreshKey: `${sortBy}:${sortDir}` },
   );
   const members = membersQuery.data?.data ?? [];
@@ -78,7 +80,7 @@ function OrgMembersAdminInner() {
     try {
       await patch(`/admin/system/orgs/${orgId}/members/${user.id}/role`, { role: to });
       setRoleTarget(null);
-      toast.success(`"${user.name ?? user.external_id}" is now ${to === "admin" ? "an admin" : "a member"}`);
+      toast.success(`"${user.name ?? user.email}" is now ${to === "admin" ? "an admin" : "a member"}`);
       membersQuery.refetch();
     } catch (err) {
       toast.error(apiErrorMessage(err, "Failed to update role"));
@@ -115,15 +117,14 @@ function OrgMembersAdminInner() {
             <SortableHead field="name" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Name</SortableHead>
             <SortableHead field="email" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Email</SortableHead>
             <TableHead>Role</TableHead>
-            <SortableHead field="created_at" sortBy={sortBy} sortDir={sortDir} onSort={onSort}>Created</SortableHead>
             <TableHead align="right">Actions</TableHead>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableSkeleton rows={5} cols={5} colWidths={["w-32", "w-36", "w-20", "w-28", "w-32"]} />
+              <TableSkeleton rows={5} cols={4} colWidths={["w-32", "w-36", "w-20", "w-32"]} />
             ) : members.length === 0 ? (
               <tr>
-                <td colSpan={5}>
+                <td colSpan={4}>
                   <EmptyState
                     icon={UsersIcon}
                     title="No members found"
@@ -138,14 +139,13 @@ function OrgMembersAdminInner() {
                     {member.name || <span className="text-surface-500 italic">—</span>}
                   </TableCell>
                   <TableCell className="text-surface-200">
-                    {member.email || <span className="text-surface-500 italic">—</span>}
+                    {member.email}
                   </TableCell>
                   <TableCell>
                     <Badge variant={member.role === "admin" || member.role === "superadmin" ? "brand" : "default"} size="sm">
                       {member.role === "superadmin" ? "Superadmin" : member.role === "admin" ? "Admin" : "Member"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-surface-200 text-xs">{formatDate(member.created_at)}</TableCell>
                   <TableCell align="right">
                     {/* Superadmin console uses /admin/system/... — role changes for superadmins are intentionally allowed here */}
                     <Button
@@ -167,8 +167,8 @@ function OrgMembersAdminInner() {
                       }
                       aria-label={
                         member.role === "member"
-                          ? `Make ${member.name ?? member.external_id} an admin`
-                          : `Remove admin from ${member.name ?? member.external_id}`
+                          ? `Make ${member.name ?? member.email} an admin`
+                          : `Remove admin from ${member.name ?? member.email}`
                       }
                     >
                       {member.role === "member" ? <ShieldCheck size={14} /> : <ShieldOff size={14} />}
@@ -186,8 +186,8 @@ function OrgMembersAdminInner() {
         title={roleTarget?.to === "admin" ? "Make Admin" : "Remove Admin"}
         message={
           roleTarget?.to === "admin"
-            ? `Grant admin access to "${roleTarget?.user.name ?? roleTarget?.user.external_id}"? Admins can manage org users, settings, and view monitoring/audit data.`
-            : `Remove admin access from "${roleTarget?.user.name ?? roleTarget?.user.external_id}"? They will become a regular member.`
+            ? `Grant admin access to "${roleTarget?.user.name ?? roleTarget?.user.email}"? Admins can manage org users, settings, and view monitoring/audit data.`
+            : `Remove admin access from "${roleTarget?.user.name ?? roleTarget?.user.email}"? They will become a regular member.`
         }
         confirmLabel={roleTarget?.to === "admin" ? "Make Admin" : "Remove Admin"}
         variant={roleTarget?.to === "admin" ? "primary" : "danger"}

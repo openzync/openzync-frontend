@@ -93,9 +93,12 @@ function ProjectMembersInner() {
     ),
     { enabled: !!projectId, refreshKey: `${sortBy}:${sortDir}` },
   );
-  // Optimistic removal writes a local override; server data wins on refetch.
-  const [override, setOverride] = useState<Member[] | null>(null);
-  const members = override ?? extractList<Member>(membersQuery.data);
+  // Locally-removed rows are filtered out of the server data (the DELETE
+  // returns no body); every other row comes from the server on each refetch.
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const members = extractList<Member>(membersQuery.data).filter(
+    (m) => !removedIds.includes(m.id),
+  );
   const loading = membersQuery.isLoading;
   const fetchError = membersQuery.error;
 
@@ -155,7 +158,7 @@ function ProjectMembersInner() {
       await apiDel(
         `/v1/projects/${projectId}/members/${removeTarget.user_id}`,
       );
-      setOverride(members.filter((m) => m.id !== removeTarget.id));
+      setRemovedIds((prev) => [...prev, removeTarget.id]);
       setRemoveTarget(null);
       toast.success("Member removed");
     } catch (err) {

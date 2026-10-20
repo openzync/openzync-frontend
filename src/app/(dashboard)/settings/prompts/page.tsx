@@ -226,8 +226,6 @@ function VersionHistoryDialog({
   const [loading, setLoading] = useState(true);
   const [selectedVersion, setSelectedVersion] = useState<PromptTemplateDetail | null>(null);
   const [rollingBack, setRollingBack] = useState(false);
-  const [promoting, setPromoting] = useState(false);
-  const [promoteConfirm, setPromoteConfirm] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchVersions = useCallback(async () => {
@@ -252,16 +250,6 @@ function VersionHistoryDialog({
       onRollback(version);
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to rollback template"); }
     finally { setRollingBack(false); }
-  };
-
-  const handlePromote = async (version: number) => {
-    setPromoting(true); setPromoteConfirm(null);
-    try {
-      await post(`/admin/org/prompts/${templateName}/promote/${version}`);
-      toast.success(`Version ${version} of "${templateDisplayName(templateName)}" is now the system default`);
-      await fetchVersions();
-    } catch (err) { setError(err instanceof Error ? err.message : "Failed to promote template"); }
-    finally { setPromoting(false); }
   };
 
   const isActiveVersion = (version: number) => versionsData?.current_version === version;
@@ -315,21 +303,6 @@ function VersionHistoryDialog({
                       <Button variant="primary" size="sm" onClick={() => handleRollback(selectedVersion.version)} disabled={rollingBack} className="min-w-[100px] justify-center">
                         {rollingBack ? <span className="flex items-center gap-1"><Spinner /> Rolling back...</span> : <span className="flex items-center gap-1"><RotateCcw size={12} /> Rollback to v{selectedVersion.version}</span>}
                       </Button>
-                    )}
-                    {!selectedVersion.is_system_default ? (
-                      promoteConfirm === selectedVersion.version ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-amber-400">Set as global default?</span>
-                          <Button variant="primary" size="sm" onClick={() => handlePromote(selectedVersion.version)} disabled={promoting} className="bg-amber-500/20 border-amber-500/30 hover:bg-amber-500/30 min-w-[80px] justify-center">
-                            {promoting ? <span className="flex items-center gap-1"><Spinner /> Promoting...</span> : <span className="flex items-center gap-1"><Star size={12} /> Confirm</span>}
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setPromoteConfirm(null)} disabled={promoting}>Cancel</Button>
-                        </div>
-                      ) : (
-                        <Button variant="ghost" size="sm" onClick={() => setPromoteConfirm(selectedVersion.version)} className="text-amber-400 hover:text-amber-300"><Star size={12} /> Set as System Default</Button>
-                      )
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-amber-400"><Star size={12} /> System Default</span>
                     )}
                   </div>
                 </div>

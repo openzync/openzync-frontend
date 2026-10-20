@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LoginPage from "@/app/login/page";
 import { API_BASE } from "@/lib/api-client";
@@ -79,7 +79,12 @@ describe("LoginPage", () => {
 
   it("associates labels with inputs via htmlFor/id", () => {
     render(<LoginPage />);
-    expect(screen.getByLabelText("Email")).toHaveAttribute("id", "login-email");
+    // The platform root user signs in with the literal "root", so the
+    // field is "Email or username" — not "Email".
+    expect(screen.getByLabelText("Email or username")).toHaveAttribute(
+      "id",
+      "login-email",
+    );
     expect(screen.getByLabelText("Password")).toHaveAttribute("id", "login-password");
   });
 
@@ -167,7 +172,16 @@ describe("LoginPage", () => {
         body: JSON.stringify({ email: "root", password: "root-password" }),
       }),
     );
-  });
+
+    // The submit must run to completion, not just reach fetch(): a
+    // type="email" input would have been blocked by HTML5 validation and
+    // "root" would never have been sent at all.
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith("/overview");
+    });
+    expect(localStorage.getItem("mg_access_token")).toBe("access123");
+    expect(localStorage.getItem("mg_refresh_token")).toBe("refresh123");
+  }, 20_000);
 
   it("redirects to MFA page when requires_mfa is true", async () => {
     const user = userEvent.setup();

@@ -74,6 +74,7 @@ const mockProjects = [
     created_by: "user-1",
     created_at: "2025-01-15T00:00:00Z",
     updated_at: "2025-06-01T00:00:00Z",
+    is_archived: false,
   },
   {
     id: "proj-2",
@@ -83,6 +84,7 @@ const mockProjects = [
     created_by: "user-2",
     created_at: "2025-03-01T00:00:00Z",
     updated_at: "2025-06-10T00:00:00Z",
+    is_archived: false,
   },
 ];
 
@@ -99,9 +101,7 @@ afterEach(() => {
 
 describe("ProjectsPage", () => {
   it("renders the page header", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: mockProjects,
-    });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
 
     render(<ProjectsPage />);
 
@@ -114,9 +114,7 @@ describe("ProjectsPage", () => {
   });
 
   it("renders the Create Project button", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: mockProjects,
-    });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
 
     render(<ProjectsPage />);
     expect(
@@ -125,9 +123,7 @@ describe("ProjectsPage", () => {
   });
 
   it("renders project cards when projects exist", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: mockProjects,
-    });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
 
     render(<ProjectsPage />);
 
@@ -143,9 +139,7 @@ describe("ProjectsPage", () => {
   });
 
   it("renders project metadata (member count, created date)", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: mockProjects,
-    });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
 
     render(<ProjectsPage />);
 
@@ -164,7 +158,7 @@ describe("ProjectsPage", () => {
   });
 
   it("shows empty state when no projects exist", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({ data: [] });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     render(<ProjectsPage />);
 
@@ -193,11 +187,13 @@ describe("ProjectsPage", () => {
     // Scoped to the list endpoint: the page also fetches ?pinned_only=true for
     // the pin rail, so global "once" sequencing would land on the wrong call.
     const listCalls = () =>
-      (get as ReturnType<typeof vi.fn>).mock.calls.filter(([p]) => p === "/v1/projects");
+      (get as ReturnType<typeof vi.fn>).mock.calls.filter(
+        ([p]) => p === "/v1/projects?limit=200",
+      );
     (get as ReturnType<typeof vi.fn>).mockImplementation((path: string) =>
-      path === "/v1/projects" && listCalls().length === 1
+      path === "/v1/projects?limit=200" && listCalls().length === 1
         ? Promise.reject(new ApiError("Failed to load", 500, null))
-        : Promise.resolve({ data: mockProjects }),
+        : Promise.resolve(mockProjects),
     );
 
     const user = userEvent.setup();
@@ -213,9 +209,7 @@ describe("ProjectsPage", () => {
   });
 
   it("opens create dialog when Create Project is clicked", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: mockProjects,
-    });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
 
     const user = userEvent.setup();
     render(<ProjectsPage />);
@@ -237,9 +231,7 @@ describe("ProjectsPage", () => {
   });
 
   it("creates a project via the dialog", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: mockProjects,
-    });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
     (post as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "proj-3",
       name: "New Project",
@@ -277,9 +269,7 @@ describe("ProjectsPage", () => {
   });
 
   it("shows error when creating with empty name", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: mockProjects,
-    });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
 
     const user = userEvent.setup();
     render(<ProjectsPage />);
@@ -310,9 +300,7 @@ describe("ProjectsPage", () => {
   });
 
   it("closes create dialog on Cancel", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: mockProjects,
-    });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
 
     const user = userEvent.setup();
     render(<ProjectsPage />);
@@ -338,9 +326,7 @@ describe("ProjectsPage", () => {
   // role="link" and the pin button is a sibling interactive element.
 
   it("renders cards as link roles without nested buttons", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: mockProjects,
-    });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
 
     const { container } = render(<ProjectsPage />);
 
@@ -353,9 +339,7 @@ describe("ProjectsPage", () => {
   });
 
   it("navigates when the card is clicked", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: mockProjects,
-    });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
 
     const user = userEvent.setup();
     render(<ProjectsPage />);
@@ -369,9 +353,7 @@ describe("ProjectsPage", () => {
   });
 
   it("navigates when the card is activated with Enter/Space", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: mockProjects,
-    });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
 
     const user = userEvent.setup();
     render(<ProjectsPage />);
@@ -389,9 +371,7 @@ describe("ProjectsPage", () => {
   });
 
   it("pin button toggles pinning without navigating", async () => {
-    (get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: mockProjects,
-    });
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
 
     const user = userEvent.setup();
     render(<ProjectsPage />);
@@ -407,4 +387,53 @@ describe("ProjectsPage", () => {
     expect(mockUnpin).toHaveBeenCalledWith("proj-1");
     expect(mockPush).not.toHaveBeenCalled();
   });
+});
+
+// ── Backend contract: GET /v1/projects returns a BARE ARRAY ───────────────────
+// The endpoint is `response_model=list[ProjectResponse]` — there is no
+// `{data: [...]}` envelope, and `limit` is capped at 200 server-side.
+
+describe("ProjectsPage — list endpoint contract", () => {
+  it("requests ?limit=200 and renders the bare array response", async () => {
+    // A bare array — exactly what the backend returns.
+    (get as ReturnType<typeof vi.fn>).mockResolvedValue(mockProjects);
+
+    render(<ProjectsPage />);
+
+    expect(await screen.findByText("Customer Support Bot")).toBeInTheDocument();
+    expect(screen.getByText("Data Extraction Pipeline")).toBeInTheDocument();
+
+    expect(get).toHaveBeenCalledWith("/v1/projects?limit=200");
+  });
+
+  it("renders every project when the org has more than 50", async () => {
+    // Backend-faithful mock: the server caps the page at the requested
+    // `limit` (default 50). Asking for the wrong limit silently drops
+    // projects, so the mock honours whatever the page asks for.
+    const many = Array.from({ length: 60 }, (_, i) => ({
+      id: `proj-${i + 1}`,
+      name: `Project ${i + 1}`,
+      description: null,
+      member_count: 1,
+      created_by: "user-1",
+      created_at: "2025-01-15T00:00:00Z",
+      updated_at: "2025-06-01T00:00:00Z",
+      is_archived: false,
+    }));
+    (get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path.startsWith("/v1/projects?pinned_only")) {
+        return Promise.resolve([]);
+      }
+      const query = path.split("?")[1] ?? "";
+      const limit = Number(new URLSearchParams(query).get("limit") ?? 50);
+      return Promise.resolve(many.slice(0, limit));
+    });
+
+    render(<ProjectsPage />);
+
+    expect(await screen.findByText("Project 1")).toBeInTheDocument();
+    // The 51st project only renders if the page asked for more than 50.
+    expect(await screen.findByText("Project 60")).toBeInTheDocument();
+    expect(get).toHaveBeenCalledWith("/v1/projects?limit=200");
+  }, 20_000);
 });

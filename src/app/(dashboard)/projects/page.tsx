@@ -15,7 +15,6 @@ import {
   post,
   ApiError,
   apiErrorMessage,
-  extractList,
 } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
@@ -42,10 +41,6 @@ interface Project {
   created_at: string;
   updated_at: string;
   is_archived: boolean;
-}
-
-interface ProjectsApiResponse {
-  data: Project[];
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
@@ -77,15 +72,20 @@ function ProjectsPageInner() {
     router.replace(`${pathname}?${p.toString()}`, { scroll: false });
   }
 
-  const projectsQuery = useApiQuery<ProjectsApiResponse>(
+  // The backend returns a bare array (response_model=list[ProjectResponse])
+  // and caps limit at 200 — ask for the max, the default 50 would silently
+  // drop projects in larger orgs.
+  const projectsQuery = useApiQuery<Project[]>(
     () =>
-      get<ProjectsApiResponse>(
-        showArchived ? "/v1/projects?include_archived=true" : "/v1/projects",
+      get<Project[]>(
+        showArchived
+          ? "/v1/projects?include_archived=true&limit=200"
+          : "/v1/projects?limit=200",
       ),
     { refreshKey: `${showArchived}` },
   );
   // Guarded: data is null until the first response lands.
-  const projects = projectsQuery.data ? extractList<Project>(projectsQuery.data) : [];
+  const projects = projectsQuery.data ?? [];
   const loading = projectsQuery.isLoading;
   const fetchError = projectsQuery.error;
 
