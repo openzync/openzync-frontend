@@ -60,24 +60,56 @@ async function refreshAndRetry(
 
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 
+// COOKIE-MIGRATION SINGLE-SWAP SPOT — when the backend issues httpOnly
+// cookies, replace ONLY getAccessToken/storeTokens/clearTokens below (keyed
+// by TOKEN_KEYS) and drop the Authorization header in getAuthHeaders; add
+// `credentials: "include"` in request()/uploadWithBlobs if API_BASE ever
+// goes cross-origin. No other file changes. Until then tokens live in
+// localStorage (no cookie session exists yet) — treat them as short-lived
+// secrets: never log them, never put them in URLs, and wipe both on any
+// auth rejection (see refreshAndRetry/clearTokens).
+const TOKEN_KEYS = {
+  access: "mg_access_token",
+  refresh: "mg_refresh_token",
+} as const;
+
+// Short-lived in-memory copy of the access token: populated lazily from
+// localStorage, dropped on reload/logout/401. It never extends persistence
+// (nothing extra is written to storage); it only bounds localStorage reads
+// to one per page session. Only positive values are cached — clear/store
+// reset to undefined so the next read re-checks storage (cross-tab safe:
+// a stale cache can at worst send one revoked token, which fails closed
+// through the 401 → refresh → clear path).
+let _memAccessToken: string | undefined;
+
 function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("mg_access_token");
+  if (_memAccessToken !== undefined) return _memAccessToken;
+  const token = localStorage.getItem(TOKEN_KEYS.access);
+  // Fail closed on corrupt values — only a non-empty string leaves here.
+  if (typeof token !== "string" || token.length === 0) return null;
+  _memAccessToken = token;
+  return token;
 }
 
 function getRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("mg_refresh_token");
+  const token = localStorage.getItem(TOKEN_KEYS.refresh);
+  // Fail closed on corrupt values, same as the access token.
+  if (typeof token !== "string" || token.length === 0) return null;
+  return token;
 }
 
 function storeTokens(access: string, refresh: string): void {
-  localStorage.setItem("mg_access_token", access);
-  localStorage.setItem("mg_refresh_token", refresh);
+  localStorage.setItem(TOKEN_KEYS.access, access);
+  localStorage.setItem(TOKEN_KEYS.refresh, refresh);
+  _memAccessToken = access;
 }
 
 function clearTokens(): void {
-  localStorage.removeItem("mg_access_token");
-  localStorage.removeItem("mg_refresh_token");
+  localStorage.removeItem(TOKEN_KEYS.access);
+  localStorage.removeItem(TOKEN_KEYS.refresh);
+  _memAccessToken = undefined;
 }
 
 /**
@@ -252,7 +284,7 @@ interface RequestOptions extends RequestInit {
 }
 
 /** Per-verb opt-out surface — deliberately narrow so callers can't send raw headers past the auth layer. */
-type VerbOptions = Pick<RequestOptions, "skipAuthRetry">;
+type VerbOptions = Pick<RequestOptions, "skipAuthRetry" | "signal">;
 
 async function request<T>(
   path: string,
@@ -350,18 +382,28 @@ export function del<T = void>(path: string, opts?: VerbOptions): Promise<T> {
  * @param files - Array of File objects to attach as blobs.
  * @returns Parsed response body.
  */
-async function uploadWithBlobs<T>(
-  path: string,
+/**
+ * Build a fresh multipart body per attempt — a FormData consumed by one
+ * fetch cannot be re-sent, so the 401 retry must rebuild it, not reuse it.
+ */
+function buildUploadBody(
   payload: Record<string, unknown>,
   files: File[],
-): Promise<T> {
+): FormData {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
 
   for (const file of files) {
     formData.append("blobs", file);
   }
+  return formData;
+}
 
+async function uploadWithBlobs<T>(
+  path: string,
+  payload: Record<string, unknown>,
+  files: File[],
+): Promise<T> {
   const url = `${API_BASE}${path}`;
   const headers = getAuthHeaders();
   // No Content-Type header — let the browser set the multipart boundary.
@@ -369,14 +411,18 @@ async function uploadWithBlobs<T>(
   let res = await fetch(url, {
     method: "POST",
     headers,
-    body: formData,
+    body: buildUploadBody(payload, files),
   });
 
   // 401 → same shared refresh-and-retry path as request()
   if (res.status === 401) {
     res = await refreshAndRetry((newToken) => {
       headers["Authorization"] = `Bearer ${newToken}`;
-      return fetch(url, { method: "POST", headers, body: formData });
+      return fetch(url, {
+        method: "POST",
+        headers,
+        body: buildUploadBody(payload, files),
+      });
     });
   }
 

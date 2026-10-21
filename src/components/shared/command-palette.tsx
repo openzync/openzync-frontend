@@ -80,26 +80,35 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     }
   }, [open]);
 
-  // Debounced API search
+  // Debounced API search — only while open, min 2 chars, in-flight request
+  // aborted on the next keystroke and stale responses ignored.
   useEffect(() => {
-    if (query.length < 1) {
+    if (!open) return;
+    if (query.trim().length < 2) {
       setResults([]);
+      setLoading(false);
       return;
     }
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
         const data = await get<GlobalSearchResponse>(
           `/v1/search?q=${encodeURIComponent(query)}&limit=10`,
+          { signal: controller.signal },
         );
-        setResults(data.results ?? []);
+        if (!controller.signal.aborted) setResults(data.results ?? []);
       } catch {
-        setResults([]);
+        if (!controller.signal.aborted) setResults([]);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
       }
-      setLoading(false);
     }, 300);
-    return () => clearTimeout(timer);
-  }, [query]);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, open]);
 
   // Filter navigation sections locally: permission-gated entries first, then
   // query. Sections render as separate cmdk groups (heading = section label).

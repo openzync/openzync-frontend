@@ -403,7 +403,7 @@ export function ForceGraph({
     (async () => {
       try {
         const json = await get<NodeDetailResponse>(
-          `/v1/projects/${apiConfig.projectId}/graph/nodes/${selectedNode.id}`,
+          `/v1/projects/${encodeURIComponent(apiConfig.projectId)}/graph/nodes/${encodeURIComponent(selectedNode.id)}`,
         );
         if (!cancelled) {
           const detail = json.data;
