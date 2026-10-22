@@ -11,19 +11,7 @@ name: Deploy Frontend
 
 on:
   push:
-    branches: [main]
     tags: ['v*']
-    paths:
-      - 'Dockerfile'
-      - 'next.config.ts'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'src/**'
-      - 'public/**'
-      - 'deploy/**'
-      - '.changeset/**'
-      - 'CHANGELOG.md'
-      - '.github/workflows/deploy.yml'
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -87,7 +75,11 @@ jobs:
 
       - name: Build & push Docker image
         run: |
-            TAG="${GITHUB_SHA}"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              TAG="${GITHUB_REF#refs/tags/}"
+            else
+              TAG="${GITHUB_SHA}"
+            fi
             docker build \
               --build-arg NEXT_PUBLIC_API_URL=https://app.openzync.tech \
               -t ghcr.io/openzync/frontend:$TAG \
