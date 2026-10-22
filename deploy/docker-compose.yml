@@ -1,7 +1,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # OpenZync — Frontend Deployment
 # ──────────────────────────────────────────────────────────────────────────────
-# Standalone — does not reference any backend services or external networks.
+# Attach-only on the shared openzync_network (creation owned by the backend flow).
 # Frontend reaches the API through the VPS nginx reverse proxy.
 #
 # Usage:
@@ -12,11 +12,7 @@
 networks:
   default:
     name: openzync_network
-    # MUST stay identical to openzync-core/infra/docker-compose.backend.yml (subnet 172.28.0.0/24):
-    # both projects share this network and compose reconciles it on every `up`.
-    ipam:
-      config:
-        - subnet: 172.28.0.0/24
+    external: true # attach-only; creation owned by the backend flow (core CD preflight); fails fast if the network is missing.
 
 services:
   # ── Next.js frontend ─────────────────────────────────────────────────────
