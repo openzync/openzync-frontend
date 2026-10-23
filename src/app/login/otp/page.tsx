@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, ArrowLeft, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { AuthLayout } from "@/components/shared/auth-layout";
-import { post, storeTokens } from "@/lib/api-client";
+import { ApiError, post, storeTokens } from "@/lib/api-client";
 
 export default function LoginOtpPage() {
   const router = useRouter();
@@ -21,6 +21,10 @@ export default function LoginOtpPage() {
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [sentMsg, setSentMsg] = useState("");
+  const otpRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
+
+  const sanitizeOtp = (value: string) => value.replace(/\D/g, "").slice(0, 6);
 
   // Resend cooldown timer
   useEffect(() => {
@@ -70,6 +74,10 @@ export default function LoginOtpPage() {
   /** Step 2 — verify the OTP, receive JWT tokens, redirect */
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Sync guard: state updates async, so double-clicks slip past `submitting`
+    // and the second request burns the single-use code → 401 over navigation.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError("");
     setSubmitting(true);
 
@@ -82,9 +90,24 @@ export default function LoginOtpPage() {
       storeTokens(data.access_token, data.refresh_token);
       router.replace("/overview");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Connection error. Please try again.");
+      const status = err instanceof ApiError ? err.status : null;
+      const message = err instanceof Error ? err.message : "Connection error. Please try again.";
+      if (status === 401 || status === 422 || status === 429) {
+        // Stale/consumed code — clear so ghost state can't resubmit, refocus.
+        setOtp("");
+        // requestAnimationFrame: focus after React commits the cleared input.
+        requestAnimationFrame(() => otpRef.current?.focus());
+        setError(
+          status === 401
+            ? `${message} Request a new code below and try again.`
+            : `${message} This code is no longer valid — request a new code below.`,
+        );
+      } else {
+        setError(message);
+      }
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
@@ -153,15 +176,22 @@ export default function LoginOtpPage() {
                 <Field label="Verification Code" htmlFor="otp-code">
                   <input
                     id="otp-code"
+                    ref={otpRef}
                     type="text"
+                    name="otp"
                     inputMode="numeric"
+                    autoComplete="one-time-code"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     pattern="[0-9]*"
                     maxLength={6}
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                    onChange={(e) => setOtp(sanitizeOtp(e.target.value))}
+                    onInput={(e) => setOtp(sanitizeOtp(e.currentTarget.value))}
                     required
                     autoFocus
-                    className="input-base w-full text-center text-2xl tracking-[0.5em] font-mono"
+                    className="input-base h-12 w-full text-center text-2xl tracking-[0.5em] font-mono"
                     placeholder="000000"
                   />
                 </Field>

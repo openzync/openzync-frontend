@@ -28,7 +28,7 @@ export interface UseApiQueryResult<T> {
  * blocks produced. Data is kept during a refetch — callers decide whether to
  * show a skeleton or stale content while isLoading is true.
  *
- * ponytail: no AbortController plumbing — api-client's verb helpers
+ * no AbortController plumbing — api-client's verb helpers
  * deliberately don't accept signals; the run-id stale guard gives identical
  * observable semantics (stale responses discarded, nothing set after unmount).
  */
