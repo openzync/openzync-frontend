@@ -4,7 +4,7 @@
 //
 // Every API call in the frontend goes through this module.
 //   - Reads NEXT_PUBLIC_API_URL from env (fallback: "" — same-origin relative URLs)
-//   - Injects Authorization header from localStorage
+//   - Injects Authorization header from tokenStorage (localStorage until cookie migration)
 //   - Handles 401 → redirect to login
 //   - Provides typed request helpers so every page gets consistent error handling
 //
@@ -80,24 +80,73 @@ export function isValidEmail(email: string): boolean {
 // the previous principal. /v1/auth/me bypasses it (see request()).
 // Deliberately dumb — no React Query, no revalidation, no per-key TTL tuning.
 const GET_CACHE_TTL_MS = 30_000;
+const GET_CACHE_MAX_ENTRIES = 200;
 const _getCache = new Map<string, { expiry: number; data: unknown }>();
+
+function getCacheGet(url: string): unknown | undefined {
+  const hit = _getCache.get(url);
+  if (!hit) return undefined;
+  if (hit.expiry <= Date.now()) {
+    _getCache.delete(url);
+    return undefined;
+  }
+  // LRU touch — re-insert so eviction drops the least-recently-read entry.
+  _getCache.delete(url);
+  _getCache.set(url, hit);
+  return hit.data;
+}
+
+function getCacheSet(url: string, data: unknown): void {
+  if (_getCache.has(url)) _getCache.delete(url);
+  _getCache.set(url, { expiry: Date.now() + GET_CACHE_TTL_MS, data });
+  while (_getCache.size > GET_CACHE_MAX_ENTRIES) {
+    const oldest = _getCache.keys().next();
+    if (oldest.done) break;
+    _getCache.delete(oldest.value);
+  }
+}
 
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 
 // COOKIE-MIGRATION SINGLE-SWAP SPOT — when the backend issues httpOnly
-// cookies, replace ONLY getAccessToken/storeTokens/clearTokens below (keyed
-// by TOKEN_KEYS) and drop the Authorization header in getAuthHeaders; add
-// `credentials: "include"` in request()/uploadWithBlobs if API_BASE ever
-// goes cross-origin. No other file changes. Until then tokens live in
-// localStorage (no cookie session exists yet) — treat them as short-lived
-// secrets: never log them, never put them in URLs, and wipe both on any
-// auth rejection (see refreshAndRetry/clearTokens).
+// cookies, replace ONLY tokenStorage below and drop the Authorization header
+// in getAuthHeaders; fetch calls already send `credentials: "include"` so no
+// request-site change is needed (required once API_BASE goes cross-origin).
+// Until then tokens live in localStorage (no cookie session exists yet) —
+// treat them as short-lived secrets: never log them, never put them in URLs,
+// and wipe both on any auth rejection (see refreshAndRetry/clearTokens).
 // TODO(me): backend must issue httpOnly cookies + CSRF-safe refresh before
 // this localStorage layer can be deleted — frontend part only, not done here.
 const TOKEN_KEYS = {
   access: "mg_access_token",
   refresh: "mg_refresh_token",
 } as const;
+
+/**
+ * Single-point token persistence. Every token read/write goes through here
+ * so the httpOnly-cookie swap touches one object: replace the localStorage
+ * body with cookie-mode stubs (get → null, set/remove → no-op) and keep the
+ * exported getAccessToken/storeTokens/clearTokens signatures unchanged.
+ */
+const tokenStorage = {
+  get(key: (typeof TOKEN_KEYS)[keyof typeof TOKEN_KEYS]): string | null {
+    if (typeof window === "undefined") return null;
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set(
+    key: (typeof TOKEN_KEYS)[keyof typeof TOKEN_KEYS],
+    value: string,
+  ): void {
+    localStorage.setItem(key, value);
+  },
+  remove(key: (typeof TOKEN_KEYS)[keyof typeof TOKEN_KEYS]): void {
+    localStorage.removeItem(key);
+  },
+};
 
 // Short-lived in-memory copy of the access token: populated lazily from
 // localStorage, dropped on reload/logout/401. It never extends persistence
@@ -111,7 +160,7 @@ let _memAccessToken: string | undefined;
 function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
   if (_memAccessToken !== undefined) return _memAccessToken;
-  const token = localStorage.getItem(TOKEN_KEYS.access);
+  const token = tokenStorage.get(TOKEN_KEYS.access);
   // Fail closed on corrupt values — only a non-empty string leaves here.
   if (typeof token !== "string" || token.length === 0) return null;
   _memAccessToken = token;
@@ -120,23 +169,23 @@ function getAccessToken(): string | null {
 
 function getRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
-  const token = localStorage.getItem(TOKEN_KEYS.refresh);
+  const token = tokenStorage.get(TOKEN_KEYS.refresh);
   // Fail closed on corrupt values, same as the access token.
   if (typeof token !== "string" || token.length === 0) return null;
   return token;
 }
 
 function storeTokens(access: string, refresh: string): void {
-  localStorage.setItem(TOKEN_KEYS.access, access);
-  localStorage.setItem(TOKEN_KEYS.refresh, refresh);
+  tokenStorage.set(TOKEN_KEYS.access, access);
+  tokenStorage.set(TOKEN_KEYS.refresh, refresh);
   _memAccessToken = access;
   // New identity — cached GETs belong to the previous principal.
   _getCache.clear();
 }
 
 function clearTokens(): void {
-  localStorage.removeItem(TOKEN_KEYS.access);
-  localStorage.removeItem(TOKEN_KEYS.refresh);
+  tokenStorage.remove(TOKEN_KEYS.access);
+  tokenStorage.remove(TOKEN_KEYS.refresh);
   _memAccessToken = undefined;
   // Logged out — drop cached GETs so the next session never reads them.
   _getCache.clear();
@@ -158,6 +207,7 @@ async function refreshAccessToken(): Promise<string | null> {
   try {
     res = await fetch(`${API_BASE}/v1/auth/refresh`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
@@ -330,8 +380,8 @@ async function request<T>(
   const cacheable = method === "GET" && !skipAuthRetry && path !== "/v1/auth/me";
   const url = `${API_BASE}${path}`;
   if (cacheable) {
-    const hit = _getCache.get(url);
-    if (hit && hit.expiry > Date.now()) return hit.data as T;
+    const cached = getCacheGet(url);
+    if (cached !== undefined) return cached as T;
   }
   const headers: Record<string, string> = {
     ...getAuthHeaders(),
@@ -341,6 +391,7 @@ async function request<T>(
 
   let res = await fetch(url, {
     ...init,
+    credentials: "include",
     headers,
   });
 
@@ -348,7 +399,7 @@ async function request<T>(
   if (res.status === 401 && !skipAuthRetry) {
     res = await refreshAndRetry((newToken) => {
       headers["Authorization"] = `Bearer ${newToken}`;
-      return fetch(url, { ...init, headers });
+      return fetch(url, { ...init, credentials: "include", headers });
     });
   }
 
@@ -370,7 +421,7 @@ async function request<T>(
   }
 
   if (cacheable) {
-    _getCache.set(url, { expiry: Date.now() + GET_CACHE_TTL_MS, data: body });
+    getCacheSet(url, body);
   }
   return body as T;
 }
@@ -456,6 +507,7 @@ async function uploadWithBlobs<T>(
   delete headers["Content-Type"];
   let res = await fetch(url, {
     method: "POST",
+    credentials: "include",
     headers,
     body: buildUploadBody(payload, files),
   });
@@ -466,6 +518,7 @@ async function uploadWithBlobs<T>(
       headers["Authorization"] = `Bearer ${newToken}`;
       return fetch(url, {
         method: "POST",
+        credentials: "include",
         headers,
         body: buildUploadBody(payload, files),
       });
