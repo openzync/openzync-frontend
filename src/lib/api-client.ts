@@ -58,6 +58,19 @@ async function refreshAndRetry(
   return retry(newToken);
 }
 
+/**
+ * Centralized email helpers — login/signup validate through these so no page
+ * hand-rolls its own regex. Login additionally allows the literal "root"
+ * platform user (see login/page.tsx).
+ */
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+export function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 
 // COOKIE-MIGRATION SINGLE-SWAP SPOT — when the backend issues httpOnly
@@ -68,6 +81,8 @@ async function refreshAndRetry(
 // localStorage (no cookie session exists yet) — treat them as short-lived
 // secrets: never log them, never put them in URLs, and wipe both on any
 // auth rejection (see refreshAndRetry/clearTokens).
+// TODO(me): backend must issue httpOnly cookies + CSRF-safe refresh before
+// this localStorage layer can be deleted — frontend part only, not done here.
 const TOKEN_KEYS = {
   access: "mg_access_token",
   refresh: "mg_refresh_token",
@@ -288,12 +303,28 @@ interface RequestOptions extends RequestInit {
 /** Per-verb opt-out surface — deliberately narrow so callers can't send raw headers past the auth layer. */
 type VerbOptions = Pick<RequestOptions, "skipAuthRetry" | "signal">;
 
+// ─── GET cache ────────────────────────────────────────────────────────────────
+
+// 30s in-memory cache keyed by URL: the session layout and its overview page
+// fetch the same session URL on one navigation, so the second read is served
+// without a second network round-trip. Mutations (any non-GET) wipe it.
+// Deliberately dumb — no React Query, no revalidation, no per-key TTL tuning.
+const GET_CACHE_TTL_MS = 30_000;
+const _getCache = new Map<string, { expiry: number; data: unknown }>();
+
 async function request<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
   const { skipAuthRetry, ...init } = options;
+  const method = (init.method ?? "GET").toUpperCase();
+  // Any mutation may have changed what a GET returns — wipe, don't track keys.
+  if (method !== "GET") _getCache.clear();
   const url = `${API_BASE}${path}`;
+  if (method === "GET" && !skipAuthRetry) {
+    const hit = _getCache.get(url);
+    if (hit && hit.expiry > Date.now()) return hit.data as T;
+  }
   const headers: Record<string, string> = {
     ...getAuthHeaders(),
     ...(init.headers as Record<string, string>),
@@ -330,6 +361,9 @@ async function request<T>(
     throw new ApiError(parseApiErrorMessage(body, res.status), res.status, body);
   }
 
+  if (method === "GET" && !skipAuthRetry) {
+    _getCache.set(url, { expiry: Date.now() + GET_CACHE_TTL_MS, data: body });
+  }
   return body as T;
 }
 
@@ -408,6 +442,7 @@ async function uploadWithBlobs<T>(
   files: File[],
 ): Promise<T> {
   const url = `${API_BASE}${path}`;
+  _getCache.clear(); // multipart upload mutates server state — same rule as request()
   const headers = getAuthHeaders();
   // No Content-Type header — let the browser set the multipart boundary.
   delete headers["Content-Type"];

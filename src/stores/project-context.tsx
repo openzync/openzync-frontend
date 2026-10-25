@@ -3,14 +3,11 @@
 import {
   createContext,
   useContext,
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
   type ReactNode,
 } from "react";
 import { useParams } from "next/navigation";
 import { get, ApiError } from "@/lib/api-client";
+import { useApiQuery } from "@/hooks/use-api-query";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -59,48 +56,33 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   // The route is /projects/[id]/* so the param is named "id"
   const projectId = params?.id as string | undefined;
 
-  const [project, setProject] = useState<ProjectInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // Monotonic request id — a slow response from a previous projectId (or an
-  // older refetch) must never overwrite the state of a newer one.
-  const requestIdRef = useRef(0);
-
-  const fetchProject = useCallback(async () => {
-    if (!projectId) {
-      setProject(null);
-      setLoading(false);
-      return;
-    }
-
-    const requestId = ++requestIdRef.current;
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await get<ProjectInfo>(`/v1/projects/${projectId}`);
-      if (requestId !== requestIdRef.current) return; // stale response
-      setProject(data);
-    } catch (err) {
-      if (requestId !== requestIdRef.current) return;
-      if (err instanceof ApiError && err.isNotFound) {
-        setError("Project not found");
-      } else {
-        setError(
-          err instanceof ApiError ? err.message : "Failed to load project",
-        );
+  // Single fetch path for the whole project subtree — race-safe and
+  // unmount-safe via the hook's run-id guard (no hand-rolled request ids).
+  // Palette components keep their own AbortController: fetch aborts on
+  // unmount there are intentional UX cancellations, not dedup races.
+  const query = useApiQuery<ProjectInfo>(
+    async () => {
+      try {
+        return await get<ProjectInfo>(`/v1/projects/${projectId}`);
+      } catch (err) {
+        if (err instanceof ApiError && err.isNotFound) {
+          throw new Error("Project not found");
+        }
+        throw err;
       }
-    } finally {
-      if (requestId === requestIdRef.current) setLoading(false);
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    fetchProject();
-  }, [fetchProject]);
+    },
+    { enabled: Boolean(projectId), refreshKey: projectId },
+  );
 
   return (
-    <ProjectContext.Provider value={{ project, loading, error, refetch: fetchProject }}>
+    <ProjectContext.Provider
+      value={{
+        project: query.data,
+        loading: query.isLoading,
+        error: query.error,
+        refetch: query.refetch,
+      }}
+    >
       {children}
     </ProjectContext.Provider>
   );

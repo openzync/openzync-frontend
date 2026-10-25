@@ -59,18 +59,29 @@ export default function SessionGraphPage() {
         return;
       }
 
-      // Step 2: fetch edges for ALL nodes in one batch call
-      const nodeIdList = items.map((n) => n.id).join(",");
-      const edgesData = await get<EdgesResponse>(
-        `/v1/projects/${projectId}/graph/edges?subject_ids=${nodeIdList}&limit=50`,
+      // Browsers/proxies cap URL length (~2k–8k chars): chunk subject_ids
+      // into ≤30-ID calls so a 200-node session graph never builds one giant
+      // query string. Parallel — each chunk is an independent read.
+      const idChunks: string[][] = [];
+      for (let i = 0; i < items.length; i += 30) {
+        idChunks.push(items.slice(i, i + 30).map((n) => n.id));
+      }
+      const edgePages = await Promise.all(
+        idChunks.map((chunk) =>
+          get<EdgesResponse>(
+            `/v1/projects/${projectId}/graph/edges?subject_ids=${chunk.join(",")}&limit=50`,
+          ),
+        ),
       );
       const nodeIdSet = new Set(items.map((n) => n.id));
-      const allEdges: GraphEdgeData[] = (edgesData.data?.items ?? []).filter(
-        (e) =>
-          e.source_id !== e.target_id &&
-          nodeIdSet.has(e.source_id) &&
-          nodeIdSet.has(e.target_id),
-      );
+      const allEdges: GraphEdgeData[] = edgePages
+        .flatMap((p) => p.data?.items ?? [])
+        .filter(
+          (e) =>
+            e.source_id !== e.target_id &&
+            nodeIdSet.has(e.source_id) &&
+            nodeIdSet.has(e.target_id),
+        );
 
       setGraphData({ nodes: items, edges: allEdges });
     } catch (err) {

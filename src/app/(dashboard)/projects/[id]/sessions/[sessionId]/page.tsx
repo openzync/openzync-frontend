@@ -186,6 +186,8 @@ export default function SessionDetailPage() {
   const projectId = project?.id;
 
   // Fetch session — useApiQuery keeps data during refetch and is race-safe.
+  // Same URL as the [sessionId] layout: the 30s GET cache in api-client
+  // serves the second read without a second network round-trip.
   const sessionQuery = useApiQuery<SessionDetail>(async () => {
     try {
       return await get<SessionDetail>(
@@ -243,8 +245,10 @@ export default function SessionDetailPage() {
   );
   const extractions = (extractionsQuery.data?.items ?? []).slice(0, 3);
 
+  // Scoped server-side via ?session_id=; the client filter stays as a fallback
+  // in case the backend ignores the param (backend may return project-wide).
   const observationsQuery = useApiQuery<{ data: PreviewObservation[] }>(
-    () => get<{ data: PreviewObservation[] }>(`/v1/projects/${projectId}/observations`),
+    () => get<{ data: PreviewObservation[] }>(`/v1/projects/${projectId}/observations?session_id=${sessionId}&limit=50`),
     { enabled: previewEnabled },
   );
   const allObservations = observationsQuery.data?.data ?? [];
@@ -269,9 +273,10 @@ export default function SessionDetailPage() {
         `/v1/projects/${projectId}/graph/edges?subject_ids=${nodeIdList}&limit=50`,
       );
       const nodeIdSet = new Set(capped.map((n) => n.id));
+      // Self-loops are NOT filtered here — the renderer draws them as arcs
+      // (SELF_LOOP_RADIUS); dropping them would leave dead renderer code.
       const edges = (edgesData.data?.items ?? []).filter(
         (e) =>
-          e.source_id !== e.target_id &&
           nodeIdSet.has(e.source_id) &&
           nodeIdSet.has(e.target_id),
       );

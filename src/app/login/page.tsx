@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, LogIn, Mail } from "lucide-react";
-import { post, storeTokens } from "@/lib/api-client";
+import { post, storeTokens, normalizeEmail, isValidEmail } from "@/lib/api-client";
 import { AuthLayout } from "@/components/shared/auth-layout";
 import { PasswordField } from "@/components/shared/password-field";
 import { Field } from "@/components/ui/field";
@@ -43,6 +43,12 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    // The platform root user signs in with the literal "root", not an email.
+    const normalizedEmail = normalizeEmail(email);
+    if (normalizedEmail !== "root" && !isValidEmail(normalizedEmail)) {
+      setError("Enter a valid email address.");
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -52,11 +58,11 @@ export default function LoginPage() {
         mfa_session_token?: string;
         access_token: string;
         refresh_token: string;
-      }>("/v1/auth/login", { email, password }, { skipAuthRetry: true });
+      }>("/v1/auth/login", { email: normalizedEmail, password }, { skipAuthRetry: true });
 
       if (data.requires_mfa) {
         router.replace(
-          `/login/mfa?email=${encodeURIComponent(email)}&session=${encodeURIComponent(data.mfa_session_token ?? "")}`
+          `/login/mfa?email=${encodeURIComponent(normalizedEmail)}&session=${encodeURIComponent(data.mfa_session_token ?? "")}`
         );
         return;
       }

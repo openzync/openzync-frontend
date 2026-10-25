@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Loader2, Lock } from "lucide-react";
-import { post, join, getRegistrationStatus, type RegistrationStatus } from "@/lib/api-client";
+import { post, join, getRegistrationStatus, normalizeEmail, isValidEmail, type RegistrationStatus } from "@/lib/api-client";
 import { getPasswordStrength } from "@/lib/password-strength";
 import { cn } from "@/lib/utils";
 import { AuthLayout } from "@/components/shared/auth-layout";
@@ -63,12 +63,17 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    const normalizedEmail = normalizeEmail(email);
+    if (!isValidEmail(normalizedEmail)) {
+      setError("Enter a valid email address.");
+      return;
+    }
     setSubmitting(true);
 
     try {
       if (mode === "join") {
-        const data = await join({ email, password, org_code: orgCode });
-        router.replace(`/verify-email?email=${encodeURIComponent(data.email ?? email)}`);
+        const data = await join({ email: normalizedEmail, password, org_code: orgCode });
+        router.replace(`/verify-email?email=${encodeURIComponent(data.email ?? normalizedEmail)}`);
         return;
       }
 
@@ -76,8 +81,8 @@ export default function SignupPage() {
       const data = await post<{ email?: string; status?: string; message?: string }>(
         "/v1/auth/signup",
         approvalsPublic
-          ? { email, organization_name: orgName }
-          : { email, password, organization_name: orgName },
+          ? { email: normalizedEmail, organization_name: orgName }
+          : { email: normalizedEmail, password, organization_name: orgName },
         { skipAuthRetry: true },
       );
 
@@ -85,7 +90,7 @@ export default function SignupPage() {
         setSubmittedMessage(data.message ?? "Your request has been submitted for approval.");
         return;
       }
-      router.replace(`/verify-email?email=${encodeURIComponent(data.email ?? email)}`);
+      router.replace(`/verify-email?email=${encodeURIComponent(data.email ?? normalizedEmail)}`);
     } catch (err: unknown) {
       // join() throws ApiError whose message is parsed from the RFC 7807 body
       // (e.g. "Invalid organization code") — rendered in the error banner below.

@@ -53,17 +53,28 @@ export default function GraphExplorerPage() {
       const hasMore = nodesData.data?.has_more ?? false;
       if (nodes.length === 0) { setGraphData({ nodes: [], edges: [] }); setHasMore(false); setLoading(false); return; }
 
-      const nodeIdList = nodes.map((n) => n.id).join(",");
-      const edgesData = await get<EdgesApiResponse>(
-        `/v1/projects/${projectId}/graph/edges?subject_ids=${nodeIdList}&limit=50`,
+      // Browsers/proxies cap URL length (~2k–8k chars): chunk subject_ids
+      // into ≤30-ID calls so a 100-node graph never builds one giant query
+      // string. Parallel — each chunk is an independent read.
+      const idChunks: string[][] = [];
+      for (let i = 0; i < nodes.length; i += 30) {
+        idChunks.push(nodes.slice(i, i + 30).map((n) => n.id));
+      }
+      const edgePages = await Promise.all(
+        idChunks.map((chunk) =>
+          get<EdgesApiResponse>(
+            `/v1/projects/${projectId}/graph/edges?subject_ids=${chunk.join(",")}&limit=50`,
+          )
+        ),
       );
       const nodeIdSet = new Set(nodes.map((n) => n.id));
-      const allEdges: GraphEdgeData[] = (edgesData.data?.items ?? []).filter(
-        (e) =>
-          e.source_id !== e.target_id &&
-          nodeIdSet.has(e.source_id) &&
-          nodeIdSet.has(e.target_id),
-      );
+      // Self-loops are NOT filtered here — the renderer draws them as arcs
+      // (SELF_LOOP_RADIUS); dropping them would leave dead renderer code.
+      const allEdges: GraphEdgeData[] = edgePages
+        .flatMap((p) => p.data?.items ?? [])
+        .filter(
+          (e) => nodeIdSet.has(e.source_id) && nodeIdSet.has(e.target_id),
+        );
       setGraphData({ nodes, edges: allEdges });
       setHasMore(hasMore);
     } catch (err) {

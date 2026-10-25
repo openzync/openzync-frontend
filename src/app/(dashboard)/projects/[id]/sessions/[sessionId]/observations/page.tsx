@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { Eye } from "lucide-react";
 import { get, ApiError } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
@@ -37,6 +38,8 @@ const typeConfig: Record<
 };
 
 export default function SessionObservationsPage() {
+  const params = useParams();
+  const sessionId = params.sessionId as string;
   const { project } = useProject();
   const projectId = project?.id;
 
@@ -50,8 +53,10 @@ export default function SessionObservationsPage() {
       setLoading(true);
       setError("");
       try {
+        // Scoped server-side via ?session_id=; the client keeps project-wide
+        // rows too in case the backend ignores the param.
         const json = await get<{ data: Observation[] }>(
-          `/v1/projects/${projectId}/observations`,
+          `/v1/projects/${projectId}/observations?session_id=${sessionId}&limit=50`,
         );
         setData(json.data ?? []);
       } catch (err) {

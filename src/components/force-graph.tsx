@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import * as d3 from "d3";
+import { select } from "d3-selection";
+import { zoom, zoomIdentity, type ZoomBehavior, type D3ZoomEvent } from "d3-zoom";
+import {
+  forceSimulation,
+  forceLink,
+  forceManyBody,
+  forceCenter,
+  forceCollide,
+  type Simulation,
+} from "d3-force";
+import { drag, type D3DragEvent } from "d3-drag";
+import { polygonHull } from "d3-polygon";
 import {
   ZoomIn,
   ZoomOut,
@@ -14,6 +25,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { get } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { cssVar } from "@/components/shared/charts";
@@ -204,28 +216,6 @@ function edgeLabelPos(
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║ Spinner                                                                     ║
-// ╚══════════════════════════════════════════════════════════════════════════════╝
-
-function Spinner({ className }: { className?: string }) {
-  return (
-    <svg
-      className={`animate-spin h-5 w-5 ${className ?? ""}`}
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      />
-    </svg>
-  );
-}
-
-// ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║ Props                                                                       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -283,11 +273,11 @@ export function ForceGraph({
 
   // ── D3 refs ─────────────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
-  const simulationRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null);
+  const simulationRef = useRef<Simulation<D3Node, D3Link> | null>(null);
   // Bound zoom behaviour — handlers reuse this instead of constructing a
-  // detached d3.zoom() per click (whose scaleBy/transform would fight the
+  // detached zoom() per click (whose scaleBy/transform would fight the
   // behaviour attached to the svg).
-  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   // Replays the zoom-to-fit computation: initial fit and Reset share it.
   const fitRef = useRef<(() => void) | null>(null);
   // Width tick — re-runs the D3 render when the container's measured width
@@ -484,11 +474,10 @@ export function ForceGraph({
     if (width === 0) return;
 
     // ── Clear previous render ─────────────────────────────────────────────
-    d3.select(container).selectAll("svg, .d3-overlay").remove();
+    select(container).selectAll("svg, .d3-overlay").remove();
 
-    // ── SVG root ──────────────────────────────────────────────────────────
-    const svg = d3
-      .select(container)
+    // ── SVG root ──────────────────────────���───────────────────────────────
+    const svg = select(container)
       .append("svg")
       .attr("width", width)
       .attr("height", height)
@@ -518,15 +507,14 @@ export function ForceGraph({
     const hullGroup = g.append("g").attr("class", "community-hulls");
 
     // ── Zoom behaviour ──────────────────────────────────────────────────
-    const zoom = d3
-      .zoom<SVGSVGElement, unknown>()
+    const zoomBehavior = zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.15, 5])
-      .on("zoom", (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+      .on("zoom", (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
         g.attr("transform", event.transform.toString());
       });
 
-    svg.call(zoom);
-    zoomRef.current = zoom;
+    svg.call(zoomBehavior);
+    zoomRef.current = zoomBehavior;
 
     // ── Degree: count edges per node for proportional sizing ──────────
     const degreeMap = new Map<string, number>();
@@ -579,18 +567,16 @@ export function ForceGraph({
     const nodeById = new Map(nodes.map((n) => [n.id, n] as const));
 
     // ── Force simulation ──────────────────────────────────────────────
-    const simulation = d3
-      .forceSimulation<D3Node>(nodes)
+    const simulation = forceSimulation<D3Node>(nodes)
       .force(
         "link",
-        d3
-          .forceLink<D3Node, D3Link>(links)
+        forceLink<D3Node, D3Link>(links)
           .id((d) => d.id)
           .distance(120),
       )
-      .force("charge", d3.forceManyBody().strength(-250))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide<D3Node>().radius((d) => d.r + 8));
+      .force("charge", forceManyBody().strength(-250))
+      .force("center", forceCenter(width / 2, height / 2))
+      .force("collide", forceCollide<D3Node>().radius((d) => d.r + 8));
 
     simulationRef.current = simulation;
 
@@ -699,26 +685,25 @@ export function ForceGraph({
     // ── Drag behaviour ────────────────────────────────────────────────
     let dragMoved = false;
 
-    const drag = d3
-      .drag<SVGGElement, D3Node>()
-      .on("start", (event: d3.D3DragEvent<SVGGElement, D3Node, D3Node>, d) => {
+    const dragBehavior = drag<SVGGElement, D3Node>()
+      .on("start", (event: D3DragEvent<SVGGElement, D3Node, D3Node>, d) => {
         dragMoved = false;
         if (!event.active) simulation.alphaTarget(0.3).restart();
         d.fx = d.x;
         d.fy = d.y;
       })
-      .on("drag", (event: d3.D3DragEvent<SVGGElement, D3Node, D3Node>, d) => {
+      .on("drag", (event: D3DragEvent<SVGGElement, D3Node, D3Node>, d) => {
         dragMoved = true;
         d.fx = event.x;
         d.fy = event.y;
       })
-      .on("end", (event: d3.D3DragEvent<SVGGElement, D3Node, D3Node>, d) => {
+      .on("end", (event: D3DragEvent<SVGGElement, D3Node, D3Node>, d) => {
         if (!event.active) simulation.alphaTarget(0);
         d.fx = null;
         d.fy = null;
       });
 
-    node.call(drag);
+    node.call(dragBehavior);
 
     // ── Click: select node (skip if it was a drag) ─────────────────────
     node.on("click", (_event: MouseEvent, d: D3Node) => {
@@ -820,7 +805,7 @@ export function ForceGraph({
           }
         }
         if (points.length < 3) return "";
-        const hull = d3.polygonHull(points);
+        const hull = polygonHull(points);
         if (!hull) return "";
         // Expand hull by 12px padding for visual breathing room
         const cx = hull.reduce((s, p) => s + p[0], 0) / hull.length;
@@ -837,8 +822,9 @@ export function ForceGraph({
 
     // ── Zoom-to-fit ────────────────────────────────────────────────
     // Shared by the initial fit and the Reset control (which replays the fit
-    // computation instead of snapping to identity).
-    const applyFit = (animate = true) => {
+    // computation instead of snapping to identity). Applied instantly —
+    // animated transitions would need d3-transition, deliberately not bundled.
+    const applyFit = () => {
       if (nodes.length === 0) return;
       const bounds = (g.node() as SVGGElement)?.getBBox();
       if (!bounds || bounds.width === 0 || bounds.height === 0) return;
@@ -852,10 +838,9 @@ export function ForceGraph({
       const tx = width / 2 - (bounds.x + bounds.width / 2) * scale;
       const ty = height / 2 - (bounds.y + bounds.height / 2) * scale;
 
-      const t = animate ? svg.transition().duration(500) : svg;
-      t.call(
-        zoom.transform,
-        d3.zoomIdentity.translate(tx, ty).scale(scale),
+      svg.call(
+        zoomBehavior.transform,
+        zoomIdentity.translate(tx, ty).scale(scale),
       );
     };
     fitRef.current = applyFit;
@@ -868,7 +853,7 @@ export function ForceGraph({
       simulationRef.current = null;
       zoomRef.current = null;
       fitRef.current = null;
-      d3.select(container).selectAll("svg, .d3-overlay").remove();
+      select(container).selectAll("svg, .d3-overlay").remove();
     };
   }, [filteredData, height, containerWidth]);
 
@@ -878,16 +863,16 @@ export function ForceGraph({
 
   const handleZoomIn = useCallback(() => {
     const svgEl = containerRef.current?.querySelector("svg");
-    const zoom = zoomRef.current;
-    if (!svgEl || !zoom) return;
-    d3.select(svgEl).transition().duration(200).call(zoom.scaleBy, 1.3);
+    const zoomBehavior = zoomRef.current;
+    if (!svgEl || !zoomBehavior) return;
+    select(svgEl).call(zoomBehavior.scaleBy, 1.3);
   }, []);
 
   const handleZoomOut = useCallback(() => {
     const svgEl = containerRef.current?.querySelector("svg");
-    const zoom = zoomRef.current;
-    if (!svgEl || !zoom) return;
-    d3.select(svgEl).transition().duration(200).call(zoom.scaleBy, 0.7);
+    const zoomBehavior = zoomRef.current;
+    if (!svgEl || !zoomBehavior) return;
+    select(svgEl).call(zoomBehavior.scaleBy, 0.7);
   }, []);
 
   const handleResetZoom = useCallback(() => {

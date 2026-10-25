@@ -15,7 +15,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS builder
 WORKDIR /app
 
 # Install ALL dependencies (dev deps needed for build).
@@ -29,18 +29,23 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 # ── Stage 2: Production runner ────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS runner
 WORKDIR /app
+
+# Run as non-root.
+RUN adduser -D -h /home/appuser appuser && chown appuser:appuser /app
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000
 
 # Copy standalone server (includes only the required node_modules).
-COPY --from=builder /app/.next/standalone ./
+COPY --from=builder --chown=appuser:appuser /app/.next/standalone ./
 # Copy static assets and public files (not bundled in standalone).
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=appuser:appuser /app/.next/static ./.next/static
+COPY --from=builder --chown=appuser:appuser /app/public ./public
+
+USER appuser
 
 EXPOSE 3000
 
