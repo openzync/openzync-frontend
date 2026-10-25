@@ -95,6 +95,30 @@ function AuditLogInner() {
   const rawPage = Number(searchParams.get("page"));
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
 
+  // Local draft so typing doesn't router.replace + refetch per keystroke.
+  // Commits to the URL (which drives the fetch) after a 250ms pause —
+  // mirrors the force-graph filter debounce. `syncedAction` tracks the last
+  // URL value; when the URL changes elsewhere (debounce commit,
+  // clear-filters, back/forward) the draft resyncs during render instead of
+  // in an effect.
+  const [actionDraft, setActionDraft] = useState(filterAction);
+  const [syncedAction, setSyncedAction] = useState(filterAction);
+  if (filterAction !== syncedAction) {
+    setSyncedAction(filterAction);
+    setActionDraft(filterAction);
+  }
+  useEffect(() => {
+    if (actionDraft === filterAction) return;
+    const t = setTimeout(
+      () => setParams({ action: actionDraft.trim() || null, page: null }),
+      250,
+    );
+    return () => clearTimeout(t);
+    // setParams is rebuilt from derived state each render — intentionally not
+    // a dep; the commit values are captured from this render's closure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionDraft]);
+
   // Server-side sort, URL-synced (default created_at/desc). Sort changes
   // drop `page` from the URL via the hook, so sorting restarts at page 1.
   const { sortBy, sortDir, onSort, withSort } = useSortQuery({
@@ -273,10 +297,6 @@ function AuditLogInner() {
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  // Filters refetch as they change; Enter on the action input resets to the
-  // first page of the filtered result set.
-  const applyFilters = () => setParams({ page: null });
-
   const clearFilters = () =>
     setParams({ action: null, actor_type: null, actor_id: null, status: null, page: null });
 
@@ -314,9 +334,9 @@ function AuditLogInner() {
                 id="audit-filter-action"
                 className="input-base h-8 text-xs w-full pl-8 border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
                 placeholder="e.g. session.create"
-                value={filterAction}
-                onChange={(e) => setParams({ action: e.target.value, page: null })}
-                onKeyDown={(e) => e.key === "Enter" && applyFilters()}
+                value={actionDraft}
+                onChange={(e) => setActionDraft(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && setParams({ action: actionDraft.trim() || null, page: null })}
               />
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-surface-500 pointer-events-none" />
             </div>

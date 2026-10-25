@@ -284,6 +284,12 @@ export function ForceGraph({
   // ── D3 refs ─────────────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
   const simulationRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null);
+  // Bound zoom behaviour — handlers reuse this instead of constructing a
+  // detached d3.zoom() per click (whose scaleBy/transform would fight the
+  // behaviour attached to the svg).
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  // Replays the zoom-to-fit computation: initial fit and Reset share it.
+  const fitRef = useRef<(() => void) | null>(null);
   // Width tick — re-runs the D3 render when the container's measured width
   // settles after layout (e.g. half-width column in session overview).
   const [containerWidth, setContainerWidth] = useState(0);
@@ -520,6 +526,7 @@ export function ForceGraph({
       });
 
     svg.call(zoom);
+    zoomRef.current = zoom;
 
     // ── Degree: count edges per node for proportional sizing ──────────
     const degreeMap = new Map<string, number>();
@@ -568,6 +575,8 @@ export function ForceGraph({
       curve: 0,
     }));
     assignEdgeCurvature(links);
+    // O(1) id → node for the per-tick hull pass (no find-in-array per member).
+    const nodeById = new Map(nodes.map((n) => [n.id, n] as const));
 
     // ── Force simulation ──────────────────────────────────────────────
     const simulation = d3
@@ -805,7 +814,7 @@ export function ForceGraph({
       hullPath.attr("d", (d: CommunityHullData) => {
         const points: [number, number][] = [];
         for (const mid of d.memberIds) {
-          const dn = nodes.find((n) => n.id === mid);
+          const dn = nodeById.get(mid);
           if (dn?.x != null && dn?.y != null) {
             points.push([dn.x, dn.y]);
           }
@@ -826,8 +835,10 @@ export function ForceGraph({
       });
     });
 
-    // ── Zoom-to-fit on first render ──────────────────────────────────
-    const fitTimer = setTimeout(() => {
+    // ── Zoom-to-fit ────────────────────────────────────────────────
+    // Shared by the initial fit and the Reset control (which replays the fit
+    // computation instead of snapping to identity).
+    const applyFit = (animate = true) => {
       if (nodes.length === 0) return;
       const bounds = (g.node() as SVGGElement)?.getBBox();
       if (!bounds || bounds.width === 0 || bounds.height === 0) return;
@@ -841,20 +852,22 @@ export function ForceGraph({
       const tx = width / 2 - (bounds.x + bounds.width / 2) * scale;
       const ty = height / 2 - (bounds.y + bounds.height / 2) * scale;
 
-      svg
-        .transition()
-        .duration(500)
-        .call(
-          zoom.transform,
-          d3.zoomIdentity.translate(tx, ty).scale(scale),
-        );
-    }, 100);
+      const t = animate ? svg.transition().duration(500) : svg;
+      t.call(
+        zoom.transform,
+        d3.zoomIdentity.translate(tx, ty).scale(scale),
+      );
+    };
+    fitRef.current = applyFit;
+    const fitTimer = setTimeout(() => applyFit(), 100);
 
     // ── Cleanup ──────────────────────────────────────────────────────
     return () => {
       clearTimeout(fitTimer);
       simulation.stop();
       simulationRef.current = null;
+      zoomRef.current = null;
+      fitRef.current = null;
       d3.select(container).selectAll("svg, .d3-overlay").remove();
     };
   }, [filteredData, height, containerWidth]);
@@ -865,29 +878,20 @@ export function ForceGraph({
 
   const handleZoomIn = useCallback(() => {
     const svgEl = containerRef.current?.querySelector("svg");
-    if (!svgEl) return;
-    const selection = d3.select(svgEl);
-    selection.transition().duration(200).call(d3.zoom<SVGSVGElement, unknown>().scaleBy, 1.3);
+    const zoom = zoomRef.current;
+    if (!svgEl || !zoom) return;
+    d3.select(svgEl).transition().duration(200).call(zoom.scaleBy, 1.3);
   }, []);
 
   const handleZoomOut = useCallback(() => {
     const svgEl = containerRef.current?.querySelector("svg");
-    if (!svgEl) return;
-    const selection = d3.select(svgEl);
-    selection.transition().duration(200).call(d3.zoom<SVGSVGElement, unknown>().scaleBy, 0.7);
+    const zoom = zoomRef.current;
+    if (!svgEl || !zoom) return;
+    d3.select(svgEl).transition().duration(200).call(zoom.scaleBy, 0.7);
   }, []);
 
   const handleResetZoom = useCallback(() => {
-    const svgEl = containerRef.current?.querySelector("svg");
-    if (!svgEl) return;
-    const selection = d3.select(svgEl);
-    selection
-      .transition()
-      .duration(400)
-      .call(
-        d3.zoom<SVGSVGElement, unknown>().transform,
-        d3.zoomIdentity,
-      );
+    fitRef.current?.();
   }, []);
 
   // ╔══════════════════════════════════════════════════════════════════════╗

@@ -21,6 +21,9 @@ globalThis.fetch = mockFetch;
 
 beforeEach(() => {
   mockFetch.mockReset();
+  // localStorage.clear() alone leaves the api-client in-memory access-token
+  // cache stale — clearTokens() resets both so each test starts clean.
+  clearTokens();
   localStorage.clear();
 });
 
@@ -616,6 +619,44 @@ describe("skipAuthRetry", () => {
     const result = await post<{ ok: boolean }>("/v1/thing", {});
     expect(result).toEqual({ ok: true });
     expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("strips Authorization on pre-auth requests even with a seeded token", async () => {
+    storeTokens("seeded-access", "seeded-refresh");
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await post(
+      "/v1/auth/login",
+      { email: "a@b.com", password: "secret" },
+      { skipAuthRetry: true },
+    );
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const headers = mockFetch.mock.calls[0][1].headers;
+    expect(headers["Authorization"]).toBeUndefined();
+    expect(headers["Content-Type"]).toBe("application/json");
+    expect(Object.keys(headers).sort()).toEqual(["Content-Type"]);
+  });
+
+  it("sends Authorization by default when a token is seeded (control)", async () => {
+    storeTokens("seeded-access", "seeded-refresh");
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await post("/v1/auth/login", { email: "a@b.com", password: "secret" });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const headers = mockFetch.mock.calls[0][1].headers;
+    expect(headers["Authorization"]).toBe("Bearer seeded-access");
   });
 });
 

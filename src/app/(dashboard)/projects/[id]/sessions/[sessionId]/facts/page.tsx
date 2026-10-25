@@ -105,9 +105,14 @@ function SessionFactsInner() {
     timestampFields: ["created_at"],
   });
 
+  // Monotonic run id — a slow response from a previous sort/filter must not
+  // overwrite rows from the latest load (mirrors the openHistory guard below).
+  const loadFactsRunRef = useRef(0);
+
   const loadFacts = useCallback(
     async (showSpinner = true) => {
       if (!projectId) return;
+      const runId = ++loadFactsRunRef.current;
       if (showSpinner) setLoading(true);
       setError("");
       try {
@@ -115,14 +120,16 @@ function SessionFactsInner() {
         const json = await get<FactsResponse>(
           `/v1/projects/${projectId}/sessions/${sessionId}/facts?${params}`,
         );
+        if (loadFactsRunRef.current !== runId) return;
         setFacts(json.data ?? []);
         setCursor(json.next_cursor ?? null);
         setHasMore(json.has_more ?? false);
       } catch (err) {
+        if (loadFactsRunRef.current !== runId) return;
         setError(err instanceof ApiError ? err.message : "Failed to load facts");
         setFacts([]);
       } finally {
-        if (showSpinner) setLoading(false);
+        if (loadFactsRunRef.current === runId && showSpinner) setLoading(false);
       }
     },
     [projectId, sessionId, withSort],

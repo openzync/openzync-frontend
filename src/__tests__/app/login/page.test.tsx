@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LoginPage from "@/app/login/page";
-import { API_BASE } from "@/lib/api-client";
+import { API_BASE, clearTokens } from "@/lib/api-client";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────────
 
@@ -22,6 +22,10 @@ beforeEach(() => {
   mockFetch.mockReset();
   mockPush.mockReset();
   mockReplace.mockReset();
+  // Reset the api-client in-memory token cache as well as storage: a prior
+  // test's successful login would otherwise leak its token into this test's
+  // pre-auth /v1/auth/login request via getAuthHeaders().
+  clearTokens();
   localStorage.clear();
 });
 

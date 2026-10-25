@@ -3,6 +3,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Stages:
 #   changeset-check  → PR gate: require a .changeset fragment (unless trivial)
+#   test             → PR gate: npm ci + vitest run (no coverage threshold yet)
 #   build-and-deploy → Build Docker image, push to ghcr.io, deploy on VPS
 #   changeset-version→ Tag helper: no-op if no fragments, documents manual flow
 # ──────────────────────────────────────────────────────────────────────────────
@@ -58,6 +59,22 @@ jobs:
       - name: Skipped — trivial / skip-changelog label present
         if: steps.bypass.outputs.skip == 'true'
         run: echo "Skipping changeset check (trivial/skip-changelog)."
+
+  # ── PR gate: unit tests (mirrors the backend CI test pattern) ──
+  test:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm test
 
   build-and-deploy:
     if: github.event_name != 'pull_request'

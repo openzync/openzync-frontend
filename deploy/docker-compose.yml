@@ -20,6 +20,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # NOTE: NEXT_PUBLIC_API_URL is baked at build time — rebuild the image on domain change.
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://app.openzync.tech}
     image: ghcr.io/openzync/frontend:latest # public on ghcr.io since 2026-08-31 — no pull auth needed
     ports:
       - "127.0.0.1:3000:3000"

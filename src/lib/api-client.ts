@@ -274,10 +274,12 @@ export function apiErrorMessage(err: unknown, fallback: string): string {
 // ─── Core request helper ──────────────────────────────────────────────────────
 
 /**
- * Pre-auth flows (login, signup, OTP, reset…) pass `skipAuthRetry: true`:
- * their endpoints have no valid token, so a 401 is a real answer ("wrong
- * password") — never trigger refresh-retry nor the redirect-to-login side
- * effect. Authenticated callers omit it and keep refresh semantics.
+ * Pre-auth flows (login, signup, OTP, MFA, reset, verify, invite,
+ * /health…) pass `skipAuthRetry: true`: their endpoints have no valid
+ * token, so a 401 is a real answer ("wrong password") — never trigger
+ * refresh-retry nor the redirect-to-login side effect. It also strips any
+ * stored token so these endpoints never receive one. Authenticated
+ * callers omit it and keep refresh semantics.
  */
 interface RequestOptions extends RequestInit {
   skipAuthRetry?: boolean;
@@ -296,6 +298,7 @@ async function request<T>(
     ...getAuthHeaders(),
     ...(init.headers as Record<string, string>),
   };
+  if (skipAuthRetry) delete headers["Authorization"];
 
   let res = await fetch(url, {
     ...init,
