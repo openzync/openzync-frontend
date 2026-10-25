@@ -80,9 +80,17 @@ export function useApiQuery<T>(
         setError(null);
       } catch (err) {
         if (runId !== runIdRef.current || !mountedRef.current) return;
-        setError(
-          apiErrorMessage(err, err instanceof Error ? err.message : "Request failed"),
-        );
+        // Error formatting must be total — if the formatter itself throws
+        // on a foreign error shape, fall back to the raw message. Error UI
+        // must never crash while handling an error.
+        let message: string;
+        try {
+          message =
+            apiErrorMessage(err, err instanceof Error ? err.message : "Request failed");
+        } catch {
+          message = err instanceof Error ? err.message : "Request failed";
+        }
+        setError(message);
       } finally {
         if (runId === runIdRef.current && mountedRef.current) setIsLoading(false);
       }

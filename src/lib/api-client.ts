@@ -71,6 +71,17 @@ export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// ─── GET cache ────────────────────────────────────────────────────────────────
+
+// 30s in-memory cache keyed by URL: the session layout and its overview page
+// fetch the same session URL on one navigation, so the second read is served
+// without a second network round-trip. Mutations (any non-GET) wipe it.
+// Identity changes (store/clearTokens) wipe it too — cached rows belong to
+// the previous principal. /v1/auth/me bypasses it (see request()).
+// Deliberately dumb — no React Query, no revalidation, no per-key TTL tuning.
+const GET_CACHE_TTL_MS = 30_000;
+const _getCache = new Map<string, { expiry: number; data: unknown }>();
+
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 
 // COOKIE-MIGRATION SINGLE-SWAP SPOT — when the backend issues httpOnly
@@ -119,12 +130,16 @@ function storeTokens(access: string, refresh: string): void {
   localStorage.setItem(TOKEN_KEYS.access, access);
   localStorage.setItem(TOKEN_KEYS.refresh, refresh);
   _memAccessToken = access;
+  // New identity — cached GETs belong to the previous principal.
+  _getCache.clear();
 }
 
 function clearTokens(): void {
   localStorage.removeItem(TOKEN_KEYS.access);
   localStorage.removeItem(TOKEN_KEYS.refresh);
   _memAccessToken = undefined;
+  // Logged out — drop cached GETs so the next session never reads them.
+  _getCache.clear();
 }
 
 /**
@@ -303,15 +318,6 @@ interface RequestOptions extends RequestInit {
 /** Per-verb opt-out surface — deliberately narrow so callers can't send raw headers past the auth layer. */
 type VerbOptions = Pick<RequestOptions, "skipAuthRetry" | "signal">;
 
-// ─── GET cache ────────────────────────────────────────────────────────────────
-
-// 30s in-memory cache keyed by URL: the session layout and its overview page
-// fetch the same session URL on one navigation, so the second read is served
-// without a second network round-trip. Mutations (any non-GET) wipe it.
-// Deliberately dumb — no React Query, no revalidation, no per-key TTL tuning.
-const GET_CACHE_TTL_MS = 30_000;
-const _getCache = new Map<string, { expiry: number; data: unknown }>();
-
 async function request<T>(
   path: string,
   options: RequestOptions = {},
@@ -320,8 +326,10 @@ async function request<T>(
   const method = (init.method ?? "GET").toUpperCase();
   // Any mutation may have changed what a GET returns — wipe, don't track keys.
   if (method !== "GET") _getCache.clear();
+  // Identity drives authz gating — never serve a stale role/permission set.
+  const cacheable = method === "GET" && !skipAuthRetry && path !== "/v1/auth/me";
   const url = `${API_BASE}${path}`;
-  if (method === "GET" && !skipAuthRetry) {
+  if (cacheable) {
     const hit = _getCache.get(url);
     if (hit && hit.expiry > Date.now()) return hit.data as T;
   }
@@ -361,7 +369,7 @@ async function request<T>(
     throw new ApiError(parseApiErrorMessage(body, res.status), res.status, body);
   }
 
-  if (method === "GET" && !skipAuthRetry) {
+  if (cacheable) {
     _getCache.set(url, { expiry: Date.now() + GET_CACHE_TTL_MS, data: body });
   }
   return body as T;

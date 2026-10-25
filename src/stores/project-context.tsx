@@ -68,7 +68,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         if (err instanceof ApiError && err.isNotFound) {
           throw new Error("Project not found");
         }
-        throw err;
+        // ApiError messages are already user-safe (parsed server text) —
+        // pass through. Anything else is a transport failure with no safe
+        // text, so use the stable generic string.
+        if (err instanceof ApiError) throw err;
+        throw new Error("Failed to load project");
       }
     },
     { enabled: Boolean(projectId), refreshKey: projectId },
