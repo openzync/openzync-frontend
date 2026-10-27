@@ -1,0 +1,1 @@
+Fix stored-XSS via malicious blob `download_url`: only `https:` absolute URLs and same-origin relative paths (`/…`) render as clickable links or image sources; anything else renders a non-clickable placeholder.

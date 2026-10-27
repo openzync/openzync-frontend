@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Upload,
@@ -55,8 +55,11 @@ const ROLES = ["user", "assistant", "system", "tool"] as const;
 
 // Mirrors the backend's per-blob cap (BlobStorageConfig.max_blob_size_mb,
 // default 50 → 413 PayloadTooLargeError). MIME types are unrestricted
-// server-side, so only size is enforced here.
+// server-side, so only size is enforced here. Count + total caps are
+// client-side guards against oversized multipart bodies and runaway memory.
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const MAX_FILES = 10;
+const MAX_TOTAL_BYTES = 200 * 1024 * 1024;
 
 // ─── Ingest Tab ────────────────────────────────────────────────────────────────
 
@@ -71,6 +74,9 @@ function IngestTab({ projectId }: { projectId: string }) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [result, setResult] = useState<IngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  // Abort in-flight upload if the tab unmounts mid-request.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   // TODO(me): surface per-episode enrichment bitmask once API exposes it —
   // SessionListResponse has no per-episode enrichment field today.
@@ -85,9 +91,18 @@ function IngestTab({ projectId }: { projectId: string }) {
       .finally(() => setSessionsLoading(false));
   }, [projectId]);
 
+  const handleCancel = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
+
   const handleIngest = useCallback(async () => {
     if (!sessionId.trim()) { setError("Please select a session"); return; }
     if (!messagesText.trim()) { setError("Please enter at least one message"); return; }
+    if (selectedFiles.length > MAX_FILES) { setError(`Too many files — maximum ${MAX_FILES} per ingest`); return; }
+    const totalBytes = selectedFiles.reduce((sum, f) => sum + f.size, 0);
+    if (totalBytes > MAX_TOTAL_BYTES) { setError(`Attachments exceed the ${formatFileSize(MAX_TOTAL_BYTES)} total limit`); return; }
+    const controller = new AbortController();
+    abortRef.current = controller;
     setIngesting(true); setUploading(true); setError(null); setResult(null);
 
     const lines = messagesText.trim().split("\n").filter(Boolean);
@@ -105,13 +120,18 @@ function IngestTab({ projectId }: { projectId: string }) {
         `/v1/projects/${projectId}/memory`,
         body,
         selectedFiles,
+        { signal: controller.signal },
       );
 
       setResult(data);
       setSelectedFiles([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ingest failed");
-    } finally { setIngesting(false); setUploading(false); }
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("Upload cancelled");
+      } else {
+        setError(err instanceof Error ? err.message : "Ingest failed");
+      }
+    } finally { setIngesting(false); setUploading(false); abortRef.current = null; }
   }, [projectId, messagesText, selectedRole, sessionId, selectedFiles]);
 
   return (
@@ -157,7 +177,7 @@ function IngestTab({ projectId }: { projectId: string }) {
             or drag and drop
           </p>
           <p className="text-xs text-surface-500">
-            Images, PDFs, documents — up to 50 MB each
+            Images, PDFs, documents — up to 50 MB each, max {MAX_FILES} files / {formatFileSize(MAX_TOTAL_BYTES)} total
           </p>
           <input
             type="file"
@@ -173,7 +193,14 @@ function IngestTab({ projectId }: { projectId: string }) {
                   accepted.push(file);
                 }
               }
-              setSelectedFiles((prev) => [...prev, ...accepted]);
+              // Functional update so rapid multi-selects never drop files.
+              setSelectedFiles((prev) => {
+                const merged = [...prev, ...accepted];
+                if (merged.length > MAX_FILES) {
+                  toast.error(`Maximum ${MAX_FILES} files per ingest — extra files ignored`);
+                }
+                return merged.slice(0, MAX_FILES);
+              });
               // Reset so re-selecting the same file works
               e.target.value = "";
             }}
@@ -223,6 +250,9 @@ function IngestTab({ projectId }: { projectId: string }) {
           />
         </Field>
         <Button variant="primary" onClick={handleIngest} loading={ingesting} disabled={!sessionId.trim()} icon={<Upload size={16} />}>Ingest</Button>
+        {ingesting && (
+          <Button variant="secondary" onClick={handleCancel} icon={<X size={16} />}>Cancel</Button>
+        )}
       </div>
       {error && (<div className="flex items-start gap-2 rounded-md bg-error/10 border border-error/30 p-3 text-sm text-error"><AlertCircle size={16} className="mt-0.5 shrink-0" /><span>{error}</span></div>)}
       {result && (

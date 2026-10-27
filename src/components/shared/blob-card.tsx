@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, formatFileSize } from "@/lib/utils";
 import {
   File,
   FileImage,
@@ -31,15 +31,23 @@ interface BlobCardProps {
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-function formatFileSize(bytes: number, decimals = 1): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(k)),
-    sizes.length - 1,
-  );
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(decimals))} ${sizes[i]}`;
+/**
+ * Allowlist for blob download URLs: only `https:` absolutes and same-origin
+ * relative paths (`/…`, never `//…`) are rendered clickable. Anything else
+ * (javascript:, data:, http:, …) returns null so the card renders a
+ * non-clickable placeholder — a malicious stored download_url can never
+ * become a link or <img> src.
+ */
+function safeDownloadUrl(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const url = raw.trim();
+  if (!url) return null;
+  if (url.startsWith("/") && !url.startsWith("//")) return url;
+  try {
+    return new URL(url).protocol === "https:" ? url : null;
+  } catch {
+    return null;
+  }
 }
 
 function mimeToIcon(mime: string): typeof File {
@@ -69,10 +77,12 @@ export function BlobCard({
   const [imgError, setImgError] = useState(false);
   const Icon = mimeToIcon(blob.mime_type);
   const showThumbnail = isImage(blob.mime_type) && showPreview && !imgError;
+  // Unsafe URLs render nothing clickable — no link, no <img> src.
+  const safeUrl = safeDownloadUrl(blob.download_url);
 
   const handleClick = () => {
-    if (blob.download_url) {
-      window.open(blob.download_url, "_blank", "noopener,noreferrer");
+    if (safeUrl) {
+      window.open(safeUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -80,7 +90,7 @@ export function BlobCard({
     <button
       type="button"
       onClick={handleClick}
-      disabled={!blob.download_url}
+      disabled={!safeUrl}
       className={cn(
         "group flex items-center gap-2.5 rounded-lg border border-surface-700",
         "bg-surface-800/50 px-3 py-2 text-left transition-colors duration-150",
@@ -93,9 +103,9 @@ export function BlobCard({
     >
       {/* Thumbnail / Icon */}
       <div className="shrink-0 size-10 rounded-md overflow-hidden bg-surface-800 flex items-center justify-center">
-        {showThumbnail && blob.download_url ? (
+        {showThumbnail && safeUrl ? (
           <img
-            src={blob.download_url}
+            src={safeUrl}
             alt={blob.file_name}
             className="size-full object-cover"
             onError={() => setImgError(true)}
@@ -118,7 +128,7 @@ export function BlobCard({
       </div>
 
       {/* Download indicator */}
-      {blob.download_url && (
+      {safeUrl && (
         <Download className="size-4 shrink-0 text-surface-500 opacity-0 group-hover:opacity-100 transition-opacity" />
       )}
     </button>

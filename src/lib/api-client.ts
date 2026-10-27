@@ -113,8 +113,13 @@ function getCacheSet(url: string, data: unknown): void {
 // in getAuthHeaders; fetch calls already send `credentials: "include"` so no
 // request-site change is needed (required once API_BASE goes cross-origin).
 // Until then tokens live in localStorage (no cookie session exists yet) —
-// treat them as short-lived secrets: never log them, never put them in URLs,
-// and wipe both on any auth rejection (see refreshAndRetry/clearTokens).
+// ⚠️ SECURITY: localStorage is readable by ANY script on this origin, so one
+// XSS flaw leaks both tokens. Mitigations: keep access tokens short-lived
+// (the in-memory copy below bounds localStorage reads to one per session but
+// adds no persistence — it is NOT a second token store), rotate refresh
+// tokens server-side, enforce a strict CSP, never log tokens (no console/debug
+// output anywhere on this path), and never put tokens in URLs. Wipe both on
+// any auth rejection (see refreshAndRetry/clearTokens).
 // TODO(me): backend must issue httpOnly cookies + CSRF-safe refresh before
 // this localStorage layer can be deleted — frontend part only, not done here.
 const TOKEN_KEYS = {
@@ -499,6 +504,7 @@ async function uploadWithBlobs<T>(
   path: string,
   payload: Record<string, unknown>,
   files: File[],
+  opts?: Pick<RequestOptions, "signal">,
 ): Promise<T> {
   const url = `${API_BASE}${path}`;
   _getCache.clear(); // multipart upload mutates server state — same rule as request()
@@ -510,6 +516,7 @@ async function uploadWithBlobs<T>(
     credentials: "include",
     headers,
     body: buildUploadBody(payload, files),
+    signal: opts?.signal,
   });
 
   // 401 → same shared refresh-and-retry path as request()
@@ -521,6 +528,7 @@ async function uploadWithBlobs<T>(
         credentials: "include",
         headers,
         body: buildUploadBody(payload, files),
+        signal: opts?.signal,
       });
     });
   }
