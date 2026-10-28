@@ -210,36 +210,40 @@ export default function SessionDetailPage() {
   const previewEnabled = Boolean(projectId && sessionId);
 
   const messagesQuery = useApiQuery<{ data: PreviewMessage[] }>(
-    () =>
+    (signal) =>
       get<{ data: PreviewMessage[] }>(
         `/v1/projects/${projectId}/sessions/${sessionId}/messages?limit=5`,
+        { signal },
       ),
     { enabled: previewEnabled },
   );
   const messages = (messagesQuery.data?.data ?? []).slice(-5);
 
   const factsQuery = useApiQuery<{ data: PreviewFact[] }>(
-    () =>
+    (signal) =>
       get<{ data: PreviewFact[] }>(
         `/v1/projects/${projectId}/sessions/${sessionId}/facts?limit=5`,
+        { signal },
       ),
     { enabled: previewEnabled },
   );
   const facts = factsQuery.data?.data ?? [];
 
   const classificationsQuery = useApiQuery<{ data: PreviewClassification[] }>(
-    () =>
+    (signal) =>
       get<{ data: PreviewClassification[] }>(
         `/v1/projects/${projectId}/sessions/${sessionId}/classifications`,
+        { signal },
       ),
     { enabled: previewEnabled },
   );
   const classifications = (classificationsQuery.data?.data ?? []).slice(0, 3);
 
   const extractionsQuery = useApiQuery<{ items: PreviewExtraction[] }>(
-    () =>
+    (signal) =>
       get<{ items: PreviewExtraction[] }>(
         `/v1/projects/${projectId}/sessions/${sessionId}/structured-extractions`,
+        { signal },
       ),
     { enabled: previewEnabled },
   );
@@ -248,7 +252,7 @@ export default function SessionDetailPage() {
   // Scoped server-side via ?session_id=; the client filter stays as a fallback
   // in case the backend ignores the param (backend may return project-wide).
   const observationsQuery = useApiQuery<{ data: PreviewObservation[] }>(
-    () => get<{ data: PreviewObservation[] }>(`/v1/projects/${projectId}/observations?session_id=${sessionId}&limit=50`),
+    (signal) => get<{ data: PreviewObservation[] }>(`/v1/projects/${projectId}/observations?session_id=${sessionId}&limit=50`, { signal }),
     { enabled: previewEnabled },
   );
   const allObservations = observationsQuery.data?.data ?? [];

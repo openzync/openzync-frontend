@@ -61,9 +61,12 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   // Palette components keep their own AbortController: fetch aborts on
   // unmount there are intentional UX cancellations, not dedup races.
   const query = useApiQuery<ProjectInfo>(
-    async () => {
+    async (signal) => {
       try {
-        return await get<ProjectInfo>(`/v1/projects/${projectId}`);
+        return await get<ProjectInfo>(
+          `/v1/projects/${encodeURIComponent(projectId ?? "")}`,
+          { signal },
+        );
       } catch (err) {
         if (err instanceof ApiError && err.isNotFound) {
           throw new Error("Project not found");

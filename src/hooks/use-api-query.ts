@@ -22,18 +22,19 @@ export interface UseApiQueryResult<T> {
  * Minimal client-side query hook over the shared api-client verbs.
  *
  * Deliberately not a cache: every mount, refreshKey change, and refetch()
- * hits the network. Race-safe (only the latest run may commit state) and
- * unmount-safe (no setState after unmount). Errors are normalized through
- * apiErrorMessage, so pages get the same strings their old hand-rolled catch
- * blocks produced. Data is kept during a refetch — callers decide whether to
- * show a skeleton or stale content while isLoading is true.
- *
- * no AbortController plumbing — api-client's verb helpers
- * deliberately don't accept signals; the run-id stale guard gives identical
- * observable semantics (stale responses discarded, nothing set after unmount).
+ * hits the network (api-client's own 30s GET cache + in-flight dedupe absorb
+ * the duplicate fire). Race-safe (only the latest run may commit state) and
+ * unmount-safe (no setState after unmount). Each run gets its own
+ * AbortController: the signal flows into the fetcher so in-flight fetches are
+ * cancelled on refreshKey change/unmount instead of merely ignored — stale
+ * responses are discarded via the run-id guard as before. Errors are
+ * normalized through apiErrorMessage, so pages get the same strings their
+ * old hand-rolled catch blocks produced. Data is kept during a refetch —
+ * callers decide whether to show a skeleton or stale content while isLoading
+ * is true.
  */
 export function useApiQuery<T>(
-  fetcher: () => Promise<T>,
+  fetcher: (signal: AbortSignal) => Promise<T>,
   options: UseApiQueryOptions = {},
 ): UseApiQueryResult<T> {
   const { enabled = true, refreshKey } = options;
@@ -64,6 +65,10 @@ export function useApiQuery<T>(
     // invalidate whatever request was still in flight.
     const runId = ++runIdRef.current;
     if (!enabled) return;
+    // Per-run controller: refreshKey change/unmount aborts the fetch itself,
+    // not just its state commit. Abortable api-client calls bypass in-flight
+    // sharing, so this never cancels a sibling component's read.
+    const controller = new AbortController();
     void (async () => {
       // Deferred past the effect body so state updates are never synchronous
       // within it (react-hooks/set-state-in-effect) — same pattern as
@@ -72,13 +77,16 @@ export function useApiQuery<T>(
       if (runId !== runIdRef.current || !mountedRef.current) return;
       setIsLoading(true);
       try {
-        const result = await fetcherRef.current();
+        const result = await fetcherRef.current(controller.signal);
         if (runId !== runIdRef.current || !mountedRef.current) return;
         setData(result);
         // Cleared on success only — a retry keeps the error visible until it
         // actually resolves (convention established on overview/page.tsx).
         setError(null);
       } catch (err) {
+        // Intentional cancellation (unmount/refreshKey) is not an error —
+        // keep previous data/error instead of flashing a failure.
+        if (controller.signal.aborted) return;
         if (runId !== runIdRef.current || !mountedRef.current) return;
         // Error formatting must be total — if the formatter itself throws
         // on a foreign error shape, fall back to the raw message. Error UI
@@ -95,6 +103,7 @@ export function useApiQuery<T>(
         if (runId === runIdRef.current && mountedRef.current) setIsLoading(false);
       }
     })();
+    return () => controller.abort();
   }, [enabled, refreshKey, nonce]);
 
   const refetch = useCallback(() => setNonce((n) => n + 1), []);

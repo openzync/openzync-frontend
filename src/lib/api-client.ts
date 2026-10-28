@@ -4,7 +4,10 @@
 //
 // Every API call in the frontend goes through this module.
 //   - Reads NEXT_PUBLIC_API_URL from env (fallback: "" — same-origin relative URLs)
-//   - Injects Authorization header from tokenStorage (localStorage until cookie migration)
+//   - Injects Authorization header from the in-memory access token; the
+//     backend session rides httpOnly cookies (`credentials: "include"` on
+//     every fetch). Only the refresh token is persisted (localStorage —
+//     reload survival, see Auth helpers); the access token never is.
 //   - Handles 401 → redirect to login
 //   - Provides typed request helpers so every page gets consistent error handling
 //
@@ -106,92 +109,92 @@ function getCacheSet(url: string, data: unknown): void {
   }
 }
 
+// In-flight GET dedupe: concurrent get() calls for the same URL share one
+// promise instead of firing N identical fetches (the session layout and its
+// overview page mount together). Entries live only for the request duration;
+// the 30s cache above still serves repeat reads. Abortable callers bypass
+// sharing (see get()) — one component's abort must not cancel another's read.
+const _inflight = new Map<string, Promise<unknown>>();
+
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 
-// COOKIE-MIGRATION SINGLE-SWAP SPOT — when the backend issues httpOnly
-// cookies, replace ONLY tokenStorage below and drop the Authorization header
-// in getAuthHeaders; fetch calls already send `credentials: "include"` so no
-// request-site change is needed (required once API_BASE goes cross-origin).
-// Until then tokens live in localStorage (no cookie session exists yet) —
-// ⚠️ SECURITY: localStorage is readable by ANY script on this origin, so one
-// XSS flaw leaks both tokens. Mitigations: keep access tokens short-lived
-// (the in-memory copy below bounds localStorage reads to one per session but
-// adds no persistence — it is NOT a second token store), rotate refresh
-// tokens server-side, enforce a strict CSP, never log tokens (no console/debug
-// output anywhere on this path), and never put tokens in URLs. Wipe both on
-// any auth rejection (see refreshAndRetry/clearTokens).
-// TODO(me): backend must issue httpOnly cookies + CSRF-safe refresh before
-// this localStorage layer can be deleted — frontend part only, not done here.
-const TOKEN_KEYS = {
-  access: "mg_access_token",
-  refresh: "mg_refresh_token",
-} as const;
+// Tokens: the access token lives ONLY in module memory — never
+// localStorage/sessionStorage (any script on this origin can read those, so
+// one XSS flaw leaks the token). The refresh token is the ONE exception —
+// it persists in localStorage so a page reload can still rotate the session:
+// memory is wiped on reload, and the backend refresh contract requires the
+// token in the request BODY (openzync-core schemas/auth.py RefreshRequest,
+// routers/auth.py refresh()), with no httpOnly-cookie fallback. A cookie-only
+// refresh therefore 422s, so without this the reload path always forces a
+// re-login. Accepted tradeoff: wider XSS exposure of the refresh token, bound
+// by server-side refresh rotation + short-lived access tokens + strict CSP.
+// PROPER FIX (backend change, not done here): make
+// RefreshRequest.refresh_token optional and fall back to the httpOnly cookie
+// — then delete the localStorage layer below entirely.
+// ⚠️ SECURITY: never log tokens, never put them in URLs.
 
 /**
  * Single-point token persistence. Every token read/write goes through here
- * so the httpOnly-cookie swap touches one object: replace the localStorage
- * body with cookie-mode stubs (get → null, set/remove → no-op) and keep the
- * exported getAccessToken/storeTokens/clearTokens signatures unchanged.
+ * so the contract stays in one place. In-memory only by design — see above.
  */
-const tokenStorage = {
-  get(key: (typeof TOKEN_KEYS)[keyof typeof TOKEN_KEYS]): string | null {
-    if (typeof window === "undefined") return null;
-    try {
-      return localStorage.getItem(key);
-    } catch {
-      return null;
-    }
-  },
-  set(
-    key: (typeof TOKEN_KEYS)[keyof typeof TOKEN_KEYS],
-    value: string,
-  ): void {
-    localStorage.setItem(key, value);
-  },
-  remove(key: (typeof TOKEN_KEYS)[keyof typeof TOKEN_KEYS]): void {
-    localStorage.removeItem(key);
-  },
-};
+let _memAccessToken: string | null = null;
+let _memRefreshToken: string | null = null;
 
-// Short-lived in-memory copy of the access token: populated lazily from
-// localStorage, dropped on reload/logout/401. It never extends persistence
-// (nothing extra is written to storage); it only bounds localStorage reads
-// to one per page session. Only positive values are cached — clear/store
-// reset to undefined so the next read re-checks storage (cross-tab safe:
-// a stale cache can at worst send one revoked token, which fails closed
-// through the 401 → refresh → clear path).
-let _memAccessToken: string | undefined;
+/** localStorage holds the refresh token ONLY — never the access token. */
+const REFRESH_STORAGE_KEY = "mg_refresh_token";
+
+function readStoredRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const token = localStorage.getItem(REFRESH_STORAGE_KEY);
+    if (typeof token !== "string" || token.length === 0) return null;
+    return token;
+  } catch {
+    // Storage blocked (private mode) — fail closed to re-login.
+    return null;
+  }
+}
 
 function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
-  if (_memAccessToken !== undefined) return _memAccessToken;
-  const token = tokenStorage.get(TOKEN_KEYS.access);
-  // Fail closed on corrupt values — only a non-empty string leaves here.
-  if (typeof token !== "string" || token.length === 0) return null;
-  _memAccessToken = token;
-  return token;
+  if (typeof _memAccessToken !== "string" || _memAccessToken.length === 0)
+    return null;
+  return _memAccessToken;
 }
 
 function getRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
-  const token = tokenStorage.get(TOKEN_KEYS.refresh);
   // Fail closed on corrupt values, same as the access token.
-  if (typeof token !== "string" || token.length === 0) return null;
-  return token;
+  if (typeof _memRefreshToken === "string" && _memRefreshToken.length > 0)
+    return _memRefreshToken;
+  // Memory is empty after a reload — rehydrate from storage (the only token
+  // allowed to survive one) so refresh-after-reload sends a real token.
+  const stored = readStoredRefreshToken();
+  if (stored) _memRefreshToken = stored;
+  return stored;
 }
 
 function storeTokens(access: string, refresh: string): void {
-  tokenStorage.set(TOKEN_KEYS.access, access);
-  tokenStorage.set(TOKEN_KEYS.refresh, refresh);
   _memAccessToken = access;
+  _memRefreshToken = refresh;
+  try {
+    if (refresh) localStorage.setItem(REFRESH_STORAGE_KEY, refresh);
+    else localStorage.removeItem(REFRESH_STORAGE_KEY);
+  } catch {
+    // Storage blocked — memory still carries this page session.
+  }
   // New identity — cached GETs belong to the previous principal.
   _getCache.clear();
 }
 
 function clearTokens(): void {
-  tokenStorage.remove(TOKEN_KEYS.access);
-  tokenStorage.remove(TOKEN_KEYS.refresh);
-  _memAccessToken = undefined;
+  _memAccessToken = null;
+  _memRefreshToken = null;
+  try {
+    localStorage.removeItem(REFRESH_STORAGE_KEY);
+  } catch {
+    // Storage blocked — nothing persisted anyway.
+  }
   // Logged out — drop cached GETs so the next session never reads them.
   _getCache.clear();
 }
@@ -205,8 +208,11 @@ function clearTokens(): void {
  * shows retry/offline state instead of logging the user out.
  */
 async function refreshAccessToken(): Promise<string | null> {
+  // No early return when the memory slot is empty — storage may still hold
+  // the refresh token, and the httpOnly cookie still carries the session, so
+  // the refresh is attempted regardless and the backend decides (401/403, or
+  // 422-with-no-token → null → re-login, same as before).
   const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
 
   let res: Response;
   try {
@@ -214,7 +220,9 @@ async function refreshAccessToken(): Promise<string | null> {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      body: JSON.stringify(
+        refreshToken ? { refresh_token: refreshToken } : {},
+      ),
     });
   } catch {
     // Offline/DNS/CORS abort — the request never reached the backend.
@@ -224,6 +232,15 @@ async function refreshAccessToken(): Promise<string | null> {
 
   if (res.status === 401 || res.status === 403) {
     // Refresh rejected (expired or revoked) — force re-login.
+    clearTokens();
+    return null;
+  }
+
+  if (res.status === 422 && !refreshToken) {
+    // No token was sent and the backend requires refresh_token in the body —
+    // no cookie-refresh contract exists to fall back to, so this is an auth
+    // rejection (re-login), not a transient failure. Retry UI here would
+    // strand the user: no retry can succeed without a token.
     clearTokens();
     return null;
   }
@@ -245,7 +262,9 @@ async function refreshAccessToken(): Promise<string | null> {
   };
 
   // Store the new pair (the backend may also issue a new refresh token).
-  storeTokens(body.access_token, body.refresh_token ?? refreshToken);
+  // "" falls back to fail-closed: getRefreshToken() rejects empty strings,
+  // so a missing refresh token just means "cookie carries it".
+  storeTokens(body.access_token, body.refresh_token ?? refreshToken ?? "");
   return body.access_token;
 }
 
@@ -433,9 +452,19 @@ async function request<T>(
 
 // ─── Typed helpers ────────────────────────────────────────────────────────────
 
-/** GET request */
+/** GET request — concurrent calls for the same URL share one in-flight promise. */
 export function get<T>(path: string, opts?: VerbOptions): Promise<T> {
-  return request<T>(path, { method: "GET", ...opts });
+  // Abortable callers bypass sharing: aborting shared state would cancel a
+  // sibling component's read. The signal still flows into fetch via request().
+  if (opts?.signal) return request<T>(path, { method: "GET", ...opts });
+  const key = `${path}::${opts?.skipAuthRetry === true ? "anon" : "auth"}`;
+  const running = _inflight.get(key);
+  if (running) return running as Promise<T>;
+  const pending = request<T>(path, { method: "GET", ...opts }).finally(() => {
+    if (_inflight.get(key) === pending) _inflight.delete(key);
+  });
+  _inflight.set(key, pending);
+  return pending;
 }
 
 /** POST request */

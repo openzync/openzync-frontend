@@ -121,7 +121,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const role: UserRole | null = user?.role ?? null;
   const permissions: string[] = user?.permissions ?? [];
-  const isAdmin = role === "admin";
+  // Superadmin holds every admin surface too — a lone `role === "admin"`
+  // check would lock the root account out of org admin UI.
+  const isAdmin = role === "admin" || role === "superadmin";
   const isSuperadmin = role === "superadmin";
   const mustChangePassword = user?.must_change_password ?? false;
   const can = (permission: string) => canUser(role, permissions, permission);

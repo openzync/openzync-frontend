@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import AccountPage from "@/app/(dashboard)/account/page";
 import { UserProvider } from "@/contexts/user-context";
 import { ConfigDirtyProvider } from "@/contexts/config-dirty";
+import { clearTokens, storeTokens } from "@/lib/api-client";
 
 /** AccountPage reports unsaved changes — wrap in the guard provider. */
 function PageProviders({ children }: { children: React.ReactNode }) {
@@ -77,9 +78,10 @@ vi.mock("@/components/guides", () => ({
 beforeEach(() => {
   mockFetch.mockReset();
   mockPush.mockReset();
+  clearTokens();
   localStorage.clear();
-  // Set auth token for settings page
-  localStorage.setItem("mg_access_token", "test-token");
+  // Seed the in-memory access token (localStorage holds the refresh token only).
+  storeTokens("test-token", "test-refresh");
 });
 
 afterEach(() => {
@@ -186,13 +188,36 @@ describe("AccountPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows loading skeleton while profile loads", () => {
-    mockFetch.mockReturnValueOnce(new Promise(() => {}));
+  it("shows loading skeleton while profile loads", async () => {
+    // Deferred (not never-resolving): the in-flight GET dedupe map holds a
+    // pending entry until it settles, so a promise that never resolves would
+    // leak into later tests sharing this module instance and hang their
+    // /v1/auth/me reads forever. Resolve after asserting the skeleton state.
+    let resolveFetch!: (res: Response) => void;
+    mockFetch.mockReturnValueOnce(
+      new Promise<Response>((resolve) => {
+        resolveFetch = resolve;
+      }),
+    );
 
     render(<PageProviders><AccountPage /></PageProviders>);
 
     const skeletons = document.querySelectorAll(".animate-pulse");
     expect(skeletons.length).toBeGreaterThan(0);
+
+    resolveFetch(
+      new Response(
+        JSON.stringify({
+          id: "user-1",
+          name: "Skeleton User",
+          email: "skeleton@example.com",
+          role: "admin",
+          mfa_enabled: false,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    await screen.findByDisplayValue("Skeleton User");
   });
 
   it("saves profile changes on save button click", async () => {

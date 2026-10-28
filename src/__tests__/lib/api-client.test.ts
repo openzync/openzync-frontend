@@ -78,21 +78,22 @@ describe("auth token helpers", () => {
   });
 
   it("getAccessToken returns stored token", () => {
-    localStorage.setItem("mg_access_token", "test-token");
+    storeTokens("test-token", "test-refresh");
     expect(getAccessToken()).toBe("test-token");
   });
 
   it("clearTokens removes both tokens", () => {
-    localStorage.setItem("mg_access_token", "a");
-    localStorage.setItem("mg_refresh_token", "b");
+    storeTokens("a", "b");
     clearTokens();
-    expect(localStorage.getItem("mg_access_token")).toBeNull();
+    expect(getAccessToken()).toBeNull();
     expect(localStorage.getItem("mg_refresh_token")).toBeNull();
   });
 
   it("storeTokens writes both tokens", () => {
     storeTokens("access-1", "refresh-1");
-    expect(localStorage.getItem("mg_access_token")).toBe("access-1");
+    // Access token lives in module memory only — never localStorage.
+    expect(getAccessToken()).toBe("access-1");
+    expect(localStorage.getItem("mg_access_token")).toBeNull();
     expect(localStorage.getItem("mg_refresh_token")).toBe("refresh-1");
   });
 });
@@ -176,7 +177,7 @@ describe("request helpers", () => {
   });
 
   it("sets Authorization header when access token exists", async () => {
-    localStorage.setItem("mg_access_token", "mytoken");
+    storeTokens("mytoken", "myrefresh");
     mockFetch.mockResolvedValueOnce(
       new Response(JSON.stringify({}), {
         status: 200,
@@ -364,8 +365,7 @@ describe("apiErrorMessage via request helpers", () => {
 
 describe("401 token refresh", () => {
   beforeEach(() => {
-    localStorage.setItem("mg_access_token", "expired-token");
-    localStorage.setItem("mg_refresh_token", "valid-refresh");
+    storeTokens("expired-token", "valid-refresh");
   });
 
   it("retries request after successful token refresh", async () => {
@@ -414,7 +414,8 @@ describe("401 token refresh", () => {
       );
 
     await get("/v1/test");
-    expect(localStorage.getItem("mg_access_token")).toBe("new-access");
+    expect(getAccessToken()).toBe("new-access");
+    expect(localStorage.getItem("mg_access_token")).toBeNull();
     expect(localStorage.getItem("mg_refresh_token")).toBe("new-refresh");
   });
 
@@ -436,13 +437,12 @@ describe("401 token refresh", () => {
     const promise2 = get("/v1/test");
     await expect(promise2).rejects.toThrow(ApiError);
     await expect(promise2).rejects.toThrow("Unauthorized");
-    expect(localStorage.getItem("mg_access_token")).toBeNull();
+    expect(getAccessToken()).toBeNull();
     expect(localStorage.getItem("mg_refresh_token")).toBeNull();
   });
 
   it("keeps tokens and throws the retryable error when refresh fails transiently (400)", async () => {
-    localStorage.setItem("mg_access_token", "expired-token");
-    localStorage.setItem("mg_refresh_token", "valid-refresh");
+    storeTokens("expired-token", "valid-refresh");
     mockFetch
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(
@@ -459,13 +459,12 @@ describe("401 token refresh", () => {
       status: 400,
       message: "Invalid refresh token",
     });
-    expect(localStorage.getItem("mg_access_token")).toBe("expired-token");
+    expect(getAccessToken()).toBe("expired-token");
     expect(localStorage.getItem("mg_refresh_token")).toBe("valid-refresh");
   });
 
   it("keeps tokens and throws with status 0 when refresh fetch itself throws (offline)", async () => {
-    localStorage.setItem("mg_access_token", "expired-token");
-    localStorage.setItem("mg_refresh_token", "valid-refresh");
+    storeTokens("expired-token", "valid-refresh");
     mockFetch
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockRejectedValueOnce(new TypeError("fetch failed"));
@@ -476,7 +475,7 @@ describe("401 token refresh", () => {
       status: 0,
       message: "Network unavailable — check your connection",
     });
-    expect(localStorage.getItem("mg_access_token")).toBe("expired-token");
+    expect(getAccessToken()).toBe("expired-token");
     expect(localStorage.getItem("mg_refresh_token")).toBe("valid-refresh");
   });
 
@@ -529,7 +528,8 @@ describe("401 token refresh", () => {
       expect(calls).toHaveLength(2);
       expect(calls[1][1].headers["Authorization"]).toBe("Bearer new-access");
     }
-    expect(localStorage.getItem("mg_access_token")).toBe("new-access");
+    expect(getAccessToken()).toBe("new-access");
+    expect(localStorage.getItem("mg_refresh_token")).toBe("new-refresh");
   });
 
   it("both parallel requests throw when the shared refresh fails, without a second attempt", async () => {
@@ -559,7 +559,8 @@ describe("401 token refresh", () => {
         String(u).endsWith("/v1/auth/refresh"),
       ),
     ).toHaveLength(1);
-    expect(localStorage.getItem("mg_access_token")).toBeNull();
+    expect(getAccessToken()).toBeNull();
+    expect(localStorage.getItem("mg_refresh_token")).toBeNull();
   });
 });
 
@@ -572,8 +573,7 @@ describe("skipAuthRetry", () => {
       value: { href: "" },
       writable: true,
     });
-    localStorage.setItem("mg_access_token", "stale-access");
-    localStorage.setItem("mg_refresh_token", "valid-refresh");
+    storeTokens("stale-access", "valid-refresh");
   });
 
   it("surfaces the 401 as ApiError without refresh, retry, token clearing, or redirect", async () => {
@@ -594,7 +594,7 @@ describe("skipAuthRetry", () => {
     // Exactly one HTTP call — no /v1/auth/refresh, no retry of the original.
     expect(mockFetch).toHaveBeenCalledTimes(1);
     // Tokens survive (user may just have mistyped their password).
-    expect(localStorage.getItem("mg_access_token")).toBe("stale-access");
+    expect(getAccessToken()).toBe("stale-access");
     expect(localStorage.getItem("mg_refresh_token")).toBe("valid-refresh");
     // No redirect-to-login side effect.
     expect(window.location.href).toBe("");
@@ -712,8 +712,7 @@ describe("uploadWithBlobs", () => {
   });
 
   it("keeps Authorization but omits Content-Type on 401 refresh retry", async () => {
-    localStorage.setItem("mg_access_token", "expired-token");
-    localStorage.setItem("mg_refresh_token", "valid-refresh");
+    storeTokens("expired-token", "valid-refresh");
     mockFetch
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(
@@ -880,8 +879,7 @@ describe("invite endpoints", () => {
   it("acceptInvite clears stale tokens then stores the new pair", async () => {
     const { acceptInvite } = await import("@/lib/api-client");
     // Stale session from a previous login — must be overwritten, not merged.
-    localStorage.setItem("mg_access_token", "stale-access");
-    localStorage.setItem("mg_refresh_token", "stale-refresh");
+    storeTokens("stale-access", "stale-refresh");
     mockFetch.mockResolvedValueOnce(
       new Response(
         JSON.stringify({ access_token: "new-access", refresh_token: "new-refresh" }),
@@ -900,7 +898,8 @@ describe("invite endpoints", () => {
       password: "Str0ng!Pass",
     });
     expect(url).not.toContain("invite-tok-123");
-    expect(localStorage.getItem("mg_access_token")).toBe("new-access");
+    expect(localStorage.getItem("mg_access_token")).toBeNull();
+    expect(getAccessToken()).toBe("new-access");
     expect(localStorage.getItem("mg_refresh_token")).toBe("new-refresh");
   });
 
@@ -918,13 +917,13 @@ describe("invite endpoints", () => {
       status: 404,
       message: "This invitation link is invalid or has expired.",
     });
-    expect(localStorage.getItem("mg_access_token")).toBeNull();
+    expect(getAccessToken()).toBeNull();
     expect(localStorage.getItem("mg_refresh_token")).toBeNull();
   });
 
   it("inviteUser posts email+name to the admin endpoint with auth", async () => {
     const { inviteUser } = await import("@/lib/api-client");
-    localStorage.setItem("mg_access_token", "admin-token");
+    storeTokens("admin-token", "admin-refresh");
     mockFetch.mockResolvedValueOnce(new Response(null, { status: 201 }));
 
     await inviteUser("alice@acme.com", "Alice");

@@ -110,7 +110,9 @@ describe("VerifyEmailPage", () => {
     await user.click(screen.getByRole("button", { name: "Verify Email" }));
 
     expect(mockReplace).toHaveBeenCalledWith("/onboarding");
-    expect(localStorage.getItem("mg_access_token")).toBe("access-token");
+    const { getAccessToken } = await import("@/lib/api-client");
+    expect(getAccessToken()).toBe("access-token");
+    expect(localStorage.getItem("mg_access_token")).toBeNull();
     expect(localStorage.getItem("mg_refresh_token")).toBe("refresh-token");
   });
 

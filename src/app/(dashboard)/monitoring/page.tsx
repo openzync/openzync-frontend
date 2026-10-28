@@ -685,9 +685,11 @@ function MonitoringInner() {
       throw err;
     }
   }, { refreshKey: summaryRefreshKey });
-  const targetsQuery = useApiQuery<TargetsResponse>(() => get<TargetsResponse>("/metrics/targets"));
+  const targetsQuery = useApiQuery<TargetsResponse>((signal) =>
+    get<TargetsResponse>("/metrics/targets", { signal }),
+  );
   const batchQuery = useApiQuery<BatchResponse>(
-    () => get<BatchResponse>(`/metrics/batch?${batchQsString}`),
+    (signal) => get<BatchResponse>(`/metrics/batch?${batchQsString}`, { signal }),
     { refreshKey: windowKey },
   );
 

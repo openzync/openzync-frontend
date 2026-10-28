@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LoginPage from "@/app/login/page";
-import { API_BASE, clearTokens } from "@/lib/api-client";
+import { API_BASE, clearTokens, getAccessToken } from "@/lib/api-client";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────────
 
@@ -147,7 +147,8 @@ describe("LoginPage", () => {
     await user.click(screen.getByRole("button", { name: "Sign In" }));
 
     expect(mockReplace).toHaveBeenCalledWith("/overview");
-    expect(localStorage.getItem("mg_access_token")).toBe("access123");
+    expect(getAccessToken()).toBe("access123");
+    expect(localStorage.getItem("mg_access_token")).toBeNull();
     expect(localStorage.getItem("mg_refresh_token")).toBe("refresh123");
   });
 
@@ -183,7 +184,8 @@ describe("LoginPage", () => {
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith("/overview");
     });
-    expect(localStorage.getItem("mg_access_token")).toBe("access123");
+    expect(getAccessToken()).toBe("access123");
+    expect(localStorage.getItem("mg_access_token")).toBeNull();
     expect(localStorage.getItem("mg_refresh_token")).toBe("refresh123");
   }, 20_000);
 

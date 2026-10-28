@@ -29,14 +29,14 @@ afterEach(() => {
 });
 
 describe("tokenStorage single-swap", () => {
-  it("storeTokens persists exactly the access+refresh pair", () => {
+  it("storeTokens keeps the access token in memory and persists only the refresh token", async () => {
+    const { getAccessToken } = await import("@/lib/api-client");
     storeTokens("a1", "r1");
-    expect(localStorage.getItem("mg_access_token")).toBe("a1");
+    // Access token lives in module memory only — never localStorage.
+    expect(getAccessToken()).toBe("a1");
+    expect(localStorage.getItem("mg_access_token")).toBeNull();
     expect(localStorage.getItem("mg_refresh_token")).toBe("r1");
-    expect(Object.keys(localStorage).sort()).toEqual([
-      "mg_access_token",
-      "mg_refresh_token",
-    ]);
+    expect(Object.keys(localStorage).sort()).toEqual(["mg_refresh_token"]);
   });
 
   it("clearTokens removes exactly the token pair", () => {

@@ -190,6 +190,7 @@ describe("PlaygroundPage Ingest", () => {
         session_id: "session-1",
       },
       [],
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(post).not.toHaveBeenCalled();
   },
@@ -220,6 +221,7 @@ describe("PlaygroundPage Ingest", () => {
         session_id: "session-1",
       },
       [],
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(post).not.toHaveBeenCalled();
   });

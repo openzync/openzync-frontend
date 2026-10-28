@@ -88,8 +88,9 @@ function ProjectMembersInner() {
   });
 
   const membersQuery = useApiQuery<Member[] | { data: Member[] }>(
-    () => get<Member[] | { data: Member[] }>(
+    (signal) => get<Member[] | { data: Member[] }>(
       `/v1/projects/${projectId}/members?${withSort(new URLSearchParams())}`,
+      { signal },
     ),
     { enabled: !!projectId, refreshKey: `${sortBy}:${sortDir}` },
   );
