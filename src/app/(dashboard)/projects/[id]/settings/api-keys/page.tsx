@@ -182,7 +182,7 @@ function ProjectApiKeysInner() {
       <div className="space-y-6">
         <PageHeader title="API Keys" description="Manage API keys for programmatic access" />
         <div className="card-base overflow-hidden">
-          <TableSkeleton rows={4} cols={7} colWidths={["w-32", "w-20", "w-28", "w-20", "w-24", "w-16", "w-16"]} />
+          <TableSkeleton rows={4} cols={7} colWidths={["w-32", "w-20", "w-28", "w-20", "w-24", "w-16", "w-16"]} standalone />
         </div>
       </div>
     );

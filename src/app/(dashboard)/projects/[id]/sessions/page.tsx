@@ -205,7 +205,7 @@ function ProjectSessionsInner() {
       <div className="card-base overflow-hidden">
         {loading ? (
           <div className="p-6">
-            <TableSkeleton rows={5} cols={6} colWidths={["w-32", "w-16", "w-12", "w-12", "w-28", "w-16"]} />
+            <TableSkeleton rows={5} cols={6} colWidths={["w-32", "w-16", "w-12", "w-12", "w-28", "w-16"]} standalone />
           </div>
         ) : fetchError ? (
           <div className="flex flex-col items-center justify-center py-16 px-6">

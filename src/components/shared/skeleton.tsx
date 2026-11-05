@@ -13,6 +13,8 @@ interface TableSkeletonProps {
   cols?: number;
   /** Width variants per column */
   colWidths?: string[];
+  /** Renders its own table/tbody wrapper for use outside an existing TableBody */
+  standalone?: boolean;
 }
 
 /**
@@ -32,8 +34,9 @@ export function TableSkeleton({
   rows = 5,
   cols = 4,
   colWidths,
+  standalone = false,
 }: TableSkeletonProps) {
-  return (
+  const rowNodes = (
     <>
       {Array.from({ length: rows }, (_, i) => (
         <tr key={`skel-${i}`}>
@@ -47,5 +50,16 @@ export function TableSkeleton({
         </tr>
       ))}
     </>
+  );
+
+  if (!standalone) return rowNodes;
+
+  return (
+    <div className="overflow-x-auto" role="status" aria-busy="true">
+      <span className="sr-only">Loading</span>
+      <table className="w-full text-sm">
+        <tbody className="divide-y divide-surface-800">{rowNodes}</tbody>
+      </table>
+    </div>
   );
 }

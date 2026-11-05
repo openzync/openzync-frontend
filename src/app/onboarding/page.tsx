@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { get, put, getAccessToken } from "@/lib/api-client";
+import { get, put, getAccessToken, refreshOnce } from "@/lib/api-client";
 import { SecretInput } from "@/components/ui/secret-input";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
@@ -180,8 +180,9 @@ function OnboardingWizard() {
       setLoading(true);
       setError(null);
       try {
-        // Redirect if no JWT (user came here directly without signing up)
-        if (!getAccessToken()) {
+        // The access token is memory-only, so a reload or deep-link has none.
+        // Exchange the persisted refresh token before bouncing to signup.
+        if (!getAccessToken() && !(await refreshOnce())) {
           router.replace("/signup");
           return;
         }

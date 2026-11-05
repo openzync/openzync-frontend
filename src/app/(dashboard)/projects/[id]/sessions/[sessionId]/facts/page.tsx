@@ -214,7 +214,7 @@ function SessionFactsInner() {
   return (
     <div>
       {loading ? (
-        <TableSkeleton rows={5} cols={3} colWidths={["w-48", "w-32", "w-16"]} />
+        <TableSkeleton rows={5} cols={3} colWidths={["w-48", "w-32", "w-16"]} standalone />
       ) : error ? (
         <ErrorState message={error} onRetry={() => window.location.reload()} />
       ) : facts.length === 0 ? (

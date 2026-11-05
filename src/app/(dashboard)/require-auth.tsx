@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthLoadingScreen } from "@/components/shared/auth-loading-screen";
 import { UserProvider, useUser } from "@/contexts/user-context";
-import { AUTH_REDIRECT_EVENT, clearTokens, getAccessToken, refreshOnce } from "@/lib/api-client";
+import { AUTH_REDIRECT_EVENT, clearTokens, getAccessToken, hasRefreshCredential, refreshOnce } from "@/lib/api-client";
 import { getTokenExp } from "@/lib/jwt";
 
 function isTokenExpired(): boolean {
@@ -52,16 +52,12 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // localStorage is sync — the check is instant, so no artificial
-      // loading delay or redirect pause; bounce straight to login when stale.
+      // The access token is memory-only, so it is absent on every fresh page
+      // load. The persisted refresh token is the only credential that survives
+      // a reload — always attempt the refresh; a genuine rejection returns null
+      // and has already cleared tokens.
       if (isTokenExpired()) {
-        // Fail closed: missing/unparseable token — no refresh to attempt.
-        if (getTokenExp(getAccessToken()) === null) {
-          clearTokens();
-          router.replace("/login?reason=not-signed-in");
-          return;
-        }
-        // Parseable but expired — try single-flight refresh before logging out.
+        // Expired or absent (fresh page load) — refresh before logging out.
         try {
           const newToken = await refreshOnce();
           if (!newToken) {
@@ -70,6 +66,14 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
             return;
           }
         } catch {
+          // No refresh credential (memory or storage) — no retry can succeed;
+          // don't strand an anonymous visitor on the retry screen. No
+          // clearTokens() here: storage has nothing to clear, and memory may
+          // still hold the only surviving credential.
+          if (!hasRefreshCredential()) {
+            router.replace("/login?reason=not-signed-in");
+            return;
+          }
           // Transport/transient refresh failure (5xx/offline) — do NOT
           // enter the shell with an expired token; stay on the loading
           // screen with a retry affordance instead.

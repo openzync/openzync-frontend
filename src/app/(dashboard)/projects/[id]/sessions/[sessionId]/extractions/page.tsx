@@ -48,7 +48,7 @@ export default function SessionExtractionsPage() {
   return (
     <div>
       {loading ? (
-        <TableSkeleton rows={2} cols={1} colWidths={["w-full"]} />
+        <TableSkeleton rows={2} cols={1} colWidths={["w-full"]} standalone />
       ) : error ? (
         <ErrorState message={error} onRetry={() => window.location.reload()} />
       ) : data.length === 0 ? (

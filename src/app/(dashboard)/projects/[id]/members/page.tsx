@@ -194,7 +194,7 @@ function ProjectMembersInner() {
     return (
         <div className="space-y-6">
           <PageHeader title="Members" description="Project members" />
-          <TableSkeleton rows={4} cols={4} colWidths={["w-32", "w-36", "w-20", "w-16"]} />
+          <TableSkeleton rows={4} cols={4} colWidths={["w-32", "w-36", "w-20", "w-16"]} standalone />
         </div>
     );
   }
@@ -227,6 +227,7 @@ function ProjectMembersInner() {
             rows={4}
             cols={4}
             colWidths={["w-32", "w-36", "w-20", "w-16"]}
+            standalone
           />
         ) : fetchError ? (
           <div className="card-base p-12 flex flex-col items-center justify-center">

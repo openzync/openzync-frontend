@@ -174,6 +174,11 @@ function getRefreshToken(): string | null {
   return stored;
 }
 
+/** True when a refresh credential exists (memory or storage) — what a retry would send. */
+function hasRefreshCredential(): boolean {
+  return getRefreshToken() !== null;
+}
+
 function storeTokens(access: string, refresh: string): void {
   _memAccessToken = access;
   _memRefreshToken = refresh;
@@ -983,4 +988,4 @@ export function getLlmUsage(params: LlmUsageParams = {}): Promise<LlmUsageRespon
 
 // ─── Re-export base URL for edge cases ───────────────────────────────────────
 
-export { API_BASE, getAccessToken, storeTokens, clearTokens, uploadWithBlobs };
+export { API_BASE, getAccessToken, storeTokens, clearTokens, uploadWithBlobs, hasRefreshCredential };

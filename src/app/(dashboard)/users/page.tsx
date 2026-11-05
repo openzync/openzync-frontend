@@ -358,7 +358,7 @@ function UsersPageInner() {
     return (
       <div className="space-y-6">
         <div className="card-base overflow-hidden">
-          <TableSkeleton rows={5} cols={6} colWidths={["w-32", "w-24", "w-36", "w-20", "w-28", "w-40"]} />
+          <TableSkeleton rows={5} cols={6} colWidths={["w-32", "w-24", "w-36", "w-20", "w-28", "w-40"]} standalone />
         </div>
       </div>
     );
