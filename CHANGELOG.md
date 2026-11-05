@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.1
+
+### Patch Changes
+
+- 28250b9: Centralized token access behind tokenStorage single-swap for future httpOnly-cookie migration with credentials:include on all fetch sites, and bounded the GET cache with expiry-delete + 200-entry LRU while preserving 30s TTL and /v1/auth/me bypass.
+- 226616a: Centralized email validation for sign-in and sign-up so invalid addresses now show an inline error instead of a failed server round-trip.
+- 226616a: Added short-lived caching for session data so revisiting tabs reuses recent results instead of refetching everything.
+- 3637a9d: Add security headers (`X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, minimal CSP) in `next.config.ts`. Tokens stay in `localStorage` for now — the httpOnly-cookie migration needs a backend change and is out of scope.
+- 226616a: Reduced the session graph bundle size and scoped session tabs to the active session for faster loading.
+- 3637a9d: Add a CI `test` job (`npm ci` + `npm test`) on pull requests, and pass `NEXT_PUBLIC_API_URL` as a compose `build.args` (with a rebuild-on-domain-change note) since the value is baked at build time.
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
