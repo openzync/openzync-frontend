@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 /**
  * Full-page loading overlay displayed while authentication state is being checked.
  * Prevents any dashboard UI from flashing before auth is confirmed.
@@ -59,6 +61,12 @@ export function AuthLoadingScreen({
           >
             Retry
           </button>
+          <Link
+            href="/login"
+            className="text-xs text-surface-500 underline underline-offset-4 transition-colors hover:text-text-primary"
+          >
+            Sign in with a different account
+          </Link>
         </div>
       )}
     </div>

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { get, put, getAccessToken, refreshOnce } from "@/lib/api-client";
+import { get, put, getAccessToken, refreshOnce, hasRefreshCredential } from "@/lib/api-client";
 import { SecretInput } from "@/components/ui/secret-input";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
@@ -203,6 +203,11 @@ function OnboardingWizard() {
 
         setForm(defaultsData);
       } catch (err) {
+        // No credential to retry with — same dead end the dashboard gate avoids.
+        if (!hasRefreshCredential()) {
+          router.replace("/signup");
+          return;
+        }
         setError(err instanceof Error ? err.message : "Failed to load configuration defaults");
       } finally {
         setLoading(false);

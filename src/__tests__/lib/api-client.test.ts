@@ -946,3 +946,87 @@ describe("invite endpoints", () => {
     expect(opts.method).toBe("DELETE");
   });
 });
+
+// ─── Cross-tab refresh-token rotation ─────────────────────────────────────────
+
+describe("cross-tab refresh-token rotation", () => {
+  it("sends the rotated refresh token from storage, not the stale memory copy", async () => {
+    // This tab logged in with "refresh-old" (memory + storage).
+    storeTokens("access-old", "refresh-old");
+    // Another tab rotated it: the backend revoked "refresh-old" and wrote the
+    // new one straight to storage. This tab's memory is now stale.
+    localStorage.setItem("mg_refresh_token", "refresh-rotated");
+
+    mockFetch
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ access_token: "new-access", refresh_token: "new-refresh" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    await expect(get("/v1/test")).resolves.toEqual({ ok: true });
+
+    const [refreshUrl, refreshOpts] = mockFetch.mock.calls[1];
+    expect(String(refreshUrl)).toBe(`${API_BASE}/v1/auth/refresh`);
+    expect(JSON.parse(refreshOpts.body).refresh_token).toBe("refresh-rotated");
+    expect(refreshOpts.body).not.toContain("refresh-old");
+  });
+});
+
+// ─── Storage write failure ────────────────────────────────────────────────────
+
+describe("refresh token when the storage write fails", () => {
+  it("sends the in-memory token, not the revoked one still in storage", async () => {
+    // Storage holds a token the backend already revoked (rotation happened in
+    // another tab before this one's write failed).
+    localStorage.setItem("mg_refresh_token", "refresh-revoked");
+
+    // A throwing setItem (quota/blocked) leaves storage stale — memory is the
+    // only place the freshly rotated token exists.
+    const spy = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("quota");
+      });
+
+    try {
+      storeTokens("access-1", "refresh-memory-only");
+
+      mockFetch
+        .mockResolvedValueOnce(new Response(null, { status: 401 }))
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              access_token: "new-access",
+              refresh_token: "new-refresh",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ ok: true }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+
+      await expect(get("/v1/test")).resolves.toEqual({ ok: true });
+
+      const [, refreshOpts] = mockFetch.mock.calls[1];
+      expect(JSON.parse(refreshOpts.body).refresh_token).toBe(
+        "refresh-memory-only",
+      );
+      expect(refreshOpts.body).not.toContain("refresh-revoked");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});

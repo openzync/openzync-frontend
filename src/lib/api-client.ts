@@ -140,6 +140,10 @@ const _inflight = new Map<string, Promise<unknown>>();
 let _memAccessToken: string | null = null;
 let _memRefreshToken: string | null = null;
 
+// Set when persisting the refresh token failed (quota/blocked). Memory then
+// holds the only current value, so storage must not be preferred.
+let _storageWriteFailed = false;
+
 /** localStorage holds the refresh token ONLY — never the access token. */
 const REFRESH_STORAGE_KEY = "mg_refresh_token";
 
@@ -164,14 +168,16 @@ function getAccessToken(): string | null {
 
 function getRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
-  // Fail closed on corrupt values, same as the access token.
+  // Storage is the cross-tab source of truth: another tab may have rotated the
+  // token, so read it first; memory is the fallback for blocked storage.
+  const stored = _storageWriteFailed ? null : readStoredRefreshToken();
+  if (stored) {
+    _memRefreshToken = stored;
+    return stored;
+  }
   if (typeof _memRefreshToken === "string" && _memRefreshToken.length > 0)
     return _memRefreshToken;
-  // Memory is empty after a reload — rehydrate from storage (the only token
-  // allowed to survive one) so refresh-after-reload sends a real token.
-  const stored = readStoredRefreshToken();
-  if (stored) _memRefreshToken = stored;
-  return stored;
+  return null;
 }
 
 /** True when a refresh credential exists (memory or storage) — what a retry would send. */
@@ -185,8 +191,10 @@ function storeTokens(access: string, refresh: string): void {
   try {
     if (refresh) localStorage.setItem(REFRESH_STORAGE_KEY, refresh);
     else localStorage.removeItem(REFRESH_STORAGE_KEY);
+    _storageWriteFailed = false;
   } catch {
     // Storage blocked — memory still carries this page session.
+    _storageWriteFailed = true;
   }
   // New identity — cached GETs belong to the previous principal.
   _getCache.clear();
@@ -197,8 +205,10 @@ function clearTokens(): void {
   _memRefreshToken = null;
   try {
     localStorage.removeItem(REFRESH_STORAGE_KEY);
+    _storageWriteFailed = false;
   } catch {
     // Storage blocked — nothing persisted anyway.
+    _storageWriteFailed = true;
   }
   // Logged out — drop cached GETs so the next session never reads them.
   _getCache.clear();
