@@ -14,7 +14,14 @@ import {
   Eye,
   User as UserIcon,
 } from "lucide-react";
-import { get, ApiError } from "@/lib/api-client";
+import {
+  get,
+  ApiError,
+  listSessionClassifications,
+  listSessionExtractions,
+  type SessionClassificationListResponse,
+  type StructuredExtractionListResponse,
+} from "@/lib/api-client";
 import { smartTimestamp, truncateId } from "@/lib/utils";
 import { useProject } from "@/stores/project-context";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -62,21 +69,6 @@ interface PreviewFact {
   id: string;
   content: string;
   confidence: number;
-}
-
-interface PreviewClassification {
-  id: string;
-  role: string;
-  message: string;
-  intent: string | null;
-  emotion: string | null;
-}
-
-interface PreviewExtraction {
-  id: string;
-  schema_id: string | null;
-  data: Record<string, unknown>;
-  created_at: string;
 }
 
 interface PreviewObservation {
@@ -229,22 +221,20 @@ export default function SessionDetailPage() {
   );
   const facts = factsQuery.data?.data ?? [];
 
-  const classificationsQuery = useApiQuery<{ data: PreviewClassification[] }>(
+  const classificationsQuery = useApiQuery<SessionClassificationListResponse>(
     (signal) =>
-      get<{ data: PreviewClassification[] }>(
-        `/v1/projects/${projectId}/sessions/${sessionId}/classifications`,
-        { signal },
-      ),
+      listSessionClassifications(projectId as string, sessionId, undefined, {
+        signal,
+      }),
     { enabled: previewEnabled },
   );
   const classifications = (classificationsQuery.data?.data ?? []).slice(0, 3);
 
-  const extractionsQuery = useApiQuery<{ items: PreviewExtraction[] }>(
+  const extractionsQuery = useApiQuery<StructuredExtractionListResponse>(
     (signal) =>
-      get<{ items: PreviewExtraction[] }>(
-        `/v1/projects/${projectId}/sessions/${sessionId}/structured-extractions`,
-        { signal },
-      ),
+      listSessionExtractions(projectId as string, sessionId, undefined, {
+        signal,
+      }),
     { enabled: previewEnabled },
   );
   const extractions = (extractionsQuery.data?.items ?? []).slice(0, 3);

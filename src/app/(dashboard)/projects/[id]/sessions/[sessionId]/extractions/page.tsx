@@ -1,20 +1,13 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import { Database } from "lucide-react";
-import { get, ApiError } from "@/lib/api-client";
+import { listSessionExtractions } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { TableSkeleton } from "@/components/shared/skeleton";
-
-interface Extraction {
-  id: string;
-  schema_id: string | null;
-  data: Record<string, unknown>;
-  created_at: string;
-}
 
 export default function SessionExtractionsPage() {
   const params = useParams();
@@ -22,35 +15,25 @@ export default function SessionExtractionsPage() {
   const { project } = useProject();
   const projectId = project?.id;
 
-  const [data, setData] = useState<Extraction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!projectId) return;
-    async function loadData() {
-      setLoading(true);
-      setError("");
-      try {
-        const json = await get<{ items: Extraction[] }>(
-          `/v1/projects/${projectId}/sessions/${sessionId}/structured-extractions`,
-        );
-        setData(json.items ?? []);
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : "Failed to load extractions");
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, [projectId, sessionId]);
+  // Race-safe + abortable: only the latest run commits state, and a
+  // refreshKey change/unmount cancels the in-flight fetch via AbortController.
+  // Errors arrive via apiErrorMessage (hook normalizer). Data is kept during
+  // refetch — skeleton/error show only when there is nothing to display.
+  const query = useApiQuery(
+    (signal) =>
+      listSessionExtractions(projectId as string, sessionId, undefined, {
+        signal,
+      }),
+    { enabled: Boolean(projectId && sessionId) },
+  );
+  const data = query.data?.items ?? [];
 
   return (
     <div>
-      {loading ? (
+      {query.isLoading && data.length === 0 ? (
         <TableSkeleton rows={2} cols={1} colWidths={["w-full"]} standalone />
-      ) : error ? (
-        <ErrorState message={error} onRetry={() => window.location.reload()} />
+      ) : query.error && data.length === 0 ? (
+        <ErrorState message={query.error} onRetry={query.refetch} />
       ) : data.length === 0 ? (
           <EmptyState
             icon={Database}

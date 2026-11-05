@@ -996,6 +996,133 @@ export function getLlmUsage(params: LlmUsageParams = {}): Promise<LlmUsageRespon
   return get<LlmUsageResponse>(`/v1/admin/llm-usage${suffix}`);
 }
 
+// ─── Session extraction endpoints ─────────────────────────────────────────────
+// Mirrors core schemas/structured_extractions.py + routers/structured_extractions.py.
+
+/** One structured extraction result for an episode in a session. */
+export interface StructuredExtraction {
+  id: string;
+  session_id: string;
+  episode_id: string;
+  schema_id: string | null;
+  data: Record<string, unknown>;
+  created_at: string;
+}
+
+/**
+ * GET .../structured-extractions → {items,total,next_cursor,has_more}.
+ * Empty items when no episode was processed by the extract_structured
+ * worker yet (or no schemas are configured) — that is a 200, not a 404.
+ */
+export interface StructuredExtractionListResponse {
+  items: StructuredExtraction[];
+  total: number;
+  next_cursor?: string | null;
+  has_more?: boolean;
+}
+
+/**
+ * GET /v1/projects/{pid}/sessions/{sid}/structured-extractions — cursor
+ * paginated (limit 1–500, enforced server-side), optional sort.
+ * Shares the 30s GET cache, in-flight dedupe, and 401 refresh-retry.
+ */
+export function listSessionExtractions(
+  projectId: string,
+  sessionId: string,
+  params: CursorPageParams = {},
+  opts?: VerbOptions,
+): Promise<StructuredExtractionListResponse> {
+  const query = new URLSearchParams();
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+  if (params.cursor) query.set("cursor", params.cursor);
+  if (params.sort_by) appendSortParams(query, params.sort_by, params.sort_dir ?? "asc");
+  const suffix = query.size ? `?${query}` : "";
+  return get<StructuredExtractionListResponse>(
+    `/v1/projects/${encodeURIComponent(projectId)}/sessions/${encodeURIComponent(sessionId)}/structured-extractions${suffix}`,
+    opts,
+  );
+}
+
+/**
+ * GET .../structured-extractions/{episodeId} — 404 when the episode is
+ * unprocessed; callers use err.isNotFound for the empty state.
+ */
+export function getSessionExtraction(
+  projectId: string,
+  sessionId: string,
+  episodeId: string,
+  opts?: VerbOptions,
+): Promise<StructuredExtraction> {
+  return get<StructuredExtraction>(
+    `/v1/projects/${encodeURIComponent(projectId)}/sessions/${encodeURIComponent(sessionId)}/structured-extractions/${encodeURIComponent(episodeId)}`,
+    opts,
+  );
+}
+
+// ─── Session classification endpoints (parity read) ───────────────────────────
+// Mirrors core schemas/classifications.py + routers/classifications.py.
+// Same session-scoped cursor shape as extractions, except the list envelope
+// key is `data` (backend contract), not `items`.
+
+/** One dialog classification result for an episode in a session. */
+export interface SessionClassification {
+  id: string;
+  episode_id: string;
+  intent: string | null;
+  emotion: string | null;
+  valence: string | null;
+  arousal: string | null;
+  confidence: number;
+  message: string;
+  role: string;
+  created_at: string;
+}
+
+/** GET .../classifications → {data,total,next_cursor,has_more}. */
+export interface SessionClassificationListResponse {
+  data: SessionClassification[];
+  total: number;
+  next_cursor?: string | null;
+  has_more?: boolean;
+}
+
+/**
+ * GET /v1/projects/{pid}/sessions/{sid}/classifications — cursor paginated
+ * (limit 1–500, enforced server-side), optional sort.
+ */
+export function listSessionClassifications(
+  projectId: string,
+  sessionId: string,
+  params: CursorPageParams = {},
+  opts?: VerbOptions,
+): Promise<SessionClassificationListResponse> {
+  const query = new URLSearchParams();
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+  if (params.cursor) query.set("cursor", params.cursor);
+  if (params.sort_by) appendSortParams(query, params.sort_by, params.sort_dir ?? "asc");
+  const suffix = query.size ? `?${query}` : "";
+  return get<SessionClassificationListResponse>(
+    `/v1/projects/${encodeURIComponent(projectId)}/sessions/${encodeURIComponent(sessionId)}/classifications${suffix}`,
+    opts,
+  );
+}
+
+/**
+ * GET .../classifications/{episodeId} — 404 when the episode has not been
+ * classified yet; callers use err.isNotFound for the empty state.
+ */
+export function getSessionClassification(
+  projectId: string,
+  sessionId: string,
+  episodeId: string,
+  opts?: VerbOptions,
+): Promise<SessionClassification> {
+  return get<SessionClassification>(
+    `/v1/projects/${encodeURIComponent(projectId)}/sessions/${encodeURIComponent(sessionId)}/classifications/${encodeURIComponent(episodeId)}`,
+    opts,
+  );
+}
+
 // ─── Re-export base URL for edge cases ───────────────────────────────────────
 
 export { API_BASE, getAccessToken, storeTokens, clearTokens, uploadWithBlobs, hasRefreshCredential };

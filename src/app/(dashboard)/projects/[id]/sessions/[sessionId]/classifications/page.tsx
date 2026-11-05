@@ -1,27 +1,15 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Tags } from "lucide-react";
-import { get, ApiError } from "@/lib/api-client";
+import { listSessionClassifications } from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/shared/skeleton";
-
-interface Classification {
-  id: string;
-  episode_id: string;
-  intent: string | null;
-  emotion: string | null;
-  valence: string | null;
-  arousal: string | null;
-  confidence: number;
-  message: string;
-  role: string;
-  created_at: string;
-}
 
 /** Map role string to Badge variant. */
 const roleVariant = (
@@ -54,33 +42,20 @@ export default function SessionClassificationsPage() {
   const { project } = useProject();
   const projectId = project?.id;
 
-  const [data, setData] = useState<Classification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    if (!projectId) return;
-    async function loadData() {
-      setLoading(true);
-      setError("");
-      try {
-        const json = await get<{ data: Classification[] }>(
-          `/v1/projects/${projectId}/sessions/${sessionId}/classifications`,
-        );
-        setData(json.data ?? []);
-      } catch (err) {
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : "Failed to load classifications",
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, [projectId, sessionId]);
+  // Race-safe + abortable: only the latest run commits state, and a
+  // refreshKey change/unmount cancels the in-flight fetch via AbortController.
+  // Errors arrive via apiErrorMessage (hook normalizer). Data is kept during
+  // refetch — skeleton/error show only when there is nothing to display.
+  const query = useApiQuery(
+    (signal) =>
+      listSessionClassifications(projectId as string, sessionId, undefined, {
+        signal,
+      }),
+    { enabled: Boolean(projectId && sessionId) },
+  );
+  const data = query.data?.data ?? [];
 
   const toggleExpand = useCallback((id: string) => {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
@@ -88,7 +63,7 @@ export default function SessionClassificationsPage() {
 
   return (
     <div>
-      {loading ? (
+      {query.isLoading && data.length === 0 ? (
         <div className="divide-y divide-surface-800">
           {[1, 2, 3].map((i) => (
             <div key={i} className="px-4 py-4 space-y-3">
@@ -107,8 +82,8 @@ export default function SessionClassificationsPage() {
             </div>
           ))}
         </div>
-      ) : error ? (
-        <ErrorState message={error} onRetry={() => window.location.reload()} />
+      ) : query.error && data.length === 0 ? (
+        <ErrorState message={query.error} onRetry={query.refetch} />
       ) : data.length === 0 ? (
         <EmptyState
           icon={Tags}
