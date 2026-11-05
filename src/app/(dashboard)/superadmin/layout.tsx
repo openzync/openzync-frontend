@@ -3,13 +3,14 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Inbox, Building2, Settings2 } from "lucide-react";
+import { Inbox, Building2, Puzzle, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/contexts/user-context";
 
 const TABS = [
   { label: "Requests", href: "/superadmin/requests", icon: <Inbox size={16} /> },
   { label: "Organizations", href: "/superadmin/orgs", icon: <Building2 size={16} /> },
+  { label: "Add-ons", href: "/superadmin/addons", icon: <Puzzle size={16} /> },
   { label: "System Configuration", href: "/superadmin/config", icon: <Settings2 size={16} /> },
 ];
 

@@ -13,6 +13,7 @@ import {
   FileText,
   LayoutDashboard,
   MessageSquare,
+  Puzzle,
   Settings,
   Shield,
   ShieldCheck,
@@ -76,6 +77,10 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Audit Log", href: "/audit", icon: Shield, permission: "members:read" },
       // Platform Admin is root/superadmin only — the platform console.
       { label: "Platform Admin", href: "/superadmin/orgs", icon: ShieldCheck, superadminOnly: true },
+      // Add-on management is root/superadmin only — no new Permission string:
+      // the superadminOnly gate (plus the admin/superadmin wildcard in can())
+      // already covers it.
+      { label: "Add-ons", href: "/superadmin/addons", icon: Puzzle, superadminOnly: true },
     ],
   },
 ];
@@ -191,6 +196,9 @@ export function resolveBreadcrumb(
 
   // Superadmin console keeps its own ladder (org-scoped subpages).
   if (pathname.startsWith("/superadmin")) {
+    if (pathname === "/superadmin/addons" || pathname.startsWith("/superadmin/addons/")) {
+      return [{ label: "Platform Admin" }, { label: "Add-ons" }];
+    }
     if (pathname.endsWith("/requests")) return [{ label: "Platform Admin" }, { label: "Approval Requests" }];
     if (pathname.endsWith("/config")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Configuration" }];
     if (pathname.endsWith("/members")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Members" }];

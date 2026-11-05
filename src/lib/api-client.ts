@@ -544,6 +544,65 @@ function buildUploadBody(
   return formData;
 }
 
+/**
+ * Build a fresh addon-bundle multipart body per attempt — a FormData consumed
+ * by one fetch cannot be re-sent, so the 401 retry must rebuild it.
+ */
+function buildAddonFormBody(fields: Record<string, string>, file: File): FormData {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(fields)) {
+    formData.append(key, value);
+  }
+  formData.append("bundle", file);
+  return formData;
+}
+
+/**
+ * POST multipart/form-data with the shared 401 refresh-and-retry + GET-cache
+ * wipe semantics of request()/uploadWithBlobs(). The FormData is rebuilt per
+ * attempt so a consumed body is never reused.
+ */
+async function postAddonForm<T>(
+  path: string,
+  fields: Record<string, string>,
+  file: File,
+  opts?: Pick<RequestOptions, "signal">,
+): Promise<T> {
+  const url = `${API_BASE}${path}`;
+  _getCache.clear(); // bundle upload mutates server state — same rule as request()
+  const headers = getAuthHeaders();
+  // No Content-Type header — let the browser set the multipart boundary.
+  delete headers["Content-Type"];
+  let res = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: buildAddonFormBody(fields, file),
+    signal: opts?.signal,
+  });
+
+  // 401 → same shared refresh-and-retry path as request()
+  if (res.status === 401) {
+    res = await refreshAndRetry((newToken) => {
+      headers["Authorization"] = `Bearer ${newToken}`;
+      return fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: buildAddonFormBody(fields, file),
+        signal: opts?.signal,
+      });
+    });
+  }
+
+  if (res.status === 204) return {} as T;
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new ApiError(parseApiErrorMessage(body, res.status), res.status, body);
+  }
+  return body as T;
+}
+
 async function uploadWithBlobs<T>(
   path: string,
   payload: Record<string, unknown>,
@@ -1119,6 +1178,135 @@ export function getSessionClassification(
 ): Promise<SessionClassification> {
   return get<SessionClassification>(
     `/v1/projects/${encodeURIComponent(projectId)}/sessions/${encodeURIComponent(sessionId)}/classifications/${encodeURIComponent(episodeId)}`,
+    opts,
+  );
+}
+
+// ─── Addon management (superadmin-only) ───────────────────────────────────────
+// Mirrors the backend /admin/system/addons contract. Management-only UI — no
+// addon code ever runs client-side. All mutations go through post()/del()/
+// postAddonForm(), which wipe the 30s GET cache on every write, so no
+// manual invalidation is needed after install/enable/disable/upgrade/uninstall.
+
+/** One installed addon as returned by GET /admin/system/addons. */
+export interface AddonEntry {
+  id: string;
+  version: string;
+  /** Server-side lifecycle state (vocabulary owned by the backend — displayed verbatim). */
+  status: string;
+  enabled: boolean;
+  /** Last reported health — absent on list responses (health lives on GET …/{id}/health); null = unknown. */
+  health?: string | null;
+  error?: string | null;
+}
+
+/**
+ * Backend AddonResponse carries no health/error fields — normalize every
+ * single-item return to the same null shape listAddons produces so cards
+ * never see `undefined` vs `null` vs missing.
+ */
+function normalizeAddonEntry(item: AddonEntry): AddonEntry {
+  return { ...item, health: item.health ?? null, error: item.error ?? null };
+}
+
+/** Max bundle size — must match backend core/addons/bundles.py MAX_BUNDLE_BYTES. */
+export const MAX_ADDON_BUNDLE_BYTES = 10 * 1024 * 1024;
+
+/** Human-readable max size for hints/errors (10 MiB). */
+export const MAX_ADDON_BUNDLE_LABEL = "10 MiB";
+
+/** GET /admin/system/addons — tolerates a bare array or a {data}/{items} envelope. */
+export async function listAddons(opts?: VerbOptions): Promise<AddonEntry[]> {
+  const raw = await get<unknown>("/admin/system/addons", opts);
+  return extractList<AddonEntry>(raw).map(normalizeAddonEntry);
+}
+
+/**
+ * POST /admin/system/addons — bundle upload via multipart/form-data
+ * (`bundle` = the .zip/.tar.gz file, `name` + `version` must match addon.toml).
+ * No upload-progress callback: fetch has no upload-progress signal, so callers
+ * show an indeterminate uploading state while this is in flight.
+ */
+export async function installAddonBundle(
+  file: File,
+  name: string,
+  version: string,
+  opts?: VerbOptions,
+): Promise<AddonEntry> {
+  const entry = await postAddonForm<AddonEntry>(
+    "/admin/system/addons",
+    { name, version },
+    file,
+    opts,
+  );
+  return normalizeAddonEntry(entry);
+}
+
+/** POST /admin/system/addons/{id}/enable */
+export async function enableAddon(id: string): Promise<AddonEntry> {
+  const entry = await post<AddonEntry>(
+    `/admin/system/addons/${encodeURIComponent(id)}/enable`,
+  );
+  return normalizeAddonEntry(entry);
+}
+
+/** POST /admin/system/addons/{id}/disable */
+export async function disableAddon(id: string): Promise<AddonEntry> {
+  const entry = await post<AddonEntry>(
+    `/admin/system/addons/${encodeURIComponent(id)}/disable`,
+  );
+  return normalizeAddonEntry(entry);
+}
+
+/**
+ * POST /admin/system/addons/{id}/upgrade — new-version bundle via
+ * multipart/form-data (`bundle` = the .zip/.tar.gz file; the bundle's
+ * addon.toml id must match `id`).
+ */
+export async function upgradeAddon(
+  id: string,
+  file: File,
+  opts?: VerbOptions,
+): Promise<AddonEntry> {
+  const entry = await postAddonForm<AddonEntry>(
+    `/admin/system/addons/${encodeURIComponent(id)}/upgrade`,
+    {},
+    file,
+    opts,
+  );
+  return normalizeAddonEntry(entry);
+}
+
+/**
+ * DELETE /admin/system/addons/{id}[?purge_data=true&confirm={id}] — purge
+ * requires confirm=id (backend fail-closed), so it is appended automatically.
+ */
+export function uninstallAddon(
+  id: string,
+  purgeData = false,
+): Promise<void> {
+  const suffix = purgeData
+    ? `?purge_data=true&confirm=${encodeURIComponent(id)}`
+    : "";
+  return del<void>(
+    `/admin/system/addons/${encodeURIComponent(id)}${suffix}`,
+  );
+}
+
+/** GET /admin/system/addons/{id}/health — shape beyond `status` is backend-defined. */
+export interface AddonHealth {
+  status: string;
+  checks?: Record<string, string>;
+  degraded?: string | null;
+  [key: string]: unknown;
+}
+
+export function getAddonHealth(
+  id: string,
+  opts?: VerbOptions,
+): Promise<AddonHealth> {
+  return get<AddonHealth>(
+    `/admin/system/addons/${encodeURIComponent(id)}/health`,
     opts,
   );
 }
