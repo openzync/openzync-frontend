@@ -7,7 +7,7 @@ import { Field } from "@/components/ui/field";
 interface PasswordFieldProps {
   /** Input id — must be unique on the page; wired to the label via Field. */
   id: string;
-  label: string;
+  label: React.ReactNode;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
