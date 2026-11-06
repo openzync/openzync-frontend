@@ -1311,6 +1311,143 @@ export function getAddonHealth(
   );
 }
 
+// ─── Org add-on management (org-admin, Administration section) ────────────────
+// Mirrors the backend per-org contract: per-org JWT + configuration:read/write.
+// Management-only UI — no add-on code ever runs client-side. Reads go through
+// get() (30s GET cache + 401 refresh-retry); writes through post()/put() which
+// wipe the cache on every call, so no manual invalidation is needed.
+
+/** One panel descriptor on an org add-on list entry. */
+export interface OrgAddonPanelDescriptor {
+  id: string;
+  title: string;
+  path: string;
+}
+
+/** One add-on as returned by GET /v1/addons (org view). */
+export interface OrgAddonEntry {
+  id: string;
+  version: string;
+  platform_enabled: boolean;
+  org_enabled: boolean;
+  has_settings: boolean;
+  panels: OrgAddonPanelDescriptor[];
+}
+
+/**
+ * Null-tolerant normalizer — the backend may omit org flags/panels on older
+ * responses. org_enabled defaults to false (fail closed: never render an
+ * add-on as on for the org unless the backend says so).
+ */
+export function normalizeOrgAddon(item: OrgAddonEntry): OrgAddonEntry {
+  return {
+    ...item,
+    org_enabled: item.org_enabled ?? false,
+    platform_enabled: item.platform_enabled ?? false,
+    has_settings: item.has_settings ?? false,
+    panels: Array.isArray(item.panels) ? item.panels : [],
+  };
+}
+
+/** GET /v1/addons — tolerates a bare array or a {data}/{items} envelope. */
+export async function listOrgAddons(opts?: VerbOptions): Promise<OrgAddonEntry[]> {
+  const raw = await get<unknown>("/v1/addons", opts);
+  return extractList<OrgAddonEntry>(raw).map(normalizeOrgAddon);
+}
+
+/** Toggle result shape: POST /v1/addons/{id}/enable|disable → {id, org_enabled}. */
+export interface OrgAddonToggleResponse {
+  id: string;
+  org_enabled: boolean;
+}
+
+/** POST /v1/addons/{id}/enable */
+export function enableOrgAddon(id: string): Promise<OrgAddonToggleResponse> {
+  return post<OrgAddonToggleResponse>(`/v1/addons/${encodeURIComponent(id)}/enable`);
+}
+
+/** POST /v1/addons/{id}/disable */
+export function disableOrgAddon(id: string): Promise<OrgAddonToggleResponse> {
+  return post<OrgAddonToggleResponse>(`/v1/addons/${encodeURIComponent(id)}/disable`);
+}
+
+/** One JSON-Schema-subset property for the dynamic settings form. */
+export interface AddonSettingsProperty {
+  type: string;
+  title?: string;
+  description?: string;
+  enum?: Array<string | number | boolean>;
+  items?: { type?: string; enum?: Array<string | number | boolean> };
+  default?: unknown;
+  [key: string]: unknown;
+}
+
+/** JSON Schema subset backing GET/PUT /v1/addons/{id}/settings. */
+export interface AddonSettingsSchema {
+  type: "object";
+  properties: Record<string, AddonSettingsProperty>;
+  required?: string[];
+  [key: string]: unknown;
+}
+
+/** GET /v1/addons/{id}/settings — secrets arrive masked as "***". */
+export interface AddonSettingsResponse {
+  schema: AddonSettingsSchema;
+  values: Record<string, unknown>;
+}
+
+export function getAddonSettings(
+  id: string,
+  opts?: VerbOptions,
+): Promise<AddonSettingsResponse> {
+  return get<AddonSettingsResponse>(
+    `/v1/addons/${encodeURIComponent(id)}/settings`,
+    opts,
+  );
+}
+
+/** PUT /v1/addons/{id}/settings — validated server-side (200 or 422). */
+export function putAddonSettings(
+  id: string,
+  values: Record<string, unknown>,
+): Promise<AddonSettingsResponse> {
+  return put<AddonSettingsResponse>(
+    `/v1/addons/${encodeURIComponent(id)}/settings`,
+    { values },
+  );
+}
+
+/** GET /v1/addons/{id}/panels — panel descriptors for the detail tabs. */
+export async function listAddonPanels(
+  id: string,
+  opts?: VerbOptions,
+): Promise<OrgAddonPanelDescriptor[]> {
+  const raw = await get<unknown>(
+    `/v1/addons/${encodeURIComponent(id)}/panels`,
+    opts,
+  );
+  return extractList<OrgAddonPanelDescriptor>(raw);
+}
+
+/** Panel payload: GET /v1/ext/{id}/ui/* (org-enabled-gated server-side). */
+export interface PanelDataResponse {
+  widget: string;
+  data: unknown;
+  [key: string]: unknown;
+}
+
+export function getPanelData(
+  addonId: string,
+  panelPath: string,
+  opts?: VerbOptions,
+): Promise<PanelDataResponse> {
+  const clean = panelPath.replace(/^\//, "");
+  return get<PanelDataResponse>(
+    `/v1/ext/${encodeURIComponent(addonId)}/ui/${clean}`,
+    opts,
+  );
+}
+
 // ─── Re-export base URL for edge cases ───────────────────────────────────────
 
 export { API_BASE, getAccessToken, storeTokens, clearTokens, uploadWithBlobs, hasRefreshCredential };

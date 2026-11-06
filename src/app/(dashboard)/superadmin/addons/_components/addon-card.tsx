@@ -1,9 +1,10 @@
 "use client";
 
-import { Activity, ArrowUpCircle, Power, Trash2 } from "lucide-react";
+import { Activity, AlertCircle, ArrowUpCircle, Power, Trash2 } from "lucide-react";
 import type { AddonEntry } from "@/lib/api-client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 function healthVariant(health: string | null | undefined): "success" | "warning" | "error" | "default" {
   if (!health) return "warning";
@@ -54,18 +55,41 @@ export function AddonCard({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <Badge variant={addon.enabled ? "success" : "default"} size="sm">
-            {addon.enabled ? "Enabled" : "Disabled"}
-          </Badge>
-          <Badge variant={addon.health ? healthVariant(addon.health) : "warning"} size="sm">
-            {addon.health ?? "Not checked"}
-          </Badge>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0} className="inline-flex rounded-full">
+                <Badge variant={addon.enabled ? "success" : "default"} size="sm">
+                  {addon.enabled ? "Enabled" : "Disabled"}
+                </Badge>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {addon.enabled
+                ? "Enabled platform-wide — use Disable to turn it off for all organizations"
+                : "Disabled platform-wide — use Enable to turn it on for all organizations"}
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0} className="inline-flex rounded-full">
+                <Badge variant={addon.health ? healthVariant(addon.health) : "warning"} size="sm">
+                  {addon.health ?? "Not checked"}
+                </Badge>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {addon.health
+                ? `Last check reported “${addon.health}” — use Health to re-check`
+                : "Not checked yet — use the Health button to run a check"}
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
       {typeof addon.error === "string" && addon.error ? (
-        <p role="alert" className="mt-3 rounded-md bg-error/10 border border-error/30 px-3 py-2 text-xs text-error">
-          {addon.error}
+        <p role="alert" className="mt-3 flex items-center gap-1.5 rounded-md bg-error/10 border border-error/30 px-3 py-2 text-xs text-error">
+          <AlertCircle size={14} className="shrink-0" aria-hidden="true" />
+          <span>{addon.error}</span>
         </p>
       ) : null}
 

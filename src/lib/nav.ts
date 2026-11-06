@@ -67,6 +67,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: FileText, permission: "configuration:read" },
       { label: "Prompt Templates", href: "/settings/prompts", icon: MessageSquare, permission: "configuration:read" },
       { label: "Configuration", href: "/settings/org-config", icon: Settings, permission: "configuration:read" },
+      { label: "Add-ons", href: "/addons", icon: Puzzle, permission: "configuration:read" },
     ],
   },
   {

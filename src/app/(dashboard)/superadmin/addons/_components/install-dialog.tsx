@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AlertCircle } from "lucide-react";
 import { ApiError, MAX_ADDON_BUNDLE_BYTES, MAX_ADDON_BUNDLE_LABEL } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -21,26 +22,33 @@ export function InstallDialog({ onClose, onInstallBundle }: InstallDialogProps) 
   const [name, setName] = useState("");
   const [version, setVersion] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ file?: string; name?: string; version?: string }>({});
   const [submitting, setSubmitting] = useState(false);
 
+  const clearFieldError = (field: "file" | "name" | "version") =>
+    setFieldErrors((prev) => {
+      if (!(field in prev)) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+
   const handleUpload = () => {
+    const next: typeof fieldErrors = {};
     if (!file) {
-      setError("Choose a bundle file to upload");
-      return;
-    }
-    if (file.size > MAX_ADDON_BUNDLE_BYTES) {
-      setError(`Bundle too large — max ${MAX_ADDON_BUNDLE_LABEL}`);
-      return;
+      next.file = "Choose a bundle file to upload";
+    } else if (file.size > MAX_ADDON_BUNDLE_BYTES) {
+      next.file = `Bundle too large — max ${MAX_ADDON_BUNDLE_LABEL}`;
     }
     if (!name.trim()) {
-      setError("Add-on name is required");
-      return;
+      next.name = "Add-on name is required";
     }
     if (!version.trim()) {
-      setError("Add-on version is required");
-      return;
+      next.version = "Add-on version is required";
     }
-    const bundle = file;
+    setFieldErrors(next);
+    if (Object.keys(next).length > 0) return;
+    const bundle = file as File;
     setSubmitting(true);
     setError(null);
     void onInstallBundle(bundle, name.trim(), version.trim())
@@ -85,7 +93,13 @@ export function InstallDialog({ onClose, onInstallBundle }: InstallDialogProps) 
       }
     >
       <div className="space-y-4">
-        <Field label="Bundle File" htmlFor="addon-bundle" required>
+        <Field
+          label="Bundle File"
+          htmlFor="addon-bundle"
+          required
+          hint={`Accepted: .zip, .tar.gz, .tgz · Max ${MAX_ADDON_BUNDLE_LABEL}`}
+          error={fieldErrors.file}
+        >
           <input
             id="addon-bundle"
             type="file"
@@ -94,24 +108,29 @@ export function InstallDialog({ onClose, onInstallBundle }: InstallDialogProps) 
             onChange={(e) => {
               const picked = e.target.files?.[0] ?? null;
               setFile(picked);
-              setError(
-                picked && picked.size > MAX_ADDON_BUNDLE_BYTES
-                  ? `Bundle too large — max ${MAX_ADDON_BUNDLE_LABEL}`
-                  : null,
-              );
+              setFieldErrors((prev) => ({
+                ...prev,
+                file:
+                  picked && picked.size > MAX_ADDON_BUNDLE_BYTES
+                    ? `Bundle too large — max ${MAX_ADDON_BUNDLE_LABEL}`
+                    : undefined,
+              }));
             }}
           />
-          <p className="mt-1 text-xs text-surface-500">
-            Accepted: .zip, .tar.gz, .tgz · Max {MAX_ADDON_BUNDLE_LABEL}
-          </p>
         </Field>
         {file && (
-          <p className="text-xs text-surface-400">
+          <p className="text-xs text-surface-500">
             {file.name} · {(file.size / 1024).toFixed(1)} KB — uploading shows
             an indeterminate state until the server responds.
           </p>
         )}
-        <Field label="Add-on Name" htmlFor="addon-name" required>
+        <Field
+          label="Add-on Name"
+          htmlFor="addon-name"
+          required
+          hint="Must match the name in addon.toml exactly"
+          error={fieldErrors.name}
+        >
           <input
             id="addon-name"
             className="input-base"
@@ -120,10 +139,17 @@ export function InstallDialog({ onClose, onInstallBundle }: InstallDialogProps) 
             onChange={(e) => {
               setName(e.target.value);
               if (error) setError(null);
+              clearFieldError("name");
             }}
           />
         </Field>
-        <Field label="Version" htmlFor="addon-version" required>
+        <Field
+          label="Version"
+          htmlFor="addon-version"
+          required
+          hint="Must match the version in addon.toml exactly"
+          error={fieldErrors.version}
+        >
           <input
             id="addon-version"
             className="input-base font-mono"
@@ -132,14 +158,16 @@ export function InstallDialog({ onClose, onInstallBundle }: InstallDialogProps) 
             onChange={(e) => {
               setVersion(e.target.value);
               if (error) setError(null);
+              clearFieldError("version");
             }}
           />
         </Field>
       </div>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-md bg-error/10 border border-error/30 px-3 py-2 text-sm text-error">
-          {error}
+        <p role="alert" className="mt-4 flex items-center gap-1.5 rounded-md bg-error/10 border border-error/30 px-3 py-2 text-xs text-error">
+          <AlertCircle size={14} className="shrink-0" aria-hidden="true" />
+          <span>{error}</span>
         </p>
       )}
     </Dialog>

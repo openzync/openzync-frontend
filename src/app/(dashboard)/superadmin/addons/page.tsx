@@ -18,9 +18,15 @@ import {
 } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog } from "@/components/ui/dialog";
+import { Field } from "@/components/ui/field";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
+import { PageGuide, GuideSettings } from "@/components/guides";
+import { PageHeader } from "@/components/shared/page-header";
+import { Skeleton } from "@/components/shared/skeleton";
 import { AddonList } from "./_components/addon-card";
 import { InstallDialog } from "./_components/install-dialog";
 
@@ -36,6 +42,10 @@ export default function SuperadminAddonsPage() {
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showInstall, setShowInstall] = useState(false);
+  const [upgradeTarget, setUpgradeTarget] = useState<AddonEntry | null>(null);
+  const [upgradeFile, setUpgradeFile] = useState<File | null>(null);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
+  const [upgrading, setUpgrading] = useState(false);
   const [purgeTarget, setPurgeTarget] = useState<AddonEntry | null>(null);
   const [purgeData, setPurgeData] = useState(false);
 
@@ -65,26 +75,47 @@ export default function SuperadminAddonsPage() {
       ? runAction(addon.id, () => disableAddon(addon.id), `"${addon.id}" disabled`, `Failed to disable "${addon.id}"`)
       : runAction(addon.id, () => enableAddon(addon.id), `"${addon.id}" enabled`, `Failed to enable "${addon.id}"`);
 
-  /** Upgrade from a replacement bundle — picked via a file prompt on the card action. */
+  /** Upgrade from a replacement bundle — picked via a visible dialog Field. */
   const handleUpgrade = (addon: AddonEntry) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".zip,.tar.gz,.tgz";
-    input.onchange = () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      if (file.size > MAX_ADDON_BUNDLE_BYTES) {
-        toast.error(`Bundle too large — max ${MAX_ADDON_BUNDLE_LABEL}`);
-        return;
-      }
-      void runAction(
-        addon.id,
-        () => upgradeAddon(addon.id, file),
-        `"${addon.id}" upgraded`,
-        `Failed to upgrade "${addon.id}"`,
-      );
-    };
-    input.click();
+    setUpgradeTarget(addon);
+    setUpgradeFile(null);
+    setUpgradeError(null);
+  };
+
+  const closeUpgrade = () => {
+    if (upgrading) return;
+    setUpgradeTarget(null);
+    setUpgradeFile(null);
+    setUpgradeError(null);
+  };
+
+  const handleUpgradeSubmit = async () => {
+    if (!upgradeTarget) return;
+    if (!upgradeFile) {
+      setUpgradeError("Choose a replacement bundle file to upload");
+      return;
+    }
+    if (upgradeFile.size > MAX_ADDON_BUNDLE_BYTES) {
+      setUpgradeError(`Bundle too large — max ${MAX_ADDON_BUNDLE_LABEL}`);
+      return;
+    }
+    const target = upgradeTarget;
+    const bundle = upgradeFile;
+    setUpgrading(true);
+    setBusyId(target.id);
+    try {
+      await upgradeAddon(target.id, bundle);
+      toast.success(`"${target.id}" upgraded`);
+      setUpgradeTarget(null);
+      setUpgradeFile(null);
+      setUpgradeError(null);
+      reload();
+    } catch (err) {
+      setUpgradeError(apiErrorMessage(err, `Failed to upgrade "${target.id}"`));
+    } finally {
+      setUpgrading(false);
+      setBusyId(null);
+    }
   };
 
   const handleCheckHealth = async (addon: AddonEntry) => {
@@ -133,39 +164,48 @@ export default function SuperadminAddonsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="font-display text-lg font-medium">Installed Add-ons</h2>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<RefreshCw size={14} />}
-            onClick={reload}
-            disabled={query.isLoading}
-            aria-label="Refresh add-on list"
-          >
-            Refresh
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={<PackagePlus size={14} />}
-            onClick={() => setShowInstall(true)}
-          >
-            Install Add-on
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Installed Add-ons"
+        description="Upload bundles and manage platform add-ons."
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<RefreshCw size={14} />}
+              onClick={reload}
+              disabled={query.isLoading}
+              aria-label="Refresh add-on list"
+            >
+              Refresh
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<PackagePlus size={14} />}
+              onClick={() => setShowInstall(true)}
+            >
+              Install Add-on
+            </Button>
+          </>
+        }
+      />
+
+      <PageGuide title="Installed add-ons" illustration={<GuideSettings />}>
+        <p>Installing an add-on uploads a bundle whose name and version must match its addon.toml exactly. The manifest signature must verify against the platform signing key — unsigned or tampered bundles are refused.</p>
+        <p>Install is not the same as enabled: a newly installed add-on stays disabled platform-wide until you enable it, and each organization then enables it separately for itself.</p>
+        <p>Upgrading swaps the bundle in place. Uninstalling removes the platform copy; its stored data is kept unless you purge it.</p>
+      </PageGuide>
 
       {query.error && <ErrorState message={query.error} onRetry={reload} />}
 
       {query.isLoading && addons.length === 0 ? (
-        <div className="grid gap-4 md:grid-cols-2" aria-label="Loading add-ons">
+        <div className="grid gap-4 md:grid-cols-2" role="status" aria-label="Loading add-ons">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="card-base p-4">
-              <div className="h-5 w-44 rounded bg-surface-800 animate-pulse" />
-              <div className="mt-2 h-4 w-28 rounded bg-surface-800 animate-pulse" />
-              <div className="mt-4 h-8 w-full rounded bg-surface-800 animate-pulse" />
+            <div key={i} className="card-base space-y-2 p-4">
+              <Skeleton className="h-5 w-44" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-8 w-full" />
             </div>
           ))}
         </div>
@@ -221,16 +261,76 @@ export default function SuperadminAddonsPage() {
           setPurgeData(false);
         }}
       >
-        <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm text-surface-400">
-          <input
-            type="checkbox"
+        <div className="mt-4 flex items-start gap-2">
+          <Checkbox
+            id="addon-purge-data"
             checked={purgeData}
-            onChange={(e) => setPurgeData(e.target.checked)}
-            className="mt-1"
+            onCheckedChange={(checked) => setPurgeData(checked === true)}
+            className="mt-0.5"
           />
-          Also delete add-on data (purge_data). This cannot be undone.
-        </label>
+          <label htmlFor="addon-purge-data" className="text-sm text-surface-400">
+            Also delete add-on data (purge_data). This cannot be undone.
+          </label>
+        </div>
       </ConfirmDialog>
+
+      {upgradeTarget && (
+        <Dialog
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) closeUpgrade();
+          }}
+          title={`Upgrade "${upgradeTarget.id}"`}
+          description="Upload a replacement bundle file for this add-on."
+          persistent={upgrading}
+          footer={
+            <>
+              <Button variant="secondary" size="sm" onClick={closeUpgrade} disabled={upgrading}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleUpgradeSubmit}
+                loading={upgrading}
+                disabled={!upgradeFile}
+              >
+                Upload and Upgrade
+              </Button>
+            </>
+          }
+        >
+          <Field
+            label="Replacement Bundle"
+            htmlFor="addon-upgrade-file"
+            required
+            hint={`Accepted: .zip, .tar.gz, .tgz · Max ${MAX_ADDON_BUNDLE_LABEL}`}
+            error={upgradeError ?? undefined}
+          >
+            <input
+              id="addon-upgrade-file"
+              type="file"
+              accept=".zip,.tar.gz,.tgz"
+              className="input-base"
+              onChange={(e) => {
+                const picked = e.target.files?.[0] ?? null;
+                setUpgradeFile(picked);
+                setUpgradeError(
+                  picked && picked.size > MAX_ADDON_BUNDLE_BYTES
+                    ? `Bundle too large — max ${MAX_ADDON_BUNDLE_LABEL}`
+                    : null,
+                );
+              }}
+            />
+          </Field>
+          {upgradeFile && (
+            <p className="mt-2 text-xs text-surface-500">
+              {upgradeFile.name} · {(upgradeFile.size / 1024).toFixed(1)} KB — uploading shows
+              an indeterminate state until the server responds.
+            </p>
+          )}
+        </Dialog>
+      )}
     </div>
   );
 }
