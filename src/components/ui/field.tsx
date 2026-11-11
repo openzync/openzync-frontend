@@ -6,7 +6,7 @@ import { Label } from "./label";
 
 interface FieldProps {
   /** Rendered inside the label; also used to derive hint/error ids. */
-  label: string;
+  label: React.ReactNode;
   /** Must equal the child control's `id` — this is what makes the pair accessible. */
   htmlFor: string;
   hint?: string;

@@ -544,6 +544,65 @@ function buildUploadBody(
   return formData;
 }
 
+/**
+ * Build a fresh addon-bundle multipart body per attempt — a FormData consumed
+ * by one fetch cannot be re-sent, so the 401 retry must rebuild it.
+ */
+function buildAddonFormBody(fields: Record<string, string>, file: File): FormData {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(fields)) {
+    formData.append(key, value);
+  }
+  formData.append("bundle", file);
+  return formData;
+}
+
+/**
+ * POST multipart/form-data with the shared 401 refresh-and-retry + GET-cache
+ * wipe semantics of request()/uploadWithBlobs(). The FormData is rebuilt per
+ * attempt so a consumed body is never reused.
+ */
+async function postAddonForm<T>(
+  path: string,
+  fields: Record<string, string>,
+  file: File,
+  opts?: Pick<RequestOptions, "signal">,
+): Promise<T> {
+  const url = `${API_BASE}${path}`;
+  _getCache.clear(); // bundle upload mutates server state — same rule as request()
+  const headers = getAuthHeaders();
+  // No Content-Type header — let the browser set the multipart boundary.
+  delete headers["Content-Type"];
+  let res = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: buildAddonFormBody(fields, file),
+    signal: opts?.signal,
+  });
+
+  // 401 → same shared refresh-and-retry path as request()
+  if (res.status === 401) {
+    res = await refreshAndRetry((newToken) => {
+      headers["Authorization"] = `Bearer ${newToken}`;
+      return fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: buildAddonFormBody(fields, file),
+        signal: opts?.signal,
+      });
+    });
+  }
+
+  if (res.status === 204) return {} as T;
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new ApiError(parseApiErrorMessage(body, res.status), res.status, body);
+  }
+  return body as T;
+}
+
 async function uploadWithBlobs<T>(
   path: string,
   payload: Record<string, unknown>,
@@ -1119,6 +1178,349 @@ export function getSessionClassification(
 ): Promise<SessionClassification> {
   return get<SessionClassification>(
     `/v1/projects/${encodeURIComponent(projectId)}/sessions/${encodeURIComponent(sessionId)}/classifications/${encodeURIComponent(episodeId)}`,
+    opts,
+  );
+}
+
+// ─── Addon management (superadmin-only) ───────────────────────────────────────
+// Mirrors the backend /admin/system/addons contract. Management-only UI — no
+// addon code ever runs client-side. All mutations go through post()/del()/
+// postAddonForm(), which wipe the 30s GET cache on every write, so no
+// manual invalidation is needed after install/enable/disable/upgrade/uninstall.
+
+/** One installed addon as returned by GET /admin/system/addons. */
+export interface AddonEntry {
+  id: string;
+  version: string;
+  /** Server-side lifecycle state (vocabulary owned by the backend — displayed verbatim). */
+  status: string;
+  enabled: boolean;
+  /** Last reported health — absent on list responses (health lives on GET …/{id}/health); null = unknown. */
+  health?: string | null;
+  error?: string | null;
+}
+
+/**
+ * Backend AddonResponse carries no health/error fields — normalize every
+ * single-item return to the same null shape listAddons produces so cards
+ * never see `undefined` vs `null` vs missing.
+ */
+function normalizeAddonEntry(item: AddonEntry): AddonEntry {
+  return { ...item, health: item.health ?? null, error: item.error ?? null };
+}
+
+/** Max bundle size — must match backend core/addons/bundles.py MAX_BUNDLE_BYTES. */
+export const MAX_ADDON_BUNDLE_BYTES = 10 * 1024 * 1024;
+
+/** Human-readable max size for hints/errors (10 MiB). */
+export const MAX_ADDON_BUNDLE_LABEL = "10 MiB";
+
+/** GET /admin/system/addons — tolerates a bare array or a {data}/{items} envelope. */
+export async function listAddons(opts?: VerbOptions): Promise<AddonEntry[]> {
+  const raw = await get<unknown>("/admin/system/addons", opts);
+  return extractList<AddonEntry>(raw).map(normalizeAddonEntry);
+}
+
+/**
+ * POST /admin/system/addons — bundle upload via multipart/form-data
+ * (`bundle` = the .zip/.tar.gz file, `name` + `version` must match addon.toml).
+ * No upload-progress callback: fetch has no upload-progress signal, so callers
+ * show an indeterminate uploading state while this is in flight.
+ */
+export async function installAddonBundle(
+  file: File,
+  name: string,
+  version: string,
+  opts?: VerbOptions,
+): Promise<AddonEntry> {
+  const entry = await postAddonForm<AddonEntry>(
+    "/admin/system/addons",
+    { name, version },
+    file,
+    opts,
+  );
+  return normalizeAddonEntry(entry);
+}
+
+/** POST /admin/system/addons/{id}/enable */
+export async function enableAddon(id: string): Promise<AddonEntry> {
+  const entry = await post<AddonEntry>(
+    `/admin/system/addons/${encodeURIComponent(id)}/enable`,
+  );
+  return normalizeAddonEntry(entry);
+}
+
+/** POST /admin/system/addons/{id}/disable */
+export async function disableAddon(id: string): Promise<AddonEntry> {
+  const entry = await post<AddonEntry>(
+    `/admin/system/addons/${encodeURIComponent(id)}/disable`,
+  );
+  return normalizeAddonEntry(entry);
+}
+
+/**
+ * POST /admin/system/addons/{id}/upgrade — new-version bundle via
+ * multipart/form-data (`bundle` = the .zip/.tar.gz file; the bundle's
+ * addon.toml id must match `id`).
+ */
+export async function upgradeAddon(
+  id: string,
+  file: File,
+  opts?: VerbOptions,
+): Promise<AddonEntry> {
+  const entry = await postAddonForm<AddonEntry>(
+    `/admin/system/addons/${encodeURIComponent(id)}/upgrade`,
+    {},
+    file,
+    opts,
+  );
+  return normalizeAddonEntry(entry);
+}
+
+/**
+ * DELETE /admin/system/addons/{id}[?purge_data=true&confirm={id}] — purge
+ * requires confirm=id (backend fail-closed), so it is appended automatically.
+ */
+export function uninstallAddon(
+  id: string,
+  purgeData = false,
+): Promise<void> {
+  const suffix = purgeData
+    ? `?purge_data=true&confirm=${encodeURIComponent(id)}`
+    : "";
+  return del<void>(
+    `/admin/system/addons/${encodeURIComponent(id)}${suffix}`,
+  );
+}
+
+/** GET /admin/system/addons/{id}/health — shape beyond `status` is backend-defined. */
+export interface AddonHealth {
+  status: string;
+  checks?: Record<string, string>;
+  degraded?: string | null;
+  [key: string]: unknown;
+}
+
+export function getAddonHealth(
+  id: string,
+  opts?: VerbOptions,
+): Promise<AddonHealth> {
+  return get<AddonHealth>(
+    `/admin/system/addons/${encodeURIComponent(id)}/health`,
+    opts,
+  );
+}
+
+// ─── Org add-on management (org-admin, Administration section) ────────────────
+// Mirrors the backend per-org contract: per-org JWT + configuration:read/write.
+// Management-only UI — no add-on code ever runs client-side. Reads go through
+// get() (30s GET cache + 401 refresh-retry); writes through post()/put() which
+// wipe the cache on every call, so no manual invalidation is needed.
+
+/** One panel descriptor on an org add-on list entry. */
+export interface OrgAddonPanelDescriptor {
+  id: string;
+  title: string;
+  path: string;
+}
+
+/** One add-on as returned by GET /v1/addons (org view). */
+export interface OrgAddonEntry {
+  id: string;
+  version: string;
+  platform_enabled: boolean;
+  org_enabled: boolean;
+  has_settings: boolean;
+  panels: OrgAddonPanelDescriptor[];
+}
+
+/**
+ * Null-tolerant normalizer — the backend may omit org flags/panels on older
+ * responses. org_enabled defaults to false (fail closed: never render an
+ * add-on as on for the org unless the backend says so).
+ */
+export function normalizeOrgAddon(item: OrgAddonEntry): OrgAddonEntry {
+  return {
+    ...item,
+    org_enabled: item.org_enabled ?? false,
+    platform_enabled: item.platform_enabled ?? false,
+    has_settings: item.has_settings ?? false,
+    panels: Array.isArray(item.panels) ? item.panels : [],
+  };
+}
+
+/** GET /v1/addons — tolerates a bare array or a {data}/{items} envelope. */
+export async function listOrgAddons(opts?: VerbOptions): Promise<OrgAddonEntry[]> {
+  const raw = await get<unknown>("/v1/addons", opts);
+  return extractList<OrgAddonEntry>(raw).map(normalizeOrgAddon);
+}
+
+/** Toggle result shape: POST /v1/addons/{id}/enable|disable → {id, org_enabled}. */
+export interface OrgAddonToggleResponse {
+  id: string;
+  org_enabled: boolean;
+}
+
+/** POST /v1/addons/{id}/enable */
+export function enableOrgAddon(id: string): Promise<OrgAddonToggleResponse> {
+  return post<OrgAddonToggleResponse>(`/v1/addons/${encodeURIComponent(id)}/enable`);
+}
+
+/** POST /v1/addons/{id}/disable */
+export function disableOrgAddon(id: string): Promise<OrgAddonToggleResponse> {
+  return post<OrgAddonToggleResponse>(`/v1/addons/${encodeURIComponent(id)}/disable`);
+}
+
+/** One JSON-Schema-subset property for the dynamic settings form. */
+export interface AddonSettingsProperty {
+  type: string;
+  title?: string;
+  description?: string;
+  enum?: Array<string | number | boolean>;
+  items?: { type?: string; enum?: Array<string | number | boolean> };
+  default?: unknown;
+  [key: string]: unknown;
+}
+
+/** JSON Schema subset backing GET/PUT /v1/addons/{id}/settings. */
+export interface AddonSettingsSchema {
+  type: "object";
+  properties: Record<string, AddonSettingsProperty>;
+  required?: string[];
+  [key: string]: unknown;
+}
+
+/** One settings group: a named `type: object` section of the schema plus its
+ *  values. The backend synthesizes an implicit first group for root scalars;
+ *  flat schemas (no `object` properties) yield exactly one group. */
+export interface AddonSettingsGroup {
+  id: string;
+  title: string;
+  description?: string;
+  properties: Record<string, AddonSettingsProperty>;
+  required?: string[];
+  values?: Record<string, unknown>;
+}
+
+/** GET /v1/addons/{id}/settings — secrets arrive masked as "***". */
+export interface AddonSettingsResponse {
+  schema: AddonSettingsSchema;
+  values: Record<string, unknown>;
+  groups?: AddonSettingsGroup[];
+}
+
+/** Normalized group — `required`/`values` always present. */
+export interface ResolvedSettingsGroup {
+  id: string;
+  title: string;
+  description?: string;
+  properties: Record<string, AddonSettingsProperty>;
+  required: string[];
+  values: Record<string, unknown>;
+}
+
+/** Per-group values when the backend omits them: prefer a nested
+ *  `values[groupId]` object, else pick the group's keys off the flat root. */
+function groupValuesFromRoot(
+  root: Record<string, unknown>,
+  group: AddonSettingsGroup,
+): Record<string, unknown> {
+  if (group.values && typeof group.values === "object" && !Array.isArray(group.values)) {
+    return group.values;
+  }
+  const nested = root[group.id];
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    return nested as Record<string, unknown>;
+  }
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(group.properties ?? {})) {
+    if (key in root) out[key] = root[key];
+  }
+  return out;
+}
+
+/**
+ * Tolerant group resolution: server-sent `groups` win; when absent (old
+ * server) derive a single group from the schema + values, titled by the
+ * schema title. Never returns an empty array.
+ */
+export function resolveSettingsGroups(resp: AddonSettingsResponse): ResolvedSettingsGroup[] {
+  if (Array.isArray(resp.groups) && resp.groups.length > 0) {
+    const fallbackTitle =
+      typeof resp.schema.title === "string" && resp.schema.title ? resp.schema.title : "Settings";
+    return resp.groups.map((g) => ({
+      id: g.id,
+      title: g.title || fallbackTitle,
+      description: g.description,
+      properties: g.properties ?? {},
+      required: g.required ?? [],
+      values: groupValuesFromRoot(resp.values ?? {}, g),
+    }));
+  }
+  const title =
+    typeof resp.schema.title === "string" && resp.schema.title ? resp.schema.title : "Settings";
+  const description =
+    typeof resp.schema.description === "string" ? resp.schema.description : undefined;
+  return [
+    {
+      id: "settings",
+      title,
+      description,
+      properties: resp.schema.properties ?? {},
+      required: resp.schema.required ?? [],
+      values: resp.values ?? {},
+    },
+  ];
+}
+
+export function getAddonSettings(
+  id: string,
+  opts?: VerbOptions,
+): Promise<AddonSettingsResponse> {
+  return get<AddonSettingsResponse>(
+    `/v1/addons/${encodeURIComponent(id)}/settings`,
+    opts,
+  );
+}
+
+/** PUT /v1/addons/{id}/settings — validated server-side (200 or 422). */
+export function putAddonSettings(
+  id: string,
+  values: Record<string, unknown>,
+): Promise<AddonSettingsResponse> {
+  return put<AddonSettingsResponse>(
+    `/v1/addons/${encodeURIComponent(id)}/settings`,
+    { values },
+  );
+}
+
+/** GET /v1/addons/{id}/panels — panel descriptors for the detail tabs. */
+export async function listAddonPanels(
+  id: string,
+  opts?: VerbOptions,
+): Promise<OrgAddonPanelDescriptor[]> {
+  const raw = await get<unknown>(
+    `/v1/addons/${encodeURIComponent(id)}/panels`,
+    opts,
+  );
+  return extractList<OrgAddonPanelDescriptor>(raw);
+}
+
+/** Panel payload: GET /v1/ext/{id}/ui/* (org-enabled-gated server-side). */
+export interface PanelDataResponse {
+  widget: string;
+  data: unknown;
+  [key: string]: unknown;
+}
+
+export function getPanelData(
+  addonId: string,
+  panelPath: string,
+  opts?: VerbOptions,
+): Promise<PanelDataResponse> {
+  const clean = panelPath.replace(/^\//, "");
+  return get<PanelDataResponse>(
+    `/v1/ext/${encodeURIComponent(addonId)}/ui/${clean}`,
     opts,
   );
 }
