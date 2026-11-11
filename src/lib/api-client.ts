@@ -1390,10 +1390,87 @@ export interface AddonSettingsSchema {
   [key: string]: unknown;
 }
 
+/** One settings group: a named `type: object` section of the schema plus its
+ *  values. The backend synthesizes an implicit first group for root scalars;
+ *  flat schemas (no `object` properties) yield exactly one group. */
+export interface AddonSettingsGroup {
+  id: string;
+  title: string;
+  description?: string;
+  properties: Record<string, AddonSettingsProperty>;
+  required?: string[];
+  values?: Record<string, unknown>;
+}
+
 /** GET /v1/addons/{id}/settings — secrets arrive masked as "***". */
 export interface AddonSettingsResponse {
   schema: AddonSettingsSchema;
   values: Record<string, unknown>;
+  groups?: AddonSettingsGroup[];
+}
+
+/** Normalized group — `required`/`values` always present. */
+export interface ResolvedSettingsGroup {
+  id: string;
+  title: string;
+  description?: string;
+  properties: Record<string, AddonSettingsProperty>;
+  required: string[];
+  values: Record<string, unknown>;
+}
+
+/** Per-group values when the backend omits them: prefer a nested
+ *  `values[groupId]` object, else pick the group's keys off the flat root. */
+function groupValuesFromRoot(
+  root: Record<string, unknown>,
+  group: AddonSettingsGroup,
+): Record<string, unknown> {
+  if (group.values && typeof group.values === "object" && !Array.isArray(group.values)) {
+    return group.values;
+  }
+  const nested = root[group.id];
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    return nested as Record<string, unknown>;
+  }
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(group.properties ?? {})) {
+    if (key in root) out[key] = root[key];
+  }
+  return out;
+}
+
+/**
+ * Tolerant group resolution: server-sent `groups` win; when absent (old
+ * server) derive a single group from the schema + values, titled by the
+ * schema title. Never returns an empty array.
+ */
+export function resolveSettingsGroups(resp: AddonSettingsResponse): ResolvedSettingsGroup[] {
+  if (Array.isArray(resp.groups) && resp.groups.length > 0) {
+    const fallbackTitle =
+      typeof resp.schema.title === "string" && resp.schema.title ? resp.schema.title : "Settings";
+    return resp.groups.map((g) => ({
+      id: g.id,
+      title: g.title || fallbackTitle,
+      description: g.description,
+      properties: g.properties ?? {},
+      required: g.required ?? [],
+      values: groupValuesFromRoot(resp.values ?? {}, g),
+    }));
+  }
+  const title =
+    typeof resp.schema.title === "string" && resp.schema.title ? resp.schema.title : "Settings";
+  const description =
+    typeof resp.schema.description === "string" ? resp.schema.description : undefined;
+  return [
+    {
+      id: "settings",
+      title,
+      description,
+      properties: resp.schema.properties ?? {},
+      required: resp.schema.required ?? [],
+      values: resp.values ?? {},
+    },
+  ];
 }
 
 export function getAddonSettings(

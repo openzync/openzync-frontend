@@ -11,6 +11,7 @@ import {
   getAddonSettings,
   listAddonPanels,
   listOrgAddons,
+  resolveSettingsGroups,
   type OrgAddonEntry,
 } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -22,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { AddonSettingsForm } from "../_components/settings-form";
+import { AddonSettingsForm, GroupedAddonSettingsForm } from "../_components/settings-form";
 import { PanelWidget } from "../_components/panel-widget";
 
 function statusLine(addon: OrgAddonEntry): string {
@@ -57,6 +58,12 @@ function AddonDetailContent({ addonId }: { addonId: string }) {
     { enabled: addon !== null && addon.has_settings, refreshKey },
   );
   const [settingsNonce, setSettingsNonce] = useState(0);
+  // Server-sent groups win; an old server (no `groups`) derives exactly one.
+  const settingsGroups = useMemo(
+    () => (settingsQuery.data ? resolveSettingsGroups(settingsQuery.data) : []),
+    [settingsQuery.data],
+  );
+  const showGroupTabs = settingsGroups.length > 1;
 
   const [toggling, setToggling] = useState(false);
   const reload = () => setRefreshKey((k) => k + 1);
@@ -200,17 +207,32 @@ function AddonDetailContent({ addonId }: { addonId: string }) {
             onRetry={settingsQuery.refetch}
           />
         ) : (
-          <AddonSettingsForm
-            key={`${addon.id}-${settingsNonce}`}
-            addonId={addon.id}
-            schema={settingsQuery.data.schema}
-            initialValues={settingsQuery.data.values}
-            onSaved={() => {
-              // Remount with the saved values, then refetch behind it.
-              setSettingsNonce((n) => n + 1);
-              settingsQuery.refetch();
-            }}
-          />
+          showGroupTabs ? (
+            <GroupedAddonSettingsForm
+              key={`${addon.id}-groups-${settingsNonce}`}
+              addonId={addon.id}
+              schema={settingsQuery.data.schema}
+              groups={settingsGroups}
+              rootValues={settingsQuery.data.values}
+              onSaved={() => {
+                // Remount with the saved values, then refetch behind it.
+                setSettingsNonce((n) => n + 1);
+                settingsQuery.refetch();
+              }}
+            />
+          ) : (
+            <AddonSettingsForm
+              key={`${addon.id}-${settingsNonce}`}
+              addonId={addon.id}
+              schema={settingsQuery.data.schema}
+              initialValues={settingsQuery.data.values}
+              onSaved={() => {
+                // Remount with the saved values, then refetch behind it.
+                setSettingsNonce((n) => n + 1);
+                settingsQuery.refetch();
+              }}
+            />
+          )
         ))}
 
       {panels.length > 0 ? (
