@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2, LogIn, Mail } from "lucide-react";
-import { post, storeTokens, normalizeEmail, isValidEmail } from "@/lib/api-client";
+import { Loader2, LogIn, Mail, CheckCircle2, ShieldCheck } from "lucide-react";
+import { API_BASE, post, storeTokens, normalizeEmail, isValidEmail } from "@/lib/api-client";
 import { AuthLayout } from "@/components/shared/auth-layout";
 import { PasswordField } from "@/components/shared/password-field";
 import { Field } from "@/components/ui/field";
@@ -13,6 +13,19 @@ import { Button } from "@/components/ui/button";
 function LoginNotice() {
   const searchParams = useSearchParams();
   const reason = searchParams.get("reason");
+  if (reason === "setup-complete") {
+    return (
+      <div className="mb-4 rounded-lg border border-success/20 bg-success/10 px-4 py-3">
+        <div className="flex items-center gap-2 mb-0.5">
+          <CheckCircle2 size={16} className="text-success" />
+          <p className="font-medium text-success text-sm">Root account created</p>
+        </div>
+        <p className="text-surface-400 text-xs ml-6">
+          Sign in as <span className="font-mono">root</span> with the password you just set.
+        </p>
+      </div>
+    );
+  }
   if (reason !== "not-signed-in") return null;
   return (
     <div className="mb-4 rounded-lg border border-accent-300/20 bg-accent-300/5 px-4 py-3">
@@ -33,11 +46,36 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showSetupBanner, setShowSetupBanner] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
   // Focus email input after hydration to avoid SSR mismatch with autoFocus
   useEffect(() => {
     emailRef.current?.focus();
+  }, []);
+
+  // First-run hint: if the platform still needs its root account, banner
+  // above the form links to /setup. Never auto-redirects; network throw or
+  // non-JSON body means no banner. Parse-first: a 503 with a JSON body is
+  // a real answer. Plain fetch, no auth headers — /ready is public.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE}/ready`)
+      .then((res) => res.json().catch(() => null))
+      .then((body) => {
+        if (cancelled || !body || typeof body !== "object") return;
+        const needsSetup =
+          (body as { needs_setup?: boolean }).needs_setup === true ||
+          (body as { degraded?: { platform_seed?: boolean } | null }).degraded
+            ?.platform_seed === true;
+        if (needsSetup) setShowSetupBanner(true);
+      })
+      .catch(() => {
+        // No banner — login works as usual.
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,6 +143,22 @@ export default function LoginPage() {
             >
               <LoginNotice />
             </Suspense>
+
+            {showSetupBanner && (
+              <div className="mb-4 rounded-lg border border-warning/20 bg-warning/10 px-4 py-3">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <ShieldCheck size={16} className="text-warning" />
+                  <p className="font-medium text-warning text-sm">First run?</p>
+                </div>
+                <p className="text-surface-400 text-xs ml-6">
+                  Create the platform root account{" "}
+                  <Link href="/setup" className="text-accent-300 font-medium hover:text-accent-200">
+                    here
+                  </Link>
+                  .
+                </p>
+              </div>
+            )}
 
             {error && (
               <div className="mb-4 rounded-md border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">
