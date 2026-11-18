@@ -1160,8 +1160,10 @@ export interface InstallAddonRequest {
 
 export interface AddonHealthResponse {
   id: string;
-  status: string;
-  [key: string]: unknown;
+  enabled: boolean;
+  loaded: boolean;
+  generation: number;
+  version: string;
 }
 
 /** GET /admin/system/addons — list installed add-ons. */
@@ -1192,11 +1194,12 @@ export function disableAddon(id: string): Promise<AddonResponse> {
   return post<AddonResponse>(`/admin/system/addons/${encodeURIComponent(id)}/disable`);
 }
 
-/** POST /admin/system/addons/{id}/upgrade — optional tag pins the target. */
+/** POST /admin/system/addons/{id}/upgrade — optional tag pins the target (query param). */
 export function upgradeAddon(id: string, tag?: string): Promise<AddonResponse> {
+  const trimmed = tag?.trim();
+  const suffix = trimmed ? `?tag=${encodeURIComponent(trimmed)}` : "";
   return post<AddonResponse>(
-    `/admin/system/addons/${encodeURIComponent(id)}/upgrade`,
-    tag ? { tag } : {},
+    `/admin/system/addons/${encodeURIComponent(id)}/upgrade${suffix}`,
   );
 }
 
@@ -1223,6 +1226,27 @@ export function deleteAddon(id: string, remove_data: boolean): Promise<void> {
 export function addonHealth(id: string): Promise<AddonHealthResponse> {
   return get<AddonHealthResponse>(
     `/admin/system/addons/${encodeURIComponent(id)}/health`,
+  );
+}
+
+/**
+ * POST /admin/system/addons/{id}/panels/ticket — mint a short-lived,
+ * single-purpose ticket bound to one add-on panel (5-min TTL).
+ * The viewer appends it as `?ticket=` on the iframe src; `?token=` is
+ * rejected (401). Panel JS API calls still use the Authorization header
+ * via the existing postMessage token handoff — unchanged.
+ */
+export interface PanelTicketResponse {
+  ticket: string;
+}
+
+export function requestPanelTicket(
+  id: string,
+  panel_path: string,
+): Promise<PanelTicketResponse> {
+  return post<PanelTicketResponse>(
+    `/admin/system/addons/${encodeURIComponent(id)}/panels/ticket`,
+    { panel_path },
   );
 }
 

@@ -28,7 +28,7 @@ function HealthDot({ addonId }: { addonId: string }) {
     let cancelled = false;
     addonHealth(addonId).then(
       (h) => {
-        if (!cancelled) setStatus(h.status === "ok" ? "ok" : "bad");
+        if (!cancelled) setStatus(h.loaded && h.enabled ? "ok" : "bad");
       },
       () => {
         if (!cancelled) setStatus("bad");
@@ -63,7 +63,7 @@ interface AddonTableProps {
 }
 
 /**
- * Read-only registry: rows navigate to /superadmin/addons/[id] where
+ * Read-only registry: rows navigate to /addons/[id] where
  * enable/upgrade/delete happen. Health is a dot snapshot, not a mutation.
  */
 export function AddonTable({ addons, loading }: AddonTableProps) {
@@ -93,13 +93,13 @@ export function AddonTable({ addons, loading }: AddonTableProps) {
                 <EmptyState
                   icon={Package}
                   title="No add-ons installed"
-                  description="Install one from a local path or a GitHub URL above."
+                  description="Click Install to add one from a local path or a GitHub URL."
                 />
               </td>
             </tr>
           ) : (
             addons.map((addon) => {
-              const href = `/superadmin/addons/${encodeURIComponent(addon.id)}`;
+              const href = `/addons/${encodeURIComponent(addon.id)}`;
               return (
                 <TableRow
                   key={addon.id}

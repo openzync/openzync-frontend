@@ -12,7 +12,6 @@ import {
   FileJson,
   FileText,
   LayoutDashboard,
-  Plug,
   Puzzle,
   Settings,
   Shield,
@@ -66,6 +65,8 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Webhooks", href: "/settings/webhooks", icon: Webhook, permission: "configuration:read" },
       { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: FileText, permission: "configuration:read" },
       { label: "Configuration", href: "/settings/org-config", icon: Settings, permission: "configuration:read" },
+      // Add-on management is root/superadmin only (admin API under /admin/system).
+      { label: "Add-ons", href: "/addons", icon: Puzzle, superadminOnly: true },
     ],
   },
   {
@@ -76,8 +77,6 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Audit Log", href: "/audit", icon: Shield, permission: "members:read" },
       // Platform Admin is root/superadmin only — the platform console.
       { label: "Platform Admin", href: "/superadmin/orgs", icon: ShieldCheck, superadminOnly: true },
-      // Add-on management is root/superadmin only (admin API under /admin/system).
-      { label: "Add-ons", href: "/superadmin/addons", icon: Plug, superadminOnly: true },
     ],
   },
 ];
@@ -218,16 +217,6 @@ export function resolveBreadcrumb(
 
   // Superadmin console keeps its own ladder (org-scoped subpages).
   if (pathname.startsWith("/superadmin")) {
-    // Add-on registry: System > Add-ons, detail leaf is the add-on id.
-    if (pathname === "/superadmin/addons") return [{ label: "System" }, { label: "Add-ons" }];
-    const addonDetail = pathname.match(/^\/superadmin\/addons\/([^/]+)$/);
-    if (addonDetail) {
-      return [
-        { label: "System" },
-        { label: "Add-ons", href: "/superadmin/addons" },
-        { label: decodeURIComponent(addonDetail[1]) },
-      ];
-    }
     if (pathname.endsWith("/requests")) return [{ label: "Platform Admin" }, { label: "Approval Requests" }];
     if (pathname.endsWith("/config")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Configuration" }];
     if (pathname.endsWith("/members")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Members" }];
@@ -241,6 +230,17 @@ export function resolveBreadcrumb(
     const crumbs: BreadcrumbItem[] = [{ label: "Extensions" }];
     if (addonId) crumbs.push({ label: addonId });
     return crumbs;
+  }
+
+  // Add-on registry detail: Administration > Add-ons (linked) > add-on id.
+  // The /addons root itself resolves via the manifest longest-prefix match.
+  const addonDetail = pathname.match(/^\/addons\/([^/]+)$/);
+  if (addonDetail) {
+    return [
+      { label: "Administration" },
+      { label: "Add-ons", href: "/addons" },
+      { label: decodeURIComponent(addonDetail[1]) },
+    ];
   }
 
   // Longest-prefix match against the manifest.

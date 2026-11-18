@@ -38,9 +38,10 @@ export function DeleteAddonDialog({
       persistent={busy}
       footer={
         <>
-          <DialogCloseButton disabled={busy}>Cancel</DialogCloseButton>
+          <DialogCloseButton size="sm" disabled={busy}>Cancel</DialogCloseButton>
           <Button
             variant="danger"
+            size="sm"
             loading={busy}
             disabled={!matches}
             onClick={() => {

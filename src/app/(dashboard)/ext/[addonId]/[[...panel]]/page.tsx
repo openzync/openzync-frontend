@@ -7,25 +7,39 @@ import {
   API_BASE,
   ApiError,
   apiErrorMessage,
-  get,
   getAccessToken,
   refreshOnce,
+  requestPanelTicket,
 } from "@/lib/api-client";
 import { useExtensions } from "@/contexts/extensions-context";
 import { ErrorState } from "@/components/shared/error-state";
 
 /**
- * IFrame token handoff contract (backend panels at /v1/ext/{id}/ui/*):
+ * Panel ticket contract (backend panels at /v1/ext/{id}/ui/*):
  *
- * - The wrapper appends the current access token as `?token=` on the iframe
- *   src (first paint) AND postMessages `{ token }` to the panel on every
- *   load, with follow-up posts whenever the token rotates.
- * - Panel JS reads `event.data.token` (verify `event.origin` is the API
- *   origin) and calls add-on APIs at /v1/ext/{id}/* with
- *   `Authorization: Bearer <token>`.
- * - A 401 inside the panel means the token expired: the wrapper preflights
- *   the panel URL and runs the shared single-flight refresh (`refreshOnce`)
- *   before the iframe ever loads, so panels start with a live token.
+ * - The viewer mints a short-lived single-purpose ticket first:
+ *   POST /admin/system/addons/{id}/panels/ticket { panel_path } → { ticket }
+ *   (viewer authed as superadmin/org-user; backend binds the ticket to the
+ *   add-on + panel, 5-min TTL).
+ * - The iframe src carries it as `?ticket=`:
+ *   {API_BASE}/v1/ext/{id}{path}?ticket={ticket}. `?token=` no longer works.
+ * - Panel JS → API calls are unchanged: the wrapper postMessages
+ *   `{ type, token, origin: window.location.origin }` to the panel on every
+ *   load (follow-ups on rotation), and panel JS reads `event.data.token`
+ *   and calls add-on APIs at /v1/ext/{id}/* with `Authorization: Bearer <token>`.
+ *   targetOrigin is "*" because the iframe runs sandbox="allow-scripts"
+ *   (opaque origin): specific targetOrigins are silently dropped, so the
+ *   panel never receives the token. Panels cannot derive the viewer origin
+ *   from their URL (they only know the API origin), so they must boot only
+ *   when the browser-attested `event.origin === event.data.origin` (plus
+ *   type match) — a spoofed claim from any other origin fails because
+ *   `event.origin` is browser-set.
+ * - A 401 inside the panel means the page token expired: the panel posts
+ *   `openzync:addon-unauthorized`, the wrapper runs the shared single-flight
+ *   refresh (`refreshOnce`), then remounts the frame — the mount effect
+ *   mints a fresh ticket, so expiry heals with one reload. Inbound
+   `openzync:addon-unauthorized` is accepted only from the API origin;
+   when API_BASE is empty/unparseable the message is rejected (default-deny).
  */
 const PANEL_TOKEN_EVENT = "openzync:addon-token";
 
@@ -34,6 +48,32 @@ function usePanelRoute() {
   const addonId = params.addonId;
   const panelPath = `/${(params.panel ?? []).join("/")}`;
   return { addonId, panelPath };
+}
+
+/**
+ * Normalize a panel path the same way the backend traversal rules do:
+ * leading slash, collapsed slashes, resolved `.`/`..`, no trailing slash.
+ * Returns null when `..` escapes the root — never matches, never minted.
+ */
+function normalizePanelPath(raw: string): string | null {
+  const out: string[] = [];
+  for (const seg of raw.split("/")) {
+    if (!seg || seg === ".") continue;
+    if (seg === "..") {
+      if (out.pop() === undefined) return null;
+      continue;
+    }
+    out.push(seg);
+  }
+  return `/${out.join("/")}`;
+}
+
+/** Exact-or-boundary match on normalized paths: `/ui` covers `/ui/board`. */
+function matchesPanel(registered: string, requested: string): boolean {
+  const reg = normalizePanelPath(registered);
+  const req = normalizePanelPath(requested);
+  if (!reg || !req) return false;
+  return req === reg || req.startsWith(`${reg}/`);
 }
 
 export default function ExtensionPanelPage() {
@@ -47,26 +87,29 @@ export default function ExtensionPanelPage() {
   const addon = registryLoading ? undefined : findAddon(addonId);
   const panelKnown = useMemo(() => {
     if (!addon || !Array.isArray(addon.panels)) return false;
-    return addon.panels.some((p) => {
-      const full = p.path.startsWith("/") ? p.path : `/${p.path}`;
-      return full === panelPath || panelPath.startsWith(`${full}/`);
-    });
+    return addon.panels.some((p) => matchesPanel(p.path, panelPath));
   }, [addon, panelPath]);
 
-  // Preflight with a live token, then mount the iframe with ?token=.
+  // Mint a panel ticket, then mount the iframe with ?ticket=.
   useEffect(() => {
     if (registryLoading || !addon || !panelKnown) return;
     let cancelled = false;
     (async () => {
       setError(null);
       setIframeSrc(null);
-      const url = `/v1/ext/${encodeURIComponent(addonId)}${panelPath}`;
+      const normalized = normalizePanelPath(panelPath) ?? panelPath;
       try {
-        await get<unknown>(url);
+        const { ticket } = await requestPanelTicket(addonId, normalized);
+        if (cancelled) return;
+        const url = `/v1/ext/${encodeURIComponent(addonId)}${normalized}`;
+        setIframeSrc(
+          `${API_BASE}${url}${url.includes("?") ? "&" : "?"}ticket=${encodeURIComponent(ticket)}`,
+        );
       } catch (err) {
         if (cancelled) return;
-        // get() already retried via the shared refresh; a surviving 401/403
-        // is a real denial — surface it instead of loading a dead iframe.
+        // requestPanelTicket already retried via the shared refresh; a
+        // surviving 401/403 is a real denial — surface it instead of
+        // loading a dead iframe.
         if (err instanceof ApiError && (err.isUnauthorized || err.isForbidden)) {
           setError(
             err.isForbidden
@@ -76,13 +119,7 @@ export default function ExtensionPanelPage() {
           return;
         }
         setError(apiErrorMessage(err, "Failed to load panel"));
-        return;
       }
-      if (cancelled) return;
-      const token = getAccessToken();
-      setIframeSrc(
-        `${API_BASE}${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(token ?? "")}`,
-      );
     })();
     return () => {
       cancelled = true;
@@ -90,19 +127,33 @@ export default function ExtensionPanelPage() {
   }, [registryLoading, addon, panelKnown, addonId, panelPath, frameKey]);
 
   // Push the (possibly rotated) token into the panel on every load.
+  // Target "*" is required: sandbox="allow-scripts" gives an opaque origin,
+  // so specific targetOrigins are silently dropped. The `origin` assertion
+  // lets the panel boot only when browser-attested ev.origin ===
+  // ev.data.origin (plus type match).
   const postToken = () => {
     const win = frameRef.current?.contentWindow;
     const token = getAccessToken();
     if (win && token) {
-      win.postMessage({ type: PANEL_TOKEN_EVENT, token }, API_BASE || window.location.origin);
+      win.postMessage(
+        { type: PANEL_TOKEN_EVENT, token, origin: window.location.origin },
+        "*",
+      );
     }
   };
 
   // Panels signal an expired token via postMessage (cross-origin frames
-  // can't be inspected): refresh once and reload the frame with a live token.
+  // can't be inspected): refresh once and reload the frame with a fresh
+  // ticket (the mount effect above re-mints on frameKey change).
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
-      if (API_BASE && e.origin !== new URL(API_BASE).origin) return;
+      let allowedOrigin: string | null = null;
+      try {
+        allowedOrigin = API_BASE ? new URL(API_BASE).origin : null;
+      } catch {
+        allowedOrigin = null;
+      }
+      if (!allowedOrigin || e.origin !== allowedOrigin) return;
       if (e.data?.type !== "openzync:addon-unauthorized") return;
       void refreshOnce().then(() => setFrameKey((k) => k + 1));
     };
@@ -141,7 +192,7 @@ export default function ExtensionPanelPage() {
           src={iframeSrc}
           title={addon?.id ?? addonId}
           className="card-base min-h-0 flex-1 w-full border-0"
-          sandbox="allow-scripts allow-same-origin"
+          sandbox="allow-scripts"
           onLoad={postToken}
         />
       ) : null}

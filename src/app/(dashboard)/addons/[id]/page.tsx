@@ -30,8 +30,10 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
+import { Skeleton } from "@/components/shared/skeleton";
 import { toast } from "sonner";
 import { DeleteAddonDialog } from "../_components/delete-addon-dialog";
 
@@ -76,7 +78,7 @@ function EnabledSwitch({
 
 // ─── Detail page ────────────────────────────────────────────────────────────
 
-export default function SuperadminAddonDetailPage() {
+export default function AddonDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const id = params.id;
@@ -176,7 +178,7 @@ export default function SuperadminAddonDetailPage() {
     deleteAddon(addonId, removeData)
       .then(() => {
         toast.success(`"${addonId}" deleted`);
-        router.push("/superadmin/addons");
+        router.push("/addons");
       })
       .catch((err: unknown) => {
         toast.error(apiErrorMessage(err, `Failed to delete "${addonId}"`));
@@ -186,19 +188,30 @@ export default function SuperadminAddonDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4" role="status" aria-label="Loading add-on">
-        <div className="h-9 w-48 animate-pulse rounded-md bg-surface-800" />
-        <div className="card-base h-40 animate-pulse p-4" />
-        <div className="card-base h-32 animate-pulse p-4" />
+      <div className="space-y-6" role="status" aria-label="Loading add-on">
+        <Skeleton className="h-4 w-40" />
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-56" />
+          <Skeleton className="h-4 w-80" />
+        </div>
+        <div className="card-base space-y-2 p-4">
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+        <div className="card-base space-y-2 p-4">
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
       </div>
     );
   }
 
   if (error || !addon) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <Link
-          href="/superadmin/addons"
+          href="/addons"
           className="inline-flex items-center gap-1.5 text-sm text-surface-400 hover:text-white focus-visible:outline-2 focus-visible:outline-accent-300"
         >
           <ArrowLeft size={14} /> Back to Add-ons
@@ -210,31 +223,21 @@ export default function SuperadminAddonDetailPage() {
 
   const isLocal = addon.source_type === "local";
   const panels = addon.panels ?? [];
-  const { status: healthStatus, ...healthRest } = health ?? {};
-  // `id` duplicates the page header — show only the snapshot fields.
-  const healthEntries = Object.entries(healthRest).filter(([key]) => key !== "id");
+  const healthy = health ? health.loaded && health.enabled : false;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Link
-        href="/superadmin/addons"
+        href="/addons"
         className="inline-flex items-center gap-1.5 text-sm text-surface-400 hover:text-white focus-visible:outline-2 focus-visible:outline-accent-300"
       >
         <ArrowLeft size={14} /> Back to Add-ons
       </Link>
 
-      {/* ── Header ── */}
-      <div className="card-base p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-lg font-medium">{addon.id}</h2>
-            <Badge variant="default" size="sm" className="font-mono">
-              v{addon.version}
-            </Badge>
-            <Badge variant={addon.enabled ? "success" : "default"} size="sm">
-              {addon.enabled ? "Enabled" : "Disabled"}
-            </Badge>
-          </div>
+      <PageHeader
+        title={addon.id}
+        description={`v${addon.version} · ${addon.source_type}: ${addon.source_ref}`}
+        actions={
           <div className="flex items-center gap-2">
             <span className="text-xs text-surface-400">
               {addon.enabled ? "Enabled" : "Disabled"}
@@ -245,28 +248,41 @@ export default function SuperadminAddonDetailPage() {
               onChange={handleToggleEnabled}
               label={`${addon.enabled ? "Disable" : "Enable"} ${addon.id}`}
             />
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={isLocal ? <RefreshCw size={14} /> : <ArrowUpCircle size={14} />}
+              disabled={acting !== null}
+              onClick={() => document.getElementById("addon-upgrade")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            >
+              {isLocal ? "Re-sync" : "Upgrade"}
+            </Button>
           </div>
+        }
+      />
+
+      {addon.update_available && (
+        <div
+          role="status"
+          className="flex items-start gap-2 rounded-md bg-amber/10 px-3 py-2 text-sm text-amber"
+        >
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          <span>
+            Update available
+            {addon.latest_seen ? (
+              <>
+                {" "}— latest seen <code className="font-mono">{addon.latest_seen}</code>
+              </>
+            ) : null}
+            . Upgrade below to pick it up.
+          </span>
         </div>
+      )}
 
-        {addon.update_available && (
-          <div
-            role="status"
-            className="mt-3 flex items-start gap-2 rounded-md bg-amber/10 px-3 py-2 text-sm text-amber"
-          >
-            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-            <span>
-              Update available
-              {addon.latest_seen ? (
-                <>
-                  {" "}— latest seen <code className="font-mono">{addon.latest_seen}</code>
-                </>
-              ) : null}
-              . Upgrade below to pick it up.
-            </span>
-          </div>
-        )}
-
-        <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+      {/* ── Details ── */}
+      <section aria-label="Add-on details" className="card-base p-4">
+        <h3 className="font-display text-sm font-medium">Details</h3>
+        <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
           <div className="flex gap-2">
             <dt className="shrink-0 text-surface-400">Source</dt>
             <dd className="truncate font-mono text-xs text-surface-200" title={addon.source_ref}>
@@ -288,7 +304,7 @@ export default function SuperadminAddonDetailPage() {
             <dd className="font-mono text-xs text-surface-200">{addon.generation}</dd>
           </div>
         </dl>
-      </div>
+      </section>
 
       {/* ── Panels ── */}
       <section aria-label="Add-on panels" className="card-base p-4">
@@ -346,27 +362,41 @@ export default function SuperadminAddonDetailPage() {
           </div>
         ) : (
           <div className="mt-2 space-y-2 text-sm">
-            <Badge variant={healthStatus === "ok" ? "success" : "error"} size="sm">
-              {healthStatus}
+            <Badge variant={healthy ? "success" : "error"} size="sm">
+              {healthy ? "Healthy" : "Unhealthy"}
             </Badge>
-            {healthEntries.length > 0 && (
-              <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-                {healthEntries.map(([key, value]) => (
-                  <div key={key} className="flex gap-2">
-                    <dt className="shrink-0 text-surface-400">{key}</dt>
-                    <dd className="truncate font-mono text-xs text-surface-200" title={String(value)}>
-                      {typeof value === "string" ? value : JSON.stringify(value)}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            )}
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+              <div className="flex gap-2">
+                <dt className="shrink-0 text-surface-400">enabled</dt>
+                <dd className="truncate font-mono text-xs text-surface-200">
+                  {String(health.enabled)}
+                </dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="shrink-0 text-surface-400">loaded</dt>
+                <dd className="truncate font-mono text-xs text-surface-200">
+                  {String(health.loaded)}
+                </dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="shrink-0 text-surface-400">generation</dt>
+                <dd className="truncate font-mono text-xs text-surface-200">
+                  {health.generation}
+                </dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="shrink-0 text-surface-400">version</dt>
+                <dd className="truncate font-mono text-xs text-surface-200">
+                  {health.version}
+                </dd>
+              </div>
+            </dl>
           </div>
         )}
       </section>
 
       {/* ── Upgrade ── */}
-      <section aria-label="Upgrade add-on" className="card-base p-4">
+      <section aria-label="Upgrade add-on" id="addon-upgrade" className="card-base scroll-mt-4 p-4">
         <h3 className="font-display text-sm font-medium">
           {isLocal ? "Re-sync" : "Upgrade"}
         </h3>
