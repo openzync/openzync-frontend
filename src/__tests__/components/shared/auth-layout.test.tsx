@@ -18,7 +18,8 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock("@/lib/api-client", () => ({
+vi.mock("@/lib/api-client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api-client")>()),
   post: vi.fn().mockResolvedValue({}),
   storeTokens: vi.fn(),
   join: vi.fn(),

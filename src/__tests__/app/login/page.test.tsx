@@ -16,10 +16,37 @@ vi.mock("next/navigation", () => ({
 }));
 
 const mockFetch = vi.fn();
-globalThis.fetch = mockFetch;
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+/** Seeded default: /ready resolves needs_setup:false (banner hidden). */
+function mockDefaultFetch(): void {
+  mockFetch.mockImplementation((input: RequestInfo | URL) =>
+    String(input).endsWith("/ready")
+      ? Promise.resolve(jsonResponse({ needs_setup: false }))
+      : Promise.reject(new Error(`unexpected fetch: ${String(input)}`)),
+  );
+}
+
+/** Route /ready to the seeded default and /v1/auth/login to a canned body. */
+function mockLoginFetch(body: unknown, status = 200): void {
+  mockFetch.mockImplementation((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/ready")) return Promise.resolve(jsonResponse({ needs_setup: false }));
+    if (url.endsWith("/v1/auth/login")) return Promise.resolve(jsonResponse(body, status));
+    return Promise.reject(new Error(`unexpected fetch: ${url}`));
+  });
+}
 
 beforeEach(() => {
+  vi.stubGlobal("fetch", mockFetch);
   mockFetch.mockReset();
+  mockDefaultFetch();
   mockPush.mockReset();
   mockReplace.mockReset();
   // Reset the api-client in-memory token cache as well as storage: a prior
@@ -30,6 +57,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -131,15 +159,10 @@ describe("LoginPage", () => {
 
   it("submits form and redirects to overview on success", async () => {
     const user = userEvent.setup();
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          access_token: "access123",
-          refresh_token: "refresh123",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+    mockLoginFetch({
+      access_token: "access123",
+      refresh_token: "refresh123",
+    });
 
     render(<LoginPage />);
     await user.type(screen.getByPlaceholderText("you@example.com"), "test@example.com");
@@ -154,15 +177,10 @@ describe("LoginPage", () => {
 
   it("allows root user to sign in with non-email identifier", async () => {
     const user = userEvent.setup();
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          access_token: "access123",
-          refresh_token: "refresh123",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+    mockLoginFetch({
+      access_token: "access123",
+      refresh_token: "refresh123",
+    });
 
     render(<LoginPage />);
     await user.type(screen.getByPlaceholderText("you@example.com"), "root");
@@ -191,15 +209,10 @@ describe("LoginPage", () => {
 
   it("redirects to MFA page when requires_mfa is true", async () => {
     const user = userEvent.setup();
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          requires_mfa: true,
-          mfa_session_token: "mfa-session-xyz",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+    mockLoginFetch({
+      requires_mfa: true,
+      mfa_session_token: "mfa-session-xyz",
+    });
 
     render(<LoginPage />);
     await user.type(screen.getByPlaceholderText("you@example.com"), "test@example.com");
@@ -213,12 +226,7 @@ describe("LoginPage", () => {
 
   it("shows error message on failed login", async () => {
     const user = userEvent.setup();
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ detail: "Invalid email or password." }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
+    mockLoginFetch({ detail: "Invalid email or password." }, 401);
 
     render(<LoginPage />);
     await user.type(screen.getByPlaceholderText("you@example.com"), "wrong@example.com");
@@ -234,7 +242,12 @@ describe("LoginPage", () => {
     const user = userEvent.setup();
     // When fetch throws a non-Error (e.g. network issue), err.message is undefined
     // so the page falls back to "Connection error. Please try again."
-    mockFetch.mockRejectedValueOnce({});
+    // Route-aware: /ready stays seeded, only the login POST throws.
+    mockFetch.mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/ready")) return Promise.resolve(jsonResponse({ needs_setup: false }));
+      return Promise.reject({});
+    });
 
     render(<LoginPage />);
     await user.type(screen.getByPlaceholderText("you@example.com"), "test@test.com");
@@ -248,7 +261,12 @@ describe("LoginPage", () => {
 
   it("disables submit button while submitting", async () => {
     const user = userEvent.setup();
-    mockFetch.mockReturnValueOnce(new Promise(() => {}));
+    // Route-aware: /ready stays seeded, only the login POST hangs.
+    mockFetch.mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/ready")) return Promise.resolve(jsonResponse({ needs_setup: false }));
+      return new Promise(() => {});
+    });
 
     render(<LoginPage />);
     await user.type(screen.getByPlaceholderText("you@example.com"), "test@test.com");
@@ -259,5 +277,18 @@ describe("LoginPage", () => {
     await user.click(btn);
 
     expect(btn).toBeDisabled();
+  });
+
+  it("shows the first-run banner linking to /setup when needs_setup is true", async () => {
+    mockFetch.mockImplementation((input: RequestInfo | URL) =>
+      String(input).endsWith("/ready")
+        ? Promise.resolve(jsonResponse({ needs_setup: true }))
+        : Promise.reject(new Error(`unexpected fetch: ${String(input)}`)),
+    );
+
+    render(<LoginPage />);
+
+    expect(await screen.findByText("First run?")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "here" })).toHaveAttribute("href", "/setup");
   });
 });
