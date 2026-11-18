@@ -12,6 +12,8 @@ import {
   FileJson,
   FileText,
   LayoutDashboard,
+  Plug,
+  Puzzle,
   Settings,
   Shield,
   ShieldCheck,
@@ -33,7 +35,7 @@ export interface NavEntry {
   superadminOnly?: boolean;
 }
 
-export type NavSectionId = "insights" | "admin" | "system";
+export type NavSectionId = "insights" | "admin" | "extensions" | "system";
 
 export interface NavSection {
   id: NavSectionId;
@@ -74,6 +76,8 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Audit Log", href: "/audit", icon: Shield, permission: "members:read" },
       // Platform Admin is root/superadmin only — the platform console.
       { label: "Platform Admin", href: "/superadmin/orgs", icon: ShieldCheck, superadminOnly: true },
+      // Add-on management is root/superadmin only (admin API under /admin/system).
+      { label: "Add-ons", href: "/superadmin/addons", icon: Plug, superadminOnly: true },
     ],
   },
 ];
@@ -86,6 +90,31 @@ export function isVisible(
 ): boolean {
   if (entry.superadminOnly) return isSuperadmin;
   return entry.permission === undefined || can(entry.permission);
+}
+
+// ─── Runtime extension panels ───────────────────────────────────────────────
+
+/** One panel contributed by an enabled add-on (from listAddons `panels`). */
+export interface ExtensionPanelRef {
+  addonId: string;
+  /** Manifest + panel label, e.g. "My Add-on — Board". */
+  label: string;
+  /** Dashboard route, e.g. "/ext/my-addon/ui/board". */
+  href: string;
+}
+
+/**
+ * Build the platform-wide Extensions nav section from enabled add-ons.
+ * Panels link to /ext/{addonId}{panelPath}; entries carry no permission —
+ * the iframe page itself 404s unknown/disabled add-ons. Empty when no
+ * add-on exposes panels (section is then hidden by the sidebar/palette).
+ */
+export function buildExtensionsSection(panels: ExtensionPanelRef[]): NavSection {
+  return {
+    id: "extensions",
+    label: "Extensions",
+    entries: panels.map((p) => ({ label: p.label, href: p.href, icon: Puzzle })),
+  };
 }
 
 // ─── Breadcrumbs ──────────────────────────────────────────────────────────────
@@ -189,11 +218,29 @@ export function resolveBreadcrumb(
 
   // Superadmin console keeps its own ladder (org-scoped subpages).
   if (pathname.startsWith("/superadmin")) {
+    // Add-on registry: System > Add-ons, detail leaf is the add-on id.
+    if (pathname === "/superadmin/addons") return [{ label: "System" }, { label: "Add-ons" }];
+    const addonDetail = pathname.match(/^\/superadmin\/addons\/([^/]+)$/);
+    if (addonDetail) {
+      return [
+        { label: "System" },
+        { label: "Add-ons", href: "/superadmin/addons" },
+        { label: decodeURIComponent(addonDetail[1]) },
+      ];
+    }
     if (pathname.endsWith("/requests")) return [{ label: "Platform Admin" }, { label: "Approval Requests" }];
     if (pathname.endsWith("/config")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Configuration" }];
     if (pathname.endsWith("/members")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Members" }];
     if (pathname.endsWith("/orgs")) return [{ label: "Platform Admin" }, { label: "Organizations" }];
     return [{ label: "Platform Admin" }, { label: "System Configuration" }];
+  }
+
+  // Add-on panels keep their own ladder (Extensions root + addon id).
+  if (pathname === "/ext" || pathname.startsWith("/ext/")) {
+    const addonId = pathname.split("/").filter(Boolean)[1];
+    const crumbs: BreadcrumbItem[] = [{ label: "Extensions" }];
+    if (addonId) crumbs.push({ label: addonId });
+    return crumbs;
   }
 
   // Longest-prefix match against the manifest.
