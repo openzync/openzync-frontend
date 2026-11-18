@@ -103,9 +103,36 @@ function ExtractionInstructionsInner() {
     setShowDialog(true);
   };
 
+  // Client-side validation mirrors backend caps (SetCustomInstructionsRequest).
+  const trimmedName = formName.trim();
+  const trimmedText = formText.trim();
+  const duplicateName =
+    trimmedName !== "" &&
+    instructions.some((i, idx) => i.name === trimmedName && idx !== editingIndex)
+      ? trimmedName
+      : null;
+  const nameError = !trimmedName
+    ? "Name is required"
+    : trimmedName.length > 255
+      ? "Name must be 255 characters or fewer"
+      : duplicateName
+        ? `An instruction named "${duplicateName}" already exists`
+        : undefined;
+  const textError = !trimmedText
+    ? "Instruction text is required"
+    : trimmedText.length > 4000
+      ? "Instruction text must be 4000 characters or fewer"
+      : undefined;
+  const countError =
+    editingIndex === null && instructions.length >= 50
+      ? "Maximum of 50 instructions reached"
+      : undefined;
+  const isSaveDisabled = saving || !!nameError || !!textError || !!countError;
+
   const handleSave = async () => {
-    if (!formName.trim() || !formText.trim()) return;
+    if (isSaveDisabled) return;
     setSaving(true);
+    setActionError(null);
 
     // Optimistic update
     const updated = [...instructions];
@@ -116,7 +143,7 @@ function ExtractionInstructionsInner() {
     }
 
     try {
-      await put("/admin/org/custom-instructions", { data: updated });
+      await put("/admin/org/custom-instructions", { instructions: updated });
       setOverride(updated);
       setShowDialog(false);
       toast.success(editingIndex !== null ? "Instruction updated" : "Instruction created");
@@ -139,7 +166,7 @@ function ExtractionInstructionsInner() {
     const updated = instructions.filter((i) => i.name !== deleteTarget.name);
 
     try {
-      await put("/admin/org/custom-instructions", { data: updated });
+      await put("/admin/org/custom-instructions", { instructions: updated });
       setOverride(updated);
       setDeleteTarget(null);
       toast.success("Instruction deleted");
@@ -253,7 +280,7 @@ function ExtractionInstructionsInner() {
               size="sm"
               onClick={handleSave}
               loading={saving}
-              disabled={!formName.trim() || !formText.trim()}
+              disabled={isSaveDisabled}
             >
               {editingIndex !== null ? "Save Changes" : "Add"}
             </Button>
@@ -261,7 +288,8 @@ function ExtractionInstructionsInner() {
         }
       >
         <div className="space-y-4">
-          <Field label="Name" htmlFor="instruction-name">
+          {countError && <p className="text-error text-xs">{countError}</p>}
+          <Field label="Name" htmlFor="instruction-name" error={nameError}>
             <input
               id="instruction-name"
               className="input-base"
@@ -271,7 +299,7 @@ function ExtractionInstructionsInner() {
               autoFocus
             />
           </Field>
-          <Field label="Instruction Text" htmlFor="instruction-text">
+          <Field label="Instruction Text" htmlFor="instruction-text" error={textError}>
             <textarea
               id="instruction-text"
               className="input-base min-h-[120px] pt-2 text-sm"
