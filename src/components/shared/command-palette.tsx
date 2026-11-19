@@ -15,8 +15,10 @@ import {
 import { cn } from "@/lib/utils";
 import { get } from "@/lib/api-client";
 import { useUser } from "@/contexts/user-context";
+import { useExtensionsOptional } from "@/contexts/extensions-context";
 import {
   NAV_SECTIONS,
+  buildExtensionsSection,
   isVisible,
   type NavEntry,
 } from "@/lib/nav";
@@ -67,6 +69,8 @@ const defaultIcon = FolderKanban;
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
   const { can, isSuperadmin } = useUser();
+  // Palette is dashboard-only in prod, but null-safe for tests/pre-auth trees.
+  const extPanels = useExtensionsOptional()?.panels ?? [];
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -116,6 +120,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const filteredSections: { label: string; items: NavEntry[] }[] = [
     PERSONAL_SECTION,
     ...NAV_SECTIONS,
+    buildExtensionsSection(extPanels),
   ]
     .map((section) => ({
       label: section.label,

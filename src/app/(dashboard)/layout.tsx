@@ -25,10 +25,12 @@ import {
 import { cn } from "@/lib/utils";
 import {
   NAV_SECTIONS,
+  buildExtensionsSection,
   isVisible,
   resolveBreadcrumb,
   type NavSectionId,
 } from "@/lib/nav";
+import { ExtensionsProvider, useExtensions } from "@/contexts/extensions-context";
 import { get, getAccessToken, clearTokens } from "@/lib/api-client";
 import { getJwtPayload } from "@/lib/jwt";
 import { RequireAuth } from "./require-auth";
@@ -174,6 +176,7 @@ function Sidebar({
   const onProjectList = isOnProjectList(pathname);
   const projectId = extractProjectId(pathname);
   const { pinned } = usePinnedProjects();
+  const { panels } = useExtensions();
 
   const [currentUserLabel, setCurrentUserLabel] = useState("User");
 
@@ -445,6 +448,46 @@ function Sidebar({
             );
           })()}
 
+        {/* ── Extensions (platform-wide panels from enabled add-ons) ── */}
+        {!inProject &&
+          (() => {
+            const extEntries = buildExtensionsSection(panels).entries;
+            if (extEntries.length === 0) return null;
+            return (
+              <div>
+                <div className={cn("px-2 mb-1.5", collapsed && "pt-2")}>
+                  {collapsed ? (
+                    <div className="h-px bg-surface-700" />
+                  ) : (
+                    <h2 className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-dim">
+                      Extensions
+                    </h2>
+                  )}
+                </div>
+                <div className="space-y-0.5">
+                  {extEntries.map((entry) => {
+                    const active = isActive(entry.href);
+                    const Icon = entry.icon;
+                    return (
+                      <SidebarLink
+                        key={entry.href}
+                        href={entry.href}
+                        active={active}
+                        title={entry.label}
+                        onClick={onClose}
+                      >
+                        <span className={cn("shrink-0", active ? "text-signal" : "text-surface-400")}>
+                          <Icon size={18} />
+                        </span>
+                        <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>{entry.label}</span>
+                      </SidebarLink>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
         {/* ── System (hidden inside project pages; header hides with items) ── */}
         {!inProject &&
           (() => {
@@ -604,6 +647,7 @@ export default function DashboardLayout({
   return (
     <RequireAuth>
     <ConfigDirtyProvider>
+    <ExtensionsProvider>
     <TooltipProvider delayDuration={200}>
     <div className="flex h-screen overflow-hidden bg-surface-950">
       {/* Floating mobile hamburger */}
@@ -659,8 +703,9 @@ export default function DashboardLayout({
         </div>
       </main>
     </div>
-    </TooltipProvider>
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
+    </TooltipProvider>
+    </ExtensionsProvider>
     </ConfigDirtyProvider>
     </RequireAuth>
   );
