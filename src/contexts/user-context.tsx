@@ -13,7 +13,7 @@ import { get } from "@/lib/api-client";
 
 export type UserRole = "admin" | "member" | "superadmin";
 
-/** The org-level RBAC permission set (effective — admins hold all via wildcard). */
+/** The user-scoped RBAC permission set (effective — admins hold all via wildcard). */
 export const ALL_PERMISSIONS = [
   "project:read",
   "project:write",
@@ -72,7 +72,7 @@ interface UserContextValue {
 const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 /**
- * Loads the current user's profile (incl. org role + effective permissions)
+ * Loads the current user's profile (incl. role + effective permissions)
  * once from /v1/auth/me. Unknown/failed fetches resolve to `role: null` →
  * `isAdmin: false` and `can() → false`, so admin surfaces stay hidden until
  * the role is actually known. `permissions` is parsed defensively (`?? []`)
@@ -122,7 +122,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const role: UserRole | null = user?.role ?? null;
   const permissions: string[] = user?.permissions ?? [];
   // Superadmin holds every admin surface too — a lone `role === "admin"`
-  // check would lock the root account out of org admin UI.
+  // check would lock the root account out of admin UI.
   const isAdmin = role === "admin" || role === "superadmin";
   const isSuperadmin = role === "superadmin";
   const mustChangePassword = user?.must_change_password ?? false;

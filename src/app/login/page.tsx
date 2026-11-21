@@ -125,7 +125,7 @@ export default function LoginPage() {
       <div className="card-base p-6 shadow-glow-sm">
             <h2 className="font-display text-xl font-medium mb-1">Welcome back</h2>
             <p className="text-sm text-surface-400 mb-6">
-              Sign in to your organization dashboard
+              Sign in to your personal dashboard
             </p>
 
             <Suspense

@@ -100,7 +100,7 @@ function InviteForm() {
   };
 
   return (
-    <AuthLayout variant="features" tagline="Join your organization">
+    <AuthLayout variant="features" tagline="Join the platform">
       {loading ? (
             <div className="card-base p-10 flex flex-col items-center gap-3 text-surface-400">
               <Loader2 size={24} className="animate-spin text-brand-500" />
@@ -119,8 +119,7 @@ function InviteForm() {
           ) : (
             <div className="card-base p-6">
               <h2 className="font-display text-xl font-medium mb-1">
-                You’ve been invited to join{" "}
-                <span className="text-brand-400">{info.org_name}</span>
+                You&rsquo;ve been invited to join OpenZync
               </h2>
               <p className="text-sm text-surface-400 mb-5">
                 Set a password to activate your account.

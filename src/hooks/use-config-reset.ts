@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 
 /**
- * Manages staged field resets for org-config pages.
+ * Manages staged field resets for personal config pages.
  *
  * Instead of firing PATCH `{field: null}` immediately (old behavior),
  * the reset is staged in local state and submitted together with

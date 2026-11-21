@@ -78,9 +78,9 @@ function EnrichmentDetails({
 }) {
   const rawPct = data.fully_enriched_pct;
   const pct = Number.isFinite(rawPct) ? rawPct : 0;
-  // 0/0 is an undefined ratio, not 0%. An org with nothing enrichable gets
+  // 0/0 is an undefined ratio, not 0%. A workspace with nothing enrichable gets
   // wording instead of a percentage the counts cannot support: everything
-  // archived is done, a never-ingested org has no work and no rows to show.
+  // archived is done, a never-ingested workspace has no work and no rows to show.
   const hasEnrichable = data.enrichable_total > 0;
   const noEpisodes = !hasEnrichable && data.archived_episodes === 0;
   const headerLabel = noEpisodes ? "Nothing to enrich" : "Complete";
@@ -164,11 +164,11 @@ export function SidebarEnrichment({ collapsed }: { collapsed: boolean }) {
   const detail = `${enriched} / ${total} · ${pct.toFixed(1)}% · ${inProgress} in progress`;
 
   // Same zero-denominator reading as the popover header: everything archived is
-  // done, a never-ingested org has nothing to be congratulated for.
+  // done, a never-ingested workspace has nothing to be congratulated for.
   const noEpisodes = data.enrichable_total === 0 && data.archived_episodes === 0;
   const doneStatus = noEpisodes ? "No episodes" : "All enriched";
 
-  // An org that has archived every project has no enrichable work left, so
+  // A workspace that has archived every project has no enrichable work left, so
   // 0/0 is "done", not "0% and permanently stuck".
   if (data.enrichable_total === 0 || (pct >= 100 && data.enrichment_pending === 0 && data.in_progress === 0)) {
     if (collapsed) {

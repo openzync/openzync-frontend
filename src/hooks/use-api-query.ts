@@ -71,8 +71,7 @@ export function useApiQuery<T>(
     const controller = new AbortController();
     void (async () => {
       // Deferred past the effect body so state updates are never synchronous
-      // within it (react-hooks/set-state-in-effect) — same pattern as
-      // superadmin/orgs/page.tsx.
+      // within it (react-hooks/set-state-in-effect).
       await Promise.resolve();
       if (runId !== runIdRef.current || !mountedRef.current) return;
       setIsLoading(true);

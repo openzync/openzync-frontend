@@ -3,7 +3,8 @@ import { useEffect, useReducer } from "react";
 import { render, screen, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import OverviewPage from "@/app/(dashboard)/overview/page";
-import { get } from "@/lib/api-client";
+import { get, getAdminStats } from "@/lib/api-client";
+import type { AdminStats, AdminStatsParams } from "@/lib/api-client";
 
 // Re-renders the page whenever the URL mock changes — the stand-in for
 // Next.js re-rendering useSearchParams consumers after router.replace.
@@ -90,11 +91,11 @@ const baseGetImpl = (path: string) => {
   if (path === "/v1/projects?limit=100") {
     return Promise.resolve({ data: PROJECTS });
   }
-  if (path.startsWith("/v1/admin/stats/org")) {
-    return Promise.resolve(ORG_STATS);
-  }
   if (path.startsWith("/v1/admin/stats/usage")) {
     return Promise.resolve({ data: USAGE });
+  }
+  if (path.startsWith("/v1/admin/stats")) {
+    return Promise.resolve(ORG_STATS);
   }
   if (path === "/v1/admin/quick-actions") {
     return Promise.resolve({
@@ -107,10 +108,24 @@ const baseGetImpl = (path: string) => {
   return Promise.resolve({});
 };
 
-vi.mock("@/lib/api-client", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/api-client")>()),
-  get: vi.fn().mockImplementation((path: string) => baseGetImpl(path)),
-}));
+vi.mock("@/lib/api-client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api-client")>();
+  const getMock = vi.fn().mockImplementation((path: string) => baseGetImpl(path));
+  return {
+    ...actual,
+    get: getMock,
+    // getAdminStats closes over the module-internal get — route it through
+    // the same canned endpoints.
+    getAdminStats: vi.fn().mockImplementation(
+      ((params: AdminStatsParams = {}) => {
+        const query = new URLSearchParams();
+        for (const [k, v] of Object.entries(params)) query.set(k, String(v));
+        const suffix = query.size ? `?${query}` : "";
+        return baseGetImpl(`/v1/admin/stats${suffix}`);
+      }) as typeof getAdminStats,
+    ),
+  };
+});
 
 vi.mock("@/components/shared/page-header", () => ({
   PageHeader: ({ title, description }: { title: string; description?: string }) => (
@@ -164,6 +179,17 @@ beforeEach(() => {
   mockReplace.mockClear();
   mockSearchParamsGet.mockClear();
   setSearchParams({});
+  // restoreAllMocks() in afterEach wipes the factory implementation —
+  // re-apply it so every test gets the canned endpoints.
+  vi.mocked(get).mockImplementation((path: string) => baseGetImpl(path));
+  vi.mocked(getAdminStats).mockImplementation(
+    ((params: AdminStatsParams = {}) => {
+      const query = new URLSearchParams();
+      for (const [k, v] of Object.entries(params)) query.set(k, String(v));
+      const suffix = query.size ? `?${query}` : "";
+      return baseGetImpl(`/v1/admin/stats${suffix}`);
+    }) as typeof getAdminStats,
+  );
 });
 
 afterEach(() => {
@@ -270,7 +296,7 @@ describe("OverviewPage", () => {
       ).toBe(true);
     });
     expect(vi.mocked(get).mock.calls.some(
-      ([p]) => String(p).startsWith("/v1/admin/stats/org") && qs(String(p)).get("project_id") === "p-1",
+      ([p]) => String(p).startsWith("/v1/admin/stats") && qs(String(p)).get("project_id") === "p-1",
     )).toBe(true);
   });
 
@@ -345,26 +371,19 @@ describe("OverviewPage", () => {
   it("renders guide section with dashboard illustration", async () => {
     render(<OverviewPage />);
     expect(
-      await screen.findByText("Your organization at a glance"),
+      await screen.findByText("Your workspace at a glance"),
     ).toBeInTheDocument();
   });
 
   it("renders the quickstart panel for a fresh org with zero episodes", async () => {
-    // Path-scoped (not ...Once): the project dropdown fetches /v1/projects
-    // before the stats window, so a positional override would miss.
-    const defaultImpl = vi.mocked(get).getMockImplementation() as (path: string) => Promise<unknown>;
-    vi.mocked(get).mockImplementation((path: string) => {
-      if (path.startsWith("/v1/admin/stats/org")) {
-        return Promise.resolve({
-          total_episodes: 0,
-          total_sessions: 0,
-          total_facts: 0,
-          total_extractions: 0,
-          total_observations: 0,
-          total_classifications: 0,
-        });
-      }
-      return defaultImpl(path);
+    vi.mocked(getAdminStats).mockResolvedValueOnce({
+      user_id: "u-1",
+      total_episodes: 0,
+      total_sessions: 0,
+      total_facts: 0,
+      total_extractions: 0,
+      total_observations: 0,
+      total_classifications: 0,
     });
 
     render(<OverviewPage />);
@@ -380,34 +399,23 @@ describe("OverviewPage", () => {
   // which rendered a misleading "No data for this period." on failure.
 
   it("shows an error state instead of the stat cards when the stats fetch fails", async () => {
-    vi.mocked(get).mockImplementation((path: string) =>
-      path.startsWith("/v1/admin/stats/org")
-        ? Promise.reject(new Error("network down"))
-        : baseGetImpl(path),
-    );
+    vi.mocked(getAdminStats).mockRejectedValueOnce(new Error("network down"));
 
     render(<OverviewPage />);
 
     expect(
-      await screen.findByText("Couldn't load organization stats."),
+      await screen.findByText("Couldn't load workspace stats."),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("stat-card")).not.toBeInTheDocument();
   });
 
   it("retry re-invokes the failed stats fetch", async () => {
     const user = userEvent.setup();
-    let fail = true;
-    vi.mocked(get).mockImplementation((path: string) => {
-      if (path.startsWith("/v1/admin/stats/org")) {
-        return fail ? Promise.reject(new Error("network down")) : baseGetImpl(path);
-      }
-      return baseGetImpl(path);
-    });
+    vi.mocked(getAdminStats).mockRejectedValueOnce(new Error("network down"));
 
     render(<OverviewPage />);
-    await screen.findByText("Couldn't load organization stats.");
+    await screen.findByText("Couldn't load workspace stats.");
 
-    fail = false;
     await user.click(screen.getByRole("button", { name: /retry/i }));
 
     expect(await screen.findAllByTestId("stat-card")).toHaveLength(6);

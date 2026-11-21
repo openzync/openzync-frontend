@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { get, put, getAccessToken, refreshOnce, hasRefreshCredential } from "@/lib/api-client";
+import { get, patch, getAccessToken, refreshOnce, hasRefreshCredential } from "@/lib/api-client";
 import { SecretInput } from "@/components/ui/secret-input";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-interface UpdateOrgConfigRequest {
+interface UpdateMyConfigRequest {
   llm_backend?: string | null;
   llm_model?: string | null;
   llm_temperature?: number | null;
@@ -154,11 +154,11 @@ function OnboardingWizard() {
 
   // ── Form state (lifted to top level — shared by all steps) ─────────────────
 
-  const [form, setForm] = useState<UpdateOrgConfigRequest>({});
+  const [form, setForm] = useState<UpdateMyConfigRequest>({});
 
-  const updateField = useCallback(<K extends keyof UpdateOrgConfigRequest>(
+  const updateField = useCallback(<K extends keyof UpdateMyConfigRequest>(
     field: K,
-    value: UpdateOrgConfigRequest[K],
+    value: UpdateMyConfigRequest[K],
   ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
@@ -187,13 +187,10 @@ function OnboardingWizard() {
           return;
         }
 
-        const [defaultsData, configData] = await Promise.all([
-          get<UpdateOrgConfigRequest>("/admin/org/config/defaults"),
-          get<{ stored: Record<string, unknown> }>("/admin/org/config"),
-        ]);
+        const mine = await get<{ override: Record<string, unknown> }>("/v1/me/config");
 
-        // Existing stored config means onboarding already completed
-        const hasAnyStored = Object.values(configData.stored).some(
+        // Existing personal overrides mean onboarding already completed
+        const hasAnyStored = Object.values(mine.override ?? {}).some(
           (v) => v !== null && v !== undefined,
         );
         if (hasAnyStored) {
@@ -201,7 +198,7 @@ function OnboardingWizard() {
           return;
         }
 
-        setForm(defaultsData);
+        setForm({});
       } catch (err) {
         // No credential to retry with — same dead end the dashboard gate avoids.
         if (!hasRefreshCredential()) {
@@ -224,7 +221,10 @@ function OnboardingWizard() {
     try {
       // Surface the RFC 7807 detail (e.g. a missing permission on config save)
       // via ApiError.message.
-      await put("/admin/org/config", form);
+      // PATCH (partial update): PUT would full-replace and wipe stored keys
+      // this subset form never sends (pii, reranker, blob, ...).
+      // Personal config envelope — the backend requires `{config: {...}}`.
+      await patch("/v1/me/config", { config: form });
 
       toast.success("Configuration saved successfully");
       router.replace("/overview");
@@ -290,7 +290,7 @@ function OnboardingWizard() {
           </div>
           <h1 className="font-display text-2xl font-medium text-text-primary">Complete Your Setup</h1>
           <p className="text-sm text-surface-400 mt-1 max-w-md mx-auto">
-            Configure your organization&apos;s LLM, graph, and behaviour settings.
+            Configure your personal LLM, graph, and behaviour settings.
             Secrets like API keys must be filled in before you can use the platform.
           </p>
         </div>

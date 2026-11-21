@@ -80,7 +80,8 @@ export function isValidEmail(email: string): boolean {
 // fetch the same session URL on one navigation, so the second read is served
 // without a second network round-trip. Mutations (any non-GET) wipe it.
 // Identity changes (store/clearTokens) wipe it too — cached rows belong to
-// the previous principal. /v1/auth/me bypasses it (see request()).
+// the previous principal. /v1/auth/me and /v1/me/config bypass it (see
+// request()): identity and personal overrides must never serve stale reads.
 // Deliberately dumb — no React Query, no revalidation, no per-key TTL tuning.
 const GET_CACHE_TTL_MS = 30_000;
 const GET_CACHE_MAX_ENTRIES = 200;
@@ -415,8 +416,11 @@ async function request<T>(
   const method = (init.method ?? "GET").toUpperCase();
   // Any mutation may have changed what a GET returns — wipe, don't track keys.
   if (method !== "GET") _getCache.clear();
-  // Identity drives authz gating — never serve a stale role/permission set.
-  const cacheable = method === "GET" && !skipAuthRetry && path !== "/v1/auth/me";
+  // Identity drives authz gating — never serve a stale role/permission set,
+  // and personal config must reflect the latest PATCH. Both bypass the cache.
+  const BYPASS_CACHE_PATHS = new Set(["/v1/auth/me", "/v1/me/config"]);
+  const cacheable =
+    method === "GET" && !skipAuthRetry && !BYPASS_CACHE_PATHS.has(path.split("?")[0]);
   const url = `${API_BASE}${path}`;
   if (cacheable) {
     const cached = getCacheGet(url);
@@ -620,20 +624,9 @@ export function appendSortParams(
 
 // ─── Auth endpoints ───────────────────────────────────────────────────────────
 
-export interface JoinRequest {
-  email: string;
-  password: string;
-  org_code: string;
-}
-
 export interface SignupResponse {
   email: string;
   message: string;
-}
-
-/** POST /v1/auth/join — join an existing organization via its org code. Pre-auth: 401 must not trigger refresh/redirect. */
-export function join(data: JoinRequest): Promise<SignupResponse> {
-  return post<SignupResponse>("/v1/auth/join", data, { skipAuthRetry: true });
 }
 
 /** Normalise API responses that might use `data`, `items`, or be a bare array. */
@@ -649,7 +642,6 @@ export function extractList<T>(response: unknown): T[] {
 // ─── Invite endpoints (admin invites → magic-link password set) ──────────────
 
 export interface InviteInfo {
-  org_name: string;
   email: string;
   name: string;
 }
@@ -660,8 +652,8 @@ export interface TokenPair {
 }
 
 /**
- * POST /v1/auth/invites/info — resolve an invite token to the invitee's org
- * and profile. Unauthenticated: the token travels in the BODY, never the URL.
+ * POST /v1/auth/invites/info — resolve an invite token to the invitee's
+ * profile. Unauthenticated: the token travels in the BODY, never the URL.
  */
 export function getInviteInfo(token: string): Promise<InviteInfo> {
   return post<InviteInfo>("/v1/auth/invites/info", { token }, { skipAuthRetry: true });
@@ -686,52 +678,45 @@ export async function acceptInvite(
   return tokens;
 }
 
-/** POST /v1/admin/users/invite — org-admin only; emails the invite link. */
+/** POST /v1/admin/users/invite — admin only; emails the invite link. */
 export function inviteUser(email: string, name: string): Promise<unknown> {
   return post("/v1/admin/users/invite", { email, name });
 }
 
-/** DELETE /v1/admin/users/invites/{id} — org-admin only; revokes a pending invite. */
+/** DELETE /v1/admin/users/invites/{id} — admin only; revokes a pending invite. */
 export function revokeInvite(userId: string): Promise<void> {
   return del(`/v1/admin/users/invites/${userId}`);
 }
 
-// ─── Registration gating & platform super-admin console ──────────────────────
+// ─── Personal config (my overrides over system defaults) ────────────────────
 
-export type OrgCreationPolicy = "allow_all" | "reject_all" | "approvals";
-export type ApprovalScope = "in_app" | "public_signup" | "both";
-export type OrgApprovalStatus = "pending" | "approved" | "rejected";
-
-/** GET /v1/auth/registration-status — PUBLIC; drives signup/join gating. */
-export interface RegistrationStatus {
-  org_creation_policy: OrgCreationPolicy;
-  approval_scope: ApprovalScope;
+/**
+ * Personal config lives on the caller — single-user ownership, no org.
+ * GET/PATCH /v1/me/config is the personal override layer; anything not
+ * overridden falls back to system defaults. A `null` PATCH value clears an
+ * override so the system default applies again.
+ */
+export interface MyConfigResponse {
+  /** Only the keys the user explicitly set (empty when none). */
+  override: Record<string, unknown>;
+  /** Merged user ⊕ system view actually applied. */
+  effective: Record<string, unknown>;
 }
 
-export interface OrgListEntry {
-  id: string;
-  name: string;
-  status: OrgApprovalStatus;
-  created_at: string;
-}
-
-/** GET /admin/system/orgs — offset-paginated list of ALL orgs (superadmin only). */
-export interface OrgListResponse {
-  data: OrgListEntry[];
-  total: number;
-  page: number;
-  limit: number;
+/** GET /v1/me/config — the caller's personal config overrides (canonical; no alias). */
+export function getMyConfig(): Promise<MyConfigResponse> {
+  return get<MyConfigResponse>("/v1/me/config");
 }
 
 /**
- * GET/PATCH /admin/system/config — superadmin system defaults.
- * `org_creation_policy`/`approval_scope` are flat; the remaining non-secret
- * defaults use the same field names as the org-config `stored` map.
+ * PATCH /v1/me/config — update personal overrides (`null` clears one).
+ * Backend UserConfigUpdate requires the `{config: {...}}` envelope —
+ * never send the raw dict.
  */
-export interface SystemConfigResponse {
-  org_creation_policy: OrgCreationPolicy;
-  approval_scope: ApprovalScope;
-  [key: string]: unknown;
+export function updateMyConfig(
+  data: Record<string, unknown>,
+): Promise<MyConfigResponse> {
+  return patch<MyConfigResponse>("/v1/me/config", { config: data });
 }
 
 /**
@@ -770,19 +755,6 @@ export function revealSystemSetting(
   );
 }
 
-/** POST /v1/org-requests — any authenticated user; creates an org (allow_all) or a pending request (approvals). */
-export interface OrgRequestCreate {
-  organization_name: string;
-  admin_email: string;
-  admin_name: string;
-}
-
-export interface OrgRequestResponse {
-  organization_name: string;
-  admin_email: string;
-  status: string;
-}
-
 /**
  * POST /v1/auth/change-password — rotates the token pair and clears the
  * `must_change_password` flag. Success is a fresh session: overwrite tokens
@@ -799,11 +771,6 @@ export async function changePassword(
   clearTokens();
   storeTokens(tokens.access_token, tokens.refresh_token);
   return tokens;
-}
-
-/** GET /v1/auth/registration-status — PUBLIC; signup page gates on this. Pre-auth: 401 must not trigger refresh/redirect. */
-export function getRegistrationStatus(): Promise<RegistrationStatus> {
-  return get<RegistrationStatus>("/v1/auth/registration-status", { skipAuthRetry: true });
 }
 
 // ─── Project pin endpoints ────────────────────────────────────────────────────
@@ -827,7 +794,7 @@ export type ExtractionSchemaType = "structured" | "classification";
 
 export interface ExtractionSchema {
   id: string;
-  organization_id: string;
+  user_id: string;
   name: string;
   type: string;
   json_schema: Record<string, unknown>;
@@ -879,7 +846,7 @@ export interface SchemaTemplate {
   sample_text: string;
 }
 
-/** GET /v1/admin/schemas — list schemas for the org, optional filters. */
+/** GET /v1/admin/schemas — list schemas for the user, optional filters. */
 export function listSchemas(params?: {
   type?: ExtractionSchemaType;
   is_active?: boolean;
@@ -895,7 +862,7 @@ export function listSchemas(params?: {
   return get<ExtractionSchemaListResponse>(`/v1/admin/schemas${suffix}`);
 }
 
-/** GET /v1/admin/schemas/{id} — single schema scoped to the org. */
+/** GET /v1/admin/schemas/{id} — single schema scoped to the user. */
 export function getSchema(id: string): Promise<ExtractionSchema> {
   return get<ExtractionSchema>(`/v1/admin/schemas/${encodeURIComponent(id)}`);
 }
@@ -930,6 +897,40 @@ export function previewSchema(
 export async function getTemplates(): Promise<SchemaTemplate[]> {
   const raw = await get<unknown>("/v1/admin/schemas/templates");
   return extractList<SchemaTemplate>(raw);
+}
+
+// ─── Admin stats ──────────────────────────────────────────────────────────────
+
+/** Aggregate counts for the dashboard overview (GET /v1/admin/stats). */
+export interface AdminStats {
+  user_id: string;
+  total_episodes: number;
+  total_sessions: number;
+  total_facts: number;
+  total_extractions: number;
+  total_observations: number;
+  total_classifications: number;
+}
+
+export interface AdminStatsParams {
+  days?: number;
+  from?: string;
+  to?: string;
+  project_id?: string;
+}
+
+/** GET /v1/admin/stats — windowed aggregate counts, optional project scope. */
+export function getAdminStats(params: AdminStatsParams = {}): Promise<AdminStats> {
+  const query = new URLSearchParams();
+  if (params.from && params.to) {
+    query.set("from", params.from);
+    query.set("to", params.to);
+  } else if (params.days !== undefined) {
+    query.set("days", String(params.days));
+  }
+  if (params.project_id) query.set("project_id", params.project_id);
+  const suffix = query.size ? `?${query}` : "";
+  return get<AdminStats>(`/v1/admin/stats${suffix}`);
 }
 
 // ─── LLM usage (tracking-only) ──────────────────────────────────────────────

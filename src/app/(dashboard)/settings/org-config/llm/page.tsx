@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useState } from "react";
 import { Brain, Eye, RotateCcw, Zap } from "lucide-react";
 import { toast } from "sonner";
-import { get, patch, ApiError } from "@/lib/api-client";
+import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,8 @@ import { useConfigReset } from "@/hooks/use-config-reset";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-interface OrgConfigResponse {
-  stored: Record<string, unknown>;
-}
-
 /** What the config fetcher hands to the render-phase form seed. */
-interface OrgConfigData {
+interface ConfigData {
   stored: Record<string, unknown>;
   defaults: Record<string, unknown>;
 }
@@ -50,7 +46,7 @@ type FormState = {
 
 /** One provider-specific field (api key, endpoint, base url, …). */
 interface ProviderField {
-  /** Must match a backend `UpdateOrgConfigRequest` field name exactly. */
+  /** Must match a personal-config (`PATCH /v1/me/config`) field name exactly. */
   field: keyof FormState;
   label: string;
   placeholder: string;
@@ -218,18 +214,11 @@ export default function LlmConfigPage() {
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
-  const configQuery = useApiQuery<OrgConfigData>(async () => {
-    const data = await get<OrgConfigResponse>("/admin/org/config");
-    const stored = (data.stored ?? {}) as Record<string, unknown>;
-    const hasAnyStored =
-      LLM_FIELDS.some((f) => stored[f] != null) || hasStoredPromptCaching(stored.prompt_caching);
-
-    // If no stored values exist for this tab, pull onboarding defaults from API
-    const defaults = hasAnyStored
-      ? {}
-      : await get<Record<string, unknown>>("/admin/org/config/defaults").catch(
-          () => ({}) as Record<string, unknown>,
-        );
+  const configQuery = useApiQuery<ConfigData>(async () => {
+    const data = await getMyConfig();
+    const stored = (data.override ?? {}) as Record<string, unknown>;
+        // System defaults apply for anything not overridden.
+    const defaults: Record<string, unknown> = {};
 
     return { stored, defaults };
   });
@@ -237,7 +226,7 @@ export default function LlmConfigPage() {
   // Seed the editable form from server data — render-phase adjustment keyed on
   // response identity (same pattern as superadmin/config), so a refetch after
   // save re-seeds exactly once.
-  const [seeded, setSeeded] = useState<OrgConfigData | null>(null);
+  const [seeded, setSeeded] = useState<ConfigData | null>(null);
   if (configQuery.data && configQuery.data !== seeded) {
     setSeeded(configQuery.data);
     const { stored, defaults } = configQuery.data;
@@ -245,7 +234,7 @@ export default function LlmConfigPage() {
       (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
 
     // prompt_caching is nested on the backend — read the three flat form
-    // fields from stored.prompt_caching, falling back to the platform
+    // fields from stored.prompt_caching, falling back to the system
     // default per key when the object or a key is null/absent
     const pc = stored.prompt_caching as Record<string, unknown> | null | undefined;
     const pcVal = (key: string, fallback: unknown) => (pc?.[key] as unknown) ?? fallback;
@@ -327,7 +316,7 @@ export default function LlmConfigPage() {
 
     // prompt_caching is a nested backend object — collapse the three flat form
     // fields into it. A staged reset (flat null from getSavePayload) becomes a
-    // null inside the object so the backend falls back to that field's platform
+    // null inside the object so the backend falls back to that field's system
     // default; resetting all three sends {} so the backend clears every field.
     // Never send prompt_caching: null — the backend treats null as "don't
     // touch", which would silently keep the old values.
@@ -356,7 +345,7 @@ export default function LlmConfigPage() {
     setSaving(true);
 
     try {
-      await patch("/admin/org/config", payload);
+      await updateMyConfig(payload);
       toast.success("LLM configuration saved successfully");
       setDirty(false);
       clearResets();

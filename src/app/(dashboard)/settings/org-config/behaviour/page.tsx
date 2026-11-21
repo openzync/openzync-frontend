@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { RotateCcw, Settings2 } from "lucide-react";
 import { toast } from "sonner";
-import { get, patch, ApiError } from "@/lib/api-client";
+import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,8 @@ import { useConfigReset } from "@/hooks/use-config-reset";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-interface OrgConfigResponse {
-  stored: Record<string, unknown>;
-}
-
 /** What the config fetcher hands to the render-phase form seed. */
-interface OrgConfigData {
+interface ConfigData {
   stored: Record<string, unknown>;
   defaults: Record<string, unknown>;
 }
@@ -80,17 +76,11 @@ export default function BehaviourConfigPage() {
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
-  const configQuery = useApiQuery<OrgConfigData>(async () => {
-    const data = await get<OrgConfigResponse>("/admin/org/config");
-    const stored = (data.stored ?? {}) as Record<string, unknown>;
-    const hasAnyStored = FIELDS.some((f) => stored[f] != null);
-
-    // If no stored values exist for this tab, pull onboarding defaults from API
-    const defaults = hasAnyStored
-      ? {}
-      : await get<Record<string, unknown>>("/admin/org/config/defaults").catch(
-          () => ({}) as Record<string, unknown>,
-        );
+  const configQuery = useApiQuery<ConfigData>(async () => {
+    const data = await getMyConfig();
+    const stored = (data.override ?? {}) as Record<string, unknown>;
+        // System defaults apply for anything not overridden.
+    const defaults: Record<string, unknown> = {};
 
     return { stored, defaults };
   });
@@ -98,7 +88,7 @@ export default function BehaviourConfigPage() {
   // Seed the editable form from server data — render-phase adjustment keyed on
   // response identity (same pattern as superadmin/config), so a refetch after
   // save re-seeds exactly once.
-  const [seeded, setSeeded] = useState<OrgConfigData | null>(null);
+  const [seeded, setSeeded] = useState<ConfigData | null>(null);
   if (configQuery.data && configQuery.data !== seeded) {
     setSeeded(configQuery.data);
     const { stored, defaults } = configQuery.data;
@@ -162,7 +152,7 @@ export default function BehaviourConfigPage() {
     try {
       const payload = getSavePayload(form as unknown as Record<string, unknown>);
 
-      await patch("/admin/org/config", payload);
+      await updateMyConfig(payload);
 
       toast.success("Behaviour configuration saved successfully");
       clearResets();

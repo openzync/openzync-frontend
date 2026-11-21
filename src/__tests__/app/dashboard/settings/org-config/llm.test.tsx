@@ -6,9 +6,9 @@ import { ConfigDirtyProvider } from "@/contexts/config-dirty";
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────────
 
-const { mockGet, mockPatch } = vi.hoisted(() => ({
-  mockGet: vi.fn(),
-  mockPatch: vi.fn(),
+const { mockGetMyConfig, mockUpdateMyConfig } = vi.hoisted(() => ({
+  mockGetMyConfig: vi.fn(),
+  mockUpdateMyConfig: vi.fn(),
 }));
 
 // ConfigDirtyProvider (mounted by renderPage) reads router/pathname.
@@ -17,7 +17,8 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/settings/org-config/llm",
 }));
 
-vi.mock("@/lib/api-client", () => {
+vi.mock("@/lib/api-client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api-client")>();
   class ApiError extends Error {
     status: number;
     body: unknown;
@@ -31,8 +32,9 @@ vi.mock("@/lib/api-client", () => {
     }
   }
   return {
-    get: mockGet,
-    patch: mockPatch,
+    ...actual,
+    getMyConfig: mockGetMyConfig,
+    updateMyConfig: mockUpdateMyConfig,
     ApiError,
     apiErrorMessage: (err: unknown, fallback: string) =>
       err instanceof ApiError && err.isForbidden ? "Admin access required" : fallback,
@@ -42,7 +44,7 @@ vi.mock("@/lib/api-client", () => {
 // ─── Fixtures ──────────────────────────────────────────────────────────────────
 
 const STORED = {
-  stored: {
+  override: {
     prompt_caching: {
       enabled: true,
       anthropic_min_tokens: 1024,
@@ -65,9 +67,9 @@ function renderPage() {
 
 describe("LlmConfigPage prompt caching save transform", () => {
   beforeEach(() => {
-    mockGet.mockReset();
-    mockPatch.mockReset();
-    mockGet.mockResolvedValue(STORED);
+    mockGetMyConfig.mockReset();
+    mockUpdateMyConfig.mockReset();
+    mockGetMyConfig.mockResolvedValue(STORED);
   });
 
   it("toggles prompt_caching_enabled → nested prompt_caching payload, flat keys absent", async () => {
@@ -78,7 +80,7 @@ describe("LlmConfigPage prompt caching save transform", () => {
     await user.click(await screen.findByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
-      expect(mockPatch).toHaveBeenCalledWith("/admin/org/config", {
+      expect(mockUpdateMyConfig).toHaveBeenCalledWith({
         prompt_caching: {
           enabled: false,
           anthropic_min_tokens: 1024,
@@ -99,7 +101,7 @@ describe("LlmConfigPage prompt caching save transform", () => {
     await user.click(await screen.findByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
-      expect(mockPatch).toHaveBeenCalledWith("/admin/org/config", {
+      expect(mockUpdateMyConfig).toHaveBeenCalledWith({
         prompt_caching: {},
       });
     });
@@ -115,7 +117,7 @@ describe("LlmConfigPage prompt caching save transform", () => {
     await user.click(await screen.findByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
-      expect(mockPatch).toHaveBeenCalledWith("/admin/org/config", {
+      expect(mockUpdateMyConfig).toHaveBeenCalledWith({
         prompt_caching: {
           enabled: true,
           anthropic_min_tokens: null,
@@ -132,7 +134,7 @@ describe("LlmConfigPage prompt caching save transform", () => {
     expect(
       screen.queryByRole("button", { name: "Save Changes" }),
     ).not.toBeInTheDocument();
-    expect(mockPatch).not.toHaveBeenCalled();
+    expect(mockUpdateMyConfig).not.toHaveBeenCalled();
   });
 
   it("editing a field after staging its reset cancels the reset (no null sent)", async () => {
@@ -151,7 +153,7 @@ describe("LlmConfigPage prompt caching save transform", () => {
     await user.click(await screen.findByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
-      expect(mockPatch).toHaveBeenCalledWith("/admin/org/config", {
+      expect(mockUpdateMyConfig).toHaveBeenCalledWith({
         prompt_caching: {
           enabled: true,
           anthropic_min_tokens: 2048,
@@ -162,23 +164,18 @@ describe("LlmConfigPage prompt caching save transform", () => {
   });
 
   it("all-null prompt_caching (clear-to-defaults state) counts as not stored", async () => {
-    mockGet.mockImplementation((url: string) => {
-      if (url === "/admin/org/config/defaults") return Promise.resolve({});
-      return Promise.resolve({
-        stored: {
-          prompt_caching: {
-            enabled: null,
-            anthropic_min_tokens: null,
-            anthropic_cache_ttl: null,
-          },
+    mockGetMyConfig.mockResolvedValue({
+      override: {
+        prompt_caching: {
+          enabled: null,
+          anthropic_min_tokens: null,
+          anthropic_cache_ttl: null,
         },
-      });
+      },
     });
     renderPage();
 
     await screen.findByRole("checkbox");
-    // defaults fetch fires because nothing is really stored
-    expect(mockGet).toHaveBeenCalledWith("/admin/org/config/defaults");
     // no reset buttons — the fields are already at defaults
     expect(screen.queryByTitle(RESET_TITLE)).not.toBeInTheDocument();
   });

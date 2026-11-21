@@ -29,7 +29,7 @@ const ExtensionsContext = createContext<ExtensionsContextValue | undefined>(
 /**
  * Fetches the add-on registry once per session (under RequireAuth, so the
  * access token is available) and derives the Extensions nav panels from
- * enabled add-ons that expose `panels`. Platform-wide — no per-org filter.
+ * enabled add-ons that expose `panels`. Platform-wide — not scoped per user.
  * Sidebar, palette, and breadcrumbs read through this single source.
  */
 export function ExtensionsProvider({ children }: { children: ReactNode }) {

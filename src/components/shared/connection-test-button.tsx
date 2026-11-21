@@ -23,7 +23,7 @@ function truncate(detail: string): string {
 }
 
 /**
- * Test-connection action for org-config credential cards.
+ * Test-connection action for config credential cards.
  *
  * Renders a secondary Button (loading/disabled states via the shared Button)
  * plus an inline success/error hint: latency on success, truncated detail on

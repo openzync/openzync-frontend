@@ -9,7 +9,7 @@ type TabsVariant = "underline" | "pill";
 const TabsVariantContext = createContext<TabsVariant>("underline");
 
 interface TabsProps extends React.ComponentProps<typeof TabsPrimitive.Root> {
-  /** "underline": bottom-bar tabs (session detail). "pill": card-base segmented control (playground, org-config tab-bar language). */
+  /** "underline": bottom-bar tabs (session detail). "pill": card-base segmented control (playground, config tab-bar language). */
   variant?: TabsVariant;
 }
 

@@ -37,7 +37,6 @@ vi.mock("@/lib/api-client", () => ({
 }));
 
 const VALID_INFO = {
-  org_name: "Acme Corp",
   email: "alice@acme.com",
   name: "Alice",
 };
@@ -135,11 +134,11 @@ describe("InvitePage", () => {
     expect(screen.queryByPlaceholderText("Minimum 8 characters")).not.toBeInTheDocument();
   });
 
-  it("shows org name plus read-only email and name from the invite info", async () => {
+  it("shows read-only email and name from the invite info", async () => {
     mockGetInviteInfo.mockResolvedValue(VALID_INFO);
     render(<InvitePage />);
 
-    expect(await screen.findByText("Acme Corp")).toBeInTheDocument();
+    expect(await screen.findByText(/been invited to join/)).toBeInTheDocument();
     expect(screen.getByDisplayValue("alice@acme.com")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Alice")).toBeInTheDocument();
     // Read-only: admin-set, not editable.

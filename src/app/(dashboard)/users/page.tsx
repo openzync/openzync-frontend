@@ -373,7 +373,7 @@ function UsersPageInner() {
     <div className="space-y-6">
       <PageHeader
         title="Users"
-        description="Manage end-users within your organization"
+        description="Manage platform users"
         actions={
           canWrite && (
             <div className="flex items-center gap-2">
@@ -389,7 +389,7 @@ function UsersPageInner() {
       />
 
       <PageGuide title="User management" illustration={<GuideSecurity />}>
-        <p>View and manage organization users. Monitor user activity, assign roles, and control access to organization resources.</p>
+        <p>View and manage platform users. Monitor user activity, assign roles, and control access to platform resources.</p>
       </PageGuide>
 
       {error && <ErrorState message={error} onRetry={loadUsers} />}
@@ -584,7 +584,7 @@ function UsersPageInner() {
         title={roleChangeTarget?.to === "admin" ? "Make Admin" : "Remove Admin"}
         message={
           roleChangeTarget?.to === "admin"
-            ? `Grant admin access to "${roleChangeTarget?.user.name || roleChangeTarget?.user.external_id}"? Admins can manage org users, settings, and view monitoring/audit data.`
+            ? `Grant admin access to "${roleChangeTarget?.user.name || roleChangeTarget?.user.external_id}"? Admins can manage platform users, settings, and view monitoring/audit data.`
             : `Remove admin access from "${roleChangeTarget?.user.name || roleChangeTarget?.user.external_id}"? They will become a regular member.`
         }
         confirmLabel={roleChangeTarget?.to === "admin" ? "Make Admin" : "Remove Admin"}
