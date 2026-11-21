@@ -128,18 +128,9 @@ describe("resolveBreadcrumb", () => {
   });
 
   it("keeps the superadmin ladder", () => {
-    expect(resolveBreadcrumb("/superadmin/orgs")).toEqual([
+    expect(resolveBreadcrumb("/superadmin/config")).toEqual([
       { label: "Platform Admin" },
-      { label: "Organizations" },
-    ]);
-    expect(resolveBreadcrumb("/superadmin/orgs/o-1/members")).toEqual([
-      { label: "Platform Admin" },
-      { label: "Organizations" },
-      { label: "Members" },
-    ]);
-    expect(resolveBreadcrumb("/superadmin/requests")).toEqual([
-      { label: "Platform Admin" },
-      { label: "Approval Requests" },
+      { label: "System Configuration" },
     ]);
   });
 

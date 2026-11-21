@@ -3,13 +3,11 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Inbox, Building2, Settings2 } from "lucide-react";
+import { Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/contexts/user-context";
 
 const TABS = [
-  { label: "Requests", href: "/superadmin/requests", icon: <Inbox size={16} /> },
-  { label: "Organizations", href: "/superadmin/orgs", icon: <Building2 size={16} /> },
   { label: "System Configuration", href: "/superadmin/config", icon: <Settings2 size={16} /> },
 ];
 
@@ -46,16 +44,13 @@ export default function SuperadminLayout({ children }: { children: React.ReactNo
       <div>
         <h1 className="font-display text-2xl font-medium tracking-tight">Platform Administration</h1>
         <p className="text-sm text-surface-400 mt-1">
-          Registration policy, organization approvals, and system defaults
+          Platform system defaults and runtime settings
         </p>
       </div>
 
       <div className="flex gap-1 p-1 card-base w-fit">
         {TABS.map((tab) => {
-          const isActive =
-            tab.href === "/superadmin/orgs"
-              ? pathname.startsWith("/superadmin/orgs")
-              : pathname === tab.href;
+          const isActive = pathname === tab.href;
           return (
             <Link
               key={tab.href}

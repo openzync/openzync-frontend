@@ -1,99 +1,66 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, RefreshCw, KeyRound, Loader2, UserPlus, AlertCircle } from "lucide-react";
-import { get, post, patch, apiErrorMessage } from "@/lib/api-client";
+import Link from "next/link";
+import { ListChecks, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { toast } from "sonner";
+import {
+  getMyConfig,
+  updateMyConfig,
+  apiErrorMessage,
+} from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { useUser } from "@/contexts/user-context";
 
-interface OrgCodeResponse {
-  org_code: string;
-  join_enabled: boolean;
+/** Secret values are never rendered — only whether one is set. */
+function isSecretKey(key: string): boolean {
+  return /key|secret|pass|token/i.test(key);
+}
+
+function displayValue(key: string, value: unknown): string {
+  if (value === null || value === undefined || value === "") return "Not set";
+  if (isSecretKey(key)) return "Set";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
 }
 
 /**
- * Organization code card — the invite code members use to join this org
- * via POST /v1/auth/join. Read-gated on configuration:read; regenerate/join
- * toggles additionally require configuration:write.
+ * Personal configuration overview — the caller's own overrides.
+ * Anything not overridden falls back to system defaults.
  */
-export default function OrgConfigIndexPage() {
+export default function ConfigOverviewPage() {
   const { can, loading: roleLoading } = useUser();
   const canRead = can("configuration:read");
-  const canWrite = can("configuration:write");
-  const orgCodeQuery = useApiQuery<OrgCodeResponse>(
-    () => get<OrgCodeResponse>("/admin/org/org-code"),
-    { enabled: canRead },
-  );
-  const loading = orgCodeQuery.isLoading;
-  // Mutation failures (regenerate/toggle/copy) share the banner with load
-  // errors; retry re-runs the GET.
+  const mineQuery = useApiQuery(() => getMyConfig(), { enabled: canRead });
+  const [resetting, setResetting] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const error = orgCodeQuery.error ?? actionError;
-  const [copied, setCopied] = useState(false);
-  const [showRegenerate, setShowRegenerate] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
 
-  // orgCode/joinEnabled are locally mutable (regenerate/toggle write mutation
-  // responses straight back), so they are seeded from each new server response
-  // via render-phase adjustment keyed on response identity.
-  const [seededCode, setSeededCode] = useState<OrgCodeResponse | null>(null);
-  const [orgCode, setOrgCode] = useState<string | null>(null);
-  const [joinEnabled, setJoinEnabled] = useState(true);
-  const [togglingJoin, setTogglingJoin] = useState(false);
-  if (orgCodeQuery.data && orgCodeQuery.data !== seededCode) {
-    setSeededCode(orgCodeQuery.data);
-    setOrgCode(orgCodeQuery.data.org_code);
-    setJoinEnabled(orgCodeQuery.data.join_enabled);
-  }
+  const loading = mineQuery.isLoading;
+  const error = mineQuery.error ?? actionError;
+  const myStored = (mineQuery.data?.override ?? {}) as Record<string, unknown>;
+  const overriddenKeys = Object.keys(myStored).sort();
 
   const handleRetry = () => {
-    orgCodeQuery.refetch();
+    mineQuery.refetch();
   };
 
-  const handleCopy = async () => {
-    if (!orgCode) return;
+  const handleReset = async (key: string) => {
+    setResetting(key);
     try {
-      await navigator.clipboard.writeText(orgCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      setActionError("Failed to copy — clipboard unavailable");
-    }
-  };
-
-  const handleRegenerate = async () => {
-    setRegenerating(true);
-    try {
-      const data = await post<OrgCodeResponse>("/admin/org/org-code/regenerate");
-      setOrgCode(data.org_code);
+      // null clears the override — the system default applies again.
+      await updateMyConfig({ [key]: null });
       setActionError(null);
-      setShowRegenerate(false);
+      toast.success(`"${key}" reset to the system default`);
+      mineQuery.refetch();
     } catch (err) {
-      setActionError(apiErrorMessage(err, "Failed to regenerate code"));
-      setShowRegenerate(false);
+      const message = apiErrorMessage(err, "Failed to reset override");
+      setActionError(message);
+      toast.error(message);
     } finally {
-      setRegenerating(false);
-    }
-  };
-
-  // Await-then-update (not optimistic): state only changes from the PATCH
-  // response, so a failure needs no revert — the switch simply stays put.
-  const handleToggleJoin = async (newValue: boolean) => {
-    setTogglingJoin(true);
-    try {
-      const data = await patch<OrgCodeResponse>("/admin/org/org-code", {
-        join_enabled: newValue,
-      });
-      setJoinEnabled(data.join_enabled);
-      setActionError(null);
-    } catch (err) {
-      setActionError(apiErrorMessage(err, "Failed to update join setting"));
-    } finally {
-      setTogglingJoin(false);
+      setResetting(null);
     }
   };
 
@@ -108,133 +75,82 @@ export default function OrgConfigIndexPage() {
   }
 
   // No read permission (or role fetch failed → unknown treated as denied):
-  // no code, no fetch — mirror the backend's 403 message.
+  // mirror the backend's 403 message.
   if (!canRead) {
     return (
       <ErrorState message="This action requires the 'configuration:read' permission." />
     );
   }
 
+  if (error) {
+    return <ErrorState message={error} onRetry={handleRetry} />;
+  }
+
   return (
     <div className="space-y-4">
-      {error ? (
-        <ErrorState message={error} onRetry={handleRetry} />
-      ) : (
-        <div className="card-base p-6">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 shrink-0 text-brand-300">
-              <KeyRound size={20} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="font-display text-lg font-medium">Organization Code</h2>
-              <p className="text-sm text-surface-400 mt-0.5">
-                Share this code with people you want to invite — they can join your
-                organization from the signup page (&ldquo;Join with code&rdquo;).
-              </p>
-            </div>
+      {/* ── My overrides (personal layer, resettable) ──────────────────────── */}
+      <div className="card-base p-6">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 shrink-0 text-brand-300">
+            <SlidersHorizontal size={20} />
           </div>
-
-          {/* Code + actions */}
-          <div className="mt-5">
-            {loading ? (
-              <div className="flex items-center gap-3 rounded-lg border border-dashed border-surface-700 bg-surface-900/50 px-4 py-4">
-                <Loader2 size={16} className="animate-spin text-surface-500" />
-                <span className="text-sm text-surface-500">Loading organization code&hellip;</span>
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center gap-3">
-                <code className="flex-1 min-w-[200px] rounded-lg border border-dashed border-surface-700 bg-surface-900/50 px-4 py-3 font-mono text-sm tracking-wider text-brand-300 select-all">
-                  {orgCode}
-                </code>
-                <div className="flex items-center gap-2">
-                  <Button variant="secondary" size="sm" onClick={handleCopy} className="gap-1.5">
-                    {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
-                    {copied ? "Copied" : "Copy"}
-                  </Button>
-                  {canWrite && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setShowRegenerate(true)}
-                      className="gap-1.5"
-                    >
-                      <RefreshCw size={14} />
-                      Regenerate
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <p className="mt-3 text-xs text-surface-500">
-            Regenerating invalidates the previous code — existing members are unaffected.
-          </p>
-        </div>
-      )}
-
-      {/* Join-enable toggle — admin controls whether the org code accepts new members. */}
-      {!loading && orgCode !== null && (
-        <div className="card-base p-6">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 shrink-0 text-brand-300">
-              <UserPlus size={20} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="font-display text-lg font-medium">Self-registration</h2>
-              <p className="text-sm text-surface-400 mt-0.5">
-                Control whether people can join your organization with this code.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 flex items-center justify-between gap-4 rounded-lg border border-surface-800 bg-surface-900/50 px-4 py-3">
-            <div className="min-w-0 flex-1">
-              <label htmlFor="join-enabled" className="block text-sm font-medium text-surface-200">
-                Allow new members to join with this code
-              </label>
-              <p className="mt-1 text-xs text-surface-500">
-                When off, the signup &ldquo;Join with code&rdquo; flow returns 403. Regenerating
-                the code still works while paused.
-              </p>
-            </div>
-            <Switch
-              id="join-enabled"
-              checked={joinEnabled}
-              onCheckedChange={handleToggleJoin}
-              disabled={togglingJoin || !canWrite}
-            />
-          </div>
-
-          {!canWrite && (
-            <p className="mt-2 text-xs text-surface-500">
-              You need the &lsquo;configuration:write&rsquo; permission to change this
-              setting.
+          <div className="min-w-0 flex-1">
+            <h2 className="font-display text-lg font-medium">My Overrides</h2>
+            <p className="text-sm text-surface-400 mt-0.5">
+              Your personal overrides. Edit them in the{" "}
+              <Link href="/settings/org-config/llm" className="text-accent-300 hover:text-accent-200">
+                tabs above
+              </Link>
+              ; reset one here to fall back to the system default.
             </p>
-          )}
+          </div>
+        </div>
 
-          {!joinEnabled && (
-            <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-              <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
-              <p className="text-xs text-amber-200/80 leading-relaxed">
-                Joining is paused&nbsp;&mdash; new members can&rsquo;t join with this code
-                right now.
-              </p>
+        <div className="mt-5">
+          {loading ? (
+            <div className="space-y-2">
+              <div className="h-9 rounded bg-surface-800 animate-pulse w-full" />
+              <div className="h-9 rounded bg-surface-800 animate-pulse w-48" />
             </div>
+          ) : overriddenKeys.length === 0 ? (
+            <EmptyState
+              icon={ListChecks}
+              title="No personal overrides"
+              description="Your settings follow the system defaults. Change any field in the tabs above to create an override."
+            />
+          ) : (
+            <ul className="divide-y divide-surface-800 rounded-lg border border-surface-800">
+              {overriddenKeys.map((key) => (
+                <li
+                  key={key}
+                  className="flex items-center justify-between gap-4 px-4 py-2.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <code className="block font-mono text-xs text-surface-300 truncate" title={key}>
+                      {key}
+                    </code>
+                    <span className="block mt-0.5 text-sm text-surface-200 break-all">
+                      {displayValue(key, myStored[key])}
+                    </span>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void handleReset(key)}
+                    loading={resetting === key}
+                    disabled={resetting !== null}
+                    className="gap-1.5 shrink-0"
+                    title={`Reset "${key}" to the system default`}
+                  >
+                    <RotateCcw size={14} />
+                    Reset to default
+                  </Button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
-      )}
-
-      <ConfirmDialog
-        open={showRegenerate}
-        title="Regenerate Organization Code?"
-        message="The current organization code will stop working immediately. Anyone with the old code will need the new one to join. Continue?"
-        confirmLabel="Regenerate"
-        variant="danger"
-        loading={regenerating}
-        onConfirm={handleRegenerate}
-        onCancel={() => setShowRegenerate(false)}
-      />
+      </div>
     </div>
   );
 }

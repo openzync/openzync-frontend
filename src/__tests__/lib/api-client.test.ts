@@ -777,65 +777,6 @@ describe("extractList", () => {
   });
 });
 
-// ─── join (org-code signup) ──────────────────────────────────────────────────────
-
-describe("join", () => {
-  it("posts email, password, and org_code to /v1/auth/join", async () => {
-    const { join } = await import("@/lib/api-client");
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          message: "Verification code sent to email",
-          email: "alice@acme.com",
-        }),
-        { status: 201, headers: { "Content-Type": "application/json" } },
-      ),
-    );
-
-    const result = await join({
-      email: "alice@acme.com",
-      password: "SecurePass1",
-      org_code: "GCE3GG9Z",
-    });
-
-    expect(result).toEqual({
-      message: "Verification code sent to email",
-      email: "alice@acme.com",
-    });
-    const [url, opts] = mockFetch.mock.calls[0];
-    expect(url).toBe(`${API_BASE}/v1/auth/join`);
-    expect(opts.method).toBe("POST");
-    expect(JSON.parse(opts.body)).toEqual({
-      email: "alice@acme.com",
-      password: "SecurePass1",
-      org_code: "GCE3GG9Z",
-    });
-  });
-
-  it("throws ApiError with the RFC 7807 detail on 422 invalid code", async () => {
-    const { join } = await import("@/lib/api-client");
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          type: "https://errors.openzync.tech/validation_error",
-          title: "Validation Error",
-          status: 422,
-          detail: "Invalid organization code",
-        }),
-        { status: 422, headers: { "Content-Type": "application/json" } },
-      ),
-    );
-
-    await expect(
-      join({ email: "a@b.com", password: "SecurePass1", org_code: "BADCODE9" }),
-    ).rejects.toMatchObject({
-      name: "ApiError",
-      status: 422,
-      message: "Invalid organization code",
-    });
-  });
-});
-
 // ─── Invite endpoints (admin invite → magic-link password set) ────────────────
 
 describe("invite endpoints", () => {

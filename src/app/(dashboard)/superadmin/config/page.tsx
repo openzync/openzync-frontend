@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ServerCog, Settings2, ShieldCheck } from "lucide-react";
+import { Check, ServerCog, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   get,
@@ -10,50 +10,19 @@ import {
   apiErrorMessage,
   getSystemSettings,
   revealSystemSetting,
-  type OrgCreationPolicy,
-  type ApprovalScope,
-  type SystemConfigResponse,
   type SystemSettingItem,
 } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
-import { Field } from "@/components/ui/field";
-import { SimpleSelect } from "@/components/ui/select";
 import { ConfigFields, SYSTEM_DEFAULT_FIELDS } from "@/app/(dashboard)/superadmin/_components/config-fields";
 
-const POLICIES: { value: OrgCreationPolicy; label: string; description: string }[] = [
-  {
-    value: "allow_all",
-    label: "Open registration",
-    description: "Anyone can create an organization or join with a code.",
-  },
-  {
-    value: "reject_all",
-    label: "Registration closed",
-    description: "Signup and org-code join are disabled platform-wide.",
-  },
-  {
-    value: "approvals",
-    label: "Approval required",
-    description: "New organizations are created as pending requests you review here.",
-  },
-];
-
-const SCOPES: { value: ApprovalScope; label: string }[] = [
-  { value: "in_app", label: "In-app requests only" },
-  { value: "public_signup", label: "Public signup only" },
-  { value: "both", label: "Both in-app requests and public signup" },
-];
-
 interface FormState {
-  policy: OrgCreationPolicy;
-  scope: ApprovalScope;
   defaults: Record<string, unknown>;
 }
 
 /** Build the defaults half of the form from a flat SystemConfigResponse. */
-function pickDefaults(data: SystemConfigResponse): Record<string, unknown> {
+function pickDefaults(data: Record<string, unknown>): Record<string, unknown> {
   const defaults: Record<string, unknown> = {};
   for (const field of SYSTEM_DEFAULT_FIELDS) {
     defaults[field.key] = data[field.key] ?? "";
@@ -63,8 +32,6 @@ function pickDefaults(data: SystemConfigResponse): Record<string, unknown> {
 
 export default function SuperadminConfigPage() {
   const [form, setForm] = useState<FormState>({
-    policy: "allow_all",
-    scope: "both",
     defaults: {},
   });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
@@ -76,8 +43,8 @@ export default function SuperadminConfigPage() {
   // key currently being fetched by the reveal endpoint.
   const [revealing, setRevealing] = useState<string | null>(null);
 
-  const configQuery = useApiQuery<SystemConfigResponse>(() =>
-    get<SystemConfigResponse>("/admin/system/config"),
+  const configQuery = useApiQuery<Record<string, unknown>>(() =>
+    get<Record<string, unknown>>("/admin/system/config"),
   );
   const settingsQuery = useApiQuery<{ data: SystemSettingItem[] }>(() =>
     getSystemSettings(),
@@ -92,18 +59,14 @@ export default function SuperadminConfigPage() {
   // Seed the editable form from server data — render-phase adjustment keyed on
   // response identity (same pattern as settings/page.tsx), so a refetch after
   // save re-seeds exactly once.
-  const [seededConfig, setSeededConfig] = useState<SystemConfigResponse | null>(null);
+  const [seededConfig, setSeededConfig] = useState<Record<string, unknown> | null>(null);
   if (configQuery.data && configQuery.data !== seededConfig) {
     setSeededConfig(configQuery.data);
     const defaults = pickDefaults(configQuery.data);
     setForm({
-      policy: configQuery.data.org_creation_policy,
-      scope: configQuery.data.approval_scope,
       defaults,
     });
     setInitialForm({
-      policy: configQuery.data.org_creation_policy,
-      scope: configQuery.data.approval_scope,
       defaults: { ...defaults },
     });
   }
@@ -141,8 +104,6 @@ export default function SuperadminConfigPage() {
   );
 
   const hasChanged = () =>
-    form.policy !== initialForm.policy ||
-    form.scope !== initialForm.scope ||
     SYSTEM_DEFAULT_FIELDS.some((f) => form.defaults[f.key] !== initialForm.defaults[f.key]);
 
   const handleSave = async () => {
@@ -152,8 +113,6 @@ export default function SuperadminConfigPage() {
     try {
       // Partial PATCH — only what actually changed.
       const payload: Record<string, unknown> = {};
-      if (form.policy !== initialForm.policy) payload.org_creation_policy = form.policy;
-      if (form.scope !== initialForm.scope) payload.approval_scope = form.scope;
       for (const field of SYSTEM_DEFAULT_FIELDS) {
         if (form.defaults[field.key] !== initialForm.defaults[field.key]) {
           payload[field.key] = form.defaults[field.key];
@@ -187,57 +146,6 @@ export default function SuperadminConfigPage() {
     <div className="space-y-4">
       {error && <ErrorState message={error} onRetry={configQuery.refetch} />}
 
-      {/* ── Registration policy ─────────────────────────────────────────────── */}
-      <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
-            <ShieldCheck size={20} className="text-brand-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">Registration Policy</h2>
-            <p className="text-xs text-surface-400">Controls who can create or join organizations</p>
-          </div>
-        </div>
-
-        <fieldset>
-          <legend className="sr-only">Organization creation policy</legend>
-          <div className="space-y-2 max-w-lg">
-            {POLICIES.map((policy) => (
-              <label
-                key={policy.value}
-                className="flex items-start gap-3 rounded-lg border border-surface-800 bg-surface-900/50 px-4 py-3 cursor-pointer has-[:checked]:border-brand-500/50 has-[:checked]:bg-brand-500/5"
-              >
-                <input
-                  type="radio"
-                  name="org_creation_policy"
-                  className="mt-1 accent-brand-500"
-                  checked={form.policy === policy.value}
-                  onChange={() => setForm((prev) => ({ ...prev, policy: policy.value }))}
-                />
-                <span>
-                  <span className="block text-sm font-medium text-surface-200">{policy.label}</span>
-                  <span className="block text-xs text-surface-500 mt-0.5">{policy.description}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        <div className="mt-5 max-w-xs">
-          <Field label="Approval Scope" htmlFor="approval-scope" hint={form.policy === "approvals"
-            ? "Where organization requests are accepted for review."
-            : "Only applies when approval is required — ignored under the current policy."}>
-            <SimpleSelect
-              id="approval-scope"
-              options={SCOPES}
-              value={form.scope}
-              disabled={form.policy !== "approvals"}
-              onValueChange={(value) => setForm((prev) => ({ ...prev, scope: value as ApprovalScope }))}
-            />
-          </Field>
-        </div>
-      </div>
-
       {/* ── Non-secret system defaults ──────────────────────────────────────── */}
       <div className="card-base p-6">
         <div className="flex items-center gap-3 mb-6">
@@ -247,7 +155,7 @@ export default function SuperadminConfigPage() {
           <div>
             <h2 className="font-display text-base font-medium">System Defaults</h2>
             <p className="text-xs text-surface-400">
-              Non-secret defaults applied to newly created organizations
+              Non-secret platform defaults
             </p>
           </div>
         </div>

@@ -69,7 +69,7 @@ describe("LoginPage", () => {
 
     expect(screen.getByText("Welcome back")).toBeInTheDocument();
     expect(
-      screen.getByText("Sign in to your organization dashboard"),
+      screen.getByText("Sign in to your personal dashboard"),
     ).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText("you@example.com"),

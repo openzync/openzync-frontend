@@ -126,7 +126,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   }
 
   // Role context wraps the whole dashboard — Sidebar, layout, and every page
-  // read the org role from useUser().
+  // read the user role from useUser().
   return (
     <UserProvider>
       <MustChangePasswordRedirect />

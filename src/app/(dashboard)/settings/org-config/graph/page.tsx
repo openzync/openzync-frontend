@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { GitBranch, RotateCcw } from "lucide-react";
-import { get, patch, ApiError } from "@/lib/api-client";
+import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
@@ -17,13 +17,8 @@ import { useConfigReset } from "@/hooks/use-config-reset";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-interface OrgConfigResponse {
-  stored: Record<string, unknown>;
-  system_managed_fields?: string[];
-}
-
 /** What the config fetcher hands to the render-phase form seed. */
-interface OrgConfigData {
+interface ConfigData {
   stored: Record<string, unknown>;
   defaults: Record<string, unknown>;
   systemManaged: string[];
@@ -70,20 +65,6 @@ const SEARCH_TYPE_OPTIONS: { value: GraphSearchType; label: string }[] = [
   { value: "vector", label: "Vector" },
 ];
 
-// ─── Reset field titles ────────────────────────────────────────────────────────
-
-const RESET_TITLES: Partial<Record<keyof FormState, string>> = {
-  graph_backend: "Reset graph backend to default",
-  graph_search_type: "Reset search type to default",
-  graph_max_traversal_depth: "Reset max traversal depth to default",
-  surrealdb_url: "Reset SurrealDB URL to default",
-  surrealdb_user: "Reset SurrealDB username to default",
-  surrealdb_pass: "Reset SurrealDB password to default",
-  surrealdb_namespace: "Reset SurrealDB namespace to default",
-  surrealdb_database: "Reset SurrealDB database to default",
-  falkordb_url: "Reset FalkorDB URL to default",
-};
-
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function GraphConfigPage() {
@@ -124,25 +105,19 @@ export default function GraphConfigPage() {
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
-  const configQuery = useApiQuery<OrgConfigData>(async () => {
-    const data = await get<OrgConfigResponse>("/admin/org/config");
-    const stored = (data.stored ?? {}) as Record<string, unknown>;
-    const hasAnyStored = FIELDS.some((f) => stored[f] != null);
+  const configQuery = useApiQuery<ConfigData>(async () => {
+    const mine = await getMyConfig();
+    const stored = (mine.override ?? {}) as Record<string, unknown>;
+        // System defaults apply for anything not overridden.
+    const defaults: Record<string, unknown> = {};
 
-    // If no stored values exist for this tab, pull onboarding defaults from API
-    const defaults = hasAnyStored
-      ? {}
-      : await get<Record<string, unknown>>("/admin/org/config/defaults").catch(
-          () => ({}) as Record<string, unknown>,
-        );
-
-    return { stored, defaults, systemManaged: data.system_managed_fields ?? [] };
+    return { stored, defaults, systemManaged: ([]) as string[] };
   });
 
   // Seed the editable form from server data — render-phase adjustment keyed on
   // response identity (same pattern as superadmin/config), so a refetch after
   // save re-seeds exactly once.
-  const [seeded, setSeeded] = useState<OrgConfigData | null>(null);
+  const [seeded, setSeeded] = useState<ConfigData | null>(null);
   if (configQuery.data && configQuery.data !== seeded) {
     setSeeded(configQuery.data);
     const { stored, defaults, systemManaged } = configQuery.data;
@@ -211,7 +186,7 @@ export default function GraphConfigPage() {
       const payload = getSavePayload(form as unknown as Record<string, unknown>);
       if (Object.keys(payload).length === 0) return;
 
-      await patch("/admin/org/config", payload);
+      await updateMyConfig(payload);
       toast.success("Graph configuration saved successfully");
       setDirty(false);
       clearResets();

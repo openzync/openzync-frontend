@@ -46,9 +46,7 @@ vi.mock("@/components/shared/error-state", () => ({
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-const ALLOW_ALL_CONFIG = {
-  org_creation_policy: "allow_all",
-  approval_scope: "in_app",
+const DEFAULT_CONFIG = {
   llm_backend: "openai",
   llm_model: "",
   context_cache_ttl: 1800,
@@ -100,48 +98,44 @@ describe("SuperadminConfigPage", () => {
   // parallel-worker load the chain stretches past the 5s default; verified to
   // pass comfortably when this file runs in isolation.
   it(
-    "PATCHes the right body when the policy and scope change",
+    "PATCHes the right body when defaults change",
     async () => {
     const user = userEvent.setup();
-    mockGet.mockResolvedValue(ALLOW_ALL_CONFIG);
-    mockPatch.mockResolvedValue({ ...ALLOW_ALL_CONFIG, org_creation_policy: "approvals", approval_scope: "public_signup" });
+    mockGet.mockResolvedValue(DEFAULT_CONFIG);
+    mockPatch.mockResolvedValue({ ...DEFAULT_CONFIG, llm_model: "gpt-4o", llm_temperature: 0.7 });
     renderPage();
 
-    // Radios render from the fetched policy; clicking the label toggles it.
-    await user.click(await screen.findByText("Approval required"));
-    // Scope becomes enabled once approvals is selected; pick public signup.
-    // Approval Scope is a Radix Select — open the combobox, then click the option.
-    await user.click(screen.getByRole("combobox", { name: "Approval Scope" }));
-    await user.click(await screen.findByRole("option", { name: "Public signup only" }));
+    await user.type(await screen.findByLabelText("LLM Model"), "gpt-4o");
+    await user.type(await screen.findByLabelText("LLM Temperature"), "0.7");
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
       expect(mockPatch).toHaveBeenCalledWith("/admin/system/config", {
-        org_creation_policy: "approvals",
-        approval_scope: "public_signup",
+        llm_model: "gpt-4o",
+        llm_temperature: 0.7,
       });
     });
   },
   15_000,
   );
 
-  it("disables the scope select when the policy is not approvals", async () => {
-    mockGet.mockResolvedValue(ALLOW_ALL_CONFIG);
+  it("Save Changes is disabled until a default field changes", async () => {
+    const user = userEvent.setup();
+    mockGet.mockResolvedValue(DEFAULT_CONFIG);
     renderPage();
 
-    const scope = await screen.findByRole("combobox", { name: "Approval Scope" });
-    expect(scope).toBeDisabled();
+    const save = await screen.findByRole("button", { name: "Save Changes" });
+    expect(save).toBeDisabled();
 
-    // Selecting the approvals policy re-enables it.
-    const user = userEvent.setup();
-    await user.click(screen.getByText("Approval required"));
-    expect(screen.getByRole("combobox", { name: "Approval Scope" })).not.toBeDisabled();
+    // Editing a default enables save.
+    await user.type(await screen.findByLabelText("LLM Model"), "gpt-4o");
+    expect(await screen.findByRole("button", { name: "Save Changes" })).not.toBeDisabled();
   });
 
-  it("PATCHes changed default fields alongside policy changes", async () => {
+  it("PATCHes changed default fields", async () => {
     const user = userEvent.setup();
-    mockGet.mockResolvedValue(ALLOW_ALL_CONFIG);
-    mockPatch.mockResolvedValue(ALLOW_ALL_CONFIG);
+    mockGet.mockResolvedValue(DEFAULT_CONFIG);
+    mockPatch.mockResolvedValue(DEFAULT_CONFIG);
     renderPage();
 
     await user.type(await screen.findByLabelText("LLM Model"), "gpt-4o");
@@ -155,7 +149,7 @@ describe("SuperadminConfigPage", () => {
   });
 
   it("does not PATCH when nothing changed", async () => {
-    mockGet.mockResolvedValue(ALLOW_ALL_CONFIG);
+    mockGet.mockResolvedValue(DEFAULT_CONFIG);
     renderPage();
 
     const saveButton = await screen.findByRole("button", { name: "Save Changes" });
@@ -172,7 +166,7 @@ describe("SuperadminConfigPage", () => {
   // ─── Runtime settings card ──────────────────────────────────────────────
 
   it("renders masked values with a Reveal button and 'Not set' for unset keys", async () => {
-    mockGet.mockResolvedValue(ALLOW_ALL_CONFIG);
+    mockGet.mockResolvedValue(DEFAULT_CONFIG);
     renderPage();
 
     expect(await screen.findByText("System Settings (runtime)")).toBeInTheDocument();
@@ -188,7 +182,7 @@ describe("SuperadminConfigPage", () => {
 
   it("reveals the raw value on click and swaps the button to Hide", async () => {
     const user = userEvent.setup();
-    mockGet.mockResolvedValue(ALLOW_ALL_CONFIG);
+    mockGet.mockResolvedValue(DEFAULT_CONFIG);
     mockRevealSetting.mockResolvedValue({
       key: "OZ_DATABASE_URL",
       value: "postgresql+asyncpg://user:pass@db.example.com:5432/mydb",
@@ -208,7 +202,7 @@ describe("SuperadminConfigPage", () => {
 
   it("hides the raw value without refetching the reveal endpoint", async () => {
     const user = userEvent.setup();
-    mockGet.mockResolvedValue(ALLOW_ALL_CONFIG);
+    mockGet.mockResolvedValue(DEFAULT_CONFIG);
     mockRevealSetting.mockResolvedValue({
       key: "OZ_DATABASE_URL",
       value: "postgresql+asyncpg://user:pass@db.example.com:5432/mydb",

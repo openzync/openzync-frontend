@@ -32,10 +32,10 @@ export interface UseConnectionTest {
 }
 
 /**
- * Connection test for org-config credential tabs.
+ * Connection test for config credential tabs.
  *
  * POSTs the CURRENT (possibly unsaved) form as `config` candidate to
- * /admin/org/config/test. Deliberately separate from useConfigDirty —
+ * /v1/me/config/test. Deliberately separate from useConfigDirty —
  * testing never marks the form dirty. Race-safe (only the latest run may
  * commit state), following the same run-id guard as useApiQuery.
  */
@@ -54,7 +54,7 @@ export function useConnectionTest(): UseConnectionTest {
       setTesting(true);
       setError(null);
       try {
-        const res = await post<ConnectionTestResponse>("/admin/org/config/test", {
+        const res = await post<ConnectionTestResponse>("/v1/me/config/test", {
           domain,
           config: candidate,
         });

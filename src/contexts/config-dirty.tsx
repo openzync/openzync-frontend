@@ -23,7 +23,7 @@ const ConfigDirtyContext = createContext<ConfigDirtyContextValue | undefined>(un
  * 1. The dirty flag pages report via setDirty.
  * 2. ONE beforeunload listener, registered only while dirty (replaces the
  *    five per-page copies).
- * 3. In-app navigation interception — SidebarLink and the org-config tab bar
+ * 3. In-app navigation interception — SidebarLink and the config tab bar
  *    call navigate(href); while dirty a ConfirmDialog gates the jump, and
  *    leaving clears the flag first so the next page starts clean.
  */

@@ -26,7 +26,7 @@ interface FieldProps {
  * them.
  *
  * @example
- * <Field label="Display name" htmlFor="display-name" required hint="Shown to org members">
+ * <Field label="Display name" htmlFor="display-name" required hint="Shown to members">
  *   <input id="display-name" className="input-base" … />
  * </Field>
  */
