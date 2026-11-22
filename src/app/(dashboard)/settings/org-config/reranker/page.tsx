@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { ArrowUpDown, RotateCcw } from "lucide-react";
-import { get, patch, ApiError } from "@/lib/api-client";
+import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
@@ -15,14 +15,8 @@ import { useConfigReset } from "@/hooks/use-config-reset";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-interface OrgConfigResponse {
-  stored: Record<string, unknown>;
-  defaults?: Record<string, unknown>;
-  system_managed_fields?: string[];
-}
-
 /** What the config fetcher hands to the render-phase form seed. */
-interface OrgConfigData {
+interface ConfigData {
   stored: Record<string, unknown>;
   defaults: Record<string, unknown>;
   systemManaged: string[];
@@ -86,22 +80,16 @@ export default function RerankerConfigPage() {
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
-  const configQuery = useApiQuery<OrgConfigData>(async () => {
-    const data = await get<OrgConfigResponse>("/admin/org/config");
-    const stored = (data.stored ?? {}) as Record<string, unknown>;
-    const hasAnyStored = FIELDS.some((f) => stored[f] != null);
+  const configQuery = useApiQuery<ConfigData>(async () => {
+    const mine = await getMyConfig();
+    const stored = (mine.override ?? {}) as Record<string, unknown>;
+        // System defaults apply for anything not overridden.
+    const defaults: Record<string, unknown> = {};
 
-    let defaults: Record<string, unknown> = data.defaults ?? {};
-    if (!data.defaults && !hasAnyStored) {
-      defaults = await get<Record<string, unknown>>("/admin/org/config/defaults").catch(
-        () => ({}) as Record<string, unknown>,
-      );
-    }
-
-    return { stored, defaults, systemManaged: data.system_managed_fields ?? [] };
+    return { stored, defaults, systemManaged: ([]) as string[] };
   });
 
-  const [seeded, setSeeded] = useState<OrgConfigData | null>(null);
+  const [seeded, setSeeded] = useState<ConfigData | null>(null);
   if (configQuery.data && configQuery.data !== seeded) {
     setSeeded(configQuery.data);
     const { stored, defaults, systemManaged } = configQuery.data;
@@ -169,7 +157,7 @@ export default function RerankerConfigPage() {
       }
       if (Object.keys(payload).length === 0) return;
 
-      await patch("/admin/org/config", payload);
+      await updateMyConfig(payload);
       toast.success("Reranker configuration saved successfully");
       setDirty(false);
       clearResets();

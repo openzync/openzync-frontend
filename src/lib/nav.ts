@@ -49,9 +49,9 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Insights",
     entries: [
       { label: "Overview", href: "/overview", icon: LayoutDashboard },
-      // Monitoring is gated on members:read (org-level read access)
+      // Monitoring is gated on members:read (user-level read access)
       { label: "Monitoring", href: "/monitoring", icon: Activity, permission: "members:read" },
-      // LLM usage is tracking-only (tokens + latency, no cost fields) — same org-read gate.
+      // LLM usage is tracking-only (tokens + latency, no cost fields) — same user-level read gate.
       { label: "Usage", href: "/usage", icon: BarChart3, permission: "members:read" },
     ],
   },
@@ -59,7 +59,7 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "admin",
     label: "Administration",
     entries: [
-      // Users/org member management → members:read; config surfaces → configuration:read.
+      // User management → members:read; config surfaces → configuration:read.
       { label: "Users", href: "/users", icon: Users, permission: "members:read" },
       { label: "Extraction Schemas", href: "/settings/schemas", icon: FileJson, permission: "configuration:read" },
       { label: "Webhooks", href: "/settings/webhooks", icon: Webhook, permission: "configuration:read" },
@@ -73,10 +73,10 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "system",
     label: "System",
     entries: [
-      // Audit Log is gated on members:read (org-level read access)
+      // Audit Log is gated on members:read (user-level read access)
       { label: "Audit Log", href: "/audit", icon: Shield, permission: "members:read" },
       // Platform Admin is root/superadmin only — the platform console.
-      { label: "Platform Admin", href: "/superadmin/orgs", icon: ShieldCheck, superadminOnly: true },
+      { label: "Platform Admin", href: "/superadmin/config", icon: ShieldCheck, superadminOnly: true },
     ],
   },
 ];
@@ -215,12 +215,8 @@ export function resolveBreadcrumb(
     return [{ label: "System" }, { label: "Account" }];
   }
 
-  // Superadmin console keeps its own ladder (org-scoped subpages).
+  // Superadmin console — a single page (system configuration).
   if (pathname.startsWith("/superadmin")) {
-    if (pathname.endsWith("/requests")) return [{ label: "Platform Admin" }, { label: "Approval Requests" }];
-    if (pathname.endsWith("/config")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Configuration" }];
-    if (pathname.endsWith("/members")) return [{ label: "Platform Admin" }, { label: "Organizations" }, { label: "Members" }];
-    if (pathname.endsWith("/orgs")) return [{ label: "Platform Admin" }, { label: "Organizations" }];
     return [{ label: "Platform Admin" }, { label: "System Configuration" }];
   }
 

@@ -205,7 +205,7 @@ export default function SettingsPage() {
       {/* Page header */}
       <div>
         <h1 className="font-display text-2xl font-medium tracking-tight">Account</h1>
-        <p className="text-sm text-surface-400 mt-1">Manage your profile and organization</p>
+        <p className="text-sm text-surface-400 mt-1">Manage your profile</p>
       </div>
 
       <PageGuide title="Account settings" illustration={<GuideSettings />}>
@@ -268,7 +268,7 @@ export default function SettingsPage() {
                 />
                 <Shield size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-500 pointer-events-none" />
               </div>
-              <p className="text-xs text-surface-500 mt-1">Role is assigned by your organization administrator.</p>
+              <p className="text-xs text-surface-500 mt-1">Your personal role for this workspace.</p>
             </div>
 
             {/* Save button */}

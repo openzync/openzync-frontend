@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { RotateCcw, Shield } from "lucide-react";
 import { toast } from "sonner";
-import { get, patch, ApiError } from "@/lib/api-client";
+import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,8 @@ import { useConfigReset } from "@/hooks/use-config-reset";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-interface OrgConfigResponse {
-  stored: Record<string, unknown>;
-}
-
 /** What the config fetcher hands to the render-phase form seed. */
-interface OrgConfigData {
+interface ConfigData {
   stored: Record<string, unknown>;
   defaults: Record<string, unknown>;
 }
@@ -148,22 +144,17 @@ export default function PiiConfigPage() {
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
-  const configQuery = useApiQuery<OrgConfigData>(async () => {
-    const data = await get<OrgConfigResponse>("/admin/org/config");
-    const stored = (data.stored ?? {}) as Record<string, unknown>;
-    const hasAnyStored = FIELDS.some((f) => stored[f] != null);
-
-    const defaults = hasAnyStored
-      ? {}
-      : await get<Record<string, unknown>>("/admin/org/config/defaults").catch(
-          () => ({}) as Record<string, unknown>,
-        );
+  const configQuery = useApiQuery<ConfigData>(async () => {
+    const data = await getMyConfig();
+    const stored = (data.override ?? {}) as Record<string, unknown>;
+        // System defaults apply for anything not overridden.
+    const defaults: Record<string, unknown> = {};
 
     return { stored, defaults };
   });
 
   // Seed the editable form from server data
-  const [seeded, setSeeded] = useState<OrgConfigData | null>(null);
+  const [seeded, setSeeded] = useState<ConfigData | null>(null);
   if (configQuery.data && configQuery.data !== seeded) {
     setSeeded(configQuery.data);
     const { stored, defaults } = configQuery.data;
@@ -248,7 +239,7 @@ export default function PiiConfigPage() {
     try {
       const payload = getSavePayload(form as unknown as Record<string, unknown>);
 
-      await patch("/admin/org/config", payload);
+      await updateMyConfig(payload);
 
       toast.success("PII configuration saved successfully");
       clearResets();

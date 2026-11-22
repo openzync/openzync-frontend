@@ -97,7 +97,7 @@ export function actionLabel(action: string): string {
     "auth.login": "User logged in",
     "auth.refresh": "Session refreshed",
     "auth.profile.update": "Profile updated",
-    "organization.create": "Organization created",
+    "organization.create": "User created",
     "schema.create": "Extraction schema created",
     "schema.update": "Extraction schema updated",
     "schema.delete": "Extraction schema deleted",

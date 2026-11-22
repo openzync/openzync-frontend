@@ -39,7 +39,6 @@ import { useUser, ALL_PERMISSIONS } from "@/contexts/user-context";
 
 interface UserWithStats {
   id: string;
-  organization_id: string;
   external_id: string;
   name: string | null;
   email: string | null;
@@ -437,7 +436,7 @@ export default function UserDetailPage() {
 
   /**
    * PATCH /v1/users/{id} with `{"permissions": [...]}` replaces the set — the
-   * new backend no longer grants org access via a single admin role toggle.
+   * new backend no longer grants workspace access via a single admin role toggle.
    */
   const handleSavePermissions = async () => {
     if (!user || editPermissions === null) return;
@@ -651,7 +650,7 @@ export default function UserDetailPage() {
                   User overview
                 </p>
               </div>
-              {/* note: no org-level sessions index exists yet — no sessions affordance here */}
+              {/* note: no user-level sessions index exists yet — no sessions affordance here */}
             </div>
 
             {/* Metadata grid */}

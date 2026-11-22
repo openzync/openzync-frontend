@@ -34,7 +34,7 @@ import { useSortQuery } from "@/hooks/use-sort-query";
 
 interface WebhookEndpoint {
   id: string;
-  organization_id: string;
+  user_id: string;
   name: string;
   url: string;
   events: string[];

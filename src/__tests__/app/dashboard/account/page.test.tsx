@@ -109,7 +109,7 @@ describe("AccountPage", () => {
 
     expect(await screen.findByText("Account")).toBeInTheDocument();
     expect(
-      await screen.findByText(/Manage your profile and organization/),
+      await screen.findByText(/Manage your profile/),
     ).toBeInTheDocument();
   });
 

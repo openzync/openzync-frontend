@@ -12,7 +12,7 @@ import {
   Network,
   type LucideIcon,
 } from "lucide-react";
-import { get } from "@/lib/api-client";
+import { get, getAdminStats, type AdminStats } from "@/lib/api-client";
 import { sortChronological } from "@/lib/chart-order";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
@@ -24,15 +24,6 @@ import { Button } from "@/components/ui/button";
 import { PageGuide, GuideDashboard } from "@/components/guides";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-
-interface OrgStats {
-  total_episodes: number;
-  total_sessions: number;
-  total_facts: number;
-  total_extractions: number;
-  total_observations: number;
-  total_classifications: number;
-}
 
 interface UsagePoint {
   date: string;
@@ -216,9 +207,17 @@ function OverviewInner() {
   // Each section fails independently so one bad endpoint doesn't blank the
   // whole dashboard. Errors clear on success only, so a retry visibly keeps
   // the error until it actually resolves.
-  const statsQuery = useApiQuery<OrgStats>(() => get<OrgStats>(`/v1/admin/stats/org?${qsString}`), {
-    refreshKey: windowKey,
-  });
+  const statsQuery = useApiQuery<AdminStats>(
+    () =>
+      getAdminStats(
+        isCustom && from && to
+          ? { from, to, project_id: projectId ?? undefined }
+          : { days, project_id: projectId ?? undefined },
+      ),
+    {
+      refreshKey: windowKey,
+    },
+  );
   const quickActionsQuery = useApiQuery<QuickActionsResponse>(() =>
     get<QuickActionsResponse>("/v1/admin/quick-actions"),
   );
@@ -295,11 +294,11 @@ function OverviewInner() {
     <div className="space-y-6">
       <PageHeader
         title="Overview"
-        description="Your organization&rsquo;s activity pulse — live stats and daily usage trends"
+        description="Your personal activity pulse — live stats and daily usage trends"
       />
 
-      <PageGuide title="Your organization at a glance" illustration={<GuideDashboard />}>
-        <p>Monitor your organization&rsquo;s key metrics — messages, sessions, facts, users, episodes, and API keys. Track daily usage trends with the interactive chart.</p>
+      <PageGuide title="Your workspace at a glance" illustration={<GuideDashboard />}>
+        <p>Monitor your personal key metrics — messages, sessions, facts, users, episodes, and API keys. Track daily usage trends with the interactive chart.</p>
       </PageGuide>
 
       {/* Quickstart — only for a brand-new org (no episodes yet) */}
@@ -348,7 +347,7 @@ function OverviewInner() {
       {/* Stat cards — all 6 in a single row */}
       {statsQuery.isError && !loading ? (
         <ErrorState
-          message="Couldn't load organization stats."
+          message="Couldn't load workspace stats."
           onRetry={statsQuery.refetch}
         />
       ) : (

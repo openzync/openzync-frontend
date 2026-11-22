@@ -29,20 +29,14 @@ vi.mock("sonner", () => ({
 const mockFetch = vi.fn();
 mockFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input);
-  if (url.endsWith("/admin/org/config/defaults")) {
-    return Promise.resolve({
-      ok: true,
-      json: async () => ({ llm_backend: "openai", llm_model: "gpt-4o-mini" }),
-    });
-  }
-  if (url.endsWith("/admin/org/config")) {
-    if (init?.method === "PUT") {
+  if (url.endsWith("/v1/me/config")) {
+    if (init?.method === "PATCH") {
       return Promise.resolve({ ok: true, json: async () => ({}) });
     }
     // GET — no stored config yet, so the page stays on onboarding
     return Promise.resolve({
       ok: true,
-      json: async () => ({ stored: { llm_backend: null } }),
+      json: async () => ({ override: {} }),
     });
   }
   return Promise.resolve({ ok: false, status: 404, json: async () => ({}) });
@@ -162,7 +156,7 @@ describe("OnboardingPage", () => {
     expect(mockReplace).toHaveBeenCalledWith("/overview");
   });
 
-  it("saves via PUT on the final step, toasts success, and redirects immediately", async () => {
+  it("saves via PATCH on the final step, toasts success, and redirects immediately", async () => {
     const user = userEvent.setup();
     render(<OnboardingPage />);
     await screen.findByText("LLM Configuration");
@@ -177,8 +171,8 @@ describe("OnboardingPage", () => {
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/admin/org/config"),
-        expect.objectContaining({ method: "PUT" }),
+        expect.stringContaining("/v1/me/config"),
+        expect.objectContaining({ method: "PATCH" }),
       );
     });
     expect(toast.success).toHaveBeenCalledWith(
@@ -193,14 +187,8 @@ describe("OnboardingPage", () => {
     const user = userEvent.setup();
     mockFetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.endsWith("/admin/org/config/defaults")) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({ llm_backend: "openai" }),
-        });
-      }
-      if (url.endsWith("/admin/org/config")) {
-        if (init?.method === "PUT") {
+      if (url.endsWith("/v1/me/config")) {
+        if (init?.method === "PATCH") {
           return Promise.resolve({
             ok: false,
             status: 403,
@@ -209,7 +197,7 @@ describe("OnboardingPage", () => {
         }
         return Promise.resolve({
           ok: true,
-          json: async () => ({ stored: { llm_backend: null } }),
+          json: async () => ({ override: {} }),
         });
       }
       return Promise.resolve({ ok: false, status: 404, json: async () => ({}) });
