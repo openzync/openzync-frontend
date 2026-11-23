@@ -8,7 +8,6 @@ import { useConfigDirty } from "@/contexts/config-dirty";
 import { RequirePermission } from "@/components/shared/require-permission";
 
 const TABS = [
-  { label: "System Configuration", href: "/superadmin/config" },
   { label: "Registration", href: "/superadmin/config/registration" },
   { label: "Runtime", href: "/superadmin/config/runtime" },
 ];
@@ -49,7 +48,7 @@ export default function SuperadminLayout({ children }: { children: React.ReactNo
       <div>
         <h1 className="font-display text-2xl font-medium tracking-tight">Platform Administration</h1>
         <p className="text-sm text-surface-400 mt-1">
-          Platform system defaults and runtime settings
+          Platform registration and runtime settings
         </p>
       </div>
 

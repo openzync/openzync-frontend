@@ -18,10 +18,13 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { get, patch, getAccessToken, refreshOnce, hasRefreshCredential } from "@/lib/api-client";
+import type { EnrichmentGateBlock } from "@/lib/api-client";
+import { ENRICHMENT_GATE_DEFAULTS } from "@/lib/api-client";
 import { SecretInput } from "@/components/ui/secret-input";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -48,6 +51,7 @@ interface UpdateMyConfigRequest {
   falkordb_url?: string | null;
   context_cache_ttl?: number | null;
   audit_log_response_body?: boolean | null;
+  enrichment_gate?: EnrichmentGateBlock | null;
 }
 
 type LlmBackend = "openai" | "anthropic" | "ollama" | "openai_like" | "azure";
@@ -198,7 +202,22 @@ function OnboardingWizard() {
           return;
         }
 
-        setForm({});
+        // Org gate defaults seed the editable gate card below; older
+        // backends without the endpoint fall back to {enabled: false, 0.5}.
+        const orgDefaults = await get<Record<string, unknown>>(
+          "/admin/org/config/defaults",
+        ).catch(() => null);
+        const rawGate = (orgDefaults?.enrichment_gate ?? {}) as Partial<EnrichmentGateBlock>;
+
+        setForm({
+          enrichment_gate: {
+            enabled: rawGate.enabled ?? ENRICHMENT_GATE_DEFAULTS.enabled,
+            threshold:
+              typeof rawGate.threshold === "number"
+                ? rawGate.threshold
+                : ENRICHMENT_GATE_DEFAULTS.threshold,
+          },
+        });
       } catch (err) {
         // No credential to retry with — same dead end the dashboard gate avoids.
         if (!hasRefreshCredential()) {
@@ -262,6 +281,12 @@ function OnboardingWizard() {
     { label: "Max Traversal Depth", value: String(form.graph_max_traversal_depth ?? 2) },
     { label: "Context Cache TTL", value: `${form.context_cache_ttl ?? 300}s` },
     { label: "Audit Log Response Body", value: form.audit_log_response_body ? "Enabled" : "Disabled" },
+    {
+      label: "Enrichment Gate",
+      value: form.enrichment_gate?.enabled
+        ? `Enabled (${(form.enrichment_gate.threshold ?? ENRICHMENT_GATE_DEFAULTS.threshold).toFixed(2)})`
+        : "Disabled",
+    },
   ];
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -615,7 +640,6 @@ function OnboardingWizard() {
 
             <div className="card-base p-6 mb-6">
               <SectionHeader icon={<Settings2 size={20} />} title="Behaviour" description="Caching and audit behaviour" />
-
               <div className="space-y-4 max-w-md">
                 {/* context_cache_ttl */}
                 <Field
@@ -655,6 +679,72 @@ function OnboardingWizard() {
                       </span>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card-base p-6 mb-6">
+              <SectionHeader icon={<Brain size={20} />} title="Enrichment Gate" description="Skip the LLM call for low-signal episodes" />
+
+              <div className="space-y-4 max-w-md">
+                <label
+                  htmlFor="onb-gate-enabled"
+                  className="flex items-center gap-3 cursor-pointer"
+                >
+                  <Switch
+                    id="onb-gate-enabled"
+                    checked={form.enrichment_gate?.enabled ?? ENRICHMENT_GATE_DEFAULTS.enabled}
+                    onCheckedChange={(checked) =>
+                      updateField("enrichment_gate", {
+                        enabled: checked,
+                        threshold:
+                          form.enrichment_gate?.threshold ??
+                          ENRICHMENT_GATE_DEFAULTS.threshold,
+                      })
+                    }
+                  />
+                  <span className="text-sm font-medium text-surface-300">Enabled</span>
+                </label>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label
+                      htmlFor="onb-gate-threshold"
+                      className="text-sm font-medium text-surface-300"
+                    >
+                      Threshold
+                    </label>
+                    <span className="font-mono text-xs text-surface-400">
+                      {(form.enrichment_gate?.threshold ?? ENRICHMENT_GATE_DEFAULTS.threshold).toFixed(2)}
+                    </span>
+                  </div>
+                  <input
+                    id="onb-gate-threshold"
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={form.enrichment_gate?.threshold ?? ENRICHMENT_GATE_DEFAULTS.threshold}
+                    aria-describedby="onb-gate-threshold-hint"
+                    onChange={(e) =>
+                      // Round off float artifacts (e.g. 0.6500000000000001).
+                      updateField("enrichment_gate", {
+                        enabled:
+                          form.enrichment_gate?.enabled ??
+                          ENRICHMENT_GATE_DEFAULTS.enabled,
+                        threshold: Math.round(e.target.valueAsNumber * 100) / 100,
+                      })
+                    }
+                    className="w-full accent-brand-500"
+                  />
+                  <p id="onb-gate-threshold-hint" className="text-xs text-surface-500">
+                    Minimum should_enrich score to run the LLM (0–1)
+                  </p>
+                  {(form.enrichment_gate?.threshold ?? 0) >= 1 && (
+                    <p className="text-xs text-amber-400" role="alert">
+                      sigmoid never reaches 1.0 — everything scorable will skip
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

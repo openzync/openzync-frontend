@@ -73,7 +73,7 @@ export const NAV_SECTIONS: NavSection[] = [
       // Audit Log is gated on members:read (user-level read access)
       { label: "Audit Log", href: "/audit", icon: Shield, permission: "members:read" },
       // Platform Admin is root/superadmin only — the platform console.
-      { label: "Platform Admin", href: "/superadmin/config", icon: ShieldCheck, superadminOnly: true },
+      { label: "Platform Admin", href: "/superadmin/config/registration", icon: ShieldCheck, superadminOnly: true },
     ],
   },
 ];
@@ -187,8 +187,15 @@ export function resolveBreadcrumb(
     return [{ label: "System" }, { label: "Account" }];
   }
 
-  // Superadmin console — a single page (system configuration).
+  // Superadmin console — the Defaults tab is gone (platform gate removed),
+  // so the leaf names the live tab; the bare path keeps its old crumb.
   if (pathname.startsWith("/superadmin")) {
+    if (pathname.startsWith("/superadmin/config/registration")) {
+      return [{ label: "Platform Admin" }, { label: "Registration" }];
+    }
+    if (pathname.startsWith("/superadmin/config/runtime")) {
+      return [{ label: "Platform Admin" }, { label: "Runtime" }];
+    }
     return [{ label: "Platform Admin" }, { label: "System Configuration" }];
   }
 

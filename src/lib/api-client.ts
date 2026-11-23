@@ -722,22 +722,28 @@ export function updateMyConfig(
 }
 
 /**
- * System enrichment gate block (`enrichment_gate` on PATCH/GET
- * /admin/system/config). Sent as a whole block; the backend 422s a bad
- * model id when enabled. Local-dir model paths are allowed.
+ * Enrichment gate block (`enrichment_gate` on org/personal config via
+ * getMyConfig/updateMyConfig and on GET /admin/org/config/defaults). Sent
+ * as a whole block; `null` clears the override back to the defaults.
+ * (The platform-level gate on /admin/system/config is gone — the backend
+ * no longer accepts or returns `enrichment_gate` there.)
  */
 export interface EnrichmentGateBlock {
   enabled: boolean;
   threshold: number;
-  model: string;
 }
 
+/** Fallback gate display when neither the override nor the defaults layer carries a block. */
+export const ENRICHMENT_GATE_DEFAULTS: EnrichmentGateBlock = {
+  enabled: false,
+  threshold: 0.5,
+};
+
 /**
- * Org enrichment_gate override (same key on org config via
- * getMyConfig/updateMyConfig): null inherits the platform switch, false
- * always disables for the org. Effective: system.enabled AND org !== false.
+ * Org/personal enrichment_gate override: a block, or null to clear back to
+ * the defaults.
  */
-export type EnrichmentGateOverride = boolean | null;
+export type EnrichmentGateOverride = EnrichmentGateBlock | null;
 
 /**
  * GET /admin/system/settings — superadmin read-only view of platform runtime
