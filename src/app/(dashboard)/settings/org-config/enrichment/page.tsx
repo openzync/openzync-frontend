@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { RotateCcw, Sparkles } from "lucide-react";
+import { RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
+import type { EnrichmentGateOverride } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
@@ -137,6 +138,32 @@ function validateEnrichment(form: FormState, searchType: string): string | null 
   return null;
 }
 
+// ─── Enrichment gate tri-state (orthogonal to the toggles above) ────────────
+// Stored as top-level `enrichment_gate: bool | null` — null inherits the
+// platform switch. Effective: system.enabled AND org !== false.
+
+type GateOption = "inherited" | "on" | "off";
+
+const GATE_OPTIONS: GateOption[] = ["inherited", "on", "off"];
+
+const GATE_LABELS: Record<GateOption, string> = {
+  inherited: "Inherited",
+  on: "On",
+  off: "Off",
+};
+
+const GATE_HINTS: Record<GateOption, string> = {
+  inherited: "Follow the platform switch.",
+  on: "Allow the platform switch for your org.",
+  off: "Never run the gate for your org.",
+};
+
+function pickGate(stored: Record<string, unknown>): GateOption {
+  const value = stored.enrichment_gate;
+  if (value == null) return "inherited";
+  return value ? "on" : "off";
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function EnrichmentConfigPage() {
@@ -144,6 +171,8 @@ export default function EnrichmentConfigPage() {
   const [form, setForm] = useState<FormState>({ ...DEFAULTS });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
   const [stored, setStored] = useState<Record<string, unknown>>({});
+  const [gate, setGate] = useState<GateOption>("inherited");
+  const [initialGate, setInitialGate] = useState<GateOption>(gate);
   const [saving, setSaving] = useState(false);
   // Effective search type (same config query) — embeddings-off is blocked
   // while this is vector/hybrid. Defaults to hybrid, matching the backend
@@ -209,6 +238,9 @@ export default function EnrichmentConfigPage() {
     setForm(current);
     setInitialForm(current);
     setStored(stored);
+    const currentGate = pickGate(stored);
+    setGate(currentGate);
+    setInitialGate(currentGate);
     setSearchType(
       ((defaults.graph_search_type ?? stored.graph_search_type ?? "hybrid") as string).toLowerCase(),
     );
@@ -229,9 +261,16 @@ export default function EnrichmentConfigPage() {
     return pendingResets.has(field);
   }
 
+  /** True when the org stores an explicit gate override (cleared → inherited). */
+  function isGateOverrideSet(): boolean {
+    return stored.enrichment_gate !== undefined && stored.enrichment_gate !== null;
+  }
+
   function hasChanged(): boolean {
     return (
-      FIELDS.some((f) => form[f] !== initialForm[f]) || hasPendingResets
+      FIELDS.some((f) => form[f] !== initialForm[f]) ||
+      hasPendingResets ||
+      gate !== initialGate
     );
   }
 
@@ -245,7 +284,8 @@ export default function EnrichmentConfigPage() {
     setDirty(
       value !== initialForm[field] ||
         FIELDS.some((f) => f !== field && form[f] !== initialForm[f]) ||
-        hasPendingResets,
+        hasPendingResets ||
+        gate !== initialGate,
     );
   }
 
@@ -253,6 +293,22 @@ export default function EnrichmentConfigPage() {
 
   function handleStageReset(field: keyof FormState) {
     stageReset(field, DEFAULTS[field]);
+    setDirty(true);
+  }
+
+  // ── Enrichment gate (tri-state, independent of the toggle validation) ─────
+
+  function updateGate(value: GateOption) {
+    setGate(value);
+    setDirty(
+      value !== initialGate ||
+        FIELDS.some((f) => form[f] !== initialForm[f]) ||
+        hasPendingResets,
+    );
+  }
+
+  function handleGateReset() {
+    setGate("inherited");
     setDirty(true);
   }
 
@@ -303,13 +359,20 @@ export default function EnrichmentConfigPage() {
     }
     setSaving(true);
 
+    // Gate rides along as a top-level key (null clears the override back to
+    // inherited); omitted when untouched so a toggle-only save is unchanged.
+    const gatePayload: { enrichment_gate?: EnrichmentGateOverride } =
+      gate !== initialGate
+        ? { enrichment_gate: gate === "inherited" ? null : gate === "on" }
+        : {};
+
     try {
       if (hasPendingResets) {
         // Backend merge_config_override removes TOP-LEVEL keys only — a
         // nested {"enrichment": {field: null}} would be stored as null (which
         // resolves to false, not the default). So clear the whole enrichment
         // override, then re-apply surviving overrides + edits when non-empty.
-        await updateMyConfig({ enrichment: null });
+        await updateMyConfig({ enrichment: null, ...gatePayload });
         const storedEnrichment = (stored.enrichment ?? {}) as Record<string, unknown>;
         const rebuilt: Record<string, unknown> = {};
         for (const f of FIELDS) {
@@ -324,8 +387,13 @@ export default function EnrichmentConfigPage() {
       } else {
         const flat = getSavePayload(form as unknown as Record<string, unknown>);
         // Backend expects the nested `enrichment:{...}` dict (OrgConfig /
-        // SystemConfig shape).
-        await updateMyConfig({ enrichment: flat });
+        // SystemConfig shape). Skip an empty dict so a gate-only save doesn't
+        // write a noisy `enrichment: {}` override (missing keys already
+        // resolve to the all-ON default).
+        await updateMyConfig({
+          ...(Object.keys(flat).length > 0 ? { enrichment: flat } : {}),
+          ...gatePayload,
+        });
       }
 
       toast.success("Enrichment configuration saved successfully");
@@ -435,6 +503,84 @@ export default function EnrichmentConfigPage() {
         )}
       </div>
 
+      {/* ── Enrichment Gate Card ────────────────────────────────────────────── */}
+      <div className="card-base p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
+            <ShieldCheck size={20} className="text-brand-300" />
+          </div>
+          <div>
+            <h2 className="font-display text-base font-medium">Enrichment Gate</h2>
+            <p className="text-xs text-surface-400">
+              Skip the LLM call for low-signal episodes
+            </p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="h-9 rounded bg-surface-800 animate-pulse w-full max-w-md" />
+        ) : (
+          <div className="space-y-4 max-w-md">
+            <fieldset>
+              <legend className="block text-sm font-medium text-surface-300 mb-2">
+                Gate mode
+              </legend>
+              <div className="space-y-2">
+                {GATE_OPTIONS.map((option) => {
+                  const optionId = `enrichment-gate-${option}`;
+                  return (
+                    <label
+                      key={option}
+                      htmlFor={optionId}
+                      className="flex cursor-pointer items-start gap-3"
+                    >
+                      <input
+                        id={optionId}
+                        type="radio"
+                        name="enrichment-gate"
+                        className="mt-1 border-surface-600 bg-surface-800 text-brand-500"
+                        checked={gate === option}
+                        onChange={() => updateGate(option)}
+                      />
+                      <span>
+                        <span className="block text-sm text-surface-300">
+                          {GATE_LABELS[option]}
+                        </span>
+                        <span className="block text-xs text-surface-500">
+                          {GATE_HINTS[option]}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+            <p className="text-xs text-surface-500">
+              Inherited follows the platform switch; Off here always disables for your org, even
+              when the platform switch is on.
+            </p>
+            {isGateOverrideSet() && (
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleGateReset}
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-md text-surface-400 hover:text-brand-300"
+                  title="Reset gate to inherited"
+                >
+                  <RotateCcw size={14} />
+                </Button>
+                {gate === "inherited" && (
+                  <p className="text-xs text-amber-400">
+                    Will reset to default on save
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* ── Sticky Save Bar ──────────────────────────────────────────────────── */}
       {!loading && (
         <StickySaveBar
@@ -444,6 +590,7 @@ export default function EnrichmentConfigPage() {
           onSave={handleSave}
           onDiscard={() => {
             setForm({ ...initialForm });
+            setGate(initialGate);
             setDirty(false);
             clearResets();
           }}

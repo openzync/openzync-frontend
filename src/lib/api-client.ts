@@ -720,6 +720,24 @@ export function updateMyConfig(
 }
 
 /**
+ * System enrichment gate block (`enrichment_gate` on PATCH/GET
+ * /admin/system/config). Sent as a whole block; the backend 422s a bad
+ * model id when enabled. Local-dir model paths are allowed.
+ */
+export interface EnrichmentGateBlock {
+  enabled: boolean;
+  threshold: number;
+  model: string;
+}
+
+/**
+ * Org enrichment_gate override (same key on org config via
+ * getMyConfig/updateMyConfig): null inherits the platform switch, false
+ * always disables for the org. Effective: system.enabled AND org !== false.
+ */
+export type EnrichmentGateOverride = boolean | null;
+
+/**
  * GET /admin/system/settings — superadmin read-only view of platform runtime
  * settings from the secrets backend. Secrets arrive pre-masked; reveal the
  * raw value per-key via revealSystemSetting.
