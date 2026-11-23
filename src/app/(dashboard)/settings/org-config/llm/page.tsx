@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useState } from "react";
-import { Brain, Eye, RotateCcw, Zap } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -399,14 +399,9 @@ export default function LlmConfigPage() {
     <div className="space-y-6">
       {/* ── LLM Backend Card ─────────────────────────────────────────────────── */}
       <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
-            <Brain size={20} className="text-brand-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">LLM Backend</h2>
-            <p className="text-xs text-surface-400">Primary language model provider</p>
-          </div>
+        <div className="mb-6">
+          <h2 className="font-display text-base font-medium">LLM Backend</h2>
+          <p className="text-xs text-surface-400">Primary language model provider</p>
         </div>
 
         {loading ? (
@@ -543,14 +538,9 @@ export default function LlmConfigPage() {
       {/* ── Provider Settings Card ────────────────────────────────────────────── */}
       {!loading && (
         <div className="card-base p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning/10">
-              <Eye size={20} className="text-warning" />
-            </div>
-            <div>
-              <h2 className="font-display text-base font-medium">{provider.title}</h2>
-              <p className="text-xs text-surface-400">{provider.description}</p>
-            </div>
+          <div className="mb-6">
+            <h2 className="font-display text-base font-medium">{provider.title}</h2>
+            <p className="text-xs text-surface-400">{provider.description}</p>
           </div>
 
           <div className="space-y-4 max-w-md">
@@ -611,14 +601,9 @@ export default function LlmConfigPage() {
       {/* ── Prompt Caching Card ──────────────────────────────────────────────── */}
       {!loading && (
         <div className="card-base p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
-              <Zap size={20} className="text-brand-300" />
-            </div>
-            <div>
-              <h2 className="font-display text-base font-medium">Prompt Caching</h2>
-              <p className="text-xs text-surface-400">Anthropic prompt caching</p>
-            </div>
+          <div className="mb-6">
+            <h2 className="font-display text-base font-medium">Prompt Caching</h2>
+            <p className="text-xs text-surface-400">Anthropic prompt caching</p>
           </div>
 
           <div className="space-y-4 max-w-md">

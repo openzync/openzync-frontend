@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ListChecks, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { ListChecks, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import {
   getMyConfig,
@@ -90,20 +90,15 @@ export default function ConfigOverviewPage() {
     <div className="space-y-4">
       {/* ── My overrides (personal layer, resettable) ──────────────────────── */}
       <div className="card-base p-6">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 shrink-0 text-brand-300">
-            <SlidersHorizontal size={20} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="font-display text-lg font-medium">My Overrides</h2>
-            <p className="text-sm text-surface-400 mt-0.5">
-              Your personal overrides. Edit them in the{" "}
-              <Link href="/settings/org-config/llm" className="text-accent-300 hover:text-accent-200">
-                tabs above
-              </Link>
-              ; reset one here to fall back to the system default.
-            </p>
-          </div>
+        <div className="mb-6">
+          <h2 className="font-display text-lg font-medium">My Overrides</h2>
+          <p className="text-sm text-surface-400 mt-0.5">
+            Your personal overrides. Edit them in the{" "}
+            <Link href="/settings/org-config/llm" className="text-accent-300 hover:text-accent-200">
+              tabs above
+            </Link>
+            ; reset one here to fall back to the system default.
+          </p>
         </div>
 
         <div className="mt-5">

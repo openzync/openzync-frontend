@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Non-secret system defaults rendered as label + input, shared by the
- * superadmin System Config page and the per-org config page.
+ * Non-secret system defaults rendered as label + input for the
+ * superadmin System Config page.
  *
  * Field names mirror the org-config `stored` map so the values round-trip
  * through PATCH unchanged. Secrets (API keys) are deliberately NOT listed.
@@ -19,68 +19,7 @@ export interface ConfigFieldMeta {
   hint?: string;
 }
 
-export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [
-  {
-    key: "llm_backend",
-    label: "LLM Backend",
-    kind: "select",
-    options: [
-      { value: "openai", label: "OpenAI" },
-      { value: "anthropic", label: "Anthropic" },
-      { value: "ollama", label: "Ollama" },
-      { value: "openai_like", label: "OpenAI-compatible" },
-      { value: "azure", label: "Azure OpenAI" },
-    ],
-  },
-  { key: "llm_model", label: "LLM Model", kind: "text" },
-  {
-    key: "llm_temperature",
-    label: "LLM Temperature",
-    kind: "number",
-    hint: "0–2 sampling temperature",
-  },
-  { key: "llm_max_tokens", label: "LLM Max Tokens", kind: "number" },
-  {
-    key: "graph_backend",
-    label: "Graph Backend",
-    kind: "select",
-    options: [
-      { value: "falkordb", label: "FalkorDB" },
-      { value: "surrealdb", label: "SurrealDB" },
-      { value: "none", label: "No graph backend" },
-    ],
-  },
-  {
-    key: "graph_search_type",
-    label: "Graph Search Type",
-    kind: "select",
-    options: [
-      { value: "hybrid", label: "Hybrid (vector + keyword)" },
-      { value: "bm25", label: "BM25 (keyword)" },
-      { value: "vector", label: "Vector" },
-    ],
-  },
-  { key: "graph_max_traversal_depth", label: "Graph Max Traversal Depth", kind: "number" },
-  {
-    key: "reranker_backend",
-    label: "Reranker Backend",
-    kind: "select",
-    options: [
-      { value: "", label: "None (disabled)" },
-      { value: "sentence_transformers", label: "Sentence Transformers (local)" },
-      { value: "cohere", label: "Cohere" },
-    ],
-  },
-  { key: "reranker_model", label: "Reranker Model", kind: "text" },
-  { key: "reranker_top_k", label: "Reranker Top-K", kind: "number" },
-  { key: "reranker_top_n", label: "Reranker Top-N", kind: "number" },
-  {
-    key: "context_cache_ttl",
-    label: "Context Cache TTL (seconds)",
-    kind: "number",
-    hint: "How long context data is cached (0 = no caching)",
-  },
-];
+export const SYSTEM_DEFAULT_FIELDS: ConfigFieldMeta[] = [];
 
 export function ConfigFields({
   values,

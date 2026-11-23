@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/contexts/user-context";
+import { useConfigDirty } from "@/contexts/config-dirty";
+import { RequirePermission } from "@/components/shared/require-permission";
 
 const TABS = [
-  { label: "System Configuration", href: "/superadmin/config", icon: <Settings2 size={16} /> },
+  { label: "System Configuration", href: "/superadmin/config" },
+  { label: "Registration", href: "/superadmin/config/registration" },
+  { label: "Runtime", href: "/superadmin/config/runtime" },
 ];
 
 /**
@@ -20,6 +22,9 @@ export default function SuperadminLayout({ children }: { children: React.ReactNo
   const { isSuperadmin, loading } = useUser();
   const pathname = usePathname();
   const router = useRouter();
+  // Tab switches route through the shared dirty guard — the ConfirmDialog
+  // itself lives in ConfigDirtyProvider (mounted at the dashboard level).
+  const { navigate } = useConfigDirty();
 
   useEffect(() => {
     if (!loading && !isSuperadmin) {
@@ -52,9 +57,9 @@ export default function SuperadminLayout({ children }: { children: React.ReactNo
         {TABS.map((tab) => {
           const isActive = pathname === tab.href;
           return (
-            <Link
+            <button
               key={tab.href}
-              href={tab.href}
+              onClick={() => navigate(tab.href)}
               className={cn(
                 "flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-colors",
                 isActive
@@ -62,14 +67,15 @@ export default function SuperadminLayout({ children }: { children: React.ReactNo
                   : "text-surface-400 hover:text-white hover:bg-surface-800",
               )}
             >
-              {tab.icon}
               {tab.label}
-            </Link>
+            </button>
           );
         })}
       </div>
 
-      {children}
+      {/* Superadmin is a wildcard role, so every superadmin holds
+          configuration:read — this mirrors the org-config tab layout. */}
+      <RequirePermission permission="configuration:read">{children}</RequirePermission>
     </div>
   );
 }

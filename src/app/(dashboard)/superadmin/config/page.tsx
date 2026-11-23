@@ -1,23 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ServerCog, Settings2, UserPlus, Zap } from "lucide-react";
 import { toast } from "sonner";
 import {
   get,
   patch,
   ApiError,
-  apiErrorMessage,
-  getSystemSettings,
-  revealSystemSetting,
   type EnrichmentGateBlock,
-  type SystemSettingItem,
 } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { useConfigDirty } from "@/contexts/config-dirty";
 import { ErrorState } from "@/components/shared/error-state";
-import { Button } from "@/components/ui/button";
+import { StickySaveBar } from "@/components/shared/sticky-save-bar";
 import { Field } from "@/components/ui/field";
-import { SimpleSelect } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ConfigFields, SYSTEM_DEFAULT_FIELDS } from "@/app/(dashboard)/superadmin/_components/config-fields";
 
@@ -80,13 +75,27 @@ function pickEnrichment(data: Record<string, unknown>): Record<string, boolean> 
   return out;
 }
 
-// ─── Registration (GET/PATCH /admin/system/registration; falls back to ──────
-// ─── GET /v1/auth/registration-status on backends without the admin endpoint) ─
-const REGISTRATION_OPTIONS = [
-  { value: "open", label: "Open" },
-  { value: "invite_only", label: "Invite only" },
-  { value: "approval", label: "Approval" },
-];
+function defaultsChanged(
+  next: Record<string, unknown>,
+  initial: Record<string, unknown>,
+): boolean {
+  return SYSTEM_DEFAULT_FIELDS.some((f) => next[f.key] !== initial[f.key]);
+}
+
+function gateChanged(next: EnrichmentGateBlock, initial: EnrichmentGateBlock): boolean {
+  return (
+    next.enabled !== initial.enabled ||
+    next.threshold !== initial.threshold ||
+    next.model !== initial.model
+  );
+}
+
+function enrichmentChanged(
+  next: Record<string, boolean>,
+  initial: Record<string, boolean>,
+): boolean {
+  return ENRICHMENT_FIELDS.some((f) => next[f.key] !== initial[f.key]);
+}
 
 export default function SuperadminConfigPage() {
   const [form, setForm] = useState<FormState>({
@@ -97,40 +106,17 @@ export default function SuperadminConfigPage() {
   const [initialGate, setInitialGate] = useState<EnrichmentGateBlock>({ ...gate });
   const [enrichment, setEnrichment] = useState<Record<string, boolean>>({});
   const [initialEnrichment, setInitialEnrichment] = useState<Record<string, boolean>>({});
-  const [registration, setRegistration] = useState<string>("invite_only");
-  const [initialRegistration, setInitialRegistration] = useState<string>("invite_only");
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
-  // key → raw value; presence in this map means the row is revealed.
-  const [revealed, setRevealed] = useState<Record<string, string>>({});
-  // key currently being fetched by the reveal endpoint.
-  const [revealing, setRevealing] = useState<string | null>(null);
+  const { setDirty } = useConfigDirty();
 
   const configQuery = useApiQuery<Record<string, unknown>>(() =>
     get<Record<string, unknown>>("/admin/system/config"),
   );
-  const settingsQuery = useApiQuery<{ data: SystemSettingItem[] }>(() =>
-    getSystemSettings(),
-  );
-  // Admin endpoint first; old backends 404 → fall back to the public status
-  // endpoint. Missing mode defaults to invite_only.
-  const registrationQuery = useApiQuery<{ registration_mode: string }>(async () => {
-    try {
-      return await get<{ registration_mode: string }>("/admin/system/registration");
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        return await get<{ registration_mode: string }>("/v1/auth/registration-status");
-      }
-      throw err;
-    }
-  });
   const loading = configQuery.isLoading;
   // Save failures share the banner with load errors; retry re-runs the GET.
   const error = configQuery.error ?? actionError;
-  const settings = settingsQuery.data?.data ?? [];
-  const settingsLoading = settingsQuery.isLoading;
-  const settingsError = settingsQuery.error;
 
   // Seed the editable form from server data — render-phase adjustment keyed on
   // response identity (same pattern as settings/page.tsx), so a refetch after
@@ -152,63 +138,40 @@ export default function SuperadminConfigPage() {
     setEnrichment(seededEnrichment);
     setInitialEnrichment({ ...seededEnrichment });
   }
-  const [seededRegistration, setSeededRegistration] =
-    useState<{ registration_mode: string } | null>(null);
-  if (registrationQuery.data && registrationQuery.data !== seededRegistration) {
-    setSeededRegistration(registrationQuery.data);
-    const mode = registrationQuery.data.registration_mode ?? "invite_only";
-    setRegistration(mode);
-    setInitialRegistration(mode);
+
+  const hasChanged = () =>
+    defaultsChanged(form.defaults, initialForm.defaults) ||
+    gateChanged(gate, initialGate) ||
+    enrichmentChanged(enrichment, initialEnrichment);
+
+  function updateDefault(key: string, value: string | number) {
+    const next = { ...form.defaults, [key]: value };
+    setForm({ defaults: next });
+    setDirty(
+      defaultsChanged(next, initialForm.defaults) ||
+        gateChanged(gate, initialGate) ||
+        enrichmentChanged(enrichment, initialEnrichment),
+    );
   }
 
-  /** Reveal raw value once; Hide only clears local state — never refetches. */
-  const handleToggleReveal = async (item: SystemSettingItem) => {
-    if (revealed[item.key]) {
-      setRevealed((prev) => {
-        const next = { ...prev };
-        delete next[item.key];
-        return next;
-      });
-      return;
-    }
-    setRevealing(item.key);
-    try {
-      const res = await revealSystemSetting(item.key);
-      setRevealed((prev) => ({ ...prev, [item.key]: res.value }));
-    } catch (err) {
-      toast.error(apiErrorMessage(err, "Failed to reveal setting"));
-    } finally {
-      setRevealing(null);
-    }
-  };
-
-  // Group by category, preserving the server's category order.
-  const groupedSettings = settings.reduce<Map<string, SystemSettingItem[]>>(
-    (acc, item) => {
-      const list = acc.get(item.category) ?? [];
-      list.push(item);
-      acc.set(item.category, list);
-      return acc;
-    },
-    new Map(),
-  );
-
-  const hasChanged = () => {
-    const gateChanged =
-      gate.enabled !== initialGate.enabled ||
-      gate.threshold !== initialGate.threshold ||
-      gate.model !== initialGate.model;
-    const enrichmentChanged = ENRICHMENT_FIELDS.some(
-      (f) => enrichment[f.key] !== initialEnrichment[f.key],
+  function updateGate(next: EnrichmentGateBlock) {
+    setGate(next);
+    setDirty(
+      defaultsChanged(form.defaults, initialForm.defaults) ||
+        gateChanged(next, initialGate) ||
+        enrichmentChanged(enrichment, initialEnrichment),
     );
-    const registrationChanged = registration !== initialRegistration;
-    return (
-      SYSTEM_DEFAULT_FIELDS.some((f) => form.defaults[f.key] !== initialForm.defaults[f.key]) ||
-      gateChanged ||
-      enrichmentChanged ||
-      registrationChanged
+  }
+
+  function updateEnrichment(key: string, checked: boolean) {
+    const next = { ...enrichment, [key]: checked };
+    setEnrichment(next);
+    setDirty(
+      defaultsChanged(form.defaults, initialForm.defaults) ||
+        gateChanged(gate, initialGate) ||
+        enrichmentChanged(next, initialEnrichment),
     );
-  };
+  }
 
   const handleSave = async () => {
     if (!hasChanged()) return;
@@ -225,29 +188,17 @@ export default function SuperadminConfigPage() {
       // Gate is a nested block: send it whole or not at all, so an
       // untouched gate never appears in the payload. Backend 422s (bad
       // model id with enabled=true) surface via the shared error path below.
-      if (
-        gate.enabled !== initialGate.enabled ||
-        gate.threshold !== initialGate.threshold ||
-        gate.model !== initialGate.model
-      ) {
+      if (gateChanged(gate, initialGate)) {
         payload.enrichment_gate = { ...gate };
       }
       // Enrichment toggles are one nested block: send whole or not at all.
-      if (ENRICHMENT_FIELDS.some((f) => enrichment[f.key] !== initialEnrichment[f.key])) {
+      if (enrichmentChanged(enrichment, initialEnrichment)) {
         payload.enrichment = { ...enrichment };
       }
-      // Registration lives on its own endpoint: PATCH whole or not at all.
-      const registrationChanged = registration !== initialRegistration;
-      if (Object.keys(payload).length > 0) {
-        await patch("/admin/system/config", payload);
-      }
-      if (registrationChanged) {
-        await patch("/admin/system/registration", { registration_mode: registration });
-        setInitialRegistration(registration);
-      }
+      await patch("/admin/system/config", payload);
       toast.success("System configuration saved");
+      setDirty(false);
       configQuery.refetch();
-      registrationQuery.refetch();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
@@ -258,6 +209,13 @@ export default function SuperadminConfigPage() {
       setSaving(false);
     }
   };
+
+  function handleDiscard() {
+    setForm({ defaults: { ...initialForm.defaults } });
+    setGate({ ...initialGate });
+    setEnrichment({ ...initialEnrichment });
+    setDirty(false);
+  }
 
   if (loading) {
     return (
@@ -273,40 +231,27 @@ export default function SuperadminConfigPage() {
     <div className="space-y-4">
       {error && <ErrorState message={error} onRetry={configQuery.refetch} />}
 
-      {/* ── Non-secret system defaults ──────────────────────────────────────── */}
-      <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning/10">
-            <Settings2 size={20} className="text-warning" />
-          </div>
-          <div>
+      {/* ── Non-secret system defaults (hidden while empty) ─────────────────── */}
+      {SYSTEM_DEFAULT_FIELDS.length > 0 && (
+        <div className="card-base p-6">
+          <div className="mb-6">
             <h2 className="font-display text-base font-medium">System Defaults</h2>
             <p className="text-xs text-surface-400">
               Non-secret platform defaults
             </p>
           </div>
-        </div>
 
-        <ConfigFields
-          values={form.defaults}
-          onChange={(key, value) =>
-            setForm((prev) => ({ ...prev, defaults: { ...prev.defaults, [key]: value } }))
-          }
-        />
-      </div>
+          <ConfigFields values={form.defaults} onChange={updateDefault} />
+        </div>
+      )}
 
       {/* ── Enrichment gate ─────────────────────────────────────────────────── */}
       <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
-            <Zap size={20} className="text-brand-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">Enrichment gate</h2>
-            <p className="text-xs text-surface-400">
-              Skip the LLM call for low-signal episodes
-            </p>
-          </div>
+        <div className="mb-6">
+          <h2 className="font-display text-base font-medium">Enrichment gate</h2>
+          <p className="text-xs text-surface-400">
+            Skip the LLM call for low-signal episodes
+          </p>
         </div>
 
         <div className="space-y-4 max-w-md">
@@ -318,7 +263,7 @@ export default function SuperadminConfigPage() {
               id="enrichment-gate-enabled"
               checked={gate.enabled}
               onCheckedChange={(checked) =>
-                setGate((prev) => ({ ...prev, enabled: checked }))
+                updateGate({ ...gate, enabled: checked })
               }
             />
             <span className="text-sm font-medium text-surface-300">Enabled</span>
@@ -346,10 +291,10 @@ export default function SuperadminConfigPage() {
               aria-describedby="enrichment-gate-threshold-hint"
               onChange={(e) =>
                 // Round off float artifacts (e.g. 0.6500000000000001).
-                setGate((prev) => ({
-                  ...prev,
+                updateGate({
+                  ...gate,
                   threshold: Math.round(e.target.valueAsNumber * 100) / 100,
-                }))
+                })
               }
               className="w-full accent-brand-500"
             />
@@ -373,7 +318,7 @@ export default function SuperadminConfigPage() {
               className="input-base w-full"
               type="text"
               value={gate.model}
-              onChange={(e) => setGate((prev) => ({ ...prev, model: e.target.value }))}
+              onChange={(e) => updateGate({ ...gate, model: e.target.value })}
             />
           </Field>
         </div>
@@ -381,16 +326,11 @@ export default function SuperadminConfigPage() {
 
       {/* ── System enrichment toggles ───────────────────────────────────────── */}
       <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
-            <Zap size={20} className="text-brand-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">System enrichment</h2>
-            <p className="text-xs text-surface-400">
-              Platform default enrichment stages — org and per-ingest overrides win
-            </p>
-          </div>
+        <div className="mb-6">
+          <h2 className="font-display text-base font-medium">System enrichment</h2>
+          <p className="text-xs text-surface-400">
+            Platform default enrichment stages — org and per-ingest overrides win
+          </p>
         </div>
 
         <div className="space-y-4 max-w-md">
@@ -403,9 +343,7 @@ export default function SuperadminConfigPage() {
               <Switch
                 id={`system-enrichment-${field.key}`}
                 checked={enrichment[field.key] ?? true}
-                onCheckedChange={(checked) =>
-                  setEnrichment((prev) => ({ ...prev, [field.key]: checked }))
-                }
+                onCheckedChange={(checked) => updateEnrichment(field.key, checked)}
               />
               <span className="text-sm font-medium text-surface-300">{field.label}</span>
             </label>
@@ -413,132 +351,15 @@ export default function SuperadminConfigPage() {
         </div>
       </div>
 
-      {/* ── Registration ──────────────────────────────────────────────────── */}
-      <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-500/10">
-            <UserPlus size={20} className="text-accent-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">Registration</h2>
-            <p className="text-xs text-surface-400">
-              Who can create an account on this platform
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-4 max-w-md">
-          {registrationQuery.error ? (
-            <ErrorState
-              message={registrationQuery.error}
-              onRetry={registrationQuery.refetch}
-            />
-          ) : (
-            <Field
-              label="Registration mode"
-              htmlFor="registration-mode"
-              hint="Open lets anyone sign up; invite only needs an invite; approval needs admin sign-off."
-            >
-              <SimpleSelect
-                id="registration-mode"
-                className="w-full"
-                options={REGISTRATION_OPTIONS}
-                value={registration}
-                onValueChange={setRegistration}
-              />
-            </Field>
-          )}
-        </div>
-      </div>
-
-      {/* ── Save bar ────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
-        <Button variant="primary" onClick={handleSave} loading={saving} disabled={!hasChanged()}>
-          Save Changes
-        </Button>
-        {justSaved && (
-          <span className="flex items-center gap-1.5 text-sm text-success">
-            <Check size={14} />
-            Saved
-          </span>
-        )}
-      </div>
-
-      {/* ── Runtime settings (read-only, masked) ───────────────────────────── */}
-      <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-500/10">
-            <ServerCog size={20} className="text-accent-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">System Settings (runtime)</h2>
-            <p className="text-xs text-surface-400">
-              Platform runtime configuration from the secrets backend — read-only
-            </p>
-          </div>
-        </div>
-
-        {settingsError && <ErrorState message={settingsError} onRetry={settingsQuery.refetch} />}
-
-        {settingsLoading ? (
-          <div className="space-y-2">
-            <div className="h-9 rounded bg-surface-800 animate-pulse w-full" />
-            <div className="h-9 rounded bg-surface-800 animate-pulse w-full" />
-            <div className="h-9 rounded bg-surface-800 animate-pulse w-48" />
-          </div>
-        ) : (
-          <div className="divide-y divide-surface-800">
-            {[...groupedSettings.entries()].map(([category, items]) => (
-              <div key={category} className="py-4 first:pt-0 last:pb-0">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-surface-400 mb-2">
-                  {category}
-                </h3>
-                <div className="space-y-1">
-                  {items.map((item) => {
-                    const raw = revealed[item.key];
-                    const isRevealed = raw !== undefined;
-                    return (
-                      <div
-                        key={item.key}
-                        className="flex items-start gap-3 rounded-md px-2 py-2.5 hover:bg-surface-800/40"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <code className="block font-mono text-xs text-surface-300 truncate" title={item.key}>
-                            {item.key}
-                          </code>
-                          {!item.is_set ? (
-                            <span className="block mt-1 text-sm italic text-surface-600">Not set</span>
-                          ) : isRevealed ? (
-                            <code className="block mt-1 font-mono text-xs text-warning break-all" title={item.key}>
-                              {raw}
-                            </code>
-                          ) : (
-                            <span className="block mt-1 font-mono text-sm text-surface-400 break-all">
-                              {item.masked_value ?? ""}
-                            </span>
-                          )}
-                        </div>
-                        {item.is_set && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="shrink-0"
-                            loading={revealing === item.key}
-                            disabled={revealing !== null && revealing !== item.key}
-                            onClick={() => void handleToggleReveal(item)}
-                          >
-                            {isRevealed ? "Hide" : "Reveal"}
-                          </Button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {!loading && (
+        <StickySaveBar
+          saving={saving}
+          hasChanges={hasChanged()}
+          hasSaved={justSaved}
+          onSave={() => void handleSave()}
+          onDiscard={handleDiscard}
+        />
+      )}
     </div>
   );
 }

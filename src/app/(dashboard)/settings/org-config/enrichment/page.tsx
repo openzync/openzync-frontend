@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import type { EnrichmentGateOverride } from "@/lib/api-client";
@@ -422,16 +422,11 @@ export default function EnrichmentConfigPage() {
     <div className="space-y-6">
       {/* ── Enrichment Configuration Card ─────────────────────────────────────── */}
       <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
-            <Sparkles size={20} className="text-brand-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">Enrichment Settings</h2>
-            <p className="text-xs text-surface-400">
-              Per-episode enrichment pipeline toggles
-            </p>
-          </div>
+        <div className="mb-6">
+          <h2 className="font-display text-base font-medium">Enrichment Settings</h2>
+          <p className="text-xs text-surface-400">
+            Per-episode enrichment pipeline toggles
+          </p>
         </div>
 
         {loading ? (
@@ -505,16 +500,11 @@ export default function EnrichmentConfigPage() {
 
       {/* ── Enrichment Gate Card ────────────────────────────────────────────── */}
       <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
-            <ShieldCheck size={20} className="text-brand-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">Enrichment Gate</h2>
-            <p className="text-xs text-surface-400">
-              Skip the LLM call for low-signal episodes
-            </p>
-          </div>
+        <div className="mb-6">
+          <h2 className="font-display text-base font-medium">Enrichment Gate</h2>
+          <p className="text-xs text-surface-400">
+            Skip the LLM call for low-signal episodes
+          </p>
         </div>
 
         {loading ? (
