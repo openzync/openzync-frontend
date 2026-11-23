@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ServerCog, Settings2, Zap } from "lucide-react";
+import { Check, ServerCog, Settings2, UserPlus, Zap } from "lucide-react";
 import { toast } from "sonner";
 import {
   get,
@@ -17,6 +17,7 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { SimpleSelect } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ConfigFields, SYSTEM_DEFAULT_FIELDS } from "@/app/(dashboard)/superadmin/_components/config-fields";
 
@@ -54,6 +55,39 @@ function pickDefaults(data: Record<string, unknown>): Record<string, unknown> {
   return defaults;
 }
 
+// ─── System enrichment toggles (mirrors SystemConfigResponse.enrichment) ─────
+// Unset keys default to True — same contract as the backend all-True default.
+const ENRICHMENT_FIELDS: { key: string; label: string }[] = [
+  { key: "entities", label: "Entity extraction" },
+  { key: "embedding", label: "Embeddings" },
+  { key: "facts", label: "Fact extraction" },
+  { key: "entity_links", label: "Entity linking" },
+  { key: "classification", label: "Classification" },
+  { key: "structured", label: "Structured extraction" },
+  { key: "observations", label: "Observations" },
+  { key: "blob_text", label: "Blob text extraction" },
+  { key: "llm_invalidation", label: "LLM invalidation" },
+];
+
+/** Seed the enrichment toggles — unset keys default to True. */
+function pickEnrichment(data: Record<string, unknown>): Record<string, boolean> {
+  const raw = (data.enrichment ?? {}) as Record<string, unknown>;
+  const out: Record<string, boolean> = {};
+  for (const field of ENRICHMENT_FIELDS) {
+    const value = raw[field.key];
+    out[field.key] = typeof value === "boolean" ? value : true;
+  }
+  return out;
+}
+
+// ─── Registration (GET/PATCH /admin/system/registration; falls back to ──────
+// ─── GET /v1/auth/registration-status on backends without the admin endpoint) ─
+const REGISTRATION_OPTIONS = [
+  { value: "open", label: "Open" },
+  { value: "invite_only", label: "Invite only" },
+  { value: "approval", label: "Approval" },
+];
+
 export default function SuperadminConfigPage() {
   const [form, setForm] = useState<FormState>({
     defaults: {},
@@ -61,6 +95,10 @@ export default function SuperadminConfigPage() {
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
   const [gate, setGate] = useState<EnrichmentGateBlock>({ ...GATE_DEFAULTS });
   const [initialGate, setInitialGate] = useState<EnrichmentGateBlock>({ ...gate });
+  const [enrichment, setEnrichment] = useState<Record<string, boolean>>({});
+  const [initialEnrichment, setInitialEnrichment] = useState<Record<string, boolean>>({});
+  const [registration, setRegistration] = useState<string>("invite_only");
+  const [initialRegistration, setInitialRegistration] = useState<string>("invite_only");
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
@@ -75,6 +113,18 @@ export default function SuperadminConfigPage() {
   const settingsQuery = useApiQuery<{ data: SystemSettingItem[] }>(() =>
     getSystemSettings(),
   );
+  // Admin endpoint first; old backends 404 → fall back to the public status
+  // endpoint. Missing mode defaults to invite_only.
+  const registrationQuery = useApiQuery<{ registration_mode: string }>(async () => {
+    try {
+      return await get<{ registration_mode: string }>("/admin/system/registration");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        return await get<{ registration_mode: string }>("/v1/auth/registration-status");
+      }
+      throw err;
+    }
+  });
   const loading = configQuery.isLoading;
   // Save failures share the banner with load errors; retry re-runs the GET.
   const error = configQuery.error ?? actionError;
@@ -98,6 +148,17 @@ export default function SuperadminConfigPage() {
     const seededGate = pickGate(configQuery.data);
     setGate(seededGate);
     setInitialGate({ ...seededGate });
+    const seededEnrichment = pickEnrichment(configQuery.data);
+    setEnrichment(seededEnrichment);
+    setInitialEnrichment({ ...seededEnrichment });
+  }
+  const [seededRegistration, setSeededRegistration] =
+    useState<{ registration_mode: string } | null>(null);
+  if (registrationQuery.data && registrationQuery.data !== seededRegistration) {
+    setSeededRegistration(registrationQuery.data);
+    const mode = registrationQuery.data.registration_mode ?? "invite_only";
+    setRegistration(mode);
+    setInitialRegistration(mode);
   }
 
   /** Reveal raw value once; Hide only clears local state — never refetches. */
@@ -137,9 +198,15 @@ export default function SuperadminConfigPage() {
       gate.enabled !== initialGate.enabled ||
       gate.threshold !== initialGate.threshold ||
       gate.model !== initialGate.model;
+    const enrichmentChanged = ENRICHMENT_FIELDS.some(
+      (f) => enrichment[f.key] !== initialEnrichment[f.key],
+    );
+    const registrationChanged = registration !== initialRegistration;
     return (
       SYSTEM_DEFAULT_FIELDS.some((f) => form.defaults[f.key] !== initialForm.defaults[f.key]) ||
-      gateChanged
+      gateChanged ||
+      enrichmentChanged ||
+      registrationChanged
     );
   };
 
@@ -165,9 +232,22 @@ export default function SuperadminConfigPage() {
       ) {
         payload.enrichment_gate = { ...gate };
       }
-      await patch("/admin/system/config", payload);
+      // Enrichment toggles are one nested block: send whole or not at all.
+      if (ENRICHMENT_FIELDS.some((f) => enrichment[f.key] !== initialEnrichment[f.key])) {
+        payload.enrichment = { ...enrichment };
+      }
+      // Registration lives on its own endpoint: PATCH whole or not at all.
+      const registrationChanged = registration !== initialRegistration;
+      if (Object.keys(payload).length > 0) {
+        await patch("/admin/system/config", payload);
+      }
+      if (registrationChanged) {
+        await patch("/admin/system/registration", { registration_mode: registration });
+        setInitialRegistration(registration);
+      }
       toast.success("System configuration saved");
       configQuery.refetch();
+      registrationQuery.refetch();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
@@ -296,6 +376,78 @@ export default function SuperadminConfigPage() {
               onChange={(e) => setGate((prev) => ({ ...prev, model: e.target.value }))}
             />
           </Field>
+        </div>
+      </div>
+
+      {/* ── System enrichment toggles ───────────────────────────────────────── */}
+      <div className="card-base p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
+            <Zap size={20} className="text-brand-300" />
+          </div>
+          <div>
+            <h2 className="font-display text-base font-medium">System enrichment</h2>
+            <p className="text-xs text-surface-400">
+              Platform default enrichment stages — org and per-ingest overrides win
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4 max-w-md">
+          {ENRICHMENT_FIELDS.map((field) => (
+            <label
+              key={field.key}
+              htmlFor={`system-enrichment-${field.key}`}
+              className="flex items-center gap-3 cursor-pointer"
+            >
+              <Switch
+                id={`system-enrichment-${field.key}`}
+                checked={enrichment[field.key] ?? true}
+                onCheckedChange={(checked) =>
+                  setEnrichment((prev) => ({ ...prev, [field.key]: checked }))
+                }
+              />
+              <span className="text-sm font-medium text-surface-300">{field.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Registration ──────────────────────────────────────────────────── */}
+      <div className="card-base p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-500/10">
+            <UserPlus size={20} className="text-accent-300" />
+          </div>
+          <div>
+            <h2 className="font-display text-base font-medium">Registration</h2>
+            <p className="text-xs text-surface-400">
+              Who can create an account on this platform
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4 max-w-md">
+          {registrationQuery.error ? (
+            <ErrorState
+              message={registrationQuery.error}
+              onRetry={registrationQuery.refetch}
+            />
+          ) : (
+            <Field
+              label="Registration mode"
+              htmlFor="registration-mode"
+              hint="Open lets anyone sign up; invite only needs an invite; approval needs admin sign-off."
+            >
+              <SimpleSelect
+                id="registration-mode"
+                className="w-full"
+                options={REGISTRATION_OPTIONS}
+                value={registration}
+                onValueChange={setRegistration}
+              />
+            </Field>
+          )}
         </div>
       </div>
 

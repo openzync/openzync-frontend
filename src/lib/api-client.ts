@@ -701,6 +701,8 @@ export interface MyConfigResponse {
   override: Record<string, unknown>;
   /** Merged user ⊕ system view actually applied. */
   effective: Record<string, unknown>;
+  /** Fields managed at the system level (read-only for this caller). */
+  system_managed_fields?: string[];
 }
 
 /** GET /v1/me/config — the caller's personal config overrides (canonical; no alias). */

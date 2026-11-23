@@ -111,7 +111,7 @@ export default function GraphConfigPage() {
         // System defaults apply for anything not overridden.
     const defaults: Record<string, unknown> = {};
 
-    return { stored, defaults, systemManaged: ([]) as string[] };
+    return { stored, defaults, systemManaged: (mine.system_managed_fields ?? []) as string[] };
   });
 
   // Seed the editable form from server data — render-phase adjustment keyed on
