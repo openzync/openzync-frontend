@@ -35,6 +35,10 @@ interface IngestResponse {
   blob_count?: number;
   status?: string;
   message?: string;
+  /** True when a post-commit fan-out step failed — ingest committed, reconciler replays. */
+  degraded?: boolean;
+  /** Machine-readable reason for degraded=true. */
+  degrade_reason?: string | null;
 }
 
 interface SearchResponse {
@@ -258,6 +262,12 @@ function IngestTab({ projectId }: { projectId: string }) {
       {result && (
         <div className="space-y-3 rounded-md bg-brand-500/5 border border-brand-500/20 p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-brand-300"><CheckCircle2 size={16} />Ingest Successful</div>
+          {result.degraded && (
+            <div role="alert" className="flex items-start gap-2 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <span>Saved but enrichment delayed — reconciler will replay{result.degrade_reason ? `: ${result.degrade_reason}` : ""}</span>
+            </div>
+          )}
           <EnrichmentStatus
             jobId={result.job_id}
             status={result.status}

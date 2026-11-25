@@ -338,6 +338,24 @@ export class ApiError extends Error {
 }
 
 /**
+ * Thrown when a DELETE memory wipe returns 204 with `X-Wipe-Failed: true`
+ * (partial post-commit S3 sweep — rows are committed, some blobs remain for
+ * the orphan-blob GC worker). Extends ApiError so existing `instanceof`
+ * checks and `apiErrorMessage()` keep working; callers show a "partial
+ * wipe, retry" state instead of success.
+ *
+ * NOTE: status is 204 (success range), so 4xx/5xx filters (`!res.ok`,
+ * `isServerError`, status-range checks) never match — callers MUST catch
+ * via `err instanceof PartialWipeError`, not status checks.
+ */
+export class PartialWipeError extends ApiError {
+  constructor() {
+    super("Partial wipe — some blobs left, retry", 204, null);
+    this.name = "PartialWipeError";
+  }
+}
+
+/**
  * Build a human-readable message from an API error body (FastAPI/RFC 7807).
  * FastAPI 422 `detail` is an array of { loc, msg, type } — flatten it into
  * `messages.0.content: Field required` style text instead of rendering
@@ -348,12 +366,27 @@ export class ApiError extends Error {
 function parseApiErrorMessage(body: unknown, status: number): string {
   if (!body || typeof body !== "object") return `Request failed with status ${status}`;
   const b = body as Record<string, unknown>;
-  if (typeof b.message === "string") return b.message;
-  if (typeof b.detail === "string") return b.detail;
+  // 409 (idempotency-key reuse / content dedup) carries the prior job_id in
+  // `detail.job_id` or top-level `job_id` — surface it so the user can poll
+  // the existing job instead of duplicating the ingest.
+  let conflictSuffix = "";
+  if (status === 409) {
+    const d = b.detail;
+    const id =
+      d && typeof d === "object" && !Array.isArray(d)
+        ? (d as Record<string, unknown>).job_id
+        : undefined;
+    const jobId = typeof id === "string" ? id : b.job_id;
+    if (typeof jobId === "string" && jobId) {
+      conflictSuffix = ` — already ingested as job ${jobId}`;
+    }
+  }
+  if (typeof b.message === "string") return b.message + conflictSuffix;
+  if (typeof b.detail === "string") return b.detail + conflictSuffix;
   if (b.detail && typeof b.detail === "object") {
     const d = b.detail as Record<string, unknown>;
-    if (typeof d.detail === "string") return d.detail;
-    if (typeof d.message === "string") return d.message;
+    if (typeof d.detail === "string") return d.detail + conflictSuffix;
+    if (typeof d.message === "string") return d.message + conflictSuffix;
   }
   if (Array.isArray(b.detail)) {
     const parts = b.detail.slice(0, 3).map((item) => {
@@ -373,10 +406,10 @@ function parseApiErrorMessage(body: unknown, status: number): string {
       const msg = typeof e.msg === "string" ? e.msg : "";
       return loc ? `${loc}: ${msg}` : msg;
     }).filter(Boolean);
-    if (parts.length) return parts.join("; ");
+    if (parts.length) return parts.join("; ") + conflictSuffix;
   }
-  if (typeof b.title === "string") return b.title;
-  return `Request failed with status ${status}`;
+  if (typeof b.title === "string") return b.title + conflictSuffix;
+  return `Request failed with status ${status}` + conflictSuffix;
 }
 
 /**
@@ -403,16 +436,21 @@ export function apiErrorMessage(err: unknown, fallback: string): string {
  */
 interface RequestOptions extends RequestInit {
   skipAuthRetry?: boolean;
+  /**
+   * Opt-in: throw PartialWipeError on 204 + `X-Wipe-Failed: true`.
+   * Only the memory-wipe path sets this; all other DELETEs ignore the header.
+   */
+  throwOnPartialWipe?: boolean;
 }
 
 /** Per-verb opt-out surface — deliberately narrow so callers can't send raw headers past the auth layer. */
-type VerbOptions = Pick<RequestOptions, "skipAuthRetry" | "signal">;
+type VerbOptions = Pick<RequestOptions, "skipAuthRetry" | "signal" | "throwOnPartialWipe">;
 
 async function request<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { skipAuthRetry, ...init } = options;
+  const { skipAuthRetry, throwOnPartialWipe, ...init } = options;
   const method = (init.method ?? "GET").toUpperCase();
   // Any mutation may have changed what a GET returns — wipe, don't track keys.
   if (method !== "GET") _getCache.clear();
@@ -446,8 +484,14 @@ async function request<T>(
     });
   }
 
-  // No content (204) — return empty
+  // No content (204) — return empty. The memory wipe endpoint signals a
+  // partial S3 sweep via `X-Wipe-Failed: true` on its 204 (never a body).
+  // Only throw when the caller opted in via `throwOnPartialWipe` (memory-wipe
+  // path) — api-keys revoke, archive, and other DELETEs ignore the header.
   if (res.status === 204) {
+    if (throwOnPartialWipe && res.headers.get("X-Wipe-Failed") === "true") {
+      throw new PartialWipeError();
+    }
     return {} as T;
   }
 
@@ -513,9 +557,34 @@ export function patch<T>(path: string, data?: unknown, opts?: VerbOptions): Prom
   });
 }
 
-/** DELETE request */
-export function del<T = void>(path: string, opts?: VerbOptions): Promise<T> {
-  return request<T>(path, { method: "DELETE", ...opts });
+/** DELETE request. A partial memory wipe (204 + `X-Wipe-Failed: true`) throws PartialWipeError instead of resolving. */
+export function del<T = void>(
+  path: string,
+  opts?: VerbOptions & { body?: unknown },
+): Promise<T> {
+  const { body, ...rest } = opts ?? {};
+  return request<T>(path, {
+    method: "DELETE",
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    ...rest,
+  });
+}
+
+/**
+ * DELETE /v1/projects/{id}/memory — GDPR wipe (confirm-gated, always 204).
+ * Resolves on full wipe; throws PartialWipeError when the backend reports
+ * `X-Wipe-Failed: true` so the UI shows "partial wipe, retry" instead of
+ * success. Status is 204 (not 4xx/5xx), so callers MUST catch via
+ * `err instanceof PartialWipeError`, not status checks.
+ *
+ * TODO(Danger Zone): no wipe button exists in the UI yet — wire this into
+ * the project Danger Zone when one is added.
+ */
+export function deleteProjectMemory(projectId: string): Promise<void> {
+  return del<void>(`/v1/projects/${encodeURIComponent(projectId)}/memory`, {
+    body: { confirm: projectId },
+    throwOnPartialWipe: true,
+  });
 }
 
 // ── File Upload ─────────────────────────────────────────────────────────
