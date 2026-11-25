@@ -69,12 +69,18 @@ describe("isVisible gating", () => {
     expect(isVisible(schemas, () => false, false)).toBe(false);
   });
 
-  it("superadminOnly entries require isSuperadmin even with wildcard can()", () => {
-    const platformAdmin = NAV_SECTIONS.find((s) => s.id === "system")!.entries.find(
+  it("superadminOnly gating still works for synthetic entries (no manifest entry uses it)", () => {
+    // The Platform Admin section was deleted — no manifest entry sets
+    // superadminOnly anymore. isVisible keeps honoring the flag so a
+    // future root-only entry is gated correctly.
+    const gated = NAV_SECTIONS.flatMap((s) => s.entries).filter(
       (e) => e.superadminOnly,
-    )!;
-    expect(isVisible(platformAdmin, () => true, true)).toBe(true);
-    expect(isVisible(platformAdmin, () => true, false)).toBe(false);
+    );
+    expect(gated).toHaveLength(0);
+    const icon = NAV_SECTIONS[0].entries[0].icon;
+    const synthetic = { label: "X", href: "/x", icon, superadminOnly: true as const };
+    expect(isVisible(synthetic, () => true, true)).toBe(true);
+    expect(isVisible(synthetic, () => true, false)).toBe(false);
   });
 });
 
@@ -127,11 +133,8 @@ describe("resolveBreadcrumb", () => {
     ]);
   });
 
-  it("keeps the superadmin ladder", () => {
-    expect(resolveBreadcrumb("/superadmin/config")).toEqual([
-      { label: "Platform Admin" },
-      { label: "System Configuration" },
-    ]);
+  it("has no /superadmin branch (Platform Admin deleted — unknown paths stay empty)", () => {
+    expect(resolveBreadcrumb("/superadmin/config")).toEqual([]);
   });
 
   it("labels the personal account page", () => {

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { get, patch, ApiError } from "@/lib/api-client";
+import { useUser } from "@/contexts/user-context";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { ErrorState } from "@/components/shared/error-state";
@@ -18,13 +20,21 @@ const REGISTRATION_OPTIONS = [
   { value: "approval", label: "Approval" },
 ];
 
-export default function SuperadminRegistrationPage() {
+export default function OrgConfigRegistrationPage() {
+  const { isSuperadmin, loading: userLoading } = useUser();
+  const router = useRouter();
   const [registration, setRegistration] = useState<string>("invite_only");
   const [initialRegistration, setInitialRegistration] = useState<string>("invite_only");
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
   const { setDirty } = useConfigDirty();
+
+  useEffect(() => {
+    if (!userLoading && !isSuperadmin) {
+      router.replace("/overview");
+    }
+  }, [isSuperadmin, userLoading, router]);
 
   // Admin endpoint first; old backends 404 → fall back to the public status
   // endpoint. Missing mode defaults to invite_only.
@@ -82,6 +92,16 @@ export default function SuperadminRegistrationPage() {
   function handleDiscard() {
     setRegistration(initialRegistration);
     setDirty(false);
+  }
+
+  if (userLoading || !isSuperadmin) {
+    return (
+      <div className="space-y-4">
+        <div className="h-9 rounded bg-surface-800 animate-pulse w-full" />
+        <div className="h-9 rounded bg-surface-800 animate-pulse w-full" />
+        <div className="h-9 rounded bg-surface-800 animate-pulse w-48" />
+      </div>
+    );
   }
 
   if (loading) {
