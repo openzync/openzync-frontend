@@ -17,9 +17,8 @@ interface ConfigTab {
 }
 
 const TABS: ConfigTab[] = [
-  // Route path /settings/org-config is kept for backward compat — user-facing
-  // copy throughout says Configuration / Overview (personal overrides).
-  { label: "Overview", href: "/settings/org-config", id: "overview" },
+  // Exact path /settings/org-config redirects to the LLM tab (page.tsx) —
+  // no Overview entry; per-tab staged resets cover resets.
   { label: "LLM", href: "/settings/org-config/llm", id: "llm" },
   { label: "Graph", href: "/settings/org-config/graph", id: "graph" },
   { label: "Reranker", href: "/settings/org-config/reranker", id: "reranker" },
