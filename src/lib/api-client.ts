@@ -746,42 +746,6 @@ export const ENRICHMENT_GATE_DEFAULTS: EnrichmentGateBlock = {
 export type EnrichmentGateOverride = EnrichmentGateBlock | null;
 
 /**
- * GET /admin/system/settings — superadmin read-only view of platform runtime
- * settings from the secrets backend. Secrets arrive pre-masked; reveal the
- * raw value per-key via revealSystemSetting.
- */
-export interface SystemSettingItem {
-  key: string;
-  category: string;
-  is_set: boolean;
-  masked_value: string | null;
-}
-
-export interface SystemSettingsResponse {
-  data: SystemSettingItem[];
-}
-
-/** POST /admin/system/settings/{key}/reveal — raw value for one key. POST so the server-side audit middleware logs the reveal. */
-export interface SystemSettingRevealResponse {
-  key: string;
-  value: string;
-}
-
-/** GET /admin/system/settings — all runtime settings, masked. */
-export function getSystemSettings(): Promise<SystemSettingsResponse> {
-  return get<SystemSettingsResponse>("/admin/system/settings");
-}
-
-/** POST /admin/system/settings/{key}/reveal — raw value for exactly one key (no body). */
-export function revealSystemSetting(
-  key: string,
-): Promise<SystemSettingRevealResponse> {
-  return post<SystemSettingRevealResponse>(
-    `/admin/system/settings/${encodeURIComponent(key)}/reveal`,
-  );
-}
-
-/**
  * POST /v1/auth/change-password — rotates the token pair and clears the
  * `must_change_password` flag. Success is a fresh session: overwrite tokens
  * exactly like acceptInvite, never merge with a stale pair.
