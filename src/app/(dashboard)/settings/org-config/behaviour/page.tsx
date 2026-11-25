@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RotateCcw, Settings2 } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -86,7 +86,7 @@ export default function BehaviourConfigPage() {
   });
 
   // Seed the editable form from server data — render-phase adjustment keyed on
-  // response identity (same pattern as superadmin/config), so a refetch after
+  // response identity (same pattern as superadmin/config/registration), so a refetch after
   // save re-seeds exactly once.
   const [seeded, setSeeded] = useState<ConfigData | null>(null);
   if (configQuery.data && configQuery.data !== seeded) {
@@ -180,16 +180,11 @@ export default function BehaviourConfigPage() {
     <div className="space-y-6">
       {/* ── Behaviour Configuration Card ──────────────────────────────────────── */}
       <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
-            <Settings2 size={20} className="text-brand-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">Behaviour Settings</h2>
-            <p className="text-xs text-surface-400">
-              Caching and audit behaviour
-            </p>
-          </div>
+        <div className="mb-6">
+          <h2 className="font-display text-base font-medium">Behaviour Settings</h2>
+          <p className="text-xs text-surface-400">
+            Caching and audit behaviour
+          </p>
         </div>
 
         {loading ? (

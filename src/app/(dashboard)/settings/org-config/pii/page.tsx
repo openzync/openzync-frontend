@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RotateCcw, Shield } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -262,14 +262,9 @@ export default function PiiConfigPage() {
     <div className="space-y-6">
       {/* ── PII Protection Card ───────────────────────────────────────────────── */}
       <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
-            <Shield size={20} className="text-brand-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">PII Protection</h2>
-            <p className="text-xs text-surface-400">Redact sensitive data before storage</p>
-          </div>
+        <div className="mb-6">
+          <h2 className="font-display text-base font-medium">PII Protection</h2>
+          <p className="text-xs text-surface-400">Redact sensitive data before storage</p>
         </div>
 
         {loading ? (

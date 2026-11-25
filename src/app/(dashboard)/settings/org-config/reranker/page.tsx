@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowUpDown, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
@@ -191,14 +191,9 @@ export default function RerankerConfigPage() {
   return (
     <div className="space-y-6">
       <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
-            <ArrowUpDown size={20} className="text-brand-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">Reranker Settings</h2>
-            <p className="text-xs text-surface-400">Result re-ranking for improved relevance</p>
-          </div>
+        <div className="mb-6">
+          <h2 className="font-display text-base font-medium">Reranker Settings</h2>
+          <p className="text-xs text-surface-400">Result re-ranking for improved relevance</p>
         </div>
 
         {loading ? (

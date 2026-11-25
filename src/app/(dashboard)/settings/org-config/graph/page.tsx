@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { GitBranch, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
@@ -111,11 +111,11 @@ export default function GraphConfigPage() {
         // System defaults apply for anything not overridden.
     const defaults: Record<string, unknown> = {};
 
-    return { stored, defaults, systemManaged: ([]) as string[] };
+    return { stored, defaults, systemManaged: (mine.system_managed_fields ?? []) as string[] };
   });
 
   // Seed the editable form from server data — render-phase adjustment keyed on
-  // response identity (same pattern as superadmin/config), so a refetch after
+  // response identity (same pattern as superadmin/config/registration), so a refetch after
   // save re-seeds exactly once.
   const [seeded, setSeeded] = useState<ConfigData | null>(null);
   if (configQuery.data && configQuery.data !== seeded) {
@@ -237,14 +237,9 @@ export default function GraphConfigPage() {
     <div className="space-y-6">
       {/* ── Graph Configuration Card ──────────────────────────────────────────── */}
       <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
-            <GitBranch size={20} className="text-brand-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">Graph Settings</h2>
-            <p className="text-xs text-surface-400">Knowledge graph search and traversal</p>
-          </div>
+        <div className="mb-6">
+          <h2 className="font-display text-base font-medium">Graph Settings</h2>
+          <p className="text-xs text-surface-400">Knowledge graph search and traversal</p>
         </div>
 
         {loading ? (

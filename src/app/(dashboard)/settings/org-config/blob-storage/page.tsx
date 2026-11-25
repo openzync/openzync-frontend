@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RotateCcw, HardDrive } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -100,7 +100,7 @@ export default function BlobStorageConfigPage() {
   });
 
   // Seed the editable form from server data — render-phase adjustment keyed on
-  // response identity (same pattern as superadmin/config), so a refetch after
+  // response identity (same pattern as superadmin/config/registration), so a refetch after
   // save re-seeds exactly once.
   const [seeded, setSeeded] = useState<ConfigData | null>(null);
   if (configQuery.data && configQuery.data !== seeded) {
@@ -234,16 +234,11 @@ export default function BlobStorageConfigPage() {
     <div className="space-y-6">
       {/* ── Blob Storage Configuration Card ─────────────────────────────────── */}
       <div className="card-base p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
-            <HardDrive size={20} className="text-brand-300" />
-          </div>
-          <div>
-            <h2 className="font-display text-base font-medium">Blob Storage Settings</h2>
-            <p className="text-xs text-surface-400">
-              S3-compatible storage for file attachments and image extraction
-            </p>
-          </div>
+        <div className="mb-6">
+          <h2 className="font-display text-base font-medium">Blob Storage Settings</h2>
+          <p className="text-xs text-surface-400">
+            S3-compatible storage for file attachments and image extraction
+          </p>
         </div>
 
         {loading ? (

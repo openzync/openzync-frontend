@@ -701,6 +701,8 @@ export interface MyConfigResponse {
   override: Record<string, unknown>;
   /** Merged user ⊕ system view actually applied. */
   effective: Record<string, unknown>;
+  /** Fields managed at the system level (read-only for this caller). */
+  system_managed_fields?: string[];
 }
 
 /** GET /v1/me/config — the caller's personal config overrides (canonical; no alias). */
@@ -720,58 +722,28 @@ export function updateMyConfig(
 }
 
 /**
- * System enrichment gate block (`enrichment_gate` on PATCH/GET
- * /admin/system/config). Sent as a whole block; the backend 422s a bad
- * model id when enabled. Local-dir model paths are allowed.
+ * Enrichment gate block (`enrichment_gate` on org/personal config via
+ * getMyConfig/updateMyConfig and on GET /admin/org/config/defaults). Sent
+ * as a whole block; `null` clears the override back to the defaults.
+ * (The platform-level gate on /admin/system/config is gone — the backend
+ * no longer accepts or returns `enrichment_gate` there.)
  */
 export interface EnrichmentGateBlock {
   enabled: boolean;
   threshold: number;
-  model: string;
 }
+
+/** Fallback gate display when neither the override nor the defaults layer carries a block. */
+export const ENRICHMENT_GATE_DEFAULTS: EnrichmentGateBlock = {
+  enabled: false,
+  threshold: 0.5,
+};
 
 /**
- * Org enrichment_gate override (same key on org config via
- * getMyConfig/updateMyConfig): null inherits the platform switch, false
- * always disables for the org. Effective: system.enabled AND org !== false.
+ * Org/personal enrichment_gate override: a block, or null to clear back to
+ * the defaults.
  */
-export type EnrichmentGateOverride = boolean | null;
-
-/**
- * GET /admin/system/settings — superadmin read-only view of platform runtime
- * settings from the secrets backend. Secrets arrive pre-masked; reveal the
- * raw value per-key via revealSystemSetting.
- */
-export interface SystemSettingItem {
-  key: string;
-  category: string;
-  is_set: boolean;
-  masked_value: string | null;
-}
-
-export interface SystemSettingsResponse {
-  data: SystemSettingItem[];
-}
-
-/** POST /admin/system/settings/{key}/reveal — raw value for one key. POST so the server-side audit middleware logs the reveal. */
-export interface SystemSettingRevealResponse {
-  key: string;
-  value: string;
-}
-
-/** GET /admin/system/settings — all runtime settings, masked. */
-export function getSystemSettings(): Promise<SystemSettingsResponse> {
-  return get<SystemSettingsResponse>("/admin/system/settings");
-}
-
-/** POST /admin/system/settings/{key}/reveal — raw value for exactly one key (no body). */
-export function revealSystemSetting(
-  key: string,
-): Promise<SystemSettingRevealResponse> {
-  return post<SystemSettingRevealResponse>(
-    `/admin/system/settings/${encodeURIComponent(key)}/reveal`,
-  );
-}
+export type EnrichmentGateOverride = EnrichmentGateBlock | null;
 
 /**
  * POST /v1/auth/change-password — rotates the token pair and clears the

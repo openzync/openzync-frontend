@@ -5,19 +5,29 @@ import { PageGuide, GuideSettings } from "@/components/guides";
 import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
 import { useConfigDirty } from "@/contexts/config-dirty";
+import { useUser } from "@/contexts/user-context";
 import { RequirePermission } from "@/components/shared/require-permission";
 
-const TABS = [
-  // Route path /settings/org-config is kept for backward compat — user-facing
-  // copy throughout says Configuration / Overview (personal overrides).
-  { label: "Overview", href: "/settings/org-config", id: "overview" },
+interface ConfigTab {
+  label: string;
+  href: string;
+  id: string;
+  /** Root/superadmin-only tab (mirrors nav.ts superadminOnly). */
+  superadminOnly?: boolean;
+}
+
+const TABS: ConfigTab[] = [
+  // Exact path /settings/org-config redirects to the LLM tab (page.tsx) —
+  // no Overview entry; per-tab staged resets cover resets.
   { label: "LLM", href: "/settings/org-config/llm", id: "llm" },
   { label: "Graph", href: "/settings/org-config/graph", id: "graph" },
   { label: "Reranker", href: "/settings/org-config/reranker", id: "reranker" },
   { label: "Enrichment", href: "/settings/org-config/enrichment", id: "enrichment" },
+  { label: "Labs", href: "/settings/org-config/labs", id: "labs" },
   { label: "Behaviour", href: "/settings/org-config/behaviour", id: "behaviour" },
   { label: "Blob Storage", href: "/settings/org-config/blob-storage", id: "blob-storage" },
   { label: "PII Protection", href: "/settings/org-config/pii", id: "pii" },
+  { label: "Registration", href: "/settings/org-config/registration", id: "registration", superadminOnly: true },
 ];
 
 export default function ConfigLayout({ children }: { children: React.ReactNode }) {
@@ -26,6 +36,8 @@ export default function ConfigLayout({ children }: { children: React.ReactNode }
 
 function ConfigLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { isSuperadmin } = useUser();
+  const visibleTabs = TABS.filter((tab) => !tab.superadminOnly || isSuperadmin);
   // Tab switches route through the shared dirty guard — the ConfirmDialog
   // itself lives in ConfigDirtyProvider (mounted at the dashboard level).
   const { navigate } = useConfigDirty();
@@ -48,7 +60,7 @@ function ConfigLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Tab bar */}
       <div className="flex gap-1 p-1 card-base w-fit flex-wrap">
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = pathname === tab.href;
           const Icon = (tab as { icon?: React.ElementType }).icon;
           return (

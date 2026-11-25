@@ -1,0 +1,1 @@
+Remove the My Overrides overview tab from the Configuration page (`/settings/org-config`) — per-tab staged resets already cover resets, making the overview list redundant. The Configuration nav entry now points at `/settings/org-config/llm`. BREAKING: bookmarks to the exact path `/settings/org-config` now redirect to `/settings/org-config/llm`.

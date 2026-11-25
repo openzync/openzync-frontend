@@ -14,7 +14,6 @@ import {
   LayoutDashboard,
   Settings,
   Shield,
-  ShieldCheck,
   Users,
   Webhook,
 } from "lucide-react";
@@ -72,8 +71,6 @@ export const NAV_SECTIONS: NavSection[] = [
     entries: [
       // Audit Log is gated on members:read (user-level read access)
       { label: "Audit Log", href: "/audit", icon: Shield, permission: "members:read" },
-      // Platform Admin is root/superadmin only — the platform console.
-      { label: "Platform Admin", href: "/superadmin/config", icon: ShieldCheck, superadminOnly: true },
     ],
   },
 ];
@@ -185,11 +182,6 @@ export function resolveBreadcrumb(
   // Personal account page (not a manifest entry — ungated).
   if (pathname === "/account" || pathname.startsWith("/account/")) {
     return [{ label: "System" }, { label: "Account" }];
-  }
-
-  // Superadmin console — a single page (system configuration).
-  if (pathname.startsWith("/superadmin")) {
-    return [{ label: "Platform Admin" }, { label: "System Configuration" }];
   }
 
   // Longest-prefix match against the manifest.
