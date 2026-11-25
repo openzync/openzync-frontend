@@ -1,0 +1,1 @@
+Add Labs tab (`/settings/org-config/labs`) to org config: moves the enrichment gate block (Enabled switch + threshold slider) out of the Enrichment tab into Labs with an inline note that upcoming feature switches will appear there, leaving Enrichment with the nine pipeline toggles only.
