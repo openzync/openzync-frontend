@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ServerCog, Settings2 } from "lucide-react";
+import { Check, ServerCog, Settings2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import {
   get,
@@ -10,15 +10,39 @@ import {
   apiErrorMessage,
   getSystemSettings,
   revealSystemSetting,
+  type EnrichmentGateBlock,
   type SystemSettingItem,
 } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
+import { Switch } from "@/components/ui/switch";
 import { ConfigFields, SYSTEM_DEFAULT_FIELDS } from "@/app/(dashboard)/superadmin/_components/config-fields";
 
 interface FormState {
   defaults: Record<string, unknown>;
+}
+
+// Hub default prefill for the gate model input (mirrors the backend default;
+// free text — local-dir model paths are allowed).
+const GATE_MODEL_DEFAULT = "OpenZync/enrichment-gating-v1";
+
+const GATE_DEFAULTS: EnrichmentGateBlock = {
+  enabled: false,
+  threshold: 0.5,
+  model: GATE_MODEL_DEFAULT,
+};
+
+/** Seed the gate block — the server may omit the block or individual keys. */
+function pickGate(data: Record<string, unknown>): EnrichmentGateBlock {
+  const raw = (data.enrichment_gate ?? {}) as Partial<EnrichmentGateBlock>;
+  return {
+    enabled: raw.enabled ?? GATE_DEFAULTS.enabled,
+    threshold:
+      typeof raw.threshold === "number" ? raw.threshold : GATE_DEFAULTS.threshold,
+    model: raw.model ?? GATE_DEFAULTS.model,
+  };
 }
 
 /** Build the defaults half of the form from a flat SystemConfigResponse. */
@@ -35,6 +59,8 @@ export default function SuperadminConfigPage() {
     defaults: {},
   });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
+  const [gate, setGate] = useState<EnrichmentGateBlock>({ ...GATE_DEFAULTS });
+  const [initialGate, setInitialGate] = useState<EnrichmentGateBlock>({ ...gate });
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
@@ -69,6 +95,9 @@ export default function SuperadminConfigPage() {
     setInitialForm({
       defaults: { ...defaults },
     });
+    const seededGate = pickGate(configQuery.data);
+    setGate(seededGate);
+    setInitialGate({ ...seededGate });
   }
 
   /** Reveal raw value once; Hide only clears local state — never refetches. */
@@ -103,8 +132,16 @@ export default function SuperadminConfigPage() {
     new Map(),
   );
 
-  const hasChanged = () =>
-    SYSTEM_DEFAULT_FIELDS.some((f) => form.defaults[f.key] !== initialForm.defaults[f.key]);
+  const hasChanged = () => {
+    const gateChanged =
+      gate.enabled !== initialGate.enabled ||
+      gate.threshold !== initialGate.threshold ||
+      gate.model !== initialGate.model;
+    return (
+      SYSTEM_DEFAULT_FIELDS.some((f) => form.defaults[f.key] !== initialForm.defaults[f.key]) ||
+      gateChanged
+    );
+  };
 
   const handleSave = async () => {
     if (!hasChanged()) return;
@@ -117,6 +154,16 @@ export default function SuperadminConfigPage() {
         if (form.defaults[field.key] !== initialForm.defaults[field.key]) {
           payload[field.key] = form.defaults[field.key];
         }
+      }
+      // Gate is a nested block: send it whole or not at all, so an
+      // untouched gate never appears in the payload. Backend 422s (bad
+      // model id with enabled=true) surface via the shared error path below.
+      if (
+        gate.enabled !== initialGate.enabled ||
+        gate.threshold !== initialGate.threshold ||
+        gate.model !== initialGate.model
+      ) {
+        payload.enrichment_gate = { ...gate };
       }
       await patch("/admin/system/config", payload);
       toast.success("System configuration saved");
@@ -166,6 +213,90 @@ export default function SuperadminConfigPage() {
             setForm((prev) => ({ ...prev, defaults: { ...prev.defaults, [key]: value } }))
           }
         />
+      </div>
+
+      {/* ── Enrichment gate ─────────────────────────────────────────────────── */}
+      <div className="card-base p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10">
+            <Zap size={20} className="text-brand-300" />
+          </div>
+          <div>
+            <h2 className="font-display text-base font-medium">Enrichment gate</h2>
+            <p className="text-xs text-surface-400">
+              Skip the LLM call for low-signal episodes
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4 max-w-md">
+          <label
+            htmlFor="enrichment-gate-enabled"
+            className="flex items-center gap-3 cursor-pointer"
+          >
+            <Switch
+              id="enrichment-gate-enabled"
+              checked={gate.enabled}
+              onCheckedChange={(checked) =>
+                setGate((prev) => ({ ...prev, enabled: checked }))
+              }
+            />
+            <span className="text-sm font-medium text-surface-300">Enabled</span>
+          </label>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="enrichment-gate-threshold"
+                className="text-sm font-medium text-surface-300"
+              >
+                Threshold
+              </label>
+              <span className="font-mono text-xs text-surface-400">
+                {gate.threshold.toFixed(2)}
+              </span>
+            </div>
+            <input
+              id="enrichment-gate-threshold"
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={gate.threshold}
+              aria-describedby="enrichment-gate-threshold-hint"
+              onChange={(e) =>
+                // Round off float artifacts (e.g. 0.6500000000000001).
+                setGate((prev) => ({
+                  ...prev,
+                  threshold: Math.round(e.target.valueAsNumber * 100) / 100,
+                }))
+              }
+              className="w-full accent-brand-500"
+            />
+            <p id="enrichment-gate-threshold-hint" className="text-xs text-surface-500">
+              Minimum should_enrich score to run the LLM (0–1)
+            </p>
+            {gate.threshold >= 1 && (
+              <p className="text-xs text-amber-400" role="alert">
+                sigmoid never reaches 1.0 — everything scorable will skip
+              </p>
+            )}
+          </div>
+
+          <Field
+            label="Model"
+            htmlFor="enrichment-gate-model"
+            hint="Hub id or local directory path for the gating classifier"
+          >
+            <input
+              id="enrichment-gate-model"
+              className="input-base w-full"
+              type="text"
+              value={gate.model}
+              onChange={(e) => setGate((prev) => ({ ...prev, model: e.target.value }))}
+            />
+          </Field>
+        </div>
       </div>
 
       {/* ── Save bar ────────────────────────────────────────────────────────── */}

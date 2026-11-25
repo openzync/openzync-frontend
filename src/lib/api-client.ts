@@ -720,6 +720,24 @@ export function updateMyConfig(
 }
 
 /**
+ * System enrichment gate block (`enrichment_gate` on PATCH/GET
+ * /admin/system/config). Sent as a whole block; the backend 422s a bad
+ * model id when enabled. Local-dir model paths are allowed.
+ */
+export interface EnrichmentGateBlock {
+  enabled: boolean;
+  threshold: number;
+  model: string;
+}
+
+/**
+ * Org enrichment_gate override (same key on org config via
+ * getMyConfig/updateMyConfig): null inherits the platform switch, false
+ * always disables for the org. Effective: system.enabled AND org !== false.
+ */
+export type EnrichmentGateOverride = boolean | null;
+
+/**
  * GET /admin/system/settings — superadmin read-only view of platform runtime
  * settings from the secrets backend. Secrets arrive pre-masked; reveal the
  * raw value per-key via revealSystemSetting.
@@ -1121,133 +1139,6 @@ export function getSessionClassification(
   return get<SessionClassification>(
     `/v1/projects/${encodeURIComponent(projectId)}/sessions/${encodeURIComponent(sessionId)}/classifications/${encodeURIComponent(episodeId)}`,
     opts,
-  );
-}
-
-// ─── Add-ons (superadmin) ─────────────────────────────────────────────────────
-
-export interface AddonPanel {
-  id: string;
-  title: string;
-  path: string;
-}
-
-export interface AddonResponse {
-  id: string;
-  version: string;
-  source_type: string;
-  source_ref: string;
-  installed_sha: string | null;
-  latest_seen: string | null;
-  enabled: boolean;
-  update_available: boolean;
-  generation: number;
-  created_at: string;
-  updated_at: string;
-  /** UI panels served at /v1/ext/{id}/ui/* (absent on older backends). */
-  panels?: AddonPanel[];
-}
-
-export interface AddonListResponse {
-  data: AddonResponse[];
-  total: number;
-}
-
-export interface InstallAddonRequest {
-  local_path?: string;
-  github_url?: string;
-  tag?: string;
-}
-
-export interface AddonHealthResponse {
-  id: string;
-  enabled: boolean;
-  loaded: boolean;
-  generation: number;
-  version: string;
-}
-
-/** GET /admin/system/addons — list installed add-ons. */
-export function listAddons(): Promise<AddonListResponse> {
-  return get<AddonListResponse>("/admin/system/addons");
-}
-
-/**
- * GET /admin/system/addons/{id} — 200 AddonResponse, 404 when unknown.
- * 404 surfaces as ApiError (err.isNotFound) so detail pages can notFound().
- */
-export function getAddon(id: string): Promise<AddonResponse> {
-  return get<AddonResponse>(`/admin/system/addons/${encodeURIComponent(id)}`);
-}
-
-/** POST /admin/system/addons — install from a local path or GitHub URL. */
-export function installAddon(data: InstallAddonRequest): Promise<AddonResponse> {
-  return post<AddonResponse>("/admin/system/addons", data);
-}
-
-/** POST /admin/system/addons/{id}/enable */
-export function enableAddon(id: string): Promise<AddonResponse> {
-  return post<AddonResponse>(`/admin/system/addons/${encodeURIComponent(id)}/enable`);
-}
-
-/** POST /admin/system/addons/{id}/disable */
-export function disableAddon(id: string): Promise<AddonResponse> {
-  return post<AddonResponse>(`/admin/system/addons/${encodeURIComponent(id)}/disable`);
-}
-
-/** POST /admin/system/addons/{id}/upgrade — optional tag pins the target (query param). */
-export function upgradeAddon(id: string, tag?: string): Promise<AddonResponse> {
-  const trimmed = tag?.trim();
-  const suffix = trimmed ? `?tag=${encodeURIComponent(trimmed)}` : "";
-  return post<AddonResponse>(
-    `/admin/system/addons/${encodeURIComponent(id)}/upgrade${suffix}`,
-  );
-}
-
-/** POST /admin/system/addons/check-updates — refresh latest_seen flags. */
-export function checkAddonUpdates(): Promise<AddonListResponse> {
-  return post<AddonListResponse>("/admin/system/addons/check-updates");
-}
-
-/**
- * DELETE /admin/system/addons/{id}?remove_data&confirm — uninstall.
- * Backend declares `confirm: bool` (any non-bool string → 422), so the
- * type-the-id gate lives client-side in DeleteAddonDialog; reaching this
- * call IS the confirmation — always send confirm=true.
- */
-export function deleteAddon(id: string, remove_data: boolean): Promise<void> {
-  const params = new URLSearchParams({
-    remove_data: String(remove_data),
-    confirm: "true",
-  });
-  return del<void>(`/admin/system/addons/${encodeURIComponent(id)}?${params}`);
-}
-
-/** GET /admin/system/addons/{id}/health */
-export function addonHealth(id: string): Promise<AddonHealthResponse> {
-  return get<AddonHealthResponse>(
-    `/admin/system/addons/${encodeURIComponent(id)}/health`,
-  );
-}
-
-/**
- * POST /admin/system/addons/{id}/panels/ticket — mint a short-lived,
- * single-purpose ticket bound to one add-on panel (5-min TTL).
- * The viewer appends it as `?ticket=` on the iframe src; `?token=` is
- * rejected (401). Panel JS API calls still use the Authorization header
- * via the existing postMessage token handoff — unchanged.
- */
-export interface PanelTicketResponse {
-  ticket: string;
-}
-
-export function requestPanelTicket(
-  id: string,
-  panel_path: string,
-): Promise<PanelTicketResponse> {
-  return post<PanelTicketResponse>(
-    `/admin/system/addons/${encodeURIComponent(id)}/panels/ticket`,
-    { panel_path },
   );
 }
 
