@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { apiErrorMessage, post } from "@/lib/api-client";
 
-export type ConnectionTestDomain = "llm" | "graph" | "blob";
+export type ConnectionTestDomain = "llm" | "graph";
 
 export interface ConnectionTestResult {
   ok: boolean;
@@ -35,7 +35,7 @@ export interface UseConnectionTest {
  * Connection test for config credential tabs.
  *
  * POSTs the CURRENT (possibly unsaved) form as `config` candidate to
- * /v1/me/config/test. Deliberately separate from useConfigDirty —
+ * /admin/org/config/test. Deliberately separate from useConfigDirty —
  * testing never marks the form dirty. Race-safe (only the latest run may
  * commit state), following the same run-id guard as useApiQuery.
  */
@@ -54,9 +54,14 @@ export function useConnectionTest(): UseConnectionTest {
       setTesting(true);
       setError(null);
       try {
-        const res = await post<ConnectionTestResponse>("/v1/me/config/test", {
+        // Strip untouched (empty-string) fields so backend validation only
+        // sees values the user actually entered.
+        const config = Object.fromEntries(
+          Object.entries(candidate).filter(([, v]) => v !== ""),
+        );
+        const res = await post<ConnectionTestResponse>("/admin/org/config/test", {
           domain,
-          config: candidate,
+          config,
         });
         if (runId !== runIdRef.current) return null;
         const entry = res.results?.[domain];

@@ -53,7 +53,7 @@ const TABS: { id: TabId; label: string }[] = [
 
 const ROLES = ["user", "assistant", "system", "tool"] as const;
 
-// Mirrors the backend's per-blob cap (BlobStorageConfig.max_blob_size_mb,
+// Mirrors the backend's global blob cap (OZ_S3_MAX_BLOB_SIZE_MB,
 // default 50 → 413 PayloadTooLargeError). MIME types are unrestricted
 // server-side, so only size is enforced here. Count + total caps are
 // client-side guards against oversized multipart bodies and runaway memory.
