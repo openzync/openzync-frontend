@@ -151,7 +151,11 @@ interface TooltipRow {
   color: string;
   label: string;
   value: number;
-  shape?: "circle" | "square";
+  shape?: "circle" | "square" | "line";
+  /** Preformatted value text (e.g. meanTick output). Falls back to value.toLocaleString(). */
+  displayValue?: string;
+  /** Muted swatch for reference rows (e.g. avg rows). */
+  muted?: boolean;
 }
 
 function ChartTooltip({
@@ -186,13 +190,23 @@ function ChartTooltip({
         </p>
         {rows.map((row) => (
           <div key={row.label} className="flex items-center gap-2">
-            <span
-              className={`${row.shape === "square" ? "h-2.5 w-2.5 rounded-sm" : "h-2 w-2 rounded-full"} shrink-0`}
-              style={{ backgroundColor: cssVar(row.color) }}
-            />
+            {row.shape === "line" ? (
+              <span aria-hidden="true" className="h-2 w-2 flex items-center shrink-0">
+                <span
+                  aria-hidden="true"
+                  className={`w-2 shrink-0 ${row.muted ? "opacity-50" : ""}`}
+                  style={{ borderTop: `2px dashed ${cssVar(row.color)}` }}
+                />
+              </span>
+            ) : (
+              <span
+                className={`${row.shape === "square" ? "h-2.5 w-2.5 rounded-sm" : "h-2 w-2 rounded-full"} shrink-0 ${row.muted ? "opacity-50" : ""}`}
+                style={{ backgroundColor: cssVar(row.color) }}
+              />
+            )}
             <span className="text-surface-200">
               {row.label}:{" "}
-              <span className="font-semibold font-mono">{row.value.toLocaleString()}</span>
+              <span className="font-semibold font-mono">{row.displayValue ?? row.value.toLocaleString()}</span>
             </span>
           </div>
         ))}
@@ -366,7 +380,7 @@ export interface BarChartProps<T> {
   ariaLabel?: string;
   /** Include the year in the tooltip date. */
   tooltipShowYear?: boolean;
-  /** Dashed per-series mean line + `avg X` label (default true). Hidden when empty or all-zero. */
+  /** Dashed per-series mean line + per-series avg tooltip rows (default true). Hidden when empty or all-zero. */
   showMean?: boolean;
 }
 
@@ -454,9 +468,6 @@ export function BarChart<T>({ data, series, dates, height = 220, stacked = false
             return (
               <g key={`mean-${s.label}`}>
                 <line x1={PAD.left} y1={y} x2={PAD.left + dw} y2={y} stroke={cssVar(s.color)} strokeWidth={1.5} strokeDasharray="6 4" opacity={0.8} />
-                <text x={PAD.left + dw} y={y - 4} textAnchor="end" fill={cssVar(s.color)} fontSize={10} fontFamily="var(--font-mono)">
-                  avg {meanTick(means[i])}
-                </text>
               </g>
             );
           })}
@@ -468,12 +479,30 @@ export function BarChart<T>({ data, series, dates, height = 220, stacked = false
           top={PAD.top - 4}
           date={dates[active] ?? ""}
           showYear={tooltipShowYear}
-          rows={series.map((s) => ({
-            color: s.color,
-            label: s.label,
-            value: s.value(data[active]),
-            shape: "square" as const,
-          }))}
+          rows={series.flatMap((s, i) => {
+            const row: TooltipRow = {
+              color: s.color,
+              label: s.label,
+              value: s.value(data[active]),
+              shape: "square" as const,
+            };
+            // Per-series avg row directly below its value row; same one-decimal
+            // meanTick formatting as the aria-label suffix.
+            if (meanVisible && means[i] > 0) {
+              return [
+                row,
+                {
+                  color: s.color,
+                  label: `Avg ${s.label}`,
+                  value: means[i],
+                  displayValue: meanTick(means[i]),
+                  muted: true,
+                  shape: "line" as const,
+                },
+              ];
+            }
+            return [row];
+          })}
         />
       )}
     </div>
