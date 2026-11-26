@@ -9,6 +9,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
 } from "react";
+import { formatCompact } from "@/lib/format";
 
 // ═══ Shared helpers ════════════════════════════════════════════════════════════
 
@@ -119,7 +120,7 @@ function useChartNav(count: number, ariaLabel: string): ChartNav {
 const PAD = { top: 16, right: 12, bottom: 36, left: 44 };
 
 function tickText(tick: number): string {
-  return tick >= 1000 ? `${(tick / 1000).toFixed(1)}k` : tick.toLocaleString();
+  return formatCompact(tick);
 }
 
 /** Mean labels keep one decimal so fractional averages still read honestly. */
@@ -152,10 +153,15 @@ interface TooltipRow {
   label: string;
   value: number;
   shape?: "circle" | "square" | "line";
-  /** Preformatted value text (e.g. meanTick output). Falls back to value.toLocaleString(). */
+  /** Preformatted value text (e.g. meanTick output). Falls back to compact + exact for >=1000, exact otherwise. */
   displayValue?: string;
   /** Muted swatch for reference rows (e.g. avg rows). */
   muted?: boolean;
+}
+
+/** Default main tooltip value: compact + exact for >=1000, exact otherwise. */
+function defaultTooltipValue(v: number): string {
+  return v >= 1000 ? `${formatCompact(v)} (${v.toLocaleString()})` : v.toLocaleString();
 }
 
 function ChartTooltip({
@@ -206,7 +212,7 @@ function ChartTooltip({
             )}
             <span className="text-surface-200">
               {row.label}:{" "}
-              <span className="font-semibold font-mono">{row.displayValue ?? row.value.toLocaleString()}</span>
+              <span className="font-semibold font-mono">{row.displayValue ?? defaultTooltipValue(row.value)}</span>
             </span>
           </div>
         ))}
@@ -220,10 +226,12 @@ function Axis({
   dw,
   dh,
   yMax,
+  formatTick = tickText,
 }: {
   dw: number;
   dh: number;
   yMax: number;
+  formatTick?: (n: number) => string;
 }) {
   const yTicks = [0, Math.round(yMax / 2), yMax];
   return (
@@ -234,7 +242,7 @@ function Axis({
           <g key={tick}>
             <line x1={PAD.left} y1={y} x2={PAD.left + dw} y2={y} stroke={cssVar("--color-surface-800")} strokeWidth={1} />
             <text x={PAD.left - 6} y={y + 4} textAnchor="end" fill={cssVar("--color-surface-500")} fontSize={10} fontFamily="var(--font-mono)">
-              {tickText(tick)}
+              {formatTick(tick)}
             </text>
           </g>
         );
@@ -382,9 +390,15 @@ export interface BarChartProps<T> {
   tooltipShowYear?: boolean;
   /** Dashed per-series mean line + per-series avg tooltip rows (default true). Hidden when empty or all-zero. */
   showMean?: boolean;
+  /** Compact formatter for y-axis tick labels (default formatCompact — k/M/B). */
+  formatTick?: (n: number) => string;
+  /** Formatter for the per-series avg tooltip rows + aria-label suffix (default meanTick — formatCompact with 1-decimal means). */
+  formatMean?: (v: number) => string;
+  /** Formatter for the main tooltip value rows (default compact + exact for >=1000, exact otherwise). */
+  formatTooltipValue?: (v: number) => string;
 }
 
-export function BarChart<T>({ data, series, dates, height = 220, stacked = false, ariaLabel, tooltipShowYear = false, showMean = true }: BarChartProps<T>) {
+export function BarChart<T>({ data, series, dates, height = 220, stacked = false, ariaLabel, tooltipShowYear = false, showMean = true, formatTick = tickText, formatMean = meanTick, formatTooltipValue }: BarChartProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const width = useContainerWidth(containerRef);
   // Per-series mean over visible data, zeros included. Stacked or not, each
@@ -395,7 +409,7 @@ export function BarChart<T>({ data, series, dates, height = 220, stacked = false
   const meanVisible = showMean && means.some((m) => m > 0);
   const meanSuffix = meanVisible
     ? `, avg ${series
-        .map((s, i) => (means[i] > 0 ? `${s.label} ${meanTick(means[i])}` : null))
+        .map((s, i) => (means[i] > 0 ? `${s.label} ${formatMean(means[i])}` : null))
         .filter(Boolean)
         .join(", ")}`
     : "";
@@ -428,7 +442,7 @@ export function BarChart<T>({ data, series, dates, height = 220, stacked = false
   return (
     <div ref={containerRef} className="relative w-full">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full overflow-visible focus-visible:outline-2 focus-visible:outline-accent-300 focus-visible:outline-offset-2" preserveAspectRatio="xMidYMid meet" {...nav.svgProps}>
-        <Axis dw={dw} dh={dh} yMax={yMax} />
+        <Axis dw={dw} dh={dh} yMax={yMax} formatTick={formatTick} />
         {data.map((point, i) => {
           const x = PAD.left + i * slotW + barGap;
           const isActiveSlot = active === i;
@@ -480,14 +494,16 @@ export function BarChart<T>({ data, series, dates, height = 220, stacked = false
           date={dates[active] ?? ""}
           showYear={tooltipShowYear}
           rows={series.flatMap((s, i) => {
+            const value = s.value(data[active]);
             const row: TooltipRow = {
               color: s.color,
               label: s.label,
-              value: s.value(data[active]),
+              value,
               shape: "square" as const,
+              ...(formatTooltipValue ? { displayValue: formatTooltipValue(value) } : {}),
             };
-            // Per-series avg row directly below its value row; same one-decimal
-            // meanTick formatting as the aria-label suffix.
+            // Per-series avg row directly below its value row; same
+            // formatMean formatting as the aria-label suffix.
             if (meanVisible && means[i] > 0) {
               return [
                 row,
@@ -495,7 +511,7 @@ export function BarChart<T>({ data, series, dates, height = 220, stacked = false
                   color: s.color,
                   label: `Avg ${s.label}`,
                   value: means[i],
-                  displayValue: meanTick(means[i]),
+                  displayValue: formatMean(means[i]),
                   muted: true,
                   shape: "line" as const,
                 },

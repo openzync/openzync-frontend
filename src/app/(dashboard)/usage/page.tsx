@@ -346,11 +346,11 @@ function UsageInner() {
           />
         ) : (
           <div className="stat-grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-            <StatCard label="Calls" value={summary ? summary.calls.toLocaleString() : null} loading={loading} />
-            <StatCard label="Prompt tokens" value={summary ? summary.prompt_tokens.toLocaleString() : null} loading={loading} />
-            <StatCard label="Completion tokens" value={summary ? summary.completion_tokens.toLocaleString() : null} loading={loading} />
-            <StatCard label="Reasoning tokens" value={summary ? summary.reasoning_tokens.toLocaleString() : null} loading={loading} />
-            <StatCard label="Total tokens" value={summary ? summary.total_tokens.toLocaleString() : null} loading={loading} />
+            <StatCard label="Calls" value={summary?.calls ?? null} loading={loading} />
+            <StatCard label="Prompt tokens" value={summary?.prompt_tokens ?? null} loading={loading} />
+            <StatCard label="Completion tokens" value={summary?.completion_tokens ?? null} loading={loading} />
+            <StatCard label="Reasoning tokens" value={summary?.reasoning_tokens ?? null} loading={loading} />
+            <StatCard label="Total tokens" value={summary?.total_tokens ?? null} loading={loading} />
             <StatCard
               label="Avg duration"
               value={summary ? `${Math.round(summary.avg_duration_ms).toLocaleString()}ms` : null}
