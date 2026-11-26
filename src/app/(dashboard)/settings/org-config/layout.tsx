@@ -23,7 +23,6 @@ const TABS: ConfigTab[] = [
   { label: "Graph", href: "/settings/org-config/graph", id: "graph" },
   { label: "Reranker", href: "/settings/org-config/reranker", id: "reranker" },
   { label: "Enrichment", href: "/settings/org-config/enrichment", id: "enrichment" },
-  { label: "Labs", href: "/settings/org-config/labs", id: "labs" },
   { label: "Behaviour", href: "/settings/org-config/behaviour", id: "behaviour" },
   { label: "PII Protection", href: "/settings/org-config/pii", id: "pii" },
   { label: "Registration", href: "/settings/org-config/registration", id: "registration", superadminOnly: true },

@@ -11,6 +11,7 @@ import {
   BarChart3,
   FileJson,
   FileText,
+  FlaskConical,
   LayoutDashboard,
   Settings,
   Shield,
@@ -63,6 +64,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Webhooks", href: "/settings/webhooks", icon: Webhook, permission: "configuration:read" },
       { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: FileText, permission: "configuration:read" },
       { label: "Configuration", href: "/settings/org-config", icon: Settings, permission: "configuration:read" },
+      { label: "Lab", href: "/settings/lab", icon: FlaskConical, permission: "configuration:read" },
     ],
   },
   {

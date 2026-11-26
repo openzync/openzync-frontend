@@ -15,7 +15,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
-FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS builder
+FROM node:22.14.0-alpine AS builder
 WORKDIR /app
 
 # Install ALL dependencies (dev deps needed for build).
@@ -29,7 +29,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 # ── Stage 2: Production runner ────────────────────────────────────────────────
-FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS runner
+FROM node:22.14.0-alpine AS runner
 WORKDIR /app
 
 # Run as non-root.

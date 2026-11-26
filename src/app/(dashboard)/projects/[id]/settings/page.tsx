@@ -2,8 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, Save, Archive, AlertTriangle } from "lucide-react";
-import { patch, del, ApiError } from "@/lib/api-client";
+import { Settings, Save, Archive, AlertTriangle, Trash2 } from "lucide-react";
+import {
+  patch,
+  del,
+  ApiError,
+  deleteProjectMemory,
+  PartialWipeError,
+} from "@/lib/api-client";
 import { useProject } from "@/stores/project-context";
 import { useUser } from "@/contexts/user-context";
 import { toast } from "sonner";
@@ -24,6 +30,11 @@ export default function ProjectSettingsPage() {
 
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [archiving, setArchiving] = useState(false);
+
+  const [showWipeConfirm, setShowWipeConfirm] = useState(false);
+  const [wipeInput, setWipeInput] = useState("");
+  const [wiping, setWiping] = useState(false);
+  const [partialWipe, setPartialWipe] = useState(false);
 
   useEffect(() => {
     if (project) {
@@ -66,6 +77,30 @@ export default function ProjectSettingsPage() {
       );
     } finally {
       setArchiving(false);
+    }
+  }
+
+  async function handleWipe() {
+    if (!project || wipeInput !== project.id) return;
+    setWiping(true);
+    try {
+      await deleteProjectMemory(project.id);
+      setShowWipeConfirm(false);
+      setWipeInput("");
+      setPartialWipe(false);
+      toast.success("Project memory wiped");
+    } catch (err) {
+      if (err instanceof PartialWipeError) {
+        setShowWipeConfirm(false);
+        setWipeInput("");
+        setPartialWipe(true);
+      } else {
+        toast.error(
+          err instanceof ApiError ? err.message : "Failed to wipe project memory",
+        );
+      }
+    } finally {
+      setWiping(false);
     }
   }
 
@@ -154,6 +189,18 @@ export default function ProjectSettingsPage() {
             <AlertTriangle size={16} />
             Danger Zone
           </h2>
+          {partialWipe && (
+            <div
+              role="alert"
+              className="mb-4 flex items-start gap-2 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning"
+            >
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+              <span>
+                Partial wipe — some data remains. Retry the wipe to finish
+                cleanup.
+              </span>
+            </div>
+          )}
           <p className="text-sm text-surface-400 mb-4">
             Archiving this project will soft-delete it. Sessions, memory, and
             graph data will be preserved but hidden. This action can be
@@ -168,6 +215,22 @@ export default function ProjectSettingsPage() {
           >
             Archive Project
           </Button>
+          <p className="text-sm text-surface-400 mt-6 mb-4">
+            Wiping deletes all memory, sessions, and graph data for this
+            project. This cannot be undone.
+          </p>
+          <Button
+            variant="danger"
+            size="sm"
+            icon={<Trash2 size={14} />}
+            onClick={() => {
+              setWipeInput("");
+              setShowWipeConfirm(true);
+            }}
+            disabled={!canManage}
+          >
+            Wipe Project Memory
+          </Button>
         </div>
 
         <ConfirmDialog
@@ -180,6 +243,41 @@ export default function ProjectSettingsPage() {
           onConfirm={handleArchive}
           onCancel={() => setShowArchiveConfirm(false)}
         />
+
+        <ConfirmDialog
+          open={showWipeConfirm}
+          title="Wipe Project Memory"
+          message={`This permanently deletes all memory for "${project.name}". Type the project ID (${project.id}) to confirm.`}
+          confirmLabel="Wipe Memory"
+          variant="danger"
+          loading={wiping}
+          onConfirm={handleWipe}
+          confirmDisabled={wipeInput !== project.id}
+          onCancel={() => {
+            if (!wiping) {
+              setShowWipeConfirm(false);
+              setWipeInput("");
+            }
+          }}
+        >
+          <div className="mt-4">
+            <label
+              htmlFor="wipe-confirm-input"
+              className="block text-sm font-medium text-surface-300 mb-1.5"
+            >
+              Project ID
+            </label>
+            <input
+              id="wipe-confirm-input"
+              type="text"
+              value={wipeInput}
+              onChange={(e) => setWipeInput(e.target.value)}
+              placeholder={project.id}
+              autoComplete="off"
+              className="input-base w-full"
+            />
+          </div>
+        </ConfirmDialog>
       </div>
   );
 }

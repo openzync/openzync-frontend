@@ -44,6 +44,9 @@ Next.js App Router dashboard for the OpenZync API: graph visualization, tenant a
 
 ## Getting started
 
+Requires Node.js 22.14.0 (`nvm use` picks it up from `.nvmrc`). Node 20 crashes
+on the undici 8.9 / jsdom 30 dependency chain — do not downgrade.
+
 ```bash
 npm install
 npm run dev

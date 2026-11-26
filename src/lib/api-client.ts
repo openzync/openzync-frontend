@@ -576,9 +576,6 @@ export function del<T = void>(
  * `X-Wipe-Failed: true` so the UI shows "partial wipe, retry" instead of
  * success. Status is 204 (not 4xx/5xx), so callers MUST catch via
  * `err instanceof PartialWipeError`, not status checks.
- *
- * TODO(Danger Zone): no wipe button exists in the UI yet — wire this into
- * the project Danger Zone when one is added.
  */
 export function deleteProjectMemory(projectId: string): Promise<void> {
   return del<void>(`/v1/projects/${encodeURIComponent(projectId)}/memory`, {
