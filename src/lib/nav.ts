@@ -59,7 +59,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Administration",
     entries: [
       // User management → members:read; config surfaces → configuration:read.
-      { label: "Users", href: "/users", icon: Users, permission: "members:read" },
+      { label: "Users", href: "/users", icon: Users, superadminOnly: true },
       { label: "Extraction Schemas", href: "/settings/schemas", icon: FileJson, permission: "configuration:read" },
       { label: "Webhooks", href: "/settings/webhooks", icon: Webhook, permission: "configuration:read" },
       { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: FileText, permission: "configuration:read" },
