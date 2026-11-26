@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { get, getAdminStats, type AdminStats } from "@/lib/api-client";
+import { fillDateRange } from "@/lib/chart-range";
 import { sortChronological } from "@/lib/chart-order";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { PageHeader } from "@/components/shared/page-header";
@@ -240,8 +241,34 @@ function OverviewInner() {
   const usageLoading = usageQuery.isLoading;
 
   // Charts map index 0 to the left — usage arrives newest-first, so sort
-  // oldest-first before render.
-  const usageSorted = useMemo(() => sortChronological(usage, (p) => p.date), [usage]);
+  // oldest-first before render. Sparse backend response is zero-filled to
+  // the full selected window so bars keep stable day-slot widths.
+  const usageSorted = useMemo(
+    () =>
+      sortChronological(
+        fillDateRange(usage, {
+          getDate: (p) => p.date,
+          makeZero: (date): UsagePoint => ({
+            date,
+            episode_count: 0,
+            session_count: 0,
+            fact_count: 0,
+            extraction_count: 0,
+            observation_count: 0,
+            classification_count: 0,
+            node_count: 0,
+            edge_count: 0,
+          }),
+          days,
+          from,
+          to,
+          isCustom,
+          mode: "window",
+        }),
+        (p) => p.date,
+      ),
+    [usage, days, from, to, isCustom],
+  );
 
   // ── Big Graph render helpers ───────────────────────────────────────────────
 
@@ -263,7 +290,9 @@ function OverviewInner() {
   }
 
   function renderGraphChart() {
-    if (loading || (usageLoading && usageSorted.length === 0)) return renderGraphSkeleton();
+    // Gate on the raw response, not the filled series (fill always returns
+    // N rows, so a filled-length check would never show the skeleton).
+    if (loading || (usageLoading && usage.length === 0)) return renderGraphSkeleton();
     const hasGraphData = usageSorted.some((p) => (p.node_count ?? 0) > 0 || (p.edge_count ?? 0) > 0);
     if (!hasGraphData) {
       return (

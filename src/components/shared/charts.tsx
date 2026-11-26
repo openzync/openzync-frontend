@@ -122,6 +122,11 @@ function tickText(tick: number): string {
   return tick >= 1000 ? `${(tick / 1000).toFixed(1)}k` : tick.toLocaleString();
 }
 
+/** Mean labels keep one decimal so fractional averages still read honestly. */
+function meanTick(value: number): string {
+  return tickText(Math.round(value * 10) / 10);
+}
+
 function smoothPath(pts: Array<{ x: number; y: number }>): string {
   if (pts.length === 0) return "";
   let d = `M ${pts[0].x},${pts[0].y}`;
@@ -361,14 +366,28 @@ export interface BarChartProps<T> {
   ariaLabel?: string;
   /** Include the year in the tooltip date. */
   tooltipShowYear?: boolean;
+  /** Dashed per-series mean line + `avg X` label (default true). Hidden when empty or all-zero. */
+  showMean?: boolean;
 }
 
-export function BarChart<T>({ data, series, dates, height = 220, stacked = false, ariaLabel, tooltipShowYear = false }: BarChartProps<T>) {
+export function BarChart<T>({ data, series, dates, height = 220, stacked = false, ariaLabel, tooltipShowYear = false, showMean = true }: BarChartProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const width = useContainerWidth(containerRef);
+  // Per-series mean over visible data, zeros included. Stacked or not, each
+  // mean sits at its absolute height (never stack-offset).
+  const means = series.map((s) =>
+    data.length === 0 ? 0 : data.reduce((sum, point) => sum + s.value(point), 0) / data.length,
+  );
+  const meanVisible = showMean && means.some((m) => m > 0);
+  const meanSuffix = meanVisible
+    ? `, avg ${series
+        .map((s, i) => (means[i] > 0 ? `${s.label} ${meanTick(means[i])}` : null))
+        .filter(Boolean)
+        .join(", ")}`
+    : "";
   const nav = useChartNav(
     data.length,
-    ariaLabel ?? `${series.map((s) => s.label).join(" and ")} chart, ${data.length} points`,
+    `${ariaLabel ?? `${series.map((s) => s.label).join(" and ")} chart, ${data.length} points`}${meanSuffix}`,
   );
   const active = nav.activeIndex;
 
@@ -428,6 +447,19 @@ export function BarChart<T>({ data, series, dates, height = 220, stacked = false
           );
         })}
         <XLabels dates={dates} dw={dw} height={height} />
+        {meanVisible &&
+          series.map((s, i) => {
+            if (means[i] <= 0) return null;
+            const y = PAD.top + dh - (means[i] / yMax) * dh;
+            return (
+              <g key={`mean-${s.label}`}>
+                <line x1={PAD.left} y1={y} x2={PAD.left + dw} y2={y} stroke={cssVar(s.color)} strokeWidth={1.5} strokeDasharray="6 4" opacity={0.8} />
+                <text x={PAD.left + dw} y={y - 4} textAnchor="end" fill={cssVar(s.color)} fontSize={10} fontFamily="var(--font-mono)">
+                  avg {meanTick(means[i])}
+                </text>
+              </g>
+            );
+          })}
       </svg>
       {active !== null && data[active] && (
         <ChartTooltip
@@ -541,13 +573,14 @@ export interface ErrorTimeseriesPoint {
   count_5xx: number;
 }
 
-export function StackedBarChart({ data, height = 220 }: { data: ErrorTimeseriesPoint[]; height?: number }) {
+export function StackedBarChart({ data, height = 220, showMean = true }: { data: ErrorTimeseriesPoint[]; height?: number; showMean?: boolean }) {
   return (
     <BarChart
       data={data}
       dates={data.map((d) => d.date)}
       height={height}
       stacked
+      showMean={showMean}
       ariaLabel={`4xx and 5xx errors chart, ${data.length} points`}
       series={[
         { label: "4xx", color: "--color-warning", value: (d) => d.count_4xx, baseOpacity: 0.75 },

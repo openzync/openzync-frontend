@@ -1035,6 +1035,7 @@ export interface LlmUsageParams extends OffsetPageParams {
   project_id?: string;
   worker?: string;
   model?: string;
+  group_by?: "day";
 }
 
 /** GET /v1/admin/llm-usage — offset-paginated, server-side sorted. */
@@ -1046,6 +1047,7 @@ export function getLlmUsage(params: LlmUsageParams = {}): Promise<LlmUsageRespon
   if (params.project_id) query.set("project_id", params.project_id);
   if (params.worker) query.set("worker", params.worker);
   if (params.model) query.set("model", params.model);
+  if (params.group_by) query.set("group_by", params.group_by);
   if (params.limit !== undefined) query.set("limit", String(params.limit));
   if (params.offset !== undefined) query.set("offset", String(params.offset));
   if (params.sort_by) appendSortParams(query, params.sort_by, params.sort_dir ?? "desc");

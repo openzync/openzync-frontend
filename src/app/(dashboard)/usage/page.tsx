@@ -17,6 +17,7 @@ import {
   type LlmUsageRow,
 } from "@/lib/api-client";
 import { sortChronological } from "@/lib/chart-order";
+import { fillDateRange } from "@/lib/chart-range";
 import { smartTimestamp } from "@/lib/utils";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { useSortQuery } from "@/hooks/use-sort-query";
@@ -226,18 +227,77 @@ function UsageInner() {
     return [...values].sort();
   }, [rows, rawModel]);
 
-  // Timeseries: bucket the fetched rows by day, summing total tokens.
-  const buckets: DayBucket[] = useMemo(() => {
+  // Chart-only grouped fetch — decoupled from table pagination (full-window
+  // day buckets; limit=365 covers the max backend window). Falls back to the
+  // page-slice aggregation below until the backend supports group_by=day.
+  const chartRefreshKey = `chart-${days}-${from}-${to}-${rawProject}-${rawWorker}-${rawModel}`;
+
+  const chartQuery = useApiQuery<LlmUsageResponse>(() => {
+    return getLlmUsage({
+      days: isCustom ? undefined : days,
+      from: isCustom && from ? from : undefined,
+      to: isCustom && to ? to : undefined,
+      project_id: rawProject || undefined,
+      worker: rawWorker || undefined,
+      model: rawModel || undefined,
+      group_by: "day",
+      limit: 365,
+      offset: 0,
+    });
+  }, { refreshKey: chartRefreshKey });
+
+  // Grouped rows carry `date` (sparse day buckets); require it so a backend
+  // that ignores group_by (plain rows with created_at) falls through to the
+  // page-slice fallback instead of masquerading as full-window data.
+  const rawGrouped: DayBucket[] = useMemo(() => {
+    const data = chartQuery.data?.data ?? [];
+    const out: DayBucket[] = [];
+    for (const row of data as Array<LlmUsageRow & { date?: unknown }>) {
+      if (typeof row.date !== "string" || !row.date) continue;
+      out.push({ date: row.date.slice(0, 10), total_tokens: row.total_tokens });
+    }
+    return out;
+  }, [chartQuery.data]);
+
+  const groupedBuckets: DayBucket[] = useMemo(() => {
+    const sparse = sortChronological(rawGrouped, (b) => b.date);
+    return fillDateRange(sparse, {
+      getDate: (b) => b.date,
+      makeZero: (date) => ({ date, total_tokens: 0 }),
+      days,
+      from,
+      to,
+      isCustom,
+      mode: "window",
+    });
+  }, [rawGrouped, days, from, to, isCustom]);
+
+  // Timeseries fallback: bucket the fetched rows by day, summing total tokens.
+  // The 25-row page is a slice, so fill min..max bucket range — gaps inside
+  // the slice read as zeros instead of stretching, without inventing
+  // out-of-slice window zeros.
+  const pageBuckets: DayBucket[] = useMemo(() => {
     const byDay = new Map<string, number>();
     for (const row of rows) {
       const day = row.created_at.slice(0, 10);
       byDay.set(day, (byDay.get(day) ?? 0) + row.total_tokens);
     }
-    return sortChronological(
+    const sparse = sortChronological(
       [...byDay.entries()].map(([date, total_tokens]) => ({ date, total_tokens })),
       (b) => b.date,
     );
-  }, [rows]);
+    return fillDateRange(sparse, {
+      getDate: (b) => b.date,
+      makeZero: (date) => ({ date, total_tokens: 0 }),
+      days,
+      from,
+      to,
+      isCustom,
+      mode: "minmax",
+    });
+  }, [rows, days, from, to, isCustom]);
+  const buckets = !chartQuery.isError && rawGrouped.length > 0 ? groupedBuckets : pageBuckets;
+  const chartLoading = chartQuery.isLoading && rawGrouped.length === 0;
   const hasChartData = buckets.some((b) => b.total_tokens > 0);
 
   const hasActiveFilters = !!rawProject || !!rawWorker || !!rawModel || isCustom;
@@ -427,7 +487,7 @@ function UsageInner() {
         {/* Timeseries — total tokens per day */}
         <div className="card-base p-5">
           <h3 className="text-sm font-medium mb-4">Total tokens per day</h3>
-          {loading && buckets.length === 0 ? (
+          {chartLoading ? (
             <div className="h-[220px] rounded bg-surface-800 animate-pulse" />
           ) : !hasChartData ? (
             <div className="flex flex-col items-center justify-center h-[220px] text-surface-500">
