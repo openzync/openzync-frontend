@@ -10,12 +10,12 @@ import {
 } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
+import { ProjectsSectionShell } from "../projects/components/projects-section-shell";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -69,12 +69,15 @@ export default function ProjectInvitationsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Project invitations"
-        description="Projects waiting for you to approve or decline"
-      />
-
+    <ProjectsSectionShell
+      title="Project invitations"
+      description="Projects waiting for you to approve or decline"
+      guideTitle="Project invitations"
+      guideBody={
+        <p>
+          Invitations list workspaces waiting for you to approve or decline.
+        </p>
+      }>
       {approvalsQuery.isLoading ? (
         <TableSkeleton rows={3} cols={4} colWidths={["w-32", "w-36", "w-20", "w-32"]} standalone />
       ) : approvalsQuery.error ? (
@@ -150,6 +153,6 @@ export default function ProjectInvitationsPage() {
           </Table>
         </div>
       )}
-    </div>
+    </ProjectsSectionShell>
   );
 }

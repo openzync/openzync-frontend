@@ -20,7 +20,6 @@ import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { useUser } from "@/contexts/user-context";
-import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +27,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import { usePinnedProjects } from "@/hooks/use-pinned-projects";
+import { ProjectsSectionShell } from "./components/projects-section-shell";
 
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -140,11 +140,16 @@ function ProjectsPageInner() {
   }
 
   return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Projects"
-          description="Collaborative workspaces for memory and knowledge graph data"
-          actions={
+      <ProjectsSectionShell
+        title="Projects"
+        guideTitle="Projects"
+        guideBody={
+          <p>
+            Projects are collaborative workspaces for sessions, memory, and
+            knowledge graphs.
+          </p>
+        }
+        actions={
             <div className="flex items-center gap-3">
               <label
                 htmlFor="show-archived"
@@ -171,8 +176,8 @@ function ProjectsPageInner() {
                 Create Project
               </Button>
             </div>
-          }
-        />
+        }
+      >
 
         {/* Project grid */}
         {loading ? (
@@ -408,6 +413,6 @@ function ProjectsPageInner() {
             )}
           </div>
         </Dialog>
-      </div>
+      </ProjectsSectionShell>
   );
 }
