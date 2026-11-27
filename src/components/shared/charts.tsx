@@ -9,6 +9,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
 } from "react";
+import { formatCompact } from "@/lib/format";
 
 // ═══ Shared helpers ════════════════════════════════════════════════════════════
 
@@ -119,7 +120,12 @@ function useChartNav(count: number, ariaLabel: string): ChartNav {
 const PAD = { top: 16, right: 12, bottom: 36, left: 44 };
 
 function tickText(tick: number): string {
-  return tick >= 1000 ? `${(tick / 1000).toFixed(1)}k` : tick.toLocaleString();
+  return formatCompact(tick);
+}
+
+/** Mean labels keep one decimal so fractional averages still read honestly. */
+function meanTick(value: number): string {
+  return tickText(Math.round(value * 10) / 10);
 }
 
 function smoothPath(pts: Array<{ x: number; y: number }>): string {
@@ -146,7 +152,16 @@ interface TooltipRow {
   color: string;
   label: string;
   value: number;
-  shape?: "circle" | "square";
+  shape?: "circle" | "square" | "line";
+  /** Preformatted value text (e.g. meanTick output). Falls back to compact + exact for >=1000, exact otherwise. */
+  displayValue?: string;
+  /** Muted swatch for reference rows (e.g. avg rows). */
+  muted?: boolean;
+}
+
+/** Default main tooltip value: compact + exact for >=1000, exact otherwise. */
+function defaultTooltipValue(v: number): string {
+  return v >= 1000 ? `${formatCompact(v)} (${v.toLocaleString()})` : v.toLocaleString();
 }
 
 function ChartTooltip({
@@ -181,13 +196,23 @@ function ChartTooltip({
         </p>
         {rows.map((row) => (
           <div key={row.label} className="flex items-center gap-2">
-            <span
-              className={`${row.shape === "square" ? "h-2.5 w-2.5 rounded-sm" : "h-2 w-2 rounded-full"} shrink-0`}
-              style={{ backgroundColor: cssVar(row.color) }}
-            />
+            {row.shape === "line" ? (
+              <span aria-hidden="true" className="h-2 w-2 flex items-center shrink-0">
+                <span
+                  aria-hidden="true"
+                  className={`w-2 shrink-0 ${row.muted ? "opacity-50" : ""}`}
+                  style={{ borderTop: `2px dashed ${cssVar(row.color)}` }}
+                />
+              </span>
+            ) : (
+              <span
+                className={`${row.shape === "square" ? "h-2.5 w-2.5 rounded-sm" : "h-2 w-2 rounded-full"} shrink-0 ${row.muted ? "opacity-50" : ""}`}
+                style={{ backgroundColor: cssVar(row.color) }}
+              />
+            )}
             <span className="text-surface-200">
               {row.label}:{" "}
-              <span className="font-semibold font-mono">{row.value.toLocaleString()}</span>
+              <span className="font-semibold font-mono">{row.displayValue ?? defaultTooltipValue(row.value)}</span>
             </span>
           </div>
         ))}
@@ -201,10 +226,12 @@ function Axis({
   dw,
   dh,
   yMax,
+  formatTick = tickText,
 }: {
   dw: number;
   dh: number;
   yMax: number;
+  formatTick?: (n: number) => string;
 }) {
   const yTicks = [0, Math.round(yMax / 2), yMax];
   return (
@@ -215,7 +242,7 @@ function Axis({
           <g key={tick}>
             <line x1={PAD.left} y1={y} x2={PAD.left + dw} y2={y} stroke={cssVar("--color-surface-800")} strokeWidth={1} />
             <text x={PAD.left - 6} y={y + 4} textAnchor="end" fill={cssVar("--color-surface-500")} fontSize={10} fontFamily="var(--font-mono)">
-              {tickText(tick)}
+              {formatTick(tick)}
             </text>
           </g>
         );
@@ -361,14 +388,34 @@ export interface BarChartProps<T> {
   ariaLabel?: string;
   /** Include the year in the tooltip date. */
   tooltipShowYear?: boolean;
+  /** Dashed per-series mean line + per-series avg tooltip rows (default true). Hidden when empty or all-zero. */
+  showMean?: boolean;
+  /** Compact formatter for y-axis tick labels (default formatCompact — k/M/B). */
+  formatTick?: (n: number) => string;
+  /** Formatter for the per-series avg tooltip rows + aria-label suffix (default meanTick — formatCompact with 1-decimal means). */
+  formatMean?: (v: number) => string;
+  /** Formatter for the main tooltip value rows (default compact + exact for >=1000, exact otherwise). */
+  formatTooltipValue?: (v: number) => string;
 }
 
-export function BarChart<T>({ data, series, dates, height = 220, stacked = false, ariaLabel, tooltipShowYear = false }: BarChartProps<T>) {
+export function BarChart<T>({ data, series, dates, height = 220, stacked = false, ariaLabel, tooltipShowYear = false, showMean = true, formatTick = tickText, formatMean = meanTick, formatTooltipValue }: BarChartProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const width = useContainerWidth(containerRef);
+  // Per-series mean over visible data, zeros included. Stacked or not, each
+  // mean sits at its absolute height (never stack-offset).
+  const means = series.map((s) =>
+    data.length === 0 ? 0 : data.reduce((sum, point) => sum + s.value(point), 0) / data.length,
+  );
+  const meanVisible = showMean && means.some((m) => m > 0);
+  const meanSuffix = meanVisible
+    ? `, avg ${series
+        .map((s, i) => (means[i] > 0 ? `${s.label} ${formatMean(means[i])}` : null))
+        .filter(Boolean)
+        .join(", ")}`
+    : "";
   const nav = useChartNav(
     data.length,
-    ariaLabel ?? `${series.map((s) => s.label).join(" and ")} chart, ${data.length} points`,
+    `${ariaLabel ?? `${series.map((s) => s.label).join(" and ")} chart, ${data.length} points`}${meanSuffix}`,
   );
   const active = nav.activeIndex;
 
@@ -395,7 +442,7 @@ export function BarChart<T>({ data, series, dates, height = 220, stacked = false
   return (
     <div ref={containerRef} className="relative w-full">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full overflow-visible focus-visible:outline-2 focus-visible:outline-accent-300 focus-visible:outline-offset-2" preserveAspectRatio="xMidYMid meet" {...nav.svgProps}>
-        <Axis dw={dw} dh={dh} yMax={yMax} />
+        <Axis dw={dw} dh={dh} yMax={yMax} formatTick={formatTick} />
         {data.map((point, i) => {
           const x = PAD.left + i * slotW + barGap;
           const isActiveSlot = active === i;
@@ -428,6 +475,16 @@ export function BarChart<T>({ data, series, dates, height = 220, stacked = false
           );
         })}
         <XLabels dates={dates} dw={dw} height={height} />
+        {meanVisible &&
+          series.map((s, i) => {
+            if (means[i] <= 0) return null;
+            const y = PAD.top + dh - (means[i] / yMax) * dh;
+            return (
+              <g key={`mean-${s.label}`}>
+                <line x1={PAD.left} y1={y} x2={PAD.left + dw} y2={y} stroke={cssVar(s.color)} strokeWidth={1.5} strokeDasharray="6 4" opacity={0.8} />
+              </g>
+            );
+          })}
       </svg>
       {active !== null && data[active] && (
         <ChartTooltip
@@ -436,12 +493,32 @@ export function BarChart<T>({ data, series, dates, height = 220, stacked = false
           top={PAD.top - 4}
           date={dates[active] ?? ""}
           showYear={tooltipShowYear}
-          rows={series.map((s) => ({
-            color: s.color,
-            label: s.label,
-            value: s.value(data[active]),
-            shape: "square" as const,
-          }))}
+          rows={series.flatMap((s, i) => {
+            const value = s.value(data[active]);
+            const row: TooltipRow = {
+              color: s.color,
+              label: s.label,
+              value,
+              shape: "square" as const,
+              ...(formatTooltipValue ? { displayValue: formatTooltipValue(value) } : {}),
+            };
+            // Per-series avg row directly below its value row; same
+            // formatMean formatting as the aria-label suffix.
+            if (meanVisible && means[i] > 0) {
+              return [
+                row,
+                {
+                  color: s.color,
+                  label: `Avg ${s.label}`,
+                  value: means[i],
+                  displayValue: formatMean(means[i]),
+                  muted: true,
+                  shape: "line" as const,
+                },
+              ];
+            }
+            return [row];
+          })}
         />
       )}
     </div>
@@ -541,13 +618,14 @@ export interface ErrorTimeseriesPoint {
   count_5xx: number;
 }
 
-export function StackedBarChart({ data, height = 220 }: { data: ErrorTimeseriesPoint[]; height?: number }) {
+export function StackedBarChart({ data, height = 220, showMean = true }: { data: ErrorTimeseriesPoint[]; height?: number; showMean?: boolean }) {
   return (
     <BarChart
       data={data}
       dates={data.map((d) => d.date)}
       height={height}
       stacked
+      showMean={showMean}
       ariaLabel={`4xx and 5xx errors chart, ${data.length} points`}
       series={[
         { label: "4xx", color: "--color-warning", value: (d) => d.count_4xx, baseOpacity: 0.75 },

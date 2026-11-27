@@ -23,9 +23,7 @@ const TABS: ConfigTab[] = [
   { label: "Graph", href: "/settings/org-config/graph", id: "graph" },
   { label: "Reranker", href: "/settings/org-config/reranker", id: "reranker" },
   { label: "Enrichment", href: "/settings/org-config/enrichment", id: "enrichment" },
-  { label: "Labs", href: "/settings/org-config/labs", id: "labs" },
   { label: "Behaviour", href: "/settings/org-config/behaviour", id: "behaviour" },
-  { label: "Blob Storage", href: "/settings/org-config/blob-storage", id: "blob-storage" },
   { label: "PII Protection", href: "/settings/org-config/pii", id: "pii" },
   { label: "Registration", href: "/settings/org-config/registration", id: "registration", superadminOnly: true },
 ];
@@ -51,11 +49,11 @@ function ConfigLayoutInner({ children }: { children: React.ReactNode }) {
       {/* Page header */}
       <PageHeader
         title="Configuration"
-        description="Manage settings for LLM, graph, reranking, behaviour, and storage"
+        description="Manage settings for LLM, graph, reranking, and behaviour"
       />
 
       <PageGuide title="Personal configuration" illustration={<GuideSettings />}>
-        <p>Configure your personal overrides for the LLM backend, graph database, reranking, behaviour settings, and blob storage. Embeddings always run on a built-in local model (nomic-embed-text-v1.5, 768 dimensions) and need no configuration. Anything you don&apos;t set falls back to system defaults; your overrides take precedence for your own usage across all projects.</p>
+        <p>Configure your personal overrides for the LLM backend, graph database, reranking, and behaviour settings. Embeddings always run on a built-in local model (nomic-embed-text-v1.5, 768 dimensions) and need no configuration. Anything you don&apos;t set falls back to system defaults; your overrides take precedence for your own usage across all projects.</p>
       </PageGuide>
 
       {/* Tab bar */}

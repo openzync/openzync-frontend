@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ProjectMembersPage from "@/app/(dashboard)/projects/[id]/members/page";
@@ -118,6 +118,12 @@ const MEMBERS_PATH = "/v1/projects/p-1/members";
 /** The server's view of the member list — mutated by the test as the API evolves. */
 let serverMembers: MemberRow[];
 
+// jsdom lacks the PointerEvent APIs Radix Popover (SimpleSelect) relies on
+beforeAll(() => {
+  window.HTMLElement.prototype.hasPointerCapture = () => false;
+  window.HTMLElement.prototype.scrollIntoView = () => {};
+});
+
 function renderPage() {
   return render(<ProjectMembersPage />);
 }
@@ -174,15 +180,23 @@ describe("ProjectMembersPage — removal does not freeze the list", () => {
     // ── Trigger a server refetch: adding a member refetches the list.
     await user.click(screen.getByRole("button", { name: "Add Member" }));
     const addDialog = await screen.findByRole("dialog");
-    await user.selectOptions(
-      within(addDialog).getByLabelText("User"),
-      "u-c",
+    // The User picker is a searchable combobox (options render in a portal
+    // outside the dialog) — open it and click the option by label.
+    await user.click(within(addDialog).getByRole("combobox", { name: "User" }));
+    await user.click(
+      await screen.findByRole("option", { name: "carol@acme.com" }),
     );
-    await user.click(within(addDialog).getByRole("button", { name: "Add Member" }));
+    // The email lookup is debounced (400ms) — wait for the match to
+    // resolve before submitting.
+    const addButton = within(addDialog).getByRole("button", {
+      name: "Add Member",
+    });
+    await waitFor(() => expect(addButton).toBeEnabled());
+    await user.click(addButton);
 
     await waitFor(() => {
       expect(mockPost).toHaveBeenCalledWith("/v1/projects/p-1/members", {
-        user_id: "u-c",
+        email: "carol@acme.com",
         role: "member",
       });
     });

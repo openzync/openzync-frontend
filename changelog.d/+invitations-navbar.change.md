@@ -1,0 +1,1 @@
+Move project invitations from the account tab (`/account/approvals`) to a first-class Projects-group nav entry (`/invitations`, bottom section inside a project) with a sidebar pending-count badge; `/account/approvals` redirects to `/invitations`.

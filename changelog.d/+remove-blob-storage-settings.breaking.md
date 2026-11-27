@@ -1,0 +1,1 @@
+Remove the per-org Blob Storage settings UI (settings page deleted, layout tab removed). Blob storage is now configured globally via `OZ_S3_*` environment variables. BREAKING: org-level blob storage settings are no longer exposed in the dashboard.

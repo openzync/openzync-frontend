@@ -105,7 +105,11 @@ describe("ProjectsPage", () => {
 
     render(<ProjectsPage />);
 
-    expect(await screen.findByText("Projects")).toBeInTheDocument();
+    // The PageGuide title ("Projects") duplicates the header text, so query
+    // the heading role — the h1 — instead of ambiguous text.
+    expect(
+      await screen.findByRole("heading", { name: "Projects" }),
+    ).toBeInTheDocument();
     expect(
       await screen.findByText(
         /Collaborative workspaces for memory and knowledge graph data/,

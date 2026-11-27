@@ -160,6 +160,7 @@ function renderAsAdmin() {
     user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin", permissions: [] },
     role: "admin",
     isAdmin: true,
+    isSuperadmin: true,
     can: () => true,
     loading: false,
   });
@@ -222,30 +223,32 @@ describe("UsersPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("hides role buttons entirely for a member viewer", async () => {
+  it("hides the list entirely for a non-superadmin viewer", async () => {
     renderAsReadOnlyMember();
 
-    expect(await screen.findByText("Bob")).toBeInTheDocument();
+    // Superadmin-only page gate — no list, no role buttons, no fetch.
+    expect(
+      await screen.findByText("Superadmin access required"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Bob")).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Make .* an admin/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Remove admin from/)).not.toBeInTheDocument();
-    // Members without members:write do not see the create button either.
-    expect(
-      screen.queryByRole("button", { name: "Create User" }),
-    ).not.toBeInTheDocument();
+    expect(mockGet).not.toHaveBeenCalled();
   });
 
-  it("shows a 403-style error and fetches nothing without members:read", async () => {
+  it("shows the superadmin gate and fetches nothing without the role", async () => {
     mockUseUser.mockReturnValue({
       user: { id: MEMBER.id, email: MEMBER.email, name: MEMBER.name, role: "member", permissions: ["project:read", "project:write"] },
       role: "member",
       isAdmin: false,
+      isSuperadmin: false,
       can: () => false,
       loading: false,
     });
     render(<UsersPage />);
 
     expect(
-      await screen.findByText("This action requires the 'members:read' permission."),
+      await screen.findByText("Superadmin access required"),
     ).toBeInTheDocument();
     expect(mockGet).not.toHaveBeenCalled();
   });
@@ -293,6 +296,7 @@ describe("UsersPage", () => {
       user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin", permissions: [] },
       role: "admin",
       isAdmin: true,
+    isSuperadmin: true,
       can: () => true,
       loading: false,
     });
@@ -304,16 +308,20 @@ describe("UsersPage", () => {
     ).toBeInTheDocument();
     adminView.unmount();
 
-    // Read-only member viewer does not see it.
+    // Non-superadmin viewer hits the page gate — no list, no invite button.
     mockUseUser.mockReturnValue({
       user: { id: MEMBER.id, email: MEMBER.email, name: MEMBER.name, role: "member", permissions: ["members:read"] },
       role: "member",
       isAdmin: false,
+      isSuperadmin: false,
       can: (p: string) => p === "members:read",
       loading: false,
     });
     mockUsersList([SELF, MEMBER, PENDING]);
     render(<UsersPage />);
+    expect(
+      await screen.findByText("Superadmin access required"),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Invite Member" }),
     ).not.toBeInTheDocument();
@@ -324,6 +332,7 @@ describe("UsersPage", () => {
       user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin", permissions: [] },
       role: "admin",
       isAdmin: true,
+    isSuperadmin: true,
       can: () => true,
       loading: false,
     });
@@ -340,6 +349,7 @@ describe("UsersPage", () => {
       user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin", permissions: [] },
       role: "admin",
       isAdmin: true,
+    isSuperadmin: true,
       can: () => true,
       loading: false,
     });
@@ -355,13 +365,13 @@ describe("UsersPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("hides the Revoke action from read-only member viewers", async () => {
+  it("hides the list from read-only member viewers (superadmin gate)", async () => {
     renderAsReadOnlyMember([SELF, MEMBER, PENDING]);
 
-    expect(await screen.findByText("Dave")).toBeInTheDocument();
     expect(
-      screen.queryByLabelText(/Revoke invite for/),
-    ).not.toBeInTheDocument();
+      await screen.findByText("Superadmin access required"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Dave")).not.toBeInTheDocument();
   });
 
   it("revokes the pending invite after confirmation", async () => {
@@ -371,6 +381,7 @@ describe("UsersPage", () => {
       user: { id: SELF.id, email: SELF.email, name: SELF.name, role: "admin", permissions: [] },
       role: "admin",
       isAdmin: true,
+    isSuperadmin: true,
       can: () => true,
       loading: false,
     });

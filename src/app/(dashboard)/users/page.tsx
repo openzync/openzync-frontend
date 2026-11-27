@@ -212,9 +212,9 @@ export default function UsersPage() {
 }
 
 function UsersPageInner() {
-  const { can, user: me, loading: roleLoading } = useUser();
-  const canRead = can("members:read");
-  const canWrite = can("members:write");
+  const { isSuperadmin, user: me, loading: roleLoading } = useUser();
+  const canRead = isSuperadmin;
+  const canWrite = isSuperadmin;
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -346,7 +346,7 @@ function UsersPageInner() {
       toast.success(`User "${target.external_id}" is now ${to === "admin" ? "an admin" : "a member"}`);
       await loadUsers();
     } catch (err) {
-      if (err instanceof ApiError && err.isForbidden) toast.error("Admin access required");
+      if (err instanceof ApiError && err.isForbidden) toast.error("Superadmin access required");
       else toast.error(apiErrorMessage(err, "Failed to update role"));
     } finally { setChangingRole(false); }
   };
@@ -364,9 +364,9 @@ function UsersPageInner() {
     );
   }
 
-  // Page itself is members:read-gated — mirror the backend's 403 message.
+  // Page itself is superadmin-gated — backend enforces, this is UX only.
   if (!canRead) {
-    return <ErrorState message="This action requires the 'members:read' permission." />;
+    return <ErrorState message="Superadmin access required" />;
   }
 
   return (
@@ -483,7 +483,7 @@ function UsersPageInner() {
                           onSuccess={() => toast.success("User ID copied to clipboard")}
                           onError={() => toast.error("Failed to copy")}
                         />
-                        {/* Edit/Delete are destructive mutations — members:write only */}
+                        {/* Edit/Delete are destructive mutations — superadmin only */}
                         {canWrite && (
                           <Button variant="ghost" size="sm" onClick={() => setEditTarget(user)} className="rounded-md text-surface-400 hover:text-white" title="Edit User"><Edit size={14} /></Button>
                         )}

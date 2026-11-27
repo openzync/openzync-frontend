@@ -21,6 +21,7 @@ import { get, patch, getAccessToken, refreshOnce, hasRefreshCredential } from "@
 import type { EnrichmentGateBlock } from "@/lib/api-client";
 import { ENRICHMENT_GATE_DEFAULTS } from "@/lib/api-client";
 import { SecretInput } from "@/components/ui/secret-input";
+import { SimpleSelect } from "@/components/ui/select";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -384,16 +385,12 @@ function OnboardingWizard() {
               <div className="space-y-4 max-w-md">
                 {/* llm_backend */}
                 <Field label="Backend Provider" htmlFor="onb-llm-backend">
-                  <select
+                  <SimpleSelect
                     id="onb-llm-backend"
-                    className="input-base w-full"
                     value={form.llm_backend ?? "openai"}
-                    onChange={(e) => updateField("llm_backend", e.target.value)}
-                  >
-                    {LLM_BACKEND_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                    onValueChange={(v) => updateField("llm_backend", v)}
+                    options={LLM_BACKEND_OPTIONS}
+                  />
                 </Field>
 
                 {/* llm_model */}
@@ -516,30 +513,22 @@ function OnboardingWizard() {
               <div className="space-y-4 max-w-md">
                 {/* graph_backend */}
                 <Field label="Graph Backend" htmlFor="onb-graph-backend">
-                  <select
+                  <SimpleSelect
                     id="onb-graph-backend"
-                    className="input-base w-full"
                     value={form.graph_backend ?? "falkordb"}
-                    onChange={(e) => updateField("graph_backend", e.target.value)}
-                  >
-                    {GRAPH_BACKEND_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                    onValueChange={(v) => updateField("graph_backend", v)}
+                    options={GRAPH_BACKEND_OPTIONS}
+                  />
                 </Field>
 
                 {/* graph_search_type */}
                 <Field label="Search Type" htmlFor="onb-graph-search-type">
-                  <select
+                  <SimpleSelect
                     id="onb-graph-search-type"
-                    className="input-base w-full"
                     value={form.graph_search_type ?? "hybrid"}
-                    onChange={(e) => updateField("graph_search_type", e.target.value)}
-                  >
-                    {SEARCH_TYPE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                    onValueChange={(v) => updateField("graph_search_type", v)}
+                    options={SEARCH_TYPE_OPTIONS}
+                  />
                 </Field>
 
                 {/* SurrealDB connection fields — conditionally shown */}

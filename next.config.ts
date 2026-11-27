@@ -36,6 +36,11 @@ const nextConfig: NextConfig = {
         destination: "/projects/:id/playground",
         permanent: false,
       },
+      {
+        source: "/account/approvals",
+        destination: "/invitations",
+        permanent: false,
+      },
     ];
   },
 };

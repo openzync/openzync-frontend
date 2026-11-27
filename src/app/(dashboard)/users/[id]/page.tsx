@@ -356,8 +356,10 @@ export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
   const userId = params.id as string;
-  const { can, user: me, loading: roleLoading } = useUser();
-  const canWriteMembers = can("members:write");
+  const { isSuperadmin, user: me } = useUser();
+  // Name/email edit allowed if superadmin or self; permissions/role editor
+  // is superadmin-only (and never self nor a superadmin target).
+  const isSelf = me?.id === userId;
 
   // ── Data state ────────────────────────────────────────────────────────────
   const [user, setUser] = useState<UserWithStats | null>(null);
@@ -455,7 +457,7 @@ export default function UserDetailPage() {
       toast.success("Permissions updated");
     } catch (err) {
       if (err instanceof ApiError && err.isForbidden) {
-        toast.error("This action requires the 'members:write' permission.");
+        toast.error("Superadmin access required");
       } else {
         toast.error(err instanceof Error ? err.message : "Failed to update permissions");
       }
@@ -701,8 +703,8 @@ export default function UserDetailPage() {
                 icon={<Shield size={16} />}
                 label="Role"
               >
-                <Badge variant={user.role === "admin" ? "brand" : "default"} size="sm">
-                  {user.role === "admin" ? "Admin" : "Member"}
+                <Badge variant={user.role === "admin" || user.role === "superadmin" ? "brand" : "default"} size="sm">
+                  {user.role === "superadmin" ? "Superadmin" : user.role === "admin" ? "Admin" : "Member"}
                 </Badge>
                 {me?.id === user.id && (
                   <span className="ml-2 text-xs text-surface-500">(you)</span>
@@ -714,7 +716,7 @@ export default function UserDetailPage() {
                 icon={<Shield size={16} />}
                 label="Permissions"
               >
-                {user.role === "admin" ? (
+                {user.role === "admin" || user.role === "superadmin" ? (
                   <Badge variant="brand" size="sm">Full access (admin)</Badge>
                 ) : user.permissions.length === 0 ? (
                   <span className="text-surface-500 italic">—</span>
@@ -758,8 +760,8 @@ export default function UserDetailPage() {
         )}
       </div>
 
-      {/* ═══ Permissions editor (members:write only — admins are wildcard, self excluded) ═══ */}
-      {user && canWriteMembers && me?.id !== user.id && user.role !== "admin" && (
+      {/* ═══ Permissions editor (superadmin-only — never self, never a superadmin target) ═══ */}
+      {user && isSuperadmin && !isSelf && user.role !== "admin" && user.role !== "superadmin" && (
         <div className="card-base p-6">
           <div className="mb-4">
             <h2 className="font-display text-lg font-medium flex items-center gap-2">

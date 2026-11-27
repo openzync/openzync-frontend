@@ -11,6 +11,7 @@ import {
   BarChart3,
   FileJson,
   FileText,
+  FlaskConical,
   LayoutDashboard,
   Settings,
   Shield,
@@ -58,11 +59,12 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Administration",
     entries: [
       // User management → members:read; config surfaces → configuration:read.
-      { label: "Users", href: "/users", icon: Users, permission: "members:read" },
+      { label: "Users", href: "/users", icon: Users, superadminOnly: true },
       { label: "Extraction Schemas", href: "/settings/schemas", icon: FileJson, permission: "configuration:read" },
       { label: "Webhooks", href: "/settings/webhooks", icon: Webhook, permission: "configuration:read" },
       { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: FileText, permission: "configuration:read" },
       { label: "Configuration", href: "/settings/org-config", icon: Settings, permission: "configuration:read" },
+      { label: "Lab", href: "/settings/lab", icon: FlaskConical, permission: "configuration:read" },
     ],
   },
   {
@@ -182,6 +184,12 @@ export function resolveBreadcrumb(
   // Personal account page (not a manifest entry — ungated).
   if (pathname === "/account" || pathname.startsWith("/account/")) {
     return [{ label: "System" }, { label: "Account" }];
+  }
+
+  // Project invitations is a hand-coded sidebar link (Projects group), not a
+  // manifest entry — resolve its breadcrumb explicitly.
+  if (pathname === "/invitations" || pathname.startsWith("/invitations/")) {
+    return [{ label: "Projects" }, { label: "Project invitations" }];
   }
 
   // Longest-prefix match against the manifest.

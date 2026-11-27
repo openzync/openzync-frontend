@@ -14,6 +14,8 @@ interface ConfirmDialogProps {
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Disables the confirm button (e.g. until a typed confirmation matches). */
+  confirmDisabled?: boolean;
   /** Optional extra content (e.g. an input) rendered between the message and the action buttons. */
   children?: React.ReactNode;
 }
@@ -36,6 +38,7 @@ export function ConfirmDialog({
   loading = false,
   onConfirm,
   onCancel,
+  confirmDisabled = false,
   children,
 }: ConfirmDialogProps) {
   return (
@@ -82,7 +85,7 @@ export function ConfirmDialog({
                 {cancelLabel}
               </Button>
             </AlertDialogPrimitive.Cancel>
-            <Button variant={variant} onClick={onConfirm} loading={loading}>
+            <Button variant={variant} onClick={onConfirm} loading={loading} disabled={confirmDisabled}>
               {confirmLabel}
             </Button>
           </div>

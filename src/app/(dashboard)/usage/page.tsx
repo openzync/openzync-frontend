@@ -17,12 +17,14 @@ import {
   type LlmUsageRow,
 } from "@/lib/api-client";
 import { sortChronological } from "@/lib/chart-order";
+import { fillDateRange } from "@/lib/chart-range";
 import { smartTimestamp } from "@/lib/utils";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { useSortQuery } from "@/hooks/use-sort-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageGuide, GuideDashboard } from "@/components/guides";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { SimpleSelect } from "@/components/ui/select";
 import { StatCard } from "@/components/shared/stat-card";
 import { ErrorState } from "@/components/shared/error-state";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -226,18 +228,77 @@ function UsageInner() {
     return [...values].sort();
   }, [rows, rawModel]);
 
-  // Timeseries: bucket the fetched rows by day, summing total tokens.
-  const buckets: DayBucket[] = useMemo(() => {
+  // Chart-only grouped fetch — decoupled from table pagination (full-window
+  // day buckets; limit=365 covers the max backend window). Falls back to the
+  // page-slice aggregation below until the backend supports group_by=day.
+  const chartRefreshKey = `chart-${days}-${from}-${to}-${rawProject}-${rawWorker}-${rawModel}`;
+
+  const chartQuery = useApiQuery<LlmUsageResponse>(() => {
+    return getLlmUsage({
+      days: isCustom ? undefined : days,
+      from: isCustom && from ? from : undefined,
+      to: isCustom && to ? to : undefined,
+      project_id: rawProject || undefined,
+      worker: rawWorker || undefined,
+      model: rawModel || undefined,
+      group_by: "day",
+      limit: 365,
+      offset: 0,
+    });
+  }, { refreshKey: chartRefreshKey });
+
+  // Grouped rows carry `date` (sparse day buckets); require it so a backend
+  // that ignores group_by (plain rows with created_at) falls through to the
+  // page-slice fallback instead of masquerading as full-window data.
+  const rawGrouped: DayBucket[] = useMemo(() => {
+    const data = chartQuery.data?.data ?? [];
+    const out: DayBucket[] = [];
+    for (const row of data as Array<LlmUsageRow & { date?: unknown }>) {
+      if (typeof row.date !== "string" || !row.date) continue;
+      out.push({ date: row.date.slice(0, 10), total_tokens: row.total_tokens });
+    }
+    return out;
+  }, [chartQuery.data]);
+
+  const groupedBuckets: DayBucket[] = useMemo(() => {
+    const sparse = sortChronological(rawGrouped, (b) => b.date);
+    return fillDateRange(sparse, {
+      getDate: (b) => b.date,
+      makeZero: (date) => ({ date, total_tokens: 0 }),
+      days,
+      from,
+      to,
+      isCustom,
+      mode: "window",
+    });
+  }, [rawGrouped, days, from, to, isCustom]);
+
+  // Timeseries fallback: bucket the fetched rows by day, summing total tokens.
+  // The 25-row page is a slice, so fill min..max bucket range — gaps inside
+  // the slice read as zeros instead of stretching, without inventing
+  // out-of-slice window zeros.
+  const pageBuckets: DayBucket[] = useMemo(() => {
     const byDay = new Map<string, number>();
     for (const row of rows) {
       const day = row.created_at.slice(0, 10);
       byDay.set(day, (byDay.get(day) ?? 0) + row.total_tokens);
     }
-    return sortChronological(
+    const sparse = sortChronological(
       [...byDay.entries()].map(([date, total_tokens]) => ({ date, total_tokens })),
       (b) => b.date,
     );
-  }, [rows]);
+    return fillDateRange(sparse, {
+      getDate: (b) => b.date,
+      makeZero: (date) => ({ date, total_tokens: 0 }),
+      days,
+      from,
+      to,
+      isCustom,
+      mode: "minmax",
+    });
+  }, [rows, days, from, to, isCustom]);
+  const buckets = !chartQuery.isError && rawGrouped.length > 0 ? groupedBuckets : pageBuckets;
+  const chartLoading = chartQuery.isLoading && rawGrouped.length === 0;
   const hasChartData = buckets.some((b) => b.total_tokens > 0);
 
   const hasActiveFilters = !!rawProject || !!rawWorker || !!rawModel || isCustom;
@@ -286,11 +347,11 @@ function UsageInner() {
           />
         ) : (
           <div className="stat-grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-            <StatCard label="Calls" value={summary ? summary.calls.toLocaleString() : null} loading={loading} />
-            <StatCard label="Prompt tokens" value={summary ? summary.prompt_tokens.toLocaleString() : null} loading={loading} />
-            <StatCard label="Completion tokens" value={summary ? summary.completion_tokens.toLocaleString() : null} loading={loading} />
-            <StatCard label="Reasoning tokens" value={summary ? summary.reasoning_tokens.toLocaleString() : null} loading={loading} />
-            <StatCard label="Total tokens" value={summary ? summary.total_tokens.toLocaleString() : null} loading={loading} />
+            <StatCard label="Calls" value={summary?.calls ?? null} loading={loading} />
+            <StatCard label="Prompt tokens" value={summary?.prompt_tokens ?? null} loading={loading} />
+            <StatCard label="Completion tokens" value={summary?.completion_tokens ?? null} loading={loading} />
+            <StatCard label="Reasoning tokens" value={summary?.reasoning_tokens ?? null} loading={loading} />
+            <StatCard label="Total tokens" value={summary?.total_tokens ?? null} loading={loading} />
             <StatCard
               label="Avg duration"
               value={summary ? `${Math.round(summary.avg_duration_ms).toLocaleString()}ms` : null}
@@ -304,58 +365,39 @@ function UsageInner() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <label className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Project</span>
-              <select
+              <SimpleSelect
                 value={rawProject}
-                onChange={(e) => setParams({ project_id: e.target.value || null, page: null })}
-                className="input-base h-8 text-xs flex-1 min-w-0 truncate border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
+                onValueChange={(v) => setParams({ project_id: v || null, page: null })}
+                options={[{ value: "", label: "All projects" }, ...projects.map((p) => ({ value: p.id, label: p.name }))]}
+                className="h-8 text-xs flex-1 min-w-0"
                 aria-label="Filter by project"
-              >
-                <option value="">All projects</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
             <label className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Worker</span>
-              <select
+              <SimpleSelect
                 value={rawWorker}
-                onChange={(e) => setParams({ worker: e.target.value || null, page: null })}
-                className="input-base h-8 text-xs flex-1 min-w-0 truncate border-surface-800"
+                onValueChange={(v) => setParams({ worker: v || null, page: null })}
+                options={[{ value: "", label: "All workers" }, ...workerOptions.map((w) => ({ value: w, label: w }))]}
+                className="h-8 text-xs flex-1 min-w-0"
                 aria-label="Filter by worker"
-              >
-                <option value="">All workers</option>
-                {workerOptions.map((w) => (
-                  <option key={w} value={w}>
-                    {w}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
             <label className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Model</span>
-              <select
+              <SimpleSelect
                 value={rawModel}
-                onChange={(e) => setParams({ model: e.target.value || null, page: null })}
-                className="input-base h-8 text-xs flex-1 min-w-0 truncate border-surface-800"
+                onValueChange={(v) => setParams({ model: v || null, page: null })}
+                options={[{ value: "", label: "All models" }, ...modelOptions.map((m) => ({ value: m, label: m }))]}
+                className="h-8 text-xs flex-1 min-w-0"
                 aria-label="Filter by model"
-              >
-                <option value="">All models</option>
-                {modelOptions.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
             <label className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Time range</span>
-              <select
+              <SimpleSelect
                 value={pendingRange}
-                onChange={(e) => {
-                  const v = e.target.value;
+                onValueChange={(v) => {
                   if (v === "custom") {
                     setPendingRange("custom");
                   } else {
@@ -363,14 +405,15 @@ function UsageInner() {
                     setDays(Number(v) as DaysOption);
                   }
                 }}
-                className="input-base h-8 text-xs flex-1 min-w-0 border-surface-800"
+                options={[
+                  { value: "7", label: "Last 7 days" },
+                  { value: "30", label: "Last 30 days" },
+                  { value: "90", label: "Last 90 days" },
+                  { value: "custom", label: "Custom range" },
+                ]}
+                className="h-8 text-xs flex-1 min-w-0"
                 aria-label="Filter by time range"
-              >
-                <option value="7">Last 7 days</option>
-                <option value="30">Last 30 days</option>
-                <option value="90">Last 90 days</option>
-                <option value="custom">Custom range</option>
-              </select>
+              />
             </label>
           </div>
           {(pendingRange === "custom" || isCustom) && (
@@ -427,7 +470,7 @@ function UsageInner() {
         {/* Timeseries — total tokens per day */}
         <div className="card-base p-5">
           <h3 className="text-sm font-medium mb-4">Total tokens per day</h3>
-          {loading && buckets.length === 0 ? (
+          {chartLoading ? (
             <div className="h-[220px] rounded bg-surface-800 animate-pulse" />
           ) : !hasChartData ? (
             <div className="flex flex-col items-center justify-center h-[220px] text-surface-500">

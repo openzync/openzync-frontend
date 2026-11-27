@@ -77,10 +77,11 @@ function auditResponse(offset: number) {
         id: `entry-${offset}`,
         action: "session.create",
         actor_id: "user-1",
+        actor_display_name: "Test User",
         actor_type: "user",
         resource_type: null,
         resource_id: null,
-        details: null,
+        details: { session_id: "s-1" },
         ip_address: "127.0.0.1",
         status_code: 200,
         method: "POST",
@@ -91,6 +92,9 @@ function auditResponse(offset: number) {
     total: 60, // three pages at PAGE_SIZE=25
   };
 }
+
+/** Distinct action names served by GET /v1/admin/audit-logs/actions. */
+const ACTIONS = ["session.create", "user.login"];
 
 /** Re-renders whenever the URL mock changes — stands in for Next.js
  * re-rendering useSearchParams consumers after router.replace. */
@@ -110,7 +114,7 @@ async function lastAuditCall(): Promise<string> {
     expect(mockGet).toHaveBeenCalled();
   });
   const calls = mockGet.mock.calls.filter((c: unknown[]) =>
-    String(c[0]).startsWith("/v1/admin/audit-logs"),
+    String(c[0]).startsWith("/v1/admin/audit-logs?"),
   );
   return String(calls[calls.length - 1][0]);
 }
@@ -134,6 +138,9 @@ describe("AuditLogPage URL state", () => {
     mockReplace.mockClear();
     setSearchParams({});
     mockGet.mockImplementation((path: string) => {
+      if (path === "/v1/admin/audit-logs/actions") {
+        return Promise.resolve({ data: ACTIONS });
+      }
       if (path.startsWith("/v1/admin/audit-logs")) {
         const offset = Number(new URLSearchParams(path.split("?")[1]).get("offset") ?? 0);
         return Promise.resolve(auditResponse(offset));
@@ -153,7 +160,13 @@ describe("AuditLogPage URL state", () => {
 
     const url = await lastAuditCall();
     expect(url).toContain("action=session.create");
-    expect(screen.getByLabelText("Action")).toHaveValue("session.create");
+    // The action options arrive async from /actions — wait for the
+    // combobox to resolve the deep-linked value to its label.
+    await vi.waitFor(() => {
+      expect(screen.getByRole("combobox", { name: "Action" })).toHaveTextContent(
+        "session.create",
+      );
+    });
   });
 
   it("round-trips filter edits through the URL (empty value drops the param)", async () => {
@@ -161,16 +174,18 @@ describe("AuditLogPage URL state", () => {
     render(<AuditPageHarness />);
     await lastAuditCall();
 
-    const input = screen.getByLabelText("Action");
-    await user.type(input, "a");
+    // The Action filter is a combobox fed by /actions — pick an option.
+    await user.click(screen.getByRole("combobox", { name: "Action" }));
+    await user.click(await screen.findByRole("option", { name: "session.create" }));
 
     await vi.waitFor(() => {
       expect(mockReplace).toHaveBeenCalled();
     });
-    expect(lastReplaceUrl()).toContain("action=a");
+    expect(lastReplaceUrl()).toContain("action=session.create");
 
-    // Clearing the input removes the param entirely instead of writing ?action=.
-    await user.clear(input);
+    // Picking the empty option removes the param instead of writing ?action=.
+    await user.click(screen.getByRole("combobox", { name: "Action" }));
+    await user.click(await screen.findByRole("option", { name: "All actions" }));
     await vi.waitFor(() => {
       expect(lastReplaceUrl()).not.toContain("action=");
     });
@@ -215,22 +230,27 @@ describe("AuditLogPage URL state", () => {
     });
   });
 
-  it("Clear removes every filter param at once", async () => {
+  it("always writes the explicit sort contract alongside filter params", async () => {
+    // No Clear button by design — filters are cleared per-field via their
+    // empty option, while sort_by/sort_dir are always present (explicit
+    // sort contract), never dropped as filters.
     const user = userEvent.setup();
-    setSearchParams({ action: "x", actor_type: "user", status: "2xx" });
+    setSearchParams({ action: "user.login", actor_type: "user", status: "2xx" });
     render(<AuditPageHarness />);
     await lastAuditCall();
 
-    await user.click(screen.getByRole("button", { name: "Clear" }));
+    await user.click(screen.getByRole("combobox", { name: "Action" }));
+    await user.click(await screen.findByRole("option", { name: "session.create" }));
 
     await vi.waitFor(() => {
       const url = lastReplaceUrl();
-      // Every filter and page param is dropped…
-      expect(url).not.toContain("action=");
-      expect(url).not.toContain("actor_type=");
-      expect(url).not.toContain("status=");
+      // The edited filter is written…
+      expect(url).toContain("action=session.create");
+      // …untouched filters survive, page stays absent (page 1 is default)…
+      expect(url).toContain("actor_type=user");
+      expect(url).toContain("status=2xx");
       expect(url).not.toContain("page=");
-      // …but the explicit sort contract is always present, not a filter.
+      // …and the explicit sort contract is always present, not a filter.
       expect(url).toContain("sort_by=created_at");
       expect(url).toContain("sort_dir=desc");
     });

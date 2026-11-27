@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import LabsConfigPage from "@/app/(dashboard)/settings/org-config/labs/page";
+import LabEnrichmentPage from "@/app/(dashboard)/settings/lab/enrichment/page";
 import { ConfigDirtyProvider } from "@/contexts/config-dirty";
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ const { mockGetMyConfig, mockUpdateMyConfig } = vi.hoisted(() => ({
 // ConfigDirtyProvider (mounted by renderPage) reads router/pathname.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
-  usePathname: () => "/settings/org-config/labs",
+  usePathname: () => "/settings/lab/enrichment",
 }));
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
@@ -29,7 +29,7 @@ vi.mock("@/lib/api-client", async (importOriginal) => {
 function renderPage() {
   return render(
     <ConfigDirtyProvider>
-      <LabsConfigPage />
+      <LabEnrichmentPage />
     </ConfigDirtyProvider>,
   );
 }
@@ -38,7 +38,7 @@ function renderPage() {
 // No reset buttons by design — edits save the whole gate block, and an
 // untouched gate sends nothing.
 
-describe("LabsConfigPage enrichment gate", () => {
+describe("LabEnrichmentPage enrichment gate", () => {
   beforeEach(() => {
     mockGetMyConfig.mockReset();
     mockUpdateMyConfig.mockReset();

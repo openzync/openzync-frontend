@@ -29,6 +29,7 @@ import { SortableHead } from "@/components/shared/sortable-head";
 import { useSortQuery } from "@/hooks/use-sort-query";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Field } from "@/components/ui/field";
+import { SimpleSelect } from "@/components/ui/select";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ interface Member {
   id: string;
   user_id: string;
   role: "owner" | "member";
+  status: "pending" | "active";
   created_at: string;
   user: {
     id: string;
@@ -50,7 +52,10 @@ interface UserItem {
   email?: string;
   name?: string;
   external_id?: string;
+  is_pending_invite?: boolean;
 }
+
+type LookupState = "idle" | "loading" | "active" | "pending" | "not-found";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -119,13 +124,42 @@ function ProjectMembersInner() {
   const loading = membersQuery.isLoading;
   const fetchError = membersQuery.error;
 
-  // Add member
+  // Add member (email-only contract)
   const [showAdd, setShowAdd] = useState(false);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedEmail, setSelectedEmail] = useState("");
+  const [emailInput, setEmailInput] = useState("");
+  const [debouncedEmail, setDebouncedEmail] = useState("");
+  const [regMode, setRegMode] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
+
+  // Debounced (~400ms) auto-search over the preloaded user list — no
+  // candidate-members endpoint exists, so lookup is a client-side exact match.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedEmail(emailInput), 400);
+    return () => clearTimeout(t);
+  }, [emailInput]);
+
+  const lookup = useMemo<{ state: LookupState; match: UserItem | null }>(() => {
+    const raw = emailInput.trim();
+    if (!raw) return { state: "idle", match: null };
+    if (emailInput !== debouncedEmail || usersLoading)
+      return { state: "loading", match: null };
+    const q = debouncedEmail.trim().toLowerCase();
+    const match =
+      users.find((u) => (u.email ?? "").toLowerCase() === q) ?? null;
+    if (match)
+      return { state: match.is_pending_invite ? "pending" : "active", match };
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(debouncedEmail.trim()))
+      return { state: "not-found", match: null };
+    return { state: "idle", match: null };
+  }, [emailInput, debouncedEmail, users, usersLoading]);
+
+  // Resolved submit email: dropdown pick wins immediately (before the
+  // debounce settles), otherwise the debounced exact match.
+  const resolvedEmail = selectedEmail || lookup.match?.email || "";
 
   // Remove member
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
@@ -133,7 +167,10 @@ function ProjectMembersInner() {
 
   async function handleOpenAdd() {
     setAddError("");
-    setSelectedUserId("");
+    setSelectedEmail("");
+    setEmailInput("");
+    setDebouncedEmail("");
+    setRegMode(null);
     setAdding(false);
     setUsersLoading(true);
     try {
@@ -144,22 +181,35 @@ function ProjectMembersInner() {
     } finally {
       setUsersLoading(false);
     }
+    // Registration mode drives the not-found message; public endpoint,
+    // missing mode defaults to invite_only (same as the backend default).
+    try {
+      const status = await get<{ registration_mode: string }>(
+        "/v1/auth/registration-status",
+      );
+      setRegMode(status.registration_mode ?? "invite_only");
+    } catch {
+      setRegMode("invite_only");
+    }
     setShowAdd(true);
   }
 
-  async function handleAddMember() {
-    if (!projectId || !selectedUserId) return;
+  async function submitMember(email: string) {
+    if (!projectId || !email) return;
     setAdding(true);
     setAddError("");
     try {
+      // BREAKING: email-only contract — { email, role }, no user_id.
       await post(`/v1/projects/${projectId}/members`, {
-        user_id: selectedUserId,
+        email,
         role: "member",
       });
       setShowAdd(false);
-      toast.success("Member added");
+      toast.success("Invitation sent — awaiting their approval");
       membersQuery.refetch();
     } catch (err) {
+      // 409 already_member vs invite_pending, 403 invite_only, 422 approval
+      // each carry a distinct server message — surface it as-is.
       setAddError(
         err instanceof ApiError ? err.message : "Failed to add member",
       );
@@ -168,8 +218,17 @@ function ProjectMembersInner() {
     }
   }
 
+  function handleAddMember() {
+    void submitMember(resolvedEmail);
+  }
+
+  function handleInviteAndAdd() {
+    void submitMember(emailInput.trim());
+  }
+
   async function handleRemoveMember() {
     if (!projectId || !removeTarget) return;
+    const isPending = removeTarget.status === "pending";
     setRemoving(true);
     try {
       await apiDel(
@@ -177,7 +236,7 @@ function ProjectMembersInner() {
       );
       setRemovedIds((prev) => [...prev, removeTarget.id]);
       setRemoveTarget(null);
-      toast.success("Member removed");
+      toast.success(isPending ? "Invitation revoked" : "Member removed");
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Failed to remove member",
@@ -281,18 +340,23 @@ function ProjectMembersInner() {
                       >
                         {member.role}
                       </Badge>
+                      {member.status === "pending" && (
+                        <Badge variant="warning" size="sm" className="ml-2">
+                          Pending
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-surface-400">
                       {new Date(member.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell align="right">
-                      {canManage && !isOwner(member.role) && (
+                      {canManage && (member.status === "pending" || !isOwner(member.role)) && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setRemoveTarget(member)}
                           className="text-surface-400 hover:text-error"
-                          title="Remove member"
+                          title={member.status === "pending" ? "Revoke invitation" : "Remove member"}
                         >
                           <Trash2 size={15} />
                         </Button>
@@ -328,41 +392,100 @@ function ProjectMembersInner() {
               >
                 Cancel
               </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleAddMember}
-                loading={adding}
-                disabled={!selectedUserId}
-              >
-                Add Member
-              </Button>
+              {lookup.state === "not-found" && regMode === "open" ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleInviteAndAdd}
+                  loading={adding}
+                  disabled={!emailInput.trim()}
+                >
+                  Invite and Add
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleAddMember}
+                  loading={adding}
+                  disabled={lookup.state !== "active" || !resolvedEmail}
+                >
+                  Add Member
+                </Button>
+              )}
             </>
           }
         >
           <div className="space-y-4">
+            <Field label="Email" htmlFor="member-email-input">
+              <input
+                id="member-email-input"
+                type="email"
+                value={emailInput}
+                onChange={(e) => {
+                  setEmailInput(e.target.value);
+                  if (e.target.value !== selectedEmail) setSelectedEmail("");
+                }}
+                placeholder="e.g. jane@acme.com"
+                className="input-base w-full"
+                disabled={adding}
+                autoComplete="off"
+              />
+            </Field>
+            {lookup.state === "loading" ? (
+              <div
+                className="h-9 rounded-md bg-surface-800 animate-pulse"
+                aria-label="Looking up user"
+              />
+            ) : lookup.state === "active" && lookup.match ? (
+              <div className="rounded-md border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-200">
+                {lookup.match.name ?? getUserLabel(lookup.match)}
+                <span className="text-surface-400"> — {lookup.match.email}</span>
+              </div>
+            ) : lookup.state === "pending" ? (
+              <div className="rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning">
+                Invite pending — manage in Users.
+              </div>
+            ) : lookup.state === "not-found" ? (
+              <div className="rounded-md border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-300">
+                {regMode === "open" ? (
+                  <>
+                    No account for {debouncedEmail.trim()}. You can invite and
+                    add them.
+                  </>
+                ) : regMode === "approval" ? (
+                  <>
+                    No account for {debouncedEmail.trim()}. The user must
+                    register and wait for approval.
+                  </>
+                ) : (
+                  <>Ask a superadmin to invite {debouncedEmail.trim()}.</>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-surface-500">
+                Type an email to look up a user, or pick from the list below.
+              </p>
+            )}
             <Field label="User" htmlFor="member-user-select">
               {usersLoading ? (
                 <div className="h-9 rounded-md bg-surface-800 animate-pulse" />
               ) : (
-                <select
+                <SimpleSelect
                   id="member-user-select"
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  className="input-base appearance-none cursor-pointer w-full"
+                  value={selectedEmail}
+                  onValueChange={(v) => {
+                    setSelectedEmail(v);
+                    setEmailInput(v);
+                  }}
+                  options={[
+                    { value: "", label: users.length === 0 ? "No users available" : "Select a user..." },
+                    ...users
+                      .filter((user) => !!user.email)
+                      .map((user) => ({ value: user.email as string, label: getUserLabel(user) })),
+                  ]}
                   disabled={adding || users.length === 0}
-                >
-                  <option value="">
-                    {users.length === 0
-                      ? "No users available"
-                      : "Select a user..."}
-                  </option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {getUserLabel(user)}
-                    </option>
-                  ))}
-                </select>
+                />
               )}
             </Field>
             {addError && (
@@ -373,12 +496,16 @@ function ProjectMembersInner() {
           </div>
         </Dialog>
 
-        {/* ── Remove Confirm ────────────────────────────────────────────── */}
+        {/* ── Remove / Revoke Confirm ────────────────────────────────────── */}
         <ConfirmDialog
           open={!!removeTarget}
-          title="Remove Member"
-          message={`Are you sure you want to remove this member from the project?`}
-          confirmLabel="Remove"
+          title={removeTarget?.status === "pending" ? "Revoke Invitation" : "Remove Member"}
+          message={
+            removeTarget?.status === "pending"
+              ? `Are you sure you want to revoke this invitation? They will not be able to join the project.`
+              : `Are you sure you want to remove this member from the project?`
+          }
+          confirmLabel={removeTarget?.status === "pending" ? "Revoke" : "Remove"}
           variant="danger"
           loading={removing}
           onConfirm={handleRemoveMember}

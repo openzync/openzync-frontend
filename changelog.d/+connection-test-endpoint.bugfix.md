@@ -1,0 +1,1 @@
+Point `use-connection-test` at `POST /admin/org/config/test` instead of the removed `POST /v1/me/config/test`, with the test `domain` narrowed to `llm | graph` and empty-string fields stripped from the payload.

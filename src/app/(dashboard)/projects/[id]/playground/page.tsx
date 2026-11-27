@@ -35,6 +35,10 @@ interface IngestResponse {
   blob_count?: number;
   status?: string;
   message?: string;
+  /** True when a post-commit fan-out step failed — ingest committed, reconciler replays. */
+  degraded?: boolean;
+  /** Machine-readable reason for degraded=true. */
+  degrade_reason?: string | null;
 }
 
 interface SearchResponse {
@@ -53,7 +57,7 @@ const TABS: { id: TabId; label: string }[] = [
 
 const ROLES = ["user", "assistant", "system", "tool"] as const;
 
-// Mirrors the backend's per-blob cap (BlobStorageConfig.max_blob_size_mb,
+// Mirrors the backend's global blob cap (OZ_S3_MAX_BLOB_SIZE_MB,
 // default 50 → 413 PayloadTooLargeError). MIME types are unrestricted
 // server-side, so only size is enforced here. Count + total caps are
 // client-side guards against oversized multipart bodies and runaway memory.
@@ -139,14 +143,19 @@ function IngestTab({ projectId }: { projectId: string }) {
       <h2 className="text-sm font-semibold flex items-center gap-2"><Upload size={16} className="text-brand-300" />Ingest Messages</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field label="Session" htmlFor="memory-session-select" required>
-          <select id="memory-session-select" value={sessionId} onChange={(e) => setSessionId(e.target.value)} className="input-base" required>
-            <option value="">Select a session...</option>
-            {sessionsLoading && <option disabled>Loading sessions...</option>}
-            {!sessionsLoading && sessions.length === 0 && <option disabled>No sessions found</option>}
-            {sessions.map((s) => (
-              <option key={s.id} value={s.id}>{s.external_id || s.id.slice(0, 8)}</option>
-            ))}
-          </select>
+          <SimpleSelect
+            id="memory-session-select"
+            value={sessionId}
+            onValueChange={setSessionId}
+            options={[
+              { value: "", label: "Select a session..." },
+              ...sessions.map((s) => ({ value: s.id, label: s.external_id || s.id.slice(0, 8) })),
+            ]}
+            placeholder="Select a session..."
+            noResultsText={!sessionsLoading && sessions.length === 0 ? "No sessions found" : undefined}
+            required
+            disabled={sessionsLoading}
+          />
         </Field>
       </div>
       {!sessionId && !sessionsLoading && (
@@ -258,6 +267,12 @@ function IngestTab({ projectId }: { projectId: string }) {
       {result && (
         <div className="space-y-3 rounded-md bg-brand-500/5 border border-brand-500/20 p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-brand-300"><CheckCircle2 size={16} />Ingest Successful</div>
+          {result.degraded && (
+            <div role="alert" className="flex items-start gap-2 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <span>Saved but enrichment delayed — reconciler will replay{result.degrade_reason ? `: ${result.degrade_reason}` : ""}</span>
+            </div>
+          )}
           <EnrichmentStatus
             jobId={result.job_id}
             status={result.status}

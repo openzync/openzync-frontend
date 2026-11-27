@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import { sortChronological } from "@/lib/chart-order";
+import { fillDateRange } from "@/lib/chart-range";
 import { get, ApiError } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { PageGuide, GuideDashboard } from "@/components/guides";
@@ -18,13 +19,14 @@ import { StatCard } from "@/components/shared/stat-card";
 import { ErrorState } from "@/components/shared/error-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { RequirePermission } from "@/components/shared/require-permission";
-import { BarChart, ChartLegend, LineChart, StackedBarChart } from "@/components/shared/charts";
+import { BarChart, ChartLegend, LineChart, StackedBarChart, type LineSeries } from "@/components/shared/charts";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { SortableHead } from "@/components/shared/sortable-head";
 import { useSortQuery } from "@/hooks/use-sort-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SimpleSelect } from "@/components/ui/select";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -301,30 +303,45 @@ interface BatchSectionProps {
 
 // ─── Per-day ingestion chart — single-series bar, usage-style empty state ──────
 
-function IngestionChartCard({ title, color, result, queryError, fetchError, loading, onRetry }: BatchSectionProps & {
+function IngestionChartCard({ title, color, result, queryError, fetchError, loading, onRetry, days, from, to, isCustom }: BatchSectionProps & {
   title: string;
   color: string;
+  days: number;
+  from: string | null;
+  to: string | null;
+  isCustom: boolean;
 }) {
   const columns = result?.columns ?? [];
   const rows = result?.rows ?? [];
   const dateIdx = dateColumnIndex(columns);
   const valueIdx = columns.findIndex((_, i) => i !== dateIdx && isNumericColumn(rows, i));
-  const points = dateIdx >= 0 && valueIdx >= 0
+  const sparse = dateIdx >= 0 && valueIdx >= 0
     ? sortChronological(
         rows.map((row) => ({ date: String(row[dateIdx] ?? ""), value: toNumber(row[valueIdx]) })),
         (p) => p.date,
       )
     : [];
+  // Window fill so bars keep stable day-slot widths. Gates stay on the raw
+  // sparse series — a filled series always has N rows.
+  const points = fillDateRange(sparse, {
+    getDate: (p) => p.date,
+    makeZero: (date) => ({ date, value: 0 }),
+    days,
+    from,
+    to,
+    isCustom,
+    mode: "window",
+  });
   const hasData = points.some((p) => p.value > 0);
 
   return (
     <div className="card-base p-5">
       <h3 className="text-sm font-medium mb-4">{title}</h3>
-      {loading && points.length === 0 ? (
+      {loading && sparse.length === 0 ? (
         <div className="h-[200px] rounded bg-surface-800 animate-pulse" />
-      ) : fetchError && points.length === 0 ? (
+      ) : fetchError && sparse.length === 0 ? (
         <ErrorState message="Couldn’t load batch metrics." onRetry={onRetry} />
-      ) : queryError && points.length === 0 ? (
+      ) : queryError && sparse.length === 0 ? (
         <QueryErrorNote error={queryError} />
       ) : !hasData ? (
         <div className="flex flex-col items-center justify-center h-[200px] text-surface-500">
@@ -341,13 +358,38 @@ function IngestionChartCard({ title, color, result, queryError, fetchError, load
           series={[{ label: title, color, value: (p) => p.value }]}
         />
       )}
-      {queryError && !loading && points.length > 0 && (
+      {queryError && !loading && sparse.length > 0 && (
         <div className="mt-3">
           <QueryErrorNote error={queryError} />
         </div>
       )}
     </div>
   );
+}
+
+// Fill every line over the shared union date range with y:0 so gaps read
+// as flatlines instead of stretched segments. Non YYYY-MM-DD x values
+// (timestamps the slice can't day-key) fall back to the raw sparse lines.
+function fillLinesUnion(lines: LineSeries[]): LineSeries[] {
+  const dayKeys = new Set<string>();
+  for (const line of lines) {
+    for (const d of line.data) {
+      const key = d.x.slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || Number.isNaN(Date.parse(`${key}T00:00:00Z`))) return lines;
+      dayKeys.add(key);
+    }
+  }
+  if (dayKeys.size === 0) return lines;
+  const sorted = [...dayKeys].sort();
+  const start = Date.parse(`${sorted[0]}T00:00:00Z`);
+  const end = Date.parse(`${sorted[sorted.length - 1]}T00:00:00Z`);
+  const dayList: string[] = [];
+  for (let t = start; t <= end; t += 86400000)
+    dayList.push(new Date(t).toISOString().slice(0, 10));
+  return lines.map((line) => {
+    const byX = new Map(line.data.map((d) => [d.x.slice(0, 10), d.y]));
+    return { ...line, data: dayList.map((x) => ({ x, y: byX.get(x) ?? 0 })) };
+  });
 }
 
 // ─── Auto panel — schema-agnostic view over one batch result ───────────────────
@@ -376,6 +418,7 @@ function BatchAutoPanel({ title, emptyHint, result, queryError, fetchError, load
         data: sorted.map((row) => ({ x: String(row[dateIdx] ?? ""), y: toNumber(row[idx]) })),
       }))
     : [];
+  const filledLines = fillLinesUnion(lines);
 
   // Honest empty copy — a provided hint names the healthy-empty reason,
   // otherwise the generic window copy stands.
@@ -404,9 +447,9 @@ function BatchAutoPanel({ title, emptyHint, result, queryError, fetchError, load
         <QueryErrorNote error={queryError} />
       ) : isSeries ? (
         <>
-          <LineChart lines={lines} ariaLabel={`${title} chart, ${sorted.length} points`} />
-          {lines.length > 1 && (
-            <ChartLegend items={lines.map((l) => ({ label: l.label, color: l.color }))} />
+          <LineChart lines={filledLines} ariaLabel={`${title} chart, ${sorted.length} points`} />
+          {filledLines.length > 1 && (
+            <ChartLegend items={filledLines.map((l) => ({ label: l.label, color: l.color }))} />
           )}
         </>
       ) : isSnapshot ? (
@@ -815,26 +858,19 @@ function MonitoringInner() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Project</span>
-              <select
+              <SimpleSelect
                 value={rawProject}
-                onChange={(e) => setParams({ project_id: e.target.value || null })}
-                className="input-base h-8 text-xs flex-1 min-w-0 truncate border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
+                onValueChange={(v) => setParams({ project_id: v || null })}
+                options={[{ value: "", label: "All projects" }, ...projects.map((p) => ({ value: p.id, label: p.name }))]}
+                className="h-8 text-xs flex-1 min-w-0"
                 aria-label="Filter by project"
-              >
-                <option value="">All projects</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
             <label className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Time range</span>
-              <select
+              <SimpleSelect
                 value={pendingRange}
-                onChange={(e) => {
-                  const v = e.target.value;
+                onValueChange={(v) => {
                   if (v === "custom") {
                     setPendingRange("custom");
                   } else {
@@ -842,14 +878,15 @@ function MonitoringInner() {
                     setDays(Number(v) as DaysOption);
                   }
                 }}
-                className="input-base h-8 text-xs flex-1 min-w-0 border-surface-800"
+                options={[
+                  { value: "7", label: "Last 7 days" },
+                  { value: "30", label: "Last 30 days" },
+                  { value: "90", label: "Last 90 days" },
+                  { value: "custom", label: "Custom range" },
+                ]}
+                className="h-8 text-xs flex-1 min-w-0"
                 aria-label="Filter by time range"
-              >
-                <option value="7">Last 7 days</option>
-                <option value="30">Last 30 days</option>
-                <option value="90">Last 90 days</option>
-                <option value="custom">Custom range</option>
-              </select>
+              />
             </label>
           </div>
           {(pendingRange === "custom" || isCustom) && (
@@ -902,6 +939,10 @@ function MonitoringInner() {
               key={card.query}
               title={card.title}
               color={card.color}
+              days={days}
+              from={from}
+              to={to}
+              isCustom={isCustom}
               {...batchSectionProps(card.query)}
             />
           ))}

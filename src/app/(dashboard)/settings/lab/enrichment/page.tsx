@@ -19,7 +19,7 @@ interface ConfigData {
   defaults: Record<string, unknown>;
 }
 
-// ─── Enrichment gate block (moved from enrichment/page.tsx) ───────────────────
+// ─── Enrichment gate block (moved from settings/org-config/labs/page.tsx) ────
 
 type GateState = EnrichmentGateBlock;
 
@@ -53,9 +53,9 @@ function gateChanged(next: GateState, initial: GateState): boolean {
   return next.enabled !== initial.enabled || next.threshold !== initial.threshold;
 }
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
+// ─── Main Page (/settings/lab/enrichment) ─────────────────────────────────────
 
-export default function LabsConfigPage() {
+export default function LabEnrichmentPage() {
   const { setDirty } = useConfigDirty();
   const [gate, setGate] = useState<GateState>({ ...ENRICHMENT_GATE_DEFAULTS });
   const [initialGate, setInitialGate] = useState<GateState>({ ...gate });
@@ -116,7 +116,7 @@ export default function LabsConfigPage() {
     try {
       await updateMyConfig({ ...gatePayload });
 
-      toast.success("Labs configuration saved successfully");
+      toast.success("Lab configuration saved successfully");
       setDirty(false);
       configQuery.refetch();
       setJustSaved(true);

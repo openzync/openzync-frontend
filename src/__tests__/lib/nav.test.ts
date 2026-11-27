@@ -69,14 +69,12 @@ describe("isVisible gating", () => {
     expect(isVisible(schemas, () => false, false)).toBe(false);
   });
 
-  it("superadminOnly gating still works for synthetic entries (no manifest entry uses it)", () => {
-    // The Platform Admin section was deleted — no manifest entry sets
-    // superadminOnly anymore. isVisible keeps honoring the flag so a
-    // future root-only entry is gated correctly.
+  it("superadminOnly gating hides the Users entry from non-superadmins", () => {
+    // The Users entry is superadmin-only (mirrors the backend gate).
     const gated = NAV_SECTIONS.flatMap((s) => s.entries).filter(
       (e) => e.superadminOnly,
     );
-    expect(gated).toHaveLength(0);
+    expect(gated.map((e) => e.href)).toEqual(["/users"]);
     const icon = NAV_SECTIONS[0].entries[0].icon;
     const synthetic = { label: "X", href: "/x", icon, superadminOnly: true as const };
     expect(isVisible(synthetic, () => true, true)).toBe(true);
