@@ -186,6 +186,12 @@ export function resolveBreadcrumb(
     return [{ label: "System" }, { label: "Account" }];
   }
 
+  // Project invitations is a hand-coded sidebar link (Projects group), not a
+  // manifest entry — resolve its breadcrumb explicitly.
+  if (pathname === "/invitations" || pathname.startsWith("/invitations/")) {
+    return [{ label: "Projects" }, { label: "Project invitations" }];
+  }
+
   // Longest-prefix match against the manifest.
   let best: { entry: NavEntry; section: NavSection } | undefined;
   for (const section of NAV_SECTIONS) {

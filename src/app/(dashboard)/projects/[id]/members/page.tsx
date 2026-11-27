@@ -36,6 +36,7 @@ interface Member {
   id: string;
   user_id: string;
   role: "owner" | "member";
+  status: "pending" | "active";
   created_at: string;
   user: {
     id: string;
@@ -203,7 +204,7 @@ function ProjectMembersInner() {
         role: "member",
       });
       setShowAdd(false);
-      toast.success("Member added");
+      toast.success("Invitation sent — awaiting their approval");
       membersQuery.refetch();
     } catch (err) {
       // 409 already_member vs invite_pending, 403 invite_only, 422 approval
@@ -226,6 +227,7 @@ function ProjectMembersInner() {
 
   async function handleRemoveMember() {
     if (!projectId || !removeTarget) return;
+    const isPending = removeTarget.status === "pending";
     setRemoving(true);
     try {
       await apiDel(
@@ -233,7 +235,7 @@ function ProjectMembersInner() {
       );
       setRemovedIds((prev) => [...prev, removeTarget.id]);
       setRemoveTarget(null);
-      toast.success("Member removed");
+      toast.success(isPending ? "Invitation revoked" : "Member removed");
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Failed to remove member",
@@ -337,18 +339,23 @@ function ProjectMembersInner() {
                       >
                         {member.role}
                       </Badge>
+                      {member.status === "pending" && (
+                        <Badge variant="warning" size="sm" className="ml-2">
+                          Pending
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-surface-400">
                       {new Date(member.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell align="right">
-                      {canManage && !isOwner(member.role) && (
+                      {canManage && (member.status === "pending" || !isOwner(member.role)) && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setRemoveTarget(member)}
                           className="text-surface-400 hover:text-error"
-                          title="Remove member"
+                          title={member.status === "pending" ? "Revoke invitation" : "Remove member"}
                         >
                           <Trash2 size={15} />
                         </Button>
@@ -496,12 +503,16 @@ function ProjectMembersInner() {
           </div>
         </Dialog>
 
-        {/* ── Remove Confirm ────────────────────────────────────────────── */}
+        {/* ── Remove / Revoke Confirm ────────────────────────────────────── */}
         <ConfirmDialog
           open={!!removeTarget}
-          title="Remove Member"
-          message={`Are you sure you want to remove this member from the project?`}
-          confirmLabel="Remove"
+          title={removeTarget?.status === "pending" ? "Revoke Invitation" : "Remove Member"}
+          message={
+            removeTarget?.status === "pending"
+              ? `Are you sure you want to revoke this invitation? They will not be able to join the project.`
+              : `Are you sure you want to remove this member from the project?`
+          }
+          confirmLabel={removeTarget?.status === "pending" ? "Revoke" : "Remove"}
           variant="danger"
           loading={removing}
           onConfirm={handleRemoveMember}

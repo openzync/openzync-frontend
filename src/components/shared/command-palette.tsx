@@ -10,6 +10,7 @@ import {
   Settings,
   FolderKanban,
   MessageSquare,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,7 @@ const PERSONAL_SECTION: { label: string; entries: NavEntry[] } = {
   label: "Navigation",
   entries: [
     { label: "Projects", href: "/projects", icon: FolderKanban },
+    { label: "Project invitations", href: "/invitations", icon: Mail },
     { label: "Account", href: "/account", icon: Settings },
   ],
 };

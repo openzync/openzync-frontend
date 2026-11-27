@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FolderKanban,
+  Mail,
   MapPin,
   X,
 } from "lucide-react";
@@ -29,7 +30,7 @@ import {
   resolveBreadcrumb,
   type NavSectionId,
 } from "@/lib/nav";
-import { get, getAccessToken, clearTokens } from "@/lib/api-client";
+import { get, getAccessToken, clearTokens, extractList } from "@/lib/api-client";
 import { getJwtPayload } from "@/lib/jwt";
 import { RequireAuth } from "./require-auth";
 import { useUser } from "@/contexts/user-context";
@@ -176,6 +177,25 @@ function Sidebar({
   const { pinned } = usePinnedProjects();
 
   const [currentUserLabel, setCurrentUserLabel] = useState("User");
+  const [invitationCount, setInvitationCount] = useState(0);
+
+  // Pending project-invitation count for the sidebar badge — shares the
+  // 30s api-client GET cache, refreshed on navigation so approve/reject
+  // clears the badge without a reload. Shown in both contexts (Projects
+  // group outside projects, bottom section inside). Failures hide the badge.
+  useEffect(() => {
+    let cancelled = false;
+    get<unknown>("/v1/me/project-approvals")
+      .then((res) => {
+        if (!cancelled) setInvitationCount(extractList(res).length);
+      })
+      .catch(() => {
+        if (!cancelled) setInvitationCount(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   // Fetch user info on mount
   useEffect(() => {
@@ -199,6 +219,12 @@ function Sidebar({
     if (href === "/overview") return pathname === "/overview";
     return pathname.startsWith(href);
   };
+
+  // Project-invitations badge state shared by both sidebar placements.
+  const invitationBadge = invitationCount > 0 ? invitationCount : null;
+  const invitationTitle = invitationBadge
+    ? `Project invitations (${invitationBadge})`
+    : "Project invitations";
 
   // Manifest entries the current user may see, in declared order.
   const visibleEntries = (sectionId: NavSectionId) =>
@@ -267,6 +293,8 @@ function Sidebar({
                     key={entry.href}
                     href={entry.href}
                     active={active}
+                    collapsed={collapsed}
+                    centerCollapsed
                     title={entry.label}
                     onClick={onClose}
                   >
@@ -331,6 +359,37 @@ function Sidebar({
               </SidebarLink>
             )}
 
+            {/* Project invitations — ungated, below View all projects */}
+            {!inProject && (
+              <SidebarLink
+                href="/invitations"
+                active={isActive("/invitations")}
+                collapsed={collapsed}
+                centerCollapsed
+                title={invitationTitle}
+                onClick={onClose}
+              >
+                <span className={cn("shrink-0", isActive("/invitations") ? "text-signal" : "text-surface-400")}>
+                  <Mail size={18} />
+                </span>
+                <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>Project invitations</span>
+                {invitationBadge !== null && !collapsed && (
+                  <span
+                    aria-label={`${invitationBadge} pending invitations`}
+                    className="ml-auto shrink-0 rounded-full bg-brand-500 px-1.5 py-0.5 text-[0.68rem] font-semibold leading-none text-white"
+                  >
+                    {invitationBadge}
+                  </span>
+                )}
+                {invitationBadge !== null && collapsed && (
+                  <span
+                    aria-hidden
+                    className="absolute top-1 right-1 h-2 w-2 rounded-full bg-brand-500"
+                  />
+                )}
+              </SidebarLink>
+            )}
+
             {/* Project-scoped nav items (only inside a project) */}
             {inProject && (
               <>
@@ -389,6 +448,8 @@ function Sidebar({
                     key={item.href}
                     href={item.href}
                     active={active}
+                    collapsed={collapsed}
+                    centerCollapsed
                     title={item.label}
                     onClick={onClose}
                   >
@@ -403,11 +464,11 @@ function Sidebar({
           </div>
         )}
 
-        {/* ── Administration (permission-gated, hidden inside project pages) ── */}
+        {/* ── Administration (permission-gated entries, hidden inside project pages) ── */}
         {!inProject &&
           (() => {
-            // Users/org member management → members:read; config surfaces → configuration:read.
-            // The section header collapses with the items so members never see a bare header.
+            // All entries are gated — hide the whole section (header included)
+            // when the user sees nothing, so members get no bare header.
             const adminEntries = visibleEntries("admin");
             if (adminEntries.length === 0) return null;
             return (
@@ -430,6 +491,8 @@ function Sidebar({
                         key={entry.href}
                         href={entry.href}
                         active={active}
+                        collapsed={collapsed}
+                        centerCollapsed
                         title={entry.label}
                         onClick={onClose}
                       >
@@ -470,6 +533,8 @@ function Sidebar({
                         key={entry.href}
                         href={entry.href}
                         active={active}
+                        collapsed={collapsed}
+                        centerCollapsed
                         title={entry.label}
                         onClick={onClose}
                       >
@@ -489,18 +554,47 @@ function Sidebar({
       {/* Bottom section */}
       <div className="mt-auto border-t border-surface-800 p-2 space-y-1">
         <SidebarEnrichment collapsed={collapsed} />
-        {/* View all projects — bottom section when inside a project */}
+        {/* View all projects + invitations — bottom section when inside a project */}
         {inProject && (
-          <CollapsedTip show={collapsed} label="View all projects">
-            <Link
-              href="/projects"
+          <>
+            <CollapsedTip show={collapsed} label="View all projects">
+              <Link
+                href="/projects"
+                onClick={onClose}
+                className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
+              >
+                <FolderKanban size={18} />
+                <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>View all projects</span>
+              </Link>
+            </CollapsedTip>
+            <SidebarLink
+              href="/invitations"
+              active={isActive("/invitations")}
+              collapsed={collapsed}
+              centerCollapsed
+              title={invitationTitle}
               onClick={onClose}
-              className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
             >
-              <FolderKanban size={18} />
-              <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>View all projects</span>
-            </Link>
-          </CollapsedTip>
+              <span className={cn("shrink-0", isActive("/invitations") ? "text-signal" : "text-surface-400")}>
+                <Mail size={18} />
+              </span>
+              <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>Project invitations</span>
+              {invitationBadge !== null && !collapsed && (
+                <span
+                  aria-label={`${invitationBadge} pending invitations`}
+                  className="ml-auto shrink-0 rounded-full bg-brand-500 px-1.5 py-0.5 text-[0.68rem] font-semibold leading-none text-white"
+                >
+                  {invitationBadge}
+                </span>
+              )}
+              {invitationBadge !== null && collapsed && (
+                <span
+                  aria-hidden
+                  className="absolute top-1 right-1 h-2 w-2 rounded-full bg-brand-500"
+                />
+              )}
+            </SidebarLink>
+          </>
         )}
 
         {/* Search — opens command palette */}
