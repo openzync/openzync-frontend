@@ -63,10 +63,11 @@ function renderLayout() {
 // The sidebar renders twice (mobile + desktop, CSS-hidden in jsdom), so
 // visible labels appear twice for who can see them and zero times otherwise.
 // Mirrors NAV_SECTIONS in src/lib/nav.ts — keep the two in step.
+// Visible to every authenticated member (require_user, data RLS-scoped).
+const VISIBLE_ALL_LABELS = ["Overview", "Monitoring", "Usage"];
 const CONFIG_READ_LABELS = ["Configuration", "Extraction Schemas", "Webhooks", "Extraction Instructions"];
-// "Users" is superadmin-only (mirrors the backend gate) — visible to a
-// superadmin, hidden from an org admin despite the admin wildcard.
-const MEMBERS_READ_LABELS = ["Monitoring", "Audit Log"];
+// "Users" is admin-only (mirrors the backend gate).
+const MEMBERS_READ_LABELS = ["Audit Log"];
 const ADMIN_ONLY_LABELS = [...MEMBERS_READ_LABELS, ...CONFIG_READ_LABELS];
 
 function adminMock() {
@@ -74,7 +75,6 @@ function adminMock() {
     user: { id: "u1", email: "admin@acme.com", name: "Admin", role: "admin", permissions: [] },
     role: "admin",
     isAdmin: true,
-    isSuperadmin: false,
     can: () => true,
     loading: false,
   };
@@ -85,7 +85,6 @@ function memberMock(permissions: string[]) {
     user: { id: "u2", email: "member@acme.com", name: "Member", role: "member", permissions },
     role: "member",
     isAdmin: false,
-    isSuperadmin: false,
     // Wildcard applies to admins only — members match against the list.
     can: (p: string) => permissions.includes(p),
     loading: false,
@@ -114,28 +113,29 @@ describe("DashboardLayout nav gating", () => {
     for (const label of ADMIN_ONLY_LABELS) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
-    // Users is superadmin-only — hidden from an org admin.
-    expect(screen.queryAllByText("Users").length).toBe(0);
-  });
-
-  it("shows the Users nav item for a superadmin", () => {
-    mockUseUser.mockReturnValue({
-      ...adminMock(),
-      isSuperadmin: true,
-    });
-    renderLayout();
-
+    // Users is admin-only — visible to an admin.
     expect(screen.getAllByText("Users").length).toBeGreaterThan(0);
   });
 
+  it("hides the Users nav item from non-admins", () => {
+    mockUseUser.mockReturnValue(memberMock(["project:read", "project:write"]));
+    renderLayout();
+
+    expect(screen.queryAllByText("Users").length).toBe(0);
+  });
+
   it("hides admin-only nav items for a member with only member defaults", () => {
-    // Member defaults are {project:read, project:write} — no org-admin surface.
+    // Member defaults carry no configuration:read / members:read.
     mockUseUser.mockReturnValue(memberMock(["project:read", "project:write"]));
 
     renderLayout();
 
     for (const label of ADMIN_ONLY_LABELS) {
       expect(screen.queryAllByText(label).length).toBe(0);
+    }
+    // Visible-all entries stay available to every member.
+    for (const label of VISIBLE_ALL_LABELS) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
   });
 
@@ -147,8 +147,8 @@ describe("DashboardLayout nav gating", () => {
     for (const label of CONFIG_READ_LABELS) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
-    // But no members:read surfaces (Users/Monitoring/Audit Log).
-    for (const label of MEMBERS_READ_LABELS) {
+    // But no members:read surfaces (Users/Audit Log).
+    for (const label of [...MEMBERS_READ_LABELS, "Users"]) {
       expect(screen.queryAllByText(label).length).toBe(0);
     }
   });
@@ -158,14 +158,13 @@ describe("DashboardLayout nav gating", () => {
       user: null,
       role: null,
       isAdmin: false,
-      isSuperadmin: false,
       can: () => false,
       loading: false,
     });
 
     renderLayout();
 
-    for (const label of ADMIN_ONLY_LABELS) {
+    for (const label of [...ADMIN_ONLY_LABELS, "Users"]) {
       expect(screen.queryAllByText(label).length).toBe(0);
     }
     // Non-admin nav stays available to everyone. ("Account" is not sidebar

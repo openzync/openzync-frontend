@@ -14,7 +14,7 @@ const { mockPush } = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: vi.fn(), prefetch: vi.fn() }),
-  usePathname: vi.fn(() => "/settings/org-config/llm"),
+  usePathname: vi.fn(() => "/settings/platform-config/llm"),
 }));
 
 // ─── Test helper components ───────────────────────────────────────────────────────

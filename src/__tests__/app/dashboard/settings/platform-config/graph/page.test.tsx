@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import GraphConfigPage from "@/app/(dashboard)/settings/org-config/graph/page";
+import GraphConfigPage from "@/app/(dashboard)/settings/platform-config/graph/page";
 import { ConfigDirtyProvider } from "@/contexts/config-dirty";
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────────
@@ -13,7 +13,7 @@ const { mockGetMyConfig, mockUpdateMyConfig } = vi.hoisted(() => ({
 // ConfigDirtyProvider (mounted by renderPage) reads router/pathname.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
-  usePathname: () => "/settings/org-config/graph",
+  usePathname: () => "/settings/platform-config/graph",
 }));
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
