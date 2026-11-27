@@ -68,7 +68,7 @@ const defaultIcon = FolderKanban;
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
-  const { can, isSuperadmin } = useUser();
+  const { can, isAdmin } = useUser();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -122,7 +122,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     .map((section) => ({
       label: section.label,
       items: section.entries
-        .filter((entry) => isVisible(entry, can, isSuperadmin))
+        .filter((entry) => isVisible(entry, can, isAdmin))
         .filter(
           (entry) =>
             query.length < 1 ||

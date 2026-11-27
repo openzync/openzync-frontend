@@ -28,7 +28,6 @@ import { SimpleSelect } from "@/components/ui/select";
 import { StatCard } from "@/components/shared/stat-card";
 import { ErrorState } from "@/components/shared/error-state";
 import { EmptyState } from "@/components/shared/empty-state";
-import { RequirePermission } from "@/components/shared/require-permission";
 import { BarChart, cssVar } from "@/components/shared/charts";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import {
@@ -312,8 +311,7 @@ function UsageInner() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <RequirePermission permission="members:read">
-      <div className="space-y-6">
+    <div className="space-y-6">
         <PageHeader
           title="Usage"
           description="LLM call volume — token counts and latency per worker and model"
@@ -639,6 +637,5 @@ function UsageInner() {
           )}
         </div>
       </div>
-    </RequirePermission>
   );
 }

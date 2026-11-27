@@ -169,7 +169,7 @@ function Sidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { can, isSuperadmin } = useUser();
+  const { can, isAdmin } = useUser();
 
   const inProject = isInProject(pathname);
   const onProjectList = isOnProjectList(pathname);
@@ -229,7 +229,7 @@ function Sidebar({
   // Manifest entries the current user may see, in declared order.
   const visibleEntries = (sectionId: NavSectionId) =>
     (NAV_SECTIONS.find((s) => s.id === sectionId)?.entries ?? []).filter((entry) =>
-      isVisible(entry, can, isSuperadmin),
+      isVisible(entry, can, isAdmin),
     );
 
   return (

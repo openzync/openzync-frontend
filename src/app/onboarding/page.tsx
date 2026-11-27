@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { get, patch, getAccessToken, refreshOnce, hasRefreshCredential } from "@/lib/api-client";
+import { get, getMyConfig, updateMyConfig, getAccessToken, refreshOnce, hasRefreshCredential } from "@/lib/api-client";
 import type { EnrichmentGateBlock } from "@/lib/api-client";
 import { ENRICHMENT_GATE_DEFAULTS } from "@/lib/api-client";
 import { SecretInput } from "@/components/ui/secret-input";
@@ -192,7 +192,7 @@ function OnboardingWizard() {
           return;
         }
 
-        const mine = await get<{ override: Record<string, unknown> }>("/v1/me/config");
+        const mine = await getMyConfig();
 
         // Existing personal overrides mean onboarding already completed
         const hasAnyStored = Object.values(mine.override ?? {}).some(
@@ -206,7 +206,7 @@ function OnboardingWizard() {
         // Org gate defaults seed the editable gate card below; older
         // backends without the endpoint fall back to {enabled: false, 0.5}.
         const orgDefaults = await get<Record<string, unknown>>(
-          "/admin/org/config/defaults",
+          "/admin/platform-config/defaults",
         ).catch(() => null);
         const rawGate = (orgDefaults?.enrichment_gate ?? {}) as Partial<EnrichmentGateBlock>;
 
@@ -244,7 +244,7 @@ function OnboardingWizard() {
       // PATCH (partial update): PUT would full-replace and wipe stored keys
       // this subset form never sends (pii, reranker, blob, ...).
       // Personal config envelope — the backend requires `{config: {...}}`.
-      await patch("/v1/me/config", { config: form });
+      await updateMyConfig(form as Record<string, unknown>);
 
       toast.success("Configuration saved successfully");
       router.replace("/overview");

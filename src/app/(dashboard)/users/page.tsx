@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { Suspense, useEffect, useState, useCallback } from "react";
 import {
-  Plus, Edit, Trash2, RefreshCw, UsersIcon, AlertCircle, Eye, ShieldCheck, ShieldOff, UserPlus, Ban,
+  Plus, Trash2, RefreshCw, UsersIcon, AlertCircle, Eye, UserPlus, Ban,
 } from "lucide-react";
-import { get, post, patch as apiPatch, del as apiDel, ApiError, apiErrorMessage, inviteUser, revokeInvite } from "@/lib/api-client";
+import { get, post, del as apiDel, ApiError, apiErrorMessage, inviteUser, revokeInvite } from "@/lib/api-client";
 import { formatDate, timeAgo } from "@/lib/utils";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
@@ -18,7 +18,6 @@ import { Dialog } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
-import { CopyButton } from "@/components/shared/copy-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
 import { SortableHead } from "@/components/shared/sortable-head";
 import { useSortQuery } from "@/hooks/use-sort-query";
@@ -26,7 +25,7 @@ import { useUser } from "@/contexts/user-context";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type UserRole = "admin" | "member" | "superadmin";
+type UserRole = "admin" | "member";
 
 interface UserItem {
   id: string;
@@ -52,14 +51,12 @@ interface UserFormData {
   email: string;
 }
 
-// ─── User Form Dialog (Create / Edit) ──────────────────────────────────────────
+// ─── User Form Dialog (Create) ─────────────────────────────────────────────────
 
 function UserFormDialog({
-  mode, initial, editId, onClose, onSubmit,
+  initial, onClose, onSubmit,
 }: {
-  mode: "create" | "edit";
   initial: UserFormData;
-  editId?: string;
   onClose: () => void;
   onSubmit: (data: UserFormData) => Promise<void>;
 }) {
@@ -80,21 +77,19 @@ function UserFormDialog({
     finally { setSubmitting(false); }
   };
 
-  const title = mode === "create" ? "Create User" : "Edit User";
-
   return (
     <Dialog
       open={true}
       onOpenChange={(open) => {
         if (!open && !submitting) onClose();
       }}
-      title={title}
+      title="Create User"
       persistent={submitting}
       footer={
         <>
           <Button variant="secondary" size="sm" onClick={onClose} disabled={submitting}>Cancel</Button>
           <Button variant="primary" size="sm" type="button" onClick={() => void handleSubmit()} loading={submitting}>
-            {mode === "create" ? "Create User" : "Save Changes"}
+            Create User
           </Button>
         </>
       }
@@ -103,7 +98,7 @@ function UserFormDialog({
         <div>
           <label className="block text-sm font-medium text-surface-300 mb-1">External ID <span className="text-error">*</span></label>
           <input className="input-base" placeholder="e.g. user-abc-123" value={form.external_id}
-            onChange={(e) => handleChange("external_id", e.target.value)} disabled={mode === "edit"} />
+            onChange={(e) => handleChange("external_id", e.target.value)} />
         </div>
         <div>
           <label className="block text-sm font-medium text-surface-300 mb-1">Name</label>
@@ -212,9 +207,9 @@ export default function UsersPage() {
 }
 
 function UsersPageInner() {
-  const { isSuperadmin, user: me, loading: roleLoading } = useUser();
-  const canRead = isSuperadmin;
-  const canWrite = isSuperadmin;
+  const { isAdmin, user: me, loading: roleLoading } = useUser();
+  const canRead = isAdmin;
+  const canWrite = isAdmin;
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -225,13 +220,10 @@ function UsersPageInner() {
   // Dialog state
   const [showCreate, setShowCreate] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
-  const [editTarget, setEditTarget] = useState<UserItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<UserItem | null>(null);
   const [revoking, setRevoking] = useState(false);
-  const [roleChangeTarget, setRoleChangeTarget] = useState<{ user: UserItem; to: UserRole } | null>(null);
-  const [changingRole, setChangingRole] = useState(false);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
@@ -288,21 +280,8 @@ function UsersPageInner() {
     await loadUsers();
   };
 
-  const handleUpdate = async (data: UserFormData) => {
-    if (!editTarget) return;
-    const payload: Record<string, string> = {};
-    if (data.name.trim()) payload.name = data.name.trim();
-    if (data.email.trim()) payload.email = data.email.trim();
-    await apiPatch(`/v1/users/${editTarget.id}`, payload);
-    setEditTarget(null);
-    toast.success(`User "${data.external_id}" updated successfully`);
-    await loadUsers();
-  };
-
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    // Option A guard: tenant users API must not delete superadmins
-    if ((deleteTarget.role as string) === "superadmin") return;
     setDeleting(true);
     try {
       await apiDel(`/v1/users/${deleteTarget.id}`);
@@ -334,23 +313,6 @@ function UsersPageInner() {
     } finally { setRevoking(false); }
   };
 
-  const handleRoleChange = async () => {
-    if (!roleChangeTarget) return;
-    // Option A guard: tenant users API must not demote/promote superadmins
-    if ((roleChangeTarget.user.role as string) === "superadmin") return;
-    const { user: target, to } = roleChangeTarget;
-    setChangingRole(true);
-    try {
-      await apiPatch(`/v1/users/${target.id}`, { role: to });
-      setRoleChangeTarget(null);
-      toast.success(`User "${target.external_id}" is now ${to === "admin" ? "an admin" : "a member"}`);
-      await loadUsers();
-    } catch (err) {
-      if (err instanceof ApiError && err.isForbidden) toast.error("Superadmin access required");
-      else toast.error(apiErrorMessage(err, "Failed to update role"));
-    } finally { setChangingRole(false); }
-  };
-
   // ── Render ─────────────────────────────────────────────────────────────────
 
   // Role still loading — avoid flashing a 403 at members who have read access.
@@ -364,9 +326,9 @@ function UsersPageInner() {
     );
   }
 
-  // Page itself is superadmin-gated — backend enforces, this is UX only.
+  // Page itself is admin-gated — backend enforces, this is UX only.
   if (!canRead) {
-    return <ErrorState message="Superadmin access required" />;
+    return <ErrorState message="Admin access required" />;
   }
 
   return (
@@ -389,7 +351,7 @@ function UsersPageInner() {
       />
 
       <PageGuide title="User management" illustration={<GuideSecurity />}>
-        <p>View and manage platform users. Monitor user activity, assign roles, and control access to platform resources.</p>
+        <p>View and manage platform users. Monitor user activity, grant permissions, and control access to platform resources.</p>
       </PageGuide>
 
       {error && <ErrorState message={error} onRetry={loadUsers} />}
@@ -413,7 +375,6 @@ function UsersPageInner() {
             ) : (
               users.map((user) => {
                 const isSelf = me?.id != null && user.id === me.id;
-                const isSuperadmin = user.role === "superadmin";
                 return (
                   <TableRow key={user.id}>
                     <TableCell>
@@ -434,8 +395,8 @@ function UsersPageInner() {
                       {user.email || <span className="text-surface-500 italic">—</span>}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.role === "admin" || user.role === "superadmin" ? "brand" : "default"} size="sm">
-                        {user.role === "superadmin" ? "Superadmin" : user.role === "admin" ? "Admin" : "Member"}
+                      <Badge variant={user.role === "admin" ? "brand" : "default"} size="sm">
+                        {user.role === "admin" ? "Admin" : "Member"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -446,64 +407,18 @@ function UsersPageInner() {
                     </TableCell>
                     <TableCell align="right">
                       <div className="flex items-center justify-end gap-1">
-                        {canWrite && !isSelf && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={isSuperadmin}
-                            onClick={() => {
-                              if (isSuperadmin) return;
-                              setRoleChangeTarget({ user, to: user.role === "admin" ? "member" : "admin" });
-                            }}
-                            className="rounded-md text-surface-400 hover:text-white"
-                            title={
-                              isSuperadmin
-                                ? "Superadmin role cannot be changed"
-                                : user.role === "admin"
-                                  ? "Remove admin"
-                                  : "Make admin"
-                            }
-                            aria-label={
-                              isSuperadmin
-                                ? `Superadmin ${user.external_id} cannot be demoted via tenant users`
-                                : user.role === "admin"
-                                  ? `Remove admin from ${user.external_id}`
-                                  : `Make ${user.external_id} an admin`
-                            }
-                          >
-                            {user.role === "member" ? <ShieldCheck size={14} /> : <ShieldOff size={14} />}
-                          </Button>
-                        )}
                         <Link href={`/users/${user.id}`}><Button variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-white" title="View User"><Eye size={14} /></Button></Link>
-                        {/* Callers own notification policy — sonner toasts stay on this page */}
-                        <CopyButton
-                          value={user.id}
-                          label="Copy User ID"
-                          className="rounded-md text-surface-400 hover:text-white"
-                          onSuccess={() => toast.success("User ID copied to clipboard")}
-                          onError={() => toast.error("Failed to copy")}
-                        />
-                        {/* Edit/Delete are destructive mutations — superadmin only */}
-                        {canWrite && (
-                          <Button variant="ghost" size="sm" onClick={() => setEditTarget(user)} className="rounded-md text-surface-400 hover:text-white" title="Edit User"><Edit size={14} /></Button>
-                        )}
                         {canWrite && (user.is_pending_invite ? (
                           // Pending invites have no account to delete — revoke the invite instead.
                           <Button
                             variant="ghost"
                             size="sm"
-                            disabled={isSuperadmin}
                             onClick={() => {
-                              if (isSuperadmin) return;
                               setRevokeTarget(user);
                             }}
                             className="rounded-md text-surface-400 hover:text-error"
-                            title={isSuperadmin ? "Superadmin cannot be deleted" : "Revoke Invitation"}
-                            aria-label={
-                              isSuperadmin
-                                ? `Superadmin ${user.external_id} cannot be deleted`
-                                : `Revoke invite for ${user.external_id}`
-                            }
+                            title="Revoke Invitation"
+                            aria-label={`Revoke invite for ${user.external_id}`}
                           >
                             <Ban size={14} />
                           </Button>
@@ -511,16 +426,12 @@ function UsersPageInner() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            disabled={isSuperadmin}
                             onClick={() => {
-                              if (isSuperadmin) return;
                               setDeleteTarget(user);
                             }}
                             className="rounded-md text-surface-400 hover:text-error"
-                            title={isSuperadmin ? "Superadmin cannot be deleted" : "Delete User"}
-                            aria-label={
-                              isSuperadmin ? `Superadmin ${user.external_id} cannot be deleted` : `Delete ${user.external_id}`
-                            }
+                            title="Delete User"
+                            aria-label={`Delete ${user.external_id}`}
                           >
                             <Trash2 size={14} />
                           </Button>
@@ -549,13 +460,8 @@ function UsersPageInner() {
         <InviteMemberDialog onClose={() => setShowInvite(false)} onSubmit={handleInvite} />
       )}
       {showCreate && (
-        <UserFormDialog mode="create" initial={{ external_id: "", name: "", email: "" }}
+        <UserFormDialog initial={{ external_id: "", name: "", email: "" }}
           onClose={() => setShowCreate(false)} onSubmit={handleCreate} />
-      )}
-      {editTarget && (
-        <UserFormDialog mode="edit" editId={editTarget.id}
-          initial={{ external_id: editTarget.external_id, name: editTarget.name ?? "", email: editTarget.email ?? "" }}
-          onClose={() => setEditTarget(null)} onSubmit={handleUpdate} />
       )}
       <ConfirmDialog
         open={!!revokeTarget}
@@ -577,21 +483,6 @@ function UsersPageInner() {
         loading={deleting}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
-      />
-
-      <ConfirmDialog
-        open={!!roleChangeTarget}
-        title={roleChangeTarget?.to === "admin" ? "Make Admin" : "Remove Admin"}
-        message={
-          roleChangeTarget?.to === "admin"
-            ? `Grant admin access to "${roleChangeTarget?.user.name || roleChangeTarget?.user.external_id}"? Admins can manage platform users, settings, and view monitoring/audit data.`
-            : `Remove admin access from "${roleChangeTarget?.user.name || roleChangeTarget?.user.external_id}"? They will become a regular member.`
-        }
-        confirmLabel={roleChangeTarget?.to === "admin" ? "Make Admin" : "Remove Admin"}
-        variant={roleChangeTarget?.to === "admin" ? "primary" : "danger"}
-        loading={changingRole}
-        onConfirm={handleRoleChange}
-        onCancel={() => setRoleChangeTarget(null)}
       />
     </div>
   );

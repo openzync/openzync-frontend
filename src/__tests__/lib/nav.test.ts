@@ -69,14 +69,14 @@ describe("isVisible gating", () => {
     expect(isVisible(schemas, () => false, false)).toBe(false);
   });
 
-  it("superadminOnly gating hides the Users entry from non-superadmins", () => {
-    // The Users entry is superadmin-only (mirrors the backend gate).
+  it("adminOnly gating hides the Users entry from non-admins", () => {
+    // The Users entry is admin-only (mirrors the backend gate).
     const gated = NAV_SECTIONS.flatMap((s) => s.entries).filter(
-      (e) => e.superadminOnly,
+      (e) => e.adminOnly,
     );
     expect(gated.map((e) => e.href)).toEqual(["/users"]);
     const icon = NAV_SECTIONS[0].entries[0].icon;
-    const synthetic = { label: "X", href: "/x", icon, superadminOnly: true as const };
+    const synthetic = { label: "X", href: "/x", icon, adminOnly: true as const };
     expect(isVisible(synthetic, () => true, true)).toBe(true);
     expect(isVisible(synthetic, () => true, false)).toBe(false);
   });

@@ -356,9 +356,9 @@ export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
   const userId = params.id as string;
-  const { isSuperadmin, user: me } = useUser();
-  // Name/email edit allowed if superadmin or self; permissions/role editor
-  // is superadmin-only (and never self nor a superadmin target).
+  const { isAdmin, user: me } = useUser();
+  // Name/email edit allowed if admin or self; permissions/role editor
+  // is admin-only (and never self nor an admin target).
   const isSelf = me?.id === userId;
 
   // ── Data state ────────────────────────────────────────────────────────────
@@ -457,7 +457,7 @@ export default function UserDetailPage() {
       toast.success("Permissions updated");
     } catch (err) {
       if (err instanceof ApiError && err.isForbidden) {
-        toast.error("Superadmin access required");
+        toast.error("Admin access required");
       } else {
         toast.error(err instanceof Error ? err.message : "Failed to update permissions");
       }
@@ -703,8 +703,8 @@ export default function UserDetailPage() {
                 icon={<Shield size={16} />}
                 label="Role"
               >
-                <Badge variant={user.role === "admin" || user.role === "superadmin" ? "brand" : "default"} size="sm">
-                  {user.role === "superadmin" ? "Superadmin" : user.role === "admin" ? "Admin" : "Member"}
+                <Badge variant={user.role === "admin" ? "brand" : "default"} size="sm">
+                  {user.role === "admin" ? "Admin" : "Member"}
                 </Badge>
                 {me?.id === user.id && (
                   <span className="ml-2 text-xs text-surface-500">(you)</span>
@@ -716,7 +716,7 @@ export default function UserDetailPage() {
                 icon={<Shield size={16} />}
                 label="Permissions"
               >
-                {user.role === "admin" || user.role === "superadmin" ? (
+                {user.role === "admin" ? (
                   <Badge variant="brand" size="sm">Full access (admin)</Badge>
                 ) : user.permissions.length === 0 ? (
                   <span className="text-surface-500 italic">—</span>
@@ -760,8 +760,8 @@ export default function UserDetailPage() {
         )}
       </div>
 
-      {/* ═══ Permissions editor (superadmin-only — never self, never a superadmin target) ═══ */}
-      {user && isSuperadmin && !isSelf && user.role !== "admin" && user.role !== "superadmin" && (
+      {/* ═══ Permissions editor (admin-only — never self, never an admin target) ═══ */}
+      {user && isAdmin && !isSelf && user.role !== "admin" && (
         <div className="card-base p-6">
           <div className="mb-4">
             <h2 className="font-display text-lg font-medium flex items-center gap-2">

@@ -12,20 +12,20 @@ interface ConfigTab {
   label: string;
   href: string;
   id: string;
-  /** Root/superadmin-only tab (mirrors nav.ts superadminOnly). */
-  superadminOnly?: boolean;
+  /** Root/admin-only tab (platform console). */
+  adminOnly?: boolean;
 }
 
 const TABS: ConfigTab[] = [
-  // Exact path /settings/org-config redirects to the LLM tab (page.tsx) —
+  // Exact path /settings/platform-config redirects to the LLM tab (page.tsx) —
   // no Overview entry; per-tab staged resets cover resets.
-  { label: "LLM", href: "/settings/org-config/llm", id: "llm" },
-  { label: "Graph", href: "/settings/org-config/graph", id: "graph" },
-  { label: "Reranker", href: "/settings/org-config/reranker", id: "reranker" },
-  { label: "Enrichment", href: "/settings/org-config/enrichment", id: "enrichment" },
-  { label: "Behaviour", href: "/settings/org-config/behaviour", id: "behaviour" },
-  { label: "PII Protection", href: "/settings/org-config/pii", id: "pii" },
-  { label: "Registration", href: "/settings/org-config/registration", id: "registration", superadminOnly: true },
+  { label: "LLM", href: "/settings/platform-config/llm", id: "llm" },
+  { label: "Graph", href: "/settings/platform-config/graph", id: "graph" },
+  { label: "Reranker", href: "/settings/platform-config/reranker", id: "reranker" },
+  { label: "Enrichment", href: "/settings/platform-config/enrichment", id: "enrichment" },
+  { label: "Behaviour", href: "/settings/platform-config/behaviour", id: "behaviour" },
+  { label: "PII Protection", href: "/settings/platform-config/pii", id: "pii" },
+  { label: "Registration", href: "/settings/platform-config/registration", id: "registration", adminOnly: true },
 ];
 
 export default function ConfigLayout({ children }: { children: React.ReactNode }) {
@@ -34,8 +34,8 @@ export default function ConfigLayout({ children }: { children: React.ReactNode }
 
 function ConfigLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isSuperadmin } = useUser();
-  const visibleTabs = TABS.filter((tab) => !tab.superadminOnly || isSuperadmin);
+  const { isAdmin } = useUser();
+  const visibleTabs = TABS.filter((tab) => !tab.adminOnly || isAdmin);
   // Tab switches route through the shared dirty guard — the ConfirmDialog
   // itself lives in ConfigDirtyProvider (mounted at the dashboard level).
   const { navigate } = useConfigDirty();

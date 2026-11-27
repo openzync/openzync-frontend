@@ -224,7 +224,7 @@ export default function LlmConfigPage() {
   });
 
   // Seed the editable form from server data — render-phase adjustment keyed on
-  // response identity (same pattern as superadmin/config/registration), so a refetch after
+  // response identity (same pattern as platform-config/registration), so a refetch after
   // save re-seeds exactly once.
   const [seeded, setSeeded] = useState<ConfigData | null>(null);
   if (configQuery.data && configQuery.data !== seeded) {

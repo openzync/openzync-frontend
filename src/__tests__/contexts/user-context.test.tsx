@@ -65,12 +65,12 @@ describe("UserProvider can()", () => {
     }
   });
 
-  it("superadmin role is a wildcard too", async () => {
+  it("legacy superadmin string is not a wildcard (role collapse)", async () => {
     mockMe({ id: "u9", email: "root@platform", role: "superadmin", permissions: [] });
     renderProbe(["project:manage"]);
 
-    expect(await screen.findByTestId("role")).toHaveTextContent("superadmin");
-    expect(screen.getByTestId("can:project:manage")).toHaveTextContent("true");
+    expect(await screen.findByTestId("role")).toHaveTextContent("member");
+    expect(screen.getByTestId("can:project:manage")).toHaveTextContent("false");
   });
 
   it("member matches against the effective permission list only", async () => {

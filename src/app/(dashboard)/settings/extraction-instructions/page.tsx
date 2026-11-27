@@ -54,7 +54,7 @@ function ExtractionInstructionsInner() {
     allowedFields: INSTRUCTION_SORT_FIELDS,
   });
   const instructionsQuery = useApiQuery<{ data: CustomInstruction[] }>(() =>
-    get<{ data: CustomInstruction[] }>("/admin/org/custom-instructions"),
+    get<{ data: CustomInstruction[] }>("/admin/custom-instructions"),
   );
   // Optimistic writes replace the list locally; the hook's server data stays
   // untouched until a real refetch (retry / failed mutation recovery).
@@ -143,7 +143,7 @@ function ExtractionInstructionsInner() {
     }
 
     try {
-      await put("/admin/org/custom-instructions", { instructions: updated });
+      await put("/admin/custom-instructions", { instructions: updated });
       setOverride(updated);
       setShowDialog(false);
       toast.success(editingIndex !== null ? "Instruction updated" : "Instruction created");
@@ -166,7 +166,7 @@ function ExtractionInstructionsInner() {
     const updated = instructions.filter((i) => i.name !== deleteTarget.name);
 
     try {
-      await put("/admin/org/custom-instructions", { instructions: updated });
+      await put("/admin/custom-instructions", { instructions: updated });
       setOverride(updated);
       setDeleteTarget(null);
       toast.success("Instruction deleted");

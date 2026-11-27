@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import ConfigLayout from "@/app/(dashboard)/settings/org-config/layout";
-import OrgConfigRegistrationPage from "@/app/(dashboard)/settings/org-config/registration/page";
+import ConfigLayout from "@/app/(dashboard)/settings/platform-config/layout";
+import PlatformConfigRegistrationPage from "@/app/(dashboard)/settings/platform-config/registration/page";
 import { ConfigDirtyProvider } from "@/contexts/config-dirty";
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────────
@@ -26,7 +26,7 @@ vi.mock("next/navigation", () => ({
     replace: mockReplace,
     prefetch: vi.fn(),
   }),
-  usePathname: () => "/settings/org-config/registration",
+  usePathname: () => "/settings/platform-config/registration",
 }));
 
 vi.mock("@/contexts/user-context", () => ({
@@ -58,11 +58,11 @@ vi.mock("@/lib/api-client", async (importOriginal) => {
 });
 
 function rootMock() {
-  return { isSuperadmin: true, loading: false, can: () => true };
+  return { isAdmin: true, loading: false, can: () => true };
 }
 
 function nonRootMock() {
-  return { isSuperadmin: false, loading: false, can: () => true };
+  return { isAdmin: false, loading: false, can: () => true };
 }
 
 function renderLayout() {
@@ -78,14 +78,14 @@ function renderLayout() {
 function renderPage() {
   return render(
     <ConfigDirtyProvider>
-      <OrgConfigRegistrationPage />
+      <PlatformConfigRegistrationPage />
     </ConfigDirtyProvider>,
   );
 }
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 
-describe("OrgConfig layout Registration tab gating", () => {
+describe("PlatformConfig layout Registration tab gating", () => {
   beforeEach(() => {
     mockUseUser.mockReset();
   });
@@ -111,7 +111,7 @@ describe("OrgConfig layout Registration tab gating", () => {
   });
 });
 
-describe("OrgConfigRegistrationPage (root-only)", () => {
+describe("PlatformConfigRegistrationPage (root-only)", () => {
   beforeEach(() => {
     mockUseUser.mockReset();
     mockGet.mockReset();

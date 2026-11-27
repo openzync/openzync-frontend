@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import EnrichmentConfigPage from "@/app/(dashboard)/settings/org-config/enrichment/page";
+import EnrichmentConfigPage from "@/app/(dashboard)/settings/platform-config/enrichment/page";
 import { ConfigDirtyProvider } from "@/contexts/config-dirty";
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ const { mockGetMyConfig, mockUpdateMyConfig } = vi.hoisted(() => ({
 // ConfigDirtyProvider (mounted by renderPage) reads router/pathname.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
-  usePathname: () => "/settings/org-config/enrichment",
+  usePathname: () => "/settings/platform-config/enrichment",
 }));
 
 vi.mock("@/lib/api-client", async (importOriginal) => {

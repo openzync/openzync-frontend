@@ -18,7 +18,6 @@ import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { ErrorState } from "@/components/shared/error-state";
 import { EmptyState } from "@/components/shared/empty-state";
-import { RequirePermission } from "@/components/shared/require-permission";
 import { BarChart, ChartLegend, LineChart, StackedBarChart, type LineSeries } from "@/components/shared/charts";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
@@ -79,7 +78,7 @@ type BatchCell = string | number | boolean | null;
 
 interface BatchQueryResult {
   query: string;
-  org_scoped: boolean;
+  user_scoped: boolean;
   columns: string[];
   rows: BatchCell[][];
   total: number;
@@ -704,7 +703,7 @@ function MonitoringInner() {
   // routers/admin_metrics.py:get_metrics_summary) accepts the same window
   // params (days XOR from+to; omitted window defaults to last 24h): range
   // series obey the toolbar, while instant queries and DB totals stay
-  // snapshot. Summary is org-wide, so its refresh key excludes project_id
+  // snapshot. Summary is platform-wide, so its refresh key excludes project_id
   // and changing Project never refetches it.
   const summaryQs = new URLSearchParams();
   if (isCustom && from && to) {
@@ -728,9 +727,16 @@ function MonitoringInner() {
       throw err;
     }
   }, { refreshKey: summaryRefreshKey });
-  const targetsQuery = useApiQuery<TargetsResponse>((signal) =>
-    get<TargetsResponse>("/metrics/targets", { signal }),
-  );
+  const targetsQuery = useApiQuery<TargetsResponse | null>(async (signal) => {
+    try {
+      return await get<TargetsResponse>("/metrics/targets", { signal });
+    } catch (err) {
+      // /metrics/targets stays admin-gated — non-admins get an
+      // "unavailable" card, never a page-level 403.
+      if (err instanceof ApiError && err.isForbidden) return null;
+      throw err;
+    }
+  });
   const batchQuery = useApiQuery<BatchResponse>(
     (signal) => get<BatchResponse>(`/metrics/batch?${batchQsString}`, { signal }),
     { refreshKey: windowKey },
@@ -775,6 +781,10 @@ function MonitoringInner() {
     [targetsQuery.data],
   );
   const targetsLoading = targetsQuery.isLoading && targets.length === 0;
+  // 403 maps to data:null in the fetcher above (error stays null), so this
+  // is only true for the forbidden case — genuine empties return {targets:[]}.
+  const targetsUnavailable =
+    !targetsQuery.isLoading && !targetsQuery.error && targetsQuery.data === null;
 
   const sortedTargets = useMemo(() => {
     const rows = [...targets];
@@ -804,8 +814,7 @@ function MonitoringInner() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <RequirePermission permission="members:read">
-      <div className="space-y-6">
+    <div className="space-y-6">
         <PageHeader
           title="Monitoring"
           description="Platform health and ingestion pipeline — queue depth, scrape targets, enrichment, and query performance"
@@ -1121,7 +1130,15 @@ function MonitoringInner() {
             <h3 className="text-sm font-medium">Scrape Targets</h3>
             {!targetsLoading && <span className="text-[11px] text-surface-500">{targets.length} target{targets.length !== 1 ? "s" : ""}</span>}
           </div>
-          {targetsQuery.error && !targetsLoading && targets.length === 0 ? (
+          {targetsUnavailable ? (
+            <div className="px-4 py-3">
+              <EmptyState
+                icon={Info}
+                title="Scrape targets unavailable"
+                description="Prometheus scrape targets require admin access."
+              />
+            </div>
+          ) : targetsQuery.error && !targetsLoading && targets.length === 0 ? (
             <div className="px-4 py-3">
               <ErrorState message="Couldn’t load scrape targets." onRetry={targetsQuery.refetch} />
             </div>
@@ -1195,6 +1212,5 @@ function MonitoringInner() {
           )}
         </div>
       </div>
-    </RequirePermission>
   );
 }
