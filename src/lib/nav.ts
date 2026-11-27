@@ -48,10 +48,10 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Insights",
     entries: [
       { label: "Overview", href: "/overview", icon: LayoutDashboard },
-      // Monitoring is gated on members:read (user-level read access)
-      { label: "Monitoring", href: "/monitoring", icon: Activity, permission: "members:read" },
-      // LLM usage is tracking-only (tokens + latency, no cost fields) — same user-level read gate.
-      { label: "Usage", href: "/usage", icon: BarChart3, permission: "members:read" },
+      // Monitoring is visible to all; data RLS-scoped.
+      { label: "Monitoring", href: "/monitoring", icon: Activity },
+      // LLM usage is tracking-only (tokens + latency, no cost fields) — visible to all; data RLS-scoped.
+      { label: "Usage", href: "/usage", icon: BarChart3 },
     ],
   },
   {
