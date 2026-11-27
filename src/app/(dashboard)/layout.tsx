@@ -567,33 +567,30 @@ function Sidebar({
                 <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>View all projects</span>
               </Link>
             </CollapsedTip>
-            <SidebarLink
-              href="/invitations"
-              active={isActive("/invitations")}
-              collapsed={collapsed}
-              centerCollapsed
-              title={invitationTitle}
-              onClick={onClose}
-            >
-              <span className={cn("shrink-0", isActive("/invitations") ? "text-signal" : "text-surface-400")}>
-                <Mail size={18} />
-              </span>
-              <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>Project invitations</span>
-              {invitationBadge !== null && !collapsed && (
-                <span
-                  aria-label={`${invitationBadge} pending invitations`}
-                  className="ml-auto shrink-0 rounded-full bg-brand-500 px-1.5 py-0.5 text-[0.68rem] font-semibold leading-none text-white"
-                >
-                  {invitationBadge}
-                </span>
-              )}
-              {invitationBadge !== null && collapsed && (
-                <span
-                  aria-hidden
-                  className="absolute top-1 right-1 h-2 w-2 rounded-full bg-brand-500"
-                />
-              )}
-            </SidebarLink>
+            <CollapsedTip show={collapsed} label={invitationTitle}>
+              <Link
+                href="/invitations"
+                onClick={onClose}
+                className="relative flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-surface-400 hover:bg-surface-800 hover:text-text-primary"
+              >
+                <Mail size={18} className="shrink-0 text-surface-400" />
+                <span className={cn("truncate overflow-hidden transition-all duration-300", collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100")}>Project invitations</span>
+                {invitationBadge !== null && !collapsed && (
+                  <span
+                    aria-label={`${invitationBadge} pending invitations`}
+                    className="ml-auto shrink-0 rounded-full bg-brand-500 px-1.5 py-0.5 text-[0.68rem] font-semibold leading-none text-white"
+                  >
+                    {invitationBadge}
+                  </span>
+                )}
+                {invitationBadge !== null && collapsed && (
+                  <span
+                    aria-hidden
+                    className="absolute top-1 right-1 h-2 w-2 rounded-full bg-brand-500"
+                  />
+                )}
+              </Link>
+            </CollapsedTip>
           </>
         )}
 

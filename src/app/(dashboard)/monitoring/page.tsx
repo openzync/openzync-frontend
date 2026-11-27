@@ -26,6 +26,7 @@ import { SortableHead } from "@/components/shared/sortable-head";
 import { useSortQuery } from "@/hooks/use-sort-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SimpleSelect } from "@/components/ui/select";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -857,26 +858,19 @@ function MonitoringInner() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Project</span>
-              <select
+              <SimpleSelect
                 value={rawProject}
-                onChange={(e) => setParams({ project_id: e.target.value || null })}
-                className="input-base h-8 text-xs flex-1 min-w-0 truncate border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
+                onValueChange={(v) => setParams({ project_id: v || null })}
+                options={[{ value: "", label: "All projects" }, ...projects.map((p) => ({ value: p.id, label: p.name }))]}
+                className="h-8 text-xs flex-1 min-w-0"
                 aria-label="Filter by project"
-              >
-                <option value="">All projects</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
             <label className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Time range</span>
-              <select
+              <SimpleSelect
                 value={pendingRange}
-                onChange={(e) => {
-                  const v = e.target.value;
+                onValueChange={(v) => {
                   if (v === "custom") {
                     setPendingRange("custom");
                   } else {
@@ -884,14 +878,15 @@ function MonitoringInner() {
                     setDays(Number(v) as DaysOption);
                   }
                 }}
-                className="input-base h-8 text-xs flex-1 min-w-0 border-surface-800"
+                options={[
+                  { value: "7", label: "Last 7 days" },
+                  { value: "30", label: "Last 30 days" },
+                  { value: "90", label: "Last 90 days" },
+                  { value: "custom", label: "Custom range" },
+                ]}
+                className="h-8 text-xs flex-1 min-w-0"
                 aria-label="Filter by time range"
-              >
-                <option value="7">Last 7 days</option>
-                <option value="30">Last 30 days</option>
-                <option value="90">Last 90 days</option>
-                <option value="custom">Custom range</option>
-              </select>
+              />
             </label>
           </div>
           {(pendingRange === "custom" || isCustom) && (

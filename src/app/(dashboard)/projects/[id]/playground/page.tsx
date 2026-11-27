@@ -143,14 +143,19 @@ function IngestTab({ projectId }: { projectId: string }) {
       <h2 className="text-sm font-semibold flex items-center gap-2"><Upload size={16} className="text-brand-300" />Ingest Messages</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field label="Session" htmlFor="memory-session-select" required>
-          <select id="memory-session-select" value={sessionId} onChange={(e) => setSessionId(e.target.value)} className="input-base" required>
-            <option value="">Select a session...</option>
-            {sessionsLoading && <option disabled>Loading sessions...</option>}
-            {!sessionsLoading && sessions.length === 0 && <option disabled>No sessions found</option>}
-            {sessions.map((s) => (
-              <option key={s.id} value={s.id}>{s.external_id || s.id.slice(0, 8)}</option>
-            ))}
-          </select>
+          <SimpleSelect
+            id="memory-session-select"
+            value={sessionId}
+            onValueChange={setSessionId}
+            options={[
+              { value: "", label: "Select a session..." },
+              ...sessions.map((s) => ({ value: s.id, label: s.external_id || s.id.slice(0, 8) })),
+            ]}
+            placeholder="Select a session..."
+            noResultsText={!sessionsLoading && sessions.length === 0 ? "No sessions found" : undefined}
+            required
+            disabled={sessionsLoading}
+          />
         </Field>
       </div>
       {!sessionId && !sessionsLoading && (

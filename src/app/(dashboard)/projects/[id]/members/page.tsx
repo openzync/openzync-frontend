@@ -29,6 +29,7 @@ import { SortableHead } from "@/components/shared/sortable-head";
 import { useSortQuery } from "@/hooks/use-sort-query";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Field } from "@/components/ui/field";
+import { SimpleSelect } from "@/components/ui/select";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -470,29 +471,21 @@ function ProjectMembersInner() {
               {usersLoading ? (
                 <div className="h-9 rounded-md bg-surface-800 animate-pulse" />
               ) : (
-                <select
+                <SimpleSelect
                   id="member-user-select"
                   value={selectedEmail}
-                  onChange={(e) => {
-                    setSelectedEmail(e.target.value);
-                    setEmailInput(e.target.value);
+                  onValueChange={(v) => {
+                    setSelectedEmail(v);
+                    setEmailInput(v);
                   }}
-                  className="input-base appearance-none cursor-pointer w-full"
+                  options={[
+                    { value: "", label: users.length === 0 ? "No users available" : "Select a user..." },
+                    ...users
+                      .filter((user) => !!user.email)
+                      .map((user) => ({ value: user.email as string, label: getUserLabel(user) })),
+                  ]}
                   disabled={adding || users.length === 0}
-                >
-                  <option value="">
-                    {users.length === 0
-                      ? "No users available"
-                      : "Select a user..."}
-                  </option>
-                  {users
-                    .filter((user) => !!user.email)
-                    .map((user) => (
-                      <option key={user.id} value={user.email}>
-                        {getUserLabel(user)}
-                      </option>
-                    ))}
-                </select>
+                />
               )}
             </Field>
             {addError && (

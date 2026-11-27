@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { RequirePermission } from "@/components/shared/require-permission";
 import { Button } from "@/components/ui/button";
+import { SimpleSelect } from "@/components/ui/select";
 import { StatusBadge, ActorTypeBadge, actorTypeLabel } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shared/table";
@@ -342,72 +343,55 @@ function AuditLogInner() {
             </div>
           </label>
 
-          {/* Actor ID filter — native select for optgroup support */}
+          {/* Actor ID filter — groups flattened into searchable labels */}
           <label htmlFor="audit-filter-actor-id" className="flex items-center gap-2 min-w-0">
             <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Actor ID</span>
-            <select
+            <SimpleSelect
               id="audit-filter-actor-id"
-              className="input-base h-8 text-xs flex-1 min-w-0 truncate border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
+              className="h-8 text-xs flex-1 min-w-0"
               value={filterActorId}
-              onChange={(e) => setParams({ actor_id: e.target.value || null, page: null })}
+              onValueChange={(v) => setParams({ actor_id: v || null, page: null })}
+              options={[{ value: "", label: "All actors" }, ...availableActors.map((a) => ({ value: a.id, label: `${a.group} — ${a.label}` }))]}
               disabled={filterActorType === "all"}
-            >
-              <option value="">All actors</option>
-              {filterActorType === "all" ? (
-                availableActors.map((a) => (
-                  <option key={`${a.group}-${a.id}`} value={a.id}>{a.label}</option>
-                ))
-              ) : (
-                Object.entries(
-                  availableActors.reduce<Record<string, ActorOption[]>>((acc, a) => {
-                    (acc[a.group] ??= []).push(a);
-                    return acc;
-                  }, {})
-                ).map(([group, actors]) => (
-                  <optgroup key={group} label={group}>
-                    {actors.map((a) => (
-                      <option key={a.id} value={a.id}>{a.label}</option>
-                    ))}
-                  </optgroup>
-                ))
-              )}
-            </select>
+            />
           </label>
 
           {/* Actor Type filter */}
           <label htmlFor="audit-filter-actor-type" className="flex items-center gap-2 min-w-0">
             <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Actor Type</span>
-            <select
+            <SimpleSelect
               id="audit-filter-actor-type"
-              className="input-base h-8 text-xs flex-1 min-w-0 truncate border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
+              className="h-8 text-xs flex-1 min-w-0"
               value={filterActorType}
-              onChange={(e) =>
+              onValueChange={(v) =>
                 // Changing type invalidates the selected actor — a stale ID
                 // from the previous type is meaningless.
-                setParams({ actor_type: e.target.value, actor_id: null, page: null })
+                setParams({ actor_type: v, actor_id: null, page: null })
               }
-            >
-              <option value="all">All</option>
-              <option value="user">User</option>
-              <option value="api_key">API Key</option>
-              <option value="system">System</option>
-            </select>
+              options={[
+                { value: "all", label: "All" },
+                { value: "user", label: "User" },
+                { value: "api_key", label: "API Key" },
+                { value: "system", label: "System" },
+              ]}
+            />
           </label>
 
           {/* Status filter */}
           <label htmlFor="audit-filter-status" className="flex items-center gap-2 min-w-0">
             <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Status</span>
-            <select
+            <SimpleSelect
               id="audit-filter-status"
-              className="input-base h-8 text-xs flex-1 min-w-0 truncate border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
+              className="h-8 text-xs flex-1 min-w-0"
               value={filterStatus}
-              onChange={(e) => setParams({ status: e.target.value, page: null })}
-            >
-              <option value="all">All</option>
-              <option value="2xx">2xx</option>
-              <option value="4xx">4xx</option>
-              <option value="5xx">5xx</option>
-            </select>
+              onValueChange={(v) => setParams({ status: v, page: null })}
+              options={[
+                { value: "all", label: "All" },
+                { value: "2xx", label: "2xx" },
+                { value: "4xx", label: "4xx" },
+                { value: "5xx", label: "5xx" },
+              ]}
+            />
           </label>
         </div>
 
