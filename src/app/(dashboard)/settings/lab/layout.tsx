@@ -5,15 +5,12 @@ import { PageGuide, GuideSettings } from "@/components/guides";
 import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
 import { useConfigDirty } from "@/contexts/config-dirty";
-import { useUser } from "@/contexts/user-context";
 import { RequirePermission } from "@/components/shared/require-permission";
 
 interface LabTab {
   label: string;
   href: string;
   id: string;
-  /** Root/superadmin-only tab (mirrors nav.ts superadminOnly). */
-  superadminOnly?: boolean;
 }
 
 const TABS: LabTab[] = [
@@ -27,8 +24,7 @@ export default function LabLayout({ children }: { children: React.ReactNode }) {
 
 function LabLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isSuperadmin } = useUser();
-  const visibleTabs = TABS.filter((tab) => !tab.superadminOnly || isSuperadmin);
+  const visibleTabs = TABS;
   // Tab switches route through the shared dirty guard — the ConfirmDialog
   // itself lives in ConfigDirtyProvider (mounted at the dashboard level).
   const { navigate } = useConfigDirty();

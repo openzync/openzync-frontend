@@ -20,8 +20,8 @@ const REGISTRATION_OPTIONS = [
   { value: "approval", label: "Approval" },
 ];
 
-export default function OrgConfigRegistrationPage() {
-  const { isSuperadmin, loading: userLoading } = useUser();
+export default function PlatformConfigRegistrationPage() {
+  const { isAdmin, loading: userLoading } = useUser();
   const router = useRouter();
   const [registration, setRegistration] = useState<string>("invite_only");
   const [initialRegistration, setInitialRegistration] = useState<string>("invite_only");
@@ -31,10 +31,10 @@ export default function OrgConfigRegistrationPage() {
   const { setDirty } = useConfigDirty();
 
   useEffect(() => {
-    if (!userLoading && !isSuperadmin) {
+    if (!userLoading && !isAdmin) {
       router.replace("/overview");
     }
-  }, [isSuperadmin, userLoading, router]);
+  }, [isAdmin, userLoading, router]);
 
   // Admin endpoint first; old backends 404 → fall back to the public status
   // endpoint. Missing mode defaults to invite_only.
@@ -94,7 +94,7 @@ export default function OrgConfigRegistrationPage() {
     setDirty(false);
   }
 
-  if (userLoading || !isSuperadmin) {
+  if (userLoading || !isAdmin) {
     return (
       <div className="space-y-4">
         <div className="h-9 rounded bg-surface-800 animate-pulse w-full" />

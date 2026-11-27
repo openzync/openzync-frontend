@@ -29,8 +29,8 @@ export interface NavEntry {
   icon: LucideIcon;
   /** Permission required to see this entry — undefined = visible to all. */
   permission?: PermissionString;
-  /** Root/superadmin-only entry (platform console). */
-  superadminOnly?: boolean;
+  /** Admin-only entry — visible only when isAdmin is true (e.g. Users: GET /v1/users is require_admin). */
+  adminOnly?: boolean;
 }
 
 export type NavSectionId = "insights" | "admin" | "system";
@@ -58,12 +58,12 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "admin",
     label: "Administration",
     entries: [
-      // User management → members:read; config surfaces → configuration:read.
-      { label: "Users", href: "/users", icon: Users, superadminOnly: true },
+      // User management → admin-only (GET /v1/users is require_admin); config surfaces → configuration:read.
+      { label: "Users", href: "/users", icon: Users, adminOnly: true },
       { label: "Extraction Schemas", href: "/settings/schemas", icon: FileJson, permission: "configuration:read" },
       { label: "Webhooks", href: "/settings/webhooks", icon: Webhook, permission: "configuration:read" },
       { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: FileText, permission: "configuration:read" },
-      { label: "Configuration", href: "/settings/org-config", icon: Settings, permission: "configuration:read" },
+      { label: "Configuration", href: "/settings/platform-config", icon: Settings, permission: "configuration:read" },
       { label: "Lab", href: "/settings/lab", icon: FlaskConical, permission: "configuration:read" },
     ],
   },
@@ -81,9 +81,9 @@ export const NAV_SECTIONS: NavSection[] = [
 export function isVisible(
   entry: NavEntry,
   can: (permission: string) => boolean,
-  isSuperadmin: boolean,
+  isAdmin: boolean,
 ): boolean {
-  if (entry.superadminOnly) return isSuperadmin;
+  if (entry.adminOnly) return isAdmin;
   return entry.permission === undefined || can(entry.permission);
 }
 

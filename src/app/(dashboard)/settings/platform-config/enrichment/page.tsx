@@ -42,7 +42,7 @@ const FIELDS: (keyof FormState)[] = [
 
 // ─── Fallback values (mirrors backend all-ON) ─────────────────────────────────
 // Backend resolves any key missing from every layer to True
-// (core/enrichment_config._ALL_ON + org_config.yaml) — these double as the
+// (core/enrichment_config._ALL_ON + platform-config defaults) — these double as the
 // last-resort display fallback when neither the override nor the effective
 // view carries a key.
 
@@ -129,7 +129,7 @@ export default function EnrichmentConfigPage() {
   const [saving, setSaving] = useState(false);
   // Effective search type (same config query) — embeddings-off is blocked
   // while this is vector/hybrid. Defaults to hybrid, matching the backend
-  // onboarding default (org_config.yaml).
+  // onboarding default (platform-config defaults).
   const [searchType, setSearchType] = useState<string>("hybrid");
   // Save failures share the banner with load errors; cleared when a fetch
   // succeeds so a retry visibly resolves.
@@ -150,13 +150,13 @@ export default function EnrichmentConfigPage() {
   });
 
   // Seed the editable form from server data — render-phase adjustment keyed on
-  // response identity (same pattern as superadmin/config/registration), so a refetch after
+  // response identity (same pattern as platform-config/registration), so a refetch after
   // save re-seeds exactly once.
   const [seeded, setSeeded] = useState<ConfigData | null>(null);
   if (configQuery.data && configQuery.data !== seeded) {
     setSeeded(configQuery.data);
     const { stored, defaults } = configQuery.data;
-    // Backend nests toggles under `enrichment:{...}` on OrgConfig /
+    // Backend nests toggles under `enrichment:{...}` on PlatformConfig /
     // SystemConfig — read that dict, not flat top-level keys.
     const storedEnrichment = (stored.enrichment ?? {}) as Record<string, unknown>;
     const defaultsEnrichment = (defaults.enrichment ?? {}) as Record<string, unknown>;
@@ -253,7 +253,7 @@ export default function EnrichmentConfigPage() {
       for (const f of FIELDS) {
         if (form[f] !== initialForm[f]) changed[f] = form[f];
       }
-      // Backend expects the nested `enrichment:{...}` dict (OrgConfig /
+      // Backend expects the nested `enrichment:{...}` dict (PlatformConfig /
       // SystemConfig shape). Skip an empty dict so we don't write a noisy
       // `enrichment: {}` override (missing keys already resolve to the
       // all-ON default).

@@ -79,7 +79,7 @@ type BatchCell = string | number | boolean | null;
 
 interface BatchQueryResult {
   query: string;
-  org_scoped: boolean;
+  user_scoped: boolean;
   columns: string[];
   rows: BatchCell[][];
   total: number;
@@ -704,7 +704,7 @@ function MonitoringInner() {
   // routers/admin_metrics.py:get_metrics_summary) accepts the same window
   // params (days XOR from+to; omitted window defaults to last 24h): range
   // series obey the toolbar, while instant queries and DB totals stay
-  // snapshot. Summary is org-wide, so its refresh key excludes project_id
+  // snapshot. Summary is platform-wide, so its refresh key excludes project_id
   // and changing Project never refetches it.
   const summaryQs = new URLSearchParams();
   if (isCustom && from && to) {

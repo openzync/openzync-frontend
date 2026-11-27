@@ -459,7 +459,7 @@ function ProjectMembersInner() {
                     register and wait for approval.
                   </>
                 ) : (
-                  <>Ask a superadmin to invite {debouncedEmail.trim()}.</>
+                  <>Ask an admin to invite {debouncedEmail.trim()}.</>
                 )}
               </div>
             ) : (

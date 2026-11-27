@@ -11,7 +11,7 @@ import { get } from "@/lib/api-client";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-export type UserRole = "admin" | "member" | "superadmin";
+export type UserRole = "admin" | "member";
 
 /** The user-scoped RBAC permission set (effective — admins hold all via wildcard). */
 export const ALL_PERMISSIONS = [
@@ -40,8 +40,8 @@ export interface CurrentUser {
 }
 
 /**
- * Pure `can(permission)` evaluation. Admin/superadmin roles are wildcard —
- * they hold every permission regardless of what the list says. Unknown roles
+ * Pure `can(permission)` evaluation. The admin role is a wildcard —
+ * it holds every permission regardless of what the list says. Unknown roles
  * (null) and unknown permissions fail closed.
  */
 export function canUser(
@@ -49,7 +49,7 @@ export function canUser(
   permissions: string[],
   permission: string,
 ): boolean {
-  if (role === "admin" || role === "superadmin") return true;
+  if (role === "admin") return true;
   return permissions.includes(permission);
 }
 
@@ -60,8 +60,7 @@ interface UserContextValue {
   /** Effective permission list from /v1/auth/me ([] while unknown). */
   permissions: string[];
   isAdmin: boolean;
-  isSuperadmin: boolean;
-  /** True when the current user holds `permission` (admin/superadmin = wildcard). */
+  /** True when the current user holds `permission` (admin = wildcard). */
   can: (permission: string) => boolean;
   mustChangePassword: boolean;
   loading: boolean;
@@ -90,13 +89,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const data = await get<Partial<CurrentUser>>("/v1/auth/me");
         if (!cancelled) {
           // Unknown roles fail closed to "member" — a role the backend hasn't
-          // told us about must never unlock admin/superadmin surfaces.
-          const role: UserRole =
-            data.role === "superadmin"
-              ? "superadmin"
-              : data.role === "admin"
-                ? "admin"
-                : "member";
+          // told us about must never unlock admin surfaces.
+          const role: UserRole = data.role === "admin" ? "admin" : "member";
           setUser({
             id: data.id ?? "",
             email: data.email ?? null,
@@ -121,10 +115,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const role: UserRole | null = user?.role ?? null;
   const permissions: string[] = user?.permissions ?? [];
-  // Superadmin holds every admin surface too — a lone `role === "admin"`
-  // check would lock the root account out of admin UI.
-  const isAdmin = role === "admin" || role === "superadmin";
-  const isSuperadmin = role === "superadmin";
+  const isAdmin = role === "admin";
   const mustChangePassword = user?.must_change_password ?? false;
   const can = (permission: string) => canUser(role, permissions, permission);
 
@@ -135,7 +126,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         role,
         permissions,
         isAdmin,
-        isSuperadmin,
         can,
         mustChangePassword,
         loading,

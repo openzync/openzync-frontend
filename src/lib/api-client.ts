@@ -788,8 +788,8 @@ export function updateMyConfig(
 }
 
 /**
- * Enrichment gate block (`enrichment_gate` on org/personal config via
- * getMyConfig/updateMyConfig and on GET /admin/org/config/defaults). Sent
+ * Enrichment gate block (`enrichment_gate` on personal config via
+ * getMyConfig/updateMyConfig and on GET /admin/platform-config/defaults). Sent
  * as a whole block; `null` clears the override back to the defaults.
  * (The platform-level gate on /admin/system/config is gone — the backend
  * no longer accepts or returns `enrichment_gate` there.)

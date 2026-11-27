@@ -201,7 +201,7 @@ function AuditLogInner() {
 
   useEffect(() => { fetchLogs(offset); }, [offset, fetchLogs]);
 
-  // ── Fetch distinct action names once (org-scoped, backend tolerates
+  // ── Fetch distinct action names once (platform-scoped, backend tolerates
   // `{data: [...]}` or bare-array shapes via extractList).
   useEffect(() => {
     let cancelled = false;
