@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { useEffect, useReducer } from "react";
 import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import userEvent, { type UserEvent } from "@testing-library/user-event";
 import PlaygroundPage from "@/app/(dashboard)/projects/[id]/playground/page";
 import { post, uploadWithBlobs, ApiError } from "@/lib/api-client";
 
@@ -135,14 +135,12 @@ function renderIngestCard() {
   return within(card as HTMLElement);
 }
 
-// Session is a required field now — select it before submitting. The sessions
-// fetch resolves async, so wait for the option to appear first.
-async function selectSession(card: ReturnType<typeof within>, sessionId = "session-1") {
-  const option = await card.findByText(sessionId);
-  await userEvent.selectOptions(
-    card.getByRole("combobox", { name: /Session/ }),
-    option,
-  );
+// Session is a required field now — select it before submitting. The picker
+// is a searchable combobox (options render in a portal outside the card),
+// so open it and click the option by label.
+async function selectSession(user: UserEvent, card: ReturnType<typeof within>, sessionId = "session-1") {
+  await user.click(card.getByRole("combobox", { name: /Session/ }));
+  await user.click(await screen.findByRole("option", { name: sessionId }));
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────────
@@ -172,7 +170,7 @@ describe("PlaygroundPage Ingest", () => {
       card.getByPlaceholderText(/user: What is the capital/),
       "user: Hello there",
     );
-    await selectSession(card);
+    await selectSession(user, card);
     await user.click(card.getByRole("button", { name: "Ingest" }));
 
     expect(
@@ -207,7 +205,7 @@ describe("PlaygroundPage Ingest", () => {
       card.getByPlaceholderText(/user: What is the capital/),
       "user: hi{enter}assistant: hello",
     );
-    await selectSession(card);
+    await selectSession(user, card);
     await user.click(card.getByRole("button", { name: "Ingest" }));
 
     expect(await screen.findByText("Ingest Successful")).toBeInTheDocument();
@@ -246,7 +244,7 @@ describe("PlaygroundPage Ingest", () => {
       card.getByPlaceholderText(/user: What is the capital/),
       "user: Hello there",
     );
-    await selectSession(card);
+    await selectSession(user, card);
     await user.click(card.getByRole("button", { name: "Ingest" }));
 
     expect(
@@ -260,7 +258,7 @@ describe("PlaygroundPage Ingest", () => {
     const user = userEvent.setup();
     const card = renderIngestCard();
 
-    await selectSession(card);
+    await selectSession(user, card);
     await user.click(card.getByRole("button", { name: "Ingest" }));
 
     expect(

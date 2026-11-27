@@ -208,7 +208,7 @@ function AuditLogInner() {
     const fetchActions = async () => {
       try {
         const raw = await get<unknown>("/v1/admin/audit-logs/actions");
-        if (!cancelled) setAvailableActions(extractList<string>(raw));
+        if (!cancelled) setAvailableActions(extractList<string>(raw).filter((a): a is string => typeof a === "string"));
       } catch {
         if (!cancelled) setAvailableActions([]);
       }

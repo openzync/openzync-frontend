@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { useEffect, useReducer } from "react";
 import { render, screen, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -179,8 +179,14 @@ function usageCalls(): string[] {
 }
 
 function timeRange() {
-  return screen.getByLabelText("Filter by time range") as HTMLSelectElement;
+  return screen.getByRole("combobox", { name: "Filter by time range" });
 }
+
+// jsdom lacks the PointerEvent APIs Radix Popover (SimpleSelect) relies on.
+beforeAll(() => {
+  window.HTMLElement.prototype.hasPointerCapture = () => false;
+  window.HTMLElement.prototype.scrollIntoView = () => {};
+});
 
 beforeEach(() => {
   mockPush.mockReset();
@@ -255,35 +261,37 @@ describe("OverviewPage", () => {
   });
 
   it("populates the project filter from the project list endpoint", async () => {
+    const user = userEvent.setup();
     render(<OverviewPage />);
+    await screen.findByText("Quick Actions");
 
-    const select = (await screen.findByLabelText(
-      "Filter by project",
-    )) as HTMLSelectElement;
-    expect(select).toHaveValue("");
+    // SimpleSelect is a Radix combobox — options render in a portal once opened.
+    await user.click(
+      screen.getByRole("combobox", { name: "Filter by project" }),
+    );
     expect(
-      within(select).getByRole("option", { name: "All projects" }),
+      await screen.findByRole("option", { name: "All projects" }),
     ).toBeInTheDocument();
     for (const p of PROJECTS) {
-      expect(within(select).getByRole("option", { name: p.name })).toBeInTheDocument();
+      expect(
+        await screen.findByRole("option", { name: p.name }),
+      ).toBeInTheDocument();
     }
     expect(get).toHaveBeenCalledWith("/v1/projects?limit=100");
   });
 
-  it("renders the time range filter with the 7/30/90-day presets and a custom option", () => {
+  it("renders the time range filter with the 7/30/90-day presets and a custom option", async () => {
+    const user = userEvent.setup();
     render(<OverviewPage />);
 
-    const select = timeRange();
-    expect(
-      Array.from(select.options).map((o) => [o.value, o.textContent]),
-    ).toEqual([
-      ["7", "Last 7 days"],
-      ["30", "Last 30 days"],
-      ["90", "Last 90 days"],
-      ["custom", "Custom range"],
-    ]);
+    const combo = timeRange();
     // Default window is 30 days.
-    expect(select).toHaveValue("30");
+    expect(combo).toHaveTextContent("Last 30 days");
+
+    await user.click(combo);
+    for (const name of ["Last 7 days", "Last 30 days", "Last 90 days", "Custom range"]) {
+      expect(await screen.findByRole("option", { name })).toBeInTheDocument();
+    }
   });
 
   it("filters the window by project: ?project= becomes project_id on both fetches", async () => {
@@ -291,7 +299,10 @@ describe("OverviewPage", () => {
     render(<OverviewPageHarness />);
     await screen.findByText("Quick Actions");
 
-    await user.selectOptions(screen.getByLabelText("Filter by project"), "p-1");
+    await user.click(screen.getByRole("combobox", { name: "Filter by project" }));
+    await user.click(
+      await screen.findByRole("option", { name: "Customer Support Bot" }),
+    );
 
     // Only the params the page owns are written — days stays implicit at 30.
     expect(mockReplace).toHaveBeenCalledWith(
@@ -318,7 +329,7 @@ describe("OverviewPage", () => {
     // The usage fetch must use the clamped value, never the raw param.
     expect(get).toHaveBeenCalledWith("/v1/admin/stats/usage?days=30");
     expect(get).not.toHaveBeenCalledWith("/v1/admin/stats/usage?days=42");
-    expect(timeRange()).toHaveValue("30");
+    expect(timeRange()).toHaveTextContent("Last 30 days");
   });
 
   it("honours a valid ?days= deep link", async () => {
@@ -327,7 +338,7 @@ describe("OverviewPage", () => {
     await screen.findByText("Quick Actions");
 
     expect(get).toHaveBeenCalledWith("/v1/admin/stats/usage?days=7");
-    expect(timeRange()).toHaveValue("7");
+    expect(timeRange()).toHaveTextContent("Last 7 days");
   });
 
   it("selecting a range writes ?days= via router.replace and refetches", async () => {
@@ -336,7 +347,8 @@ describe("OverviewPage", () => {
     await screen.findByText("Quick Actions");
 
     vi.mocked(get).mockClear();
-    await user.selectOptions(timeRange(), "90");
+    await user.click(timeRange());
+    await user.click(await screen.findByRole("option", { name: "Last 90 days" }));
 
     expect(mockReplace).toHaveBeenCalledWith("/overview?days=90", { scroll: false });
     await vi.waitFor(() => {
@@ -350,7 +362,8 @@ describe("OverviewPage", () => {
     render(<OverviewPageHarness />);
     await screen.findByText("Quick Actions");
 
-    await user.selectOptions(timeRange(), "custom");
+    await user.click(timeRange());
+    await user.click(await screen.findByRole("option", { name: "Custom range" }));
     // Date inputs don't take per-key typing in jsdom — set the value directly.
     fireEvent.change(screen.getByLabelText("From date"), {
       target: { value: "2025-06-01" },
@@ -365,9 +378,11 @@ describe("OverviewPage", () => {
       "/overview?from=2025-06-01&to=2025-06-30",
       { scroll: false },
     );
-    expect(usageCalls()).toContain(
-      "/v1/admin/stats/usage?from=2025-06-01&to=2025-06-30",
-    );
+    await vi.waitFor(() => {
+      expect(usageCalls()).toContain(
+        "/v1/admin/stats/usage?from=2025-06-01&to=2025-06-30",
+      );
+    });
 
     await user.click(await screen.findByRole("button", { name: "Clear" }));
     expect(mockReplace).toHaveBeenLastCalledWith(
