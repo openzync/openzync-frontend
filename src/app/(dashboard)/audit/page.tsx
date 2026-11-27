@@ -7,8 +7,6 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-  X,
-  Search,
 } from "lucide-react";
 import { get, apiErrorMessage, extractList } from "@/lib/api-client";
 import { smartTimestamp } from "@/lib/utils";
@@ -31,6 +29,7 @@ interface AuditEntry {
   id: string;
   action: string;
   actor_id: string | null;
+  actor_display_name: string | null;
   actor_type: string | null;
   resource_type: string | null;
   resource_id: string | null;
@@ -79,6 +78,7 @@ function AuditLogInner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [availableActors, setAvailableActors] = useState<ActorOption[]>([]);
+  const [availableActions, setAvailableActions] = useState<string[]>([]);
 
   // ── Filters + pagination live in the URL so filtered views are shareable.
   // Unknown values clamp to defaults; empty/default values stay absent from
@@ -95,30 +95,6 @@ function AuditLogInner() {
   const filterActorId = searchParams.get("actor_id") ?? "";
   const rawPage = Number(searchParams.get("page"));
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
-
-  // Local draft so typing doesn't router.replace + refetch per keystroke.
-  // Commits to the URL (which drives the fetch) after a 250ms pause —
-  // mirrors the force-graph filter debounce. `syncedAction` tracks the last
-  // URL value; when the URL changes elsewhere (debounce commit,
-  // clear-filters, back/forward) the draft resyncs during render instead of
-  // in an effect.
-  const [actionDraft, setActionDraft] = useState(filterAction);
-  const [syncedAction, setSyncedAction] = useState(filterAction);
-  if (filterAction !== syncedAction) {
-    setSyncedAction(filterAction);
-    setActionDraft(filterAction);
-  }
-  useEffect(() => {
-    if (actionDraft === filterAction) return;
-    const t = setTimeout(
-      () => setParams({ action: actionDraft.trim() || null, page: null }),
-      250,
-    );
-    return () => clearTimeout(t);
-    // setParams is rebuilt from derived state each render — intentionally not
-    // a dep; the commit values are captured from this render's closure.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actionDraft]);
 
   // Server-side sort, URL-synced (default created_at/desc). Sort changes
   // drop `page` from the URL via the hook, so sorting restarts at page 1.
@@ -225,6 +201,24 @@ function AuditLogInner() {
 
   useEffect(() => { fetchLogs(offset); }, [offset, fetchLogs]);
 
+  // ── Fetch distinct action names once (org-scoped, backend tolerates
+  // `{data: [...]}` or bare-array shapes via extractList).
+  useEffect(() => {
+    let cancelled = false;
+    const fetchActions = async () => {
+      try {
+        const raw = await get<unknown>("/v1/admin/audit-logs/actions");
+        if (!cancelled) setAvailableActions(extractList<string>(raw));
+      } catch {
+        if (!cancelled) setAvailableActions([]);
+      }
+    };
+    fetchActions();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // ── Fetch available actors for the dropdown ─────────────────────────────────
   useEffect(() => {
     if (filterActorType === "all") {
@@ -298,11 +292,6 @@ function AuditLogInner() {
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  const clearFilters = () =>
-    setParams({ action: null, actor_type: null, actor_id: null, status: null, page: null });
-
-  const hasActiveFilters = filterAction.trim() || filterActorId.trim() || filterActorType !== "all" || filterStatus !== "all";
-
   const goToPrevious = () =>
     setParams({ page: page > 2 ? String(page - 1) : null });
   const goToNext = () => {
@@ -330,17 +319,13 @@ function AuditLogInner() {
           {/* Action filter */}
           <label htmlFor="audit-filter-action" className="flex items-center gap-2 min-w-0">
             <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Action</span>
-            <div className="relative flex-1 min-w-0">
-              <input
-                id="audit-filter-action"
-                className="input-base h-8 text-xs w-full pl-8 border-surface-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-300 focus-visible:border-accent-300"
-                placeholder="e.g. session.create"
-                value={actionDraft}
-                onChange={(e) => setActionDraft(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && setParams({ action: actionDraft.trim() || null, page: null })}
-              />
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-surface-500 pointer-events-none" />
-            </div>
+            <SimpleSelect
+              id="audit-filter-action"
+              className="h-8 text-xs flex-1 min-w-0"
+              value={filterAction}
+              onValueChange={(v) => setParams({ action: v || null, page: null })}
+              options={[{ value: "", label: "All actions" }, ...availableActions.map((a) => ({ value: a, label: a }))]}
+            />
           </label>
 
           {/* Actor ID filter — groups flattened into searchable labels */}
@@ -353,6 +338,7 @@ function AuditLogInner() {
               onValueChange={(v) => setParams({ actor_id: v || null, page: null })}
               options={[{ value: "", label: "All actors" }, ...availableActors.map((a) => ({ value: a.id, label: `${a.group} — ${a.label}` }))]}
               disabled={filterActorType === "all"}
+              placeholder={filterActorType === "all" ? "Pick actor type first…" : undefined}
             />
           </label>
 
@@ -394,15 +380,6 @@ function AuditLogInner() {
             />
           </label>
         </div>
-
-        {hasActiveFilters && (
-          <div className="flex justify-end">
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-surface-400">
-              <X size={14} />
-              Clear
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Table */}
@@ -427,7 +404,7 @@ function AuditLogInner() {
                   <EmptyState
                     icon={Shield}
                     title="No audit entries found"
-                    description={hasActiveFilters ? "Try adjusting your filters" : "Audit entries will appear here as actions are performed"}
+                    description={filterAction.trim() || filterActorId.trim() || filterActorType !== "all" || filterStatus !== "all" ? "Try adjusting your filters" : "Audit entries will appear here as actions are performed"}
                   />
                 </td>
               </tr>
@@ -443,9 +420,9 @@ function AuditLogInner() {
                   <TableCell>
                     <span
                       className="font-mono text-xs text-surface-400 max-w-[80px] block truncate"
-                      title={entry.actor_id ?? undefined}
+                      title={entry.actor_display_name ?? entry.actor_id ?? undefined}
                     >
-                      {entry.actor_id ? entry.actor_id.slice(0, 12) : "—"}
+                      {entry.actor_display_name ?? (entry.actor_id ? entry.actor_id.slice(0, 12) : "—")}
                     </span>
                   </TableCell>
                   <TableCell>
