@@ -77,10 +77,18 @@ const ORG_STATS = {
   total_classifications: 7,
 };
 
+// Dates relative to today — the page fills the trailing 30-day window, so
+// hardcoded dates rot out of range and every panel renders "No data".
+function isoDay(offsetDaysAgo: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - offsetDaysAgo);
+  return d.toISOString().slice(0, 10);
+}
+
 const USAGE = [
   // Newest-first on the wire — the page sorts oldest-first before charting.
-  { date: "2025-07-02", episode_count: 12, session_count: 3, fact_count: 20, extraction_count: 4, observation_count: 2, classification_count: 1, node_count: 40, edge_count: 90 },
-  { date: "2025-07-01", episode_count: 10, session_count: 2, fact_count: 15, extraction_count: 3, observation_count: 1, classification_count: 1, node_count: 30, edge_count: 70 },
+  { date: isoDay(1), episode_count: 12, session_count: 3, fact_count: 20, extraction_count: 4, observation_count: 2, classification_count: 1, node_count: 40, edge_count: 90 },
+  { date: isoDay(2), episode_count: 10, session_count: 2, fact_count: 15, extraction_count: 3, observation_count: 1, classification_count: 1, node_count: 30, edge_count: 70 },
 ];
 
 // Named base implementation so tests can override `get` and later delegate

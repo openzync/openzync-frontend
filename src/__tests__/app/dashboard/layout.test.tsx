@@ -64,7 +64,9 @@ function renderLayout() {
 // visible labels appear twice for who can see them and zero times otherwise.
 // Mirrors NAV_SECTIONS in src/lib/nav.ts — keep the two in step.
 const CONFIG_READ_LABELS = ["Configuration", "Extraction Schemas", "Webhooks", "Extraction Instructions"];
-const MEMBERS_READ_LABELS = ["Users", "Monitoring", "Audit Log"];
+// "Users" is superadmin-only (mirrors the backend gate) — visible to a
+// superadmin, hidden from an org admin despite the admin wildcard.
+const MEMBERS_READ_LABELS = ["Monitoring", "Audit Log"];
 const ADMIN_ONLY_LABELS = [...MEMBERS_READ_LABELS, ...CONFIG_READ_LABELS];
 
 function adminMock() {
@@ -112,6 +114,18 @@ describe("DashboardLayout nav gating", () => {
     for (const label of ADMIN_ONLY_LABELS) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
+    // Users is superadmin-only — hidden from an org admin.
+    expect(screen.queryAllByText("Users").length).toBe(0);
+  });
+
+  it("shows the Users nav item for a superadmin", () => {
+    mockUseUser.mockReturnValue({
+      ...adminMock(),
+      isSuperadmin: true,
+    });
+    renderLayout();
+
+    expect(screen.getAllByText("Users").length).toBeGreaterThan(0);
   });
 
   it("hides admin-only nav items for a member with only member defaults", () => {

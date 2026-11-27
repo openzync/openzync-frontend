@@ -176,13 +176,19 @@ describe("ProjectMembersPage — removal does not freeze the list", () => {
     const addDialog = await screen.findByRole("dialog");
     await user.selectOptions(
       within(addDialog).getByLabelText("User"),
-      "u-c",
+      "carol@acme.com",
     );
-    await user.click(within(addDialog).getByRole("button", { name: "Add Member" }));
+    // The email lookup is debounced (400ms) — wait for the match to
+    // resolve before submitting.
+    const addButton = within(addDialog).getByRole("button", {
+      name: "Add Member",
+    });
+    await waitFor(() => expect(addButton).toBeEnabled());
+    await user.click(addButton);
 
     await waitFor(() => {
       expect(mockPost).toHaveBeenCalledWith("/v1/projects/p-1/members", {
-        user_id: "u-c",
+        email: "carol@acme.com",
         role: "member",
       });
     });
