@@ -1,17 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { RotateCcw } from "lucide-react";
-import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
+import { ApiError, API_BASE, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
 import { StickySaveBar } from "@/components/shared/sticky-save-bar";
-import { ConnectionTestButton } from "@/components/shared/connection-test-button";
-import { SecretInput } from "@/components/ui/secret-input";
 import { SimpleSelect } from "@/components/ui/select";
-import { useConnectionTest, type ConnectionTestResult } from "@/hooks/use-connection-test";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { useConfigReset } from "@/hooks/use-config-reset";
 
@@ -21,7 +18,6 @@ import { useConfigReset } from "@/hooks/use-config-reset";
 interface ConfigData {
   stored: Record<string, unknown>;
   defaults: Record<string, unknown>;
-  systemManaged: string[];
 }
 
 type GraphBackend = "surrealdb" | "falkordb" | "none";
@@ -31,12 +27,12 @@ interface FormState {
   graph_backend: GraphBackend;
   graph_search_type: GraphSearchType;
   graph_max_traversal_depth: number;
-  surrealdb_url: string;
-  surrealdb_user: string;
-  surrealdb_pass: string;
-  surrealdb_namespace: string;
-  surrealdb_database: string;
-  falkordb_url: string;
+}
+
+/** Per-backend presence/liveness from GET /ready (additive `graphs` field). */
+interface GraphBackendStatus {
+  configured?: boolean;
+  reachable?: boolean;
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -45,12 +41,6 @@ const FIELDS: (keyof FormState)[] = [
   "graph_backend",
   "graph_search_type",
   "graph_max_traversal_depth",
-  "surrealdb_url",
-  "surrealdb_user",
-  "surrealdb_pass",
-  "surrealdb_namespace",
-  "surrealdb_database",
-  "falkordb_url",
 ];
 
 const GRAPH_BACKEND_OPTIONS: { value: GraphBackend; label: string }[] = [
@@ -69,17 +59,10 @@ const SEARCH_TYPE_OPTIONS: { value: GraphSearchType; label: string }[] = [
 
 export default function GraphConfigPage() {
   const { setDirty } = useConfigDirty();
-  const conn = useConnectionTest();
   const [form, setForm] = useState<FormState>({
     graph_backend: "falkordb",
     graph_search_type: "hybrid",
     graph_max_traversal_depth: 3,
-    surrealdb_url: "",
-    surrealdb_user: "",
-    surrealdb_pass: "",
-    surrealdb_namespace: "",
-    surrealdb_database: "",
-    falkordb_url: "",
   });
   const [initialForm, setInitialForm] = useState<FormState>({ ...form });
   const [stored, setStored] = useState<Record<string, unknown>>({});
@@ -87,9 +70,10 @@ export default function GraphConfigPage() {
   // Save failures share the banner with load errors; cleared when a fetch
   // succeeds so a retry visibly resolves.
   const [actionError, setActionError] = useState<string | null>(null);
-  const [systemManaged, setSystemManaged] = useState<string[]>([]);
-  const [showSurrealDbPass, setShowSurrealDbPass] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  // Graph backend presence/liveness from the public /ready probe (in-memory
+  // only). Null = unknown (older backend, fetch failure) → show everything.
+  const [graphs, setGraphs] = useState<Record<string, GraphBackendStatus> | null>(null);
 
   const {
     pendingResets,
@@ -103,6 +87,30 @@ export default function GraphConfigPage() {
     setForm as unknown as React.Dispatch<React.SetStateAction<Record<string, unknown>>>,
   );
 
+  // Public readiness probe for graph backend presence/liveness. Plain fetch,
+  // no auth headers — /ready is public. Parse-first: 503 with a JSON body
+  // is a real answer, so parse regardless of status. Missing `graphs`
+  // field or any failure → null → show every backend option.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE}/ready`)
+      .then((res) => res.json().catch(() => null))
+      .then((body) => {
+        if (cancelled) return;
+        const g =
+          body && typeof body === "object"
+            ? (body as { graphs?: unknown }).graphs
+            : null;
+        setGraphs(g && typeof g === "object" ? (g as Record<string, GraphBackendStatus>) : null);
+      })
+      .catch(() => {
+        if (!cancelled) setGraphs(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // ── Fetch config ──────────────────────────────────────────────────────────
 
   const configQuery = useApiQuery<ConfigData>(async () => {
@@ -111,7 +119,7 @@ export default function GraphConfigPage() {
         // System defaults apply for anything not overridden.
     const defaults: Record<string, unknown> = {};
 
-    return { stored, defaults, systemManaged: (mine.system_managed_fields ?? []) as string[] };
+    return { stored, defaults };
   });
 
   // Seed the editable form from server data — render-phase adjustment keyed on
@@ -120,30 +128,50 @@ export default function GraphConfigPage() {
   const [seeded, setSeeded] = useState<ConfigData | null>(null);
   if (configQuery.data && configQuery.data !== seeded) {
     setSeeded(configQuery.data);
-    const { stored, defaults, systemManaged } = configQuery.data;
+    const { stored, defaults } = configQuery.data;
     const val = (field: string, fallback: unknown) =>
       (stored[field] as unknown) ?? (defaults[field] as unknown) ?? fallback;
     const current: FormState = {
       graph_backend: val("graph_backend", "falkordb") as GraphBackend,
       graph_search_type: val("graph_search_type", "hybrid") as GraphSearchType,
       graph_max_traversal_depth: val("graph_max_traversal_depth", 3) as number,
-      surrealdb_url: val("surrealdb_url", "") as string,
-      surrealdb_user: val("surrealdb_user", "") as string,
-      surrealdb_pass: val("surrealdb_pass", "") as string,
-      surrealdb_namespace: val("surrealdb_namespace", "") as string,
-      surrealdb_database: val("surrealdb_database", "") as string,
-      falkordb_url: val("falkordb_url", "") as string,
     };
     setForm(current);
     setInitialForm(current);
     setStored(stored);
-    setSystemManaged(systemManaged);
     setActionError(null);
   }
 
   const isPostgresSelected = (form as unknown as { graph_backend: string }).graph_backend === "postgres";
   const isStoredPostgres = stored["graph_backend"] === "postgres";
   const showPostgresBanner = isPostgresSelected || isStoredPostgres;
+
+  // Hide backends the server reports as unconfigured. Only SurrealDB can be
+  // hidden — FalkorDB and "No graph backend" are always shown. Null graphs
+  // (unknown) falls back to showing everything so the tab never breaks.
+  const surrealHidden = graphs?.surrealdb?.configured === false;
+  const visibleBackendOptions = GRAPH_BACKEND_OPTIONS.filter(
+    (opt) => !(opt.value === "surrealdb" && surrealHidden),
+  );
+  // Stored-but-now-hidden value: keep the stored option visible while it is
+  // still selected so the trigger shows it; picking another clears it.
+  const backendOptions = visibleBackendOptions.some((opt) => opt.value === form.graph_backend)
+    ? visibleBackendOptions
+    : [
+        ...visibleBackendOptions,
+        ...GRAPH_BACKEND_OPTIONS.filter((opt) => opt.value === form.graph_backend),
+      ];
+  const showSurrealHiddenBanner = surrealHidden && form.graph_backend === "surrealdb";
+
+  // Hint, don't enforce: warn when the selected backend reports unreachable.
+  // Save always proceeds — the server 422 remains the only hard gate.
+  const selectedBackendKey = form.graph_backend as string;
+  const selectedBackendLabel =
+    GRAPH_BACKEND_OPTIONS.find((opt) => opt.value === selectedBackendKey)?.label ?? selectedBackendKey;
+  const unreachableHint =
+    graphs?.[selectedBackendKey]?.reachable === false
+      ? `${selectedBackendLabel} appears unreachable — graph features may not update; contact your admin.`
+      : null;
 
   const loading = configQuery.isLoading;
   const error = configQuery.error ?? actionError;
@@ -188,9 +216,9 @@ export default function GraphConfigPage() {
 
       await updateMyConfig(payload);
       toast.success("Graph configuration saved successfully");
+      if (unreachableHint) toast.warning(unreachableHint);
       setDirty(false);
       clearResets();
-      conn.reset();
       configQuery.refetch();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 3000);
@@ -208,26 +236,9 @@ export default function GraphConfigPage() {
     }
   }
 
-  // ── Test connection (unsaved form as candidate; never marks dirty) ─────────
-
-  function handleTestConnection(): Promise<ConnectionTestResult | null> {
-    return conn.test("graph", {
-      graph_backend: form.graph_backend,
-      graph_search_type: form.graph_search_type,
-      graph_max_traversal_depth: form.graph_max_traversal_depth,
-      surrealdb_url: form.surrealdb_url,
-      surrealdb_user: form.surrealdb_user,
-      surrealdb_pass: form.surrealdb_pass,
-      surrealdb_namespace: form.surrealdb_namespace,
-      surrealdb_database: form.surrealdb_database,
-      falkordb_url: form.falkordb_url,
-    });
-  }
-
   function handleDiscard() {
     setForm({ ...initialForm });
     clearResets();
-    conn.reset();
     setDirty(false);
   }
 
@@ -263,7 +274,18 @@ export default function GraphConfigPage() {
                 </p>
               </div>
             )}
-            <div className={error || showPostgresBanner ? "space-y-4 max-w-md mt-4" : "space-y-4 max-w-md"}>
+            {showSurrealHiddenBanner && (
+              <div
+                role="alert"
+                data-testid="surrealdb-unconfigured-banner"
+                className="rounded-lg border border-amber-500/50 bg-amber-950/40 px-4 py-3"
+              >
+                <p className="text-sm font-semibold text-amber-300">
+                  SurrealDB is no longer configured on the server — contact your admin; choose another backend.
+                </p>
+              </div>
+            )}
+            <div className={error || showPostgresBanner || showSurrealHiddenBanner ? "space-y-4 max-w-md mt-4" : "space-y-4 max-w-md"}>
               {/* graph_backend */}
               <div>
                 <label htmlFor="graph-backend" className="block text-sm font-medium text-surface-300 mb-1">
@@ -273,7 +295,7 @@ export default function GraphConfigPage() {
                   <SimpleSelect
                     id="graph-backend"
                     className="flex-1"
-                    options={GRAPH_BACKEND_OPTIONS}
+                    options={backendOptions}
                     value={form.graph_backend}
                     onValueChange={(value) => updateField("graph_backend", value as GraphBackend)}
                   />
@@ -288,6 +310,9 @@ export default function GraphConfigPage() {
                       )}
                 </div>
               </div>
+              {unreachableHint && (
+                <p role="status" className="text-xs text-amber-400 mt-1">{unreachableHint}</p>
+              )}
               {pendingResets.has("graph_backend") && (
                 <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
               )}
@@ -356,191 +381,6 @@ export default function GraphConfigPage() {
                 </>
               )}
 
-              {/* SurrealDB connection fields — conditionally shown */}
-              {form.graph_backend === "surrealdb" && !systemManaged.includes("surrealdb_url") && (
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="surrealdb-url" className="block text-sm font-medium text-surface-300 mb-1">
-                      SurrealDB URL
-                    </label>
-                    <div className="flex gap-2 items-start">
-                      <input
-                        id="surrealdb-url"
-                        className="input-base flex-1"
-                        type="url"
-                        placeholder="ws://surrealdb:8000/rpc"
-                        value={form.surrealdb_url}
-                        onChange={(e) => updateField("surrealdb_url", e.target.value)}
-                      />
-                      {isFieldSet("surrealdb_url") && (
-                        <Button
-                          onClick={() => handleStageReset("surrealdb_url")}
-                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title="Remove stored value — default will apply on save"
-                        >
-                          <RotateCcw size={14} />
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-xs text-surface-500 mt-1">Required when using SurrealDB backend</p>
-                  </div>
-                  {pendingResets.has("surrealdb_url") && (
-                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                  )}
-
-                  {/* surrealdb_user */}
-                  <div>
-                    <label htmlFor="surrealdb-user" className="block text-sm font-medium text-surface-300 mb-1">
-                      SurrealDB Username
-                    </label>
-                    <div className="flex gap-2 items-start">
-                      <input
-                        id="surrealdb-user"
-                        className="input-base flex-1"
-                        type="text"
-                        placeholder="SurrealDB username"
-                        value={form.surrealdb_user}
-                        onChange={(e) => updateField("surrealdb_user", e.target.value)}
-                      />
-                      {isFieldSet("surrealdb_user") && (
-                        <Button
-                          onClick={() => handleStageReset("surrealdb_user")}
-                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title="Remove stored value — default will apply on save"
-                        >
-                          <RotateCcw size={14} />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {pendingResets.has("surrealdb_user") && (
-                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                  )}
-
-                  {/* surrealdb_pass */}
-                  <SecretInput
-                    id="surrealdb-pass"
-                    label="SurrealDB Password"
-                    value={form.surrealdb_pass}
-                    onChange={(v) => updateField("surrealdb_pass", v)}
-                    placeholder="SurrealDB password"
-                    visible={showSurrealDbPass}
-                    onToggleVisibility={() => setShowSurrealDbPass((prev) => !prev)}
-                  />
-
-                  {/* surrealdb_namespace */}
-                  <div>
-                    <label htmlFor="surrealdb-namespace" className="block text-sm font-medium text-surface-300 mb-1">
-                      SurrealDB Namespace
-                    </label>
-                    <div className="flex gap-2 items-start">
-                      <input
-                        id="surrealdb-namespace"
-                        className="input-base flex-1"
-                        type="text"
-                        placeholder="SurrealDB namespace"
-                        value={form.surrealdb_namespace}
-                        onChange={(e) => updateField("surrealdb_namespace", e.target.value)}
-                      />
-                      {isFieldSet("surrealdb_namespace") && (
-                        <Button
-                          onClick={() => handleStageReset("surrealdb_namespace")}
-                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title="Remove stored value — default will apply on save"
-                        >
-                          <RotateCcw size={14} />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {pendingResets.has("surrealdb_namespace") && (
-                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                  )}
-
-                  {/* surrealdb_database */}
-                  <div>
-                    <label htmlFor="surrealdb-database" className="block text-sm font-medium text-surface-300 mb-1">
-                      SurrealDB Database
-                    </label>
-                    <div className="flex gap-2 items-start">
-                      <input
-                        id="surrealdb-database"
-                        className="input-base flex-1"
-                        type="text"
-                        placeholder="SurrealDB database"
-                        value={form.surrealdb_database}
-                        onChange={(e) => updateField("surrealdb_database", e.target.value)}
-                      />
-                      {isFieldSet("surrealdb_database") && (
-                        <Button
-                          onClick={() => handleStageReset("surrealdb_database")}
-                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title="Remove stored value — default will apply on save"
-                        >
-                          <RotateCcw size={14} />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {pendingResets.has("surrealdb_database") && (
-                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                  )}
-                </div>
-              )}
-
-              {/* SurrealDB system-managed badge */}
-              {form.graph_backend === "surrealdb" && systemManaged.includes("surrealdb_url") && (
-                <div className="rounded-lg border border-surface-700 bg-surface-800/50 px-4 py-3">
-                  <p className="text-sm font-medium text-surface-300">SurrealDB</p>
-                  <p className="text-xs text-surface-500 mt-0.5">
-                    Configured at the system level. Connection details are managed by your administrator.
-                  </p>
-                </div>
-              )}
-
-              {/* FalkorDB connection field — conditionally shown */}
-              {form.graph_backend === "falkordb" && !systemManaged.includes("falkordb_url") && (
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="falkordb-url" className="block text-sm font-medium text-surface-300 mb-1">
-                      FalkorDB URL
-                    </label>
-                    <div className="flex gap-2 items-start">
-                      <input
-                        id="falkordb-url"
-                        className="input-base flex-1"
-                        type="url"
-                        placeholder="redis://falkordb:6379"
-                        value={form.falkordb_url}
-                        onChange={(e) => updateField("falkordb_url", e.target.value)}
-                      />
-                      {isFieldSet("falkordb_url") && (
-                        <Button
-                          onClick={() => handleStageReset("falkordb_url")}
-                          variant="ghost" size="sm" className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                          title="Remove stored value — default will apply on save"
-                        >
-                          <RotateCcw size={14} />
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-xs text-surface-500 mt-1">Required when using FalkorDB backend and no system-level config exists</p>
-                  </div>
-                  {pendingResets.has("falkordb_url") && (
-                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                  )}
-                </div>
-              )}
-
-              {/* FalkorDB system-managed badge */}
-              {form.graph_backend === "falkordb" && systemManaged.includes("falkordb_url") && (
-                <div className="rounded-lg border border-surface-700 bg-surface-800/50 px-4 py-3">
-                  <p className="text-sm font-medium text-surface-300">FalkorDB</p>
-                  <p className="text-xs text-surface-500 mt-0.5">
-                    Configured at the system level. Connection details are managed by your administrator.
-                  </p>
-                </div>
-              )}
             </div>
           </>
         )}
@@ -554,8 +394,7 @@ export default function GraphConfigPage() {
           hasSaved={justSaved}
           onSave={handleSave}
           onDiscard={handleDiscard}
-          saveDisabled={isPostgresSelected || conn.testing}
-          testAction={<ConnectionTestButton testing={conn.testing} result={conn.result} error={conn.error} onTest={handleTestConnection} disabled={saving || loading} />}
+          saveDisabled={isPostgresSelected}
         />
       )}
     </div>

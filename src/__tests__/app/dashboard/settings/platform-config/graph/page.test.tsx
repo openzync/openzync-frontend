@@ -39,19 +39,34 @@ describe("GraphConfigPage system-managed mapping", () => {
   beforeEach(() => {
     mockGetMyConfig.mockReset();
     mockUpdateMyConfig.mockReset();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        json: async () => ({
+          graphs: {
+            falkordb: { configured: true, reachable: true },
+            surrealdb: { configured: true, reachable: true },
+          },
+        }),
+      }),
+    );
   });
 
-  it("falls back to [] when system_managed_fields is missing (old backend) → shows input", async () => {
+  it("renders the kept fields with no connection inputs or system badges", async () => {
     mockGetMyConfig.mockResolvedValue({ override: {}, effective: {} });
     renderPage();
 
-    expect(await screen.findByLabelText("FalkorDB URL")).toBeInTheDocument();
+    expect(await screen.findByText("Graph Settings")).toBeInTheDocument();
+    expect(screen.getByText("Graph Backend")).toBeInTheDocument();
+    expect(screen.getByText("Search Type")).toBeInTheDocument();
+    expect(screen.getByText("Max Traversal Depth")).toBeInTheDocument();
+    expect(screen.queryByLabelText("FalkorDB URL")).not.toBeInTheDocument();
     expect(
       screen.queryByText(/Configured at the system level/),
     ).not.toBeInTheDocument();
   });
 
-  it('shows the badge when system_managed_fields is ["falkordb_url"]', async () => {
+  it('ignores legacy system_managed_fields ["falkordb_url"] without showing a badge', async () => {
     mockGetMyConfig.mockResolvedValue({
       override: {},
       effective: {},
@@ -59,9 +74,10 @@ describe("GraphConfigPage system-managed mapping", () => {
     });
     renderPage();
 
+    expect(await screen.findByText("Graph Settings")).toBeInTheDocument();
     expect(
-      await screen.findByText(/Configured at the system level/),
-    ).toBeInTheDocument();
+      screen.queryByText(/Configured at the system level/),
+    ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("FalkorDB URL")).not.toBeInTheDocument();
   });
 });
