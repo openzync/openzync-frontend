@@ -170,6 +170,28 @@ vi.mock("@/components/guides", () => ({
   GuideDashboard: () => <div>Guide Icon</div>,
 }));
 
+// The page reads platform:manage via useUser — default to a holder so the
+// pre-existing window/project assertions keep their scope behavior.
+vi.mock("@/contexts/user-context", () => ({
+  useUser: () => ({
+    user: {
+      id: "u1",
+      email: null,
+      name: "Admin",
+      role: "admin" as const,
+      permissions: [],
+      must_change_password: false,
+      mfa_enabled: false,
+    },
+    role: "admin" as const,
+    permissions: [],
+    isAdmin: true,
+    can: () => true,
+    mustChangePassword: false,
+    loading: false,
+  }),
+}));
+
 /** URLs of every usage-window fetch, oldest-to-newest. */
 function usageCalls(): string[] {
   return vi

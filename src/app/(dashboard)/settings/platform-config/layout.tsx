@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 import { PageGuide, GuideSettings } from "@/components/guides";
 import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
+import { isVisible } from "@/lib/nav";
+import type { Permission } from "@/contexts/user-context";
 import { useConfigDirty } from "@/contexts/config-dirty";
 import { useUser } from "@/contexts/user-context";
 import { RequirePermission } from "@/components/shared/require-permission";
@@ -12,6 +14,8 @@ interface ConfigTab {
   label: string;
   href: string;
   id: string;
+  /** Permission required to see this tab — undefined = visible to all. */
+  permission?: Permission;
   /** Root/admin-only tab (platform console). */
   adminOnly?: boolean;
 }
@@ -25,7 +29,7 @@ const TABS: ConfigTab[] = [
   { label: "Enrichment", href: "/settings/platform-config/enrichment", id: "enrichment" },
   { label: "Behaviour", href: "/settings/platform-config/behaviour", id: "behaviour" },
   { label: "PII Protection", href: "/settings/platform-config/pii", id: "pii" },
-  { label: "Registration", href: "/settings/platform-config/registration", id: "registration", adminOnly: true },
+  { label: "Registration", href: "/settings/platform-config/registration", id: "registration", permission: "platform:manage" },
 ];
 
 export default function ConfigLayout({ children }: { children: React.ReactNode }) {
@@ -34,8 +38,8 @@ export default function ConfigLayout({ children }: { children: React.ReactNode }
 
 function ConfigLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isAdmin } = useUser();
-  const visibleTabs = TABS.filter((tab) => !tab.adminOnly || isAdmin);
+  const { can, isAdmin } = useUser();
+  const visibleTabs = TABS.filter((tab) => isVisible(tab, can, isAdmin));
   // Tab switches route through the shared dirty guard — the ConfirmDialog
   // itself lives in ConfigDirtyProvider (mounted at the dashboard level).
   const { navigate } = useConfigDirty();

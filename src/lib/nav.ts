@@ -29,7 +29,7 @@ export interface NavEntry {
   icon: LucideIcon;
   /** Permission required to see this entry — undefined = visible to all. */
   permission?: PermissionString;
-  /** Admin-only entry — visible only when isAdmin is true (e.g. Users: GET /v1/users is require_admin). */
+  /** Admin-only entry — visible only when isAdmin is true. */
   adminOnly?: boolean;
 }
 
@@ -58,8 +58,8 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "admin",
     label: "Administration",
     entries: [
-      // User management → admin-only (GET /v1/users is require_admin); config surfaces → configuration:read.
-      { label: "Users", href: "/users", icon: Users, adminOnly: true },
+      // User management → platform:manage (GET /v1/users is require_permission(platform:manage)); config surfaces → configuration:read.
+      { label: "Users", href: "/users", icon: Users, permission: "platform:manage" },
       { label: "Extraction Schemas", href: "/settings/schemas", icon: FileJson, permission: "configuration:read" },
       { label: "Webhooks", href: "/settings/webhooks", icon: Webhook, permission: "configuration:read" },
       { label: "Extraction Instructions", href: "/settings/extraction-instructions", icon: FileText, permission: "configuration:read" },
@@ -71,15 +71,15 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "system",
     label: "System",
     entries: [
-      // Audit Log is gated on members:read (user-level read access)
-      { label: "Audit Log", href: "/audit", icon: Shield, permission: "members:read" },
+      // Audit Log is gated on platform:manage (platform-wide read access)
+      { label: "Audit Log", href: "/audit", icon: Shield, permission: "platform:manage" },
     ],
   },
 ];
 
 /** Gate check shared by the sidebar and the command palette. */
 export function isVisible(
-  entry: NavEntry,
+  entry: Pick<NavEntry, "permission" | "adminOnly">,
   can: (permission: string) => boolean,
   isAdmin: boolean,
 ): boolean {

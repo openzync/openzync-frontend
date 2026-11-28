@@ -21,7 +21,10 @@ const REGISTRATION_OPTIONS = [
 ];
 
 export default function PlatformConfigRegistrationPage() {
-  const { isAdmin, loading: userLoading } = useUser();
+  const { can, loading: userLoading } = useUser();
+  // Registration is platform-scoped — gated on platform:manage (admins hold
+  // it via wildcard), not on the raw admin role.
+  const canManage = can("platform:manage");
   const router = useRouter();
   const [registration, setRegistration] = useState<string>("invite_only");
   const [initialRegistration, setInitialRegistration] = useState<string>("invite_only");
@@ -31,10 +34,10 @@ export default function PlatformConfigRegistrationPage() {
   const { setDirty } = useConfigDirty();
 
   useEffect(() => {
-    if (!userLoading && !isAdmin) {
+    if (!userLoading && !canManage) {
       router.replace("/overview");
     }
-  }, [isAdmin, userLoading, router]);
+  }, [canManage, userLoading, router]);
 
   // Admin endpoint first; old backends 404 → fall back to the public status
   // endpoint. Missing mode defaults to invite_only.
@@ -94,7 +97,7 @@ export default function PlatformConfigRegistrationPage() {
     setDirty(false);
   }
 
-  if (userLoading || !isAdmin) {
+  if (userLoading || !canManage) {
     return (
       <div className="space-y-4">
         <div className="h-9 rounded bg-surface-800 animate-pulse w-full" />

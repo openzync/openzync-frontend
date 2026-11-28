@@ -16,6 +16,8 @@ import { get, getAdminStats, type AdminStats } from "@/lib/api-client";
 import { fillDateRange } from "@/lib/chart-range";
 import { sortChronological } from "@/lib/chart-order";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { useUser } from "@/contexts/user-context";
+import { useScopeUsers, scopeUserLabel } from "@/hooks/use-scope-users";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { ErrorState } from "@/components/shared/error-state";
@@ -119,6 +121,10 @@ function OverviewInner() {
   const rawFrom = searchParams.get("from");
   const rawTo = searchParams.get("to");
   const rawProject = searchParams.get("project");
+  // Platform scope — viewer-selected user (platform:manage only). Either-or
+  // with the project filter: selecting one clears the other.
+  const rawUserId = searchParams.get("user_id");
+  const userId = rawUserId?.trim() || null;
 
   const isCustom = !!rawFrom && !!rawTo;
 
@@ -155,8 +161,21 @@ function OverviewInner() {
 
   function setProject(id: string | null) {
     const p = new URLSearchParams(searchParams.toString());
-    if (id) p.set("project", id);
-    else p.delete("project");
+    if (id) {
+      p.set("project", id);
+      // Either-or scope: a project selection clears the user selection.
+      p.delete("user_id");
+    } else p.delete("project");
+    router.replace(`${pathname}?${p.toString()}`, { scroll: false });
+  }
+
+  function setScopeUser(id: string | null) {
+    const p = new URLSearchParams(searchParams.toString());
+    if (id) {
+      p.set("user_id", id);
+      // Either-or scope: a user selection clears the project selection.
+      p.delete("project");
+    } else p.delete("user_id");
     router.replace(`${pathname}?${p.toString()}`, { scroll: false });
   }
 
@@ -193,6 +212,14 @@ function OverviewInner() {
     return Array.isArray(d) ? d : (d.data ?? []);
   })();
 
+  // ── Platform user scope (platform:manage only, fail-soft) ────────────────
+
+  const { can } = useUser();
+  const canManage = can("platform:manage");
+  const { users, usersError } = useScopeUsers(canManage);
+  // Dropdown fetch errors hide the filter — the page keeps its own data.
+  const showUserFilter = canManage && usersError === null;
+
   // ── Windowed query string — shared by stats + usage ───────────────────────
 
   const qs = new URLSearchParams();
@@ -203,8 +230,9 @@ function OverviewInner() {
     qs.set("days", String(days));
   }
   if (projectId) qs.set("project_id", projectId);
+  if (userId) qs.set("user_id", userId);
   const qsString = qs.toString();
-  const windowKey = `${days}-${from}-${to}-${projectId}`;
+  const windowKey = `${days}-${from}-${to}-${projectId}-${userId}`;
 
   // Each section fails independently so one bad endpoint doesn't blank the
   // whole dashboard. Errors clear on success only, so a retry visibly keeps
@@ -213,8 +241,8 @@ function OverviewInner() {
     () =>
       getAdminStats(
         isCustom && from && to
-          ? { from, to, project_id: projectId ?? undefined }
-          : { days, project_id: projectId ?? undefined },
+          ? { from, to, project_id: projectId ?? undefined, user_id: userId ?? undefined }
+          : { days, project_id: projectId ?? undefined, user_id: userId ?? undefined },
       ),
     {
       refreshKey: windowKey,
@@ -395,7 +423,20 @@ function OverviewInner() {
 
       {/* Filters toolbar — global window controls */}
       <div className="card-base p-4 space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className={`grid grid-cols-1 gap-3 ${showUserFilter ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2"}`}>
+          {showUserFilter && (
+            <label className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-medium text-surface-400 whitespace-nowrap">User</span>
+              <SimpleSelect
+                value={userId ?? ""}
+                onValueChange={(v) => setScopeUser(v || null)}
+                options={[{ value: "", label: "All users" }, ...users.map((u) => ({ value: u.id, label: scopeUserLabel(u) }))]}
+                className="h-8 text-xs flex-1 min-w-0"
+                aria-label="Filter by user"
+                disabled={!!projectId}
+              />
+            </label>
+          )}
           <label className="flex items-center gap-2 min-w-0">
             <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Project</span>
             <SimpleSelect
@@ -404,6 +445,7 @@ function OverviewInner() {
               options={[{ value: "", label: "All projects" }, ...projects.map((p) => ({ value: p.id, label: p.name }))]}
               className="h-8 text-xs flex-1 min-w-0"
               aria-label="Filter by project"
+              disabled={!!userId}
             />
           </label>
           <label className="flex items-center gap-2 min-w-0">

@@ -22,6 +22,7 @@ export const ALL_PERMISSIONS = [
   "configuration:write",
   "members:read",
   "members:write",
+  "platform:manage",
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];

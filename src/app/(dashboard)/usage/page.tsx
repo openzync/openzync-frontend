@@ -21,6 +21,8 @@ import { fillDateRange } from "@/lib/chart-range";
 import { smartTimestamp } from "@/lib/utils";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { useSortQuery } from "@/hooks/use-sort-query";
+import { useUser } from "@/contexts/user-context";
+import { useScopeUsers, scopeUserLabel } from "@/hooks/use-scope-users";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageGuide, GuideDashboard } from "@/components/guides";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -92,9 +94,13 @@ function UsageInner() {
   const rawDays = Number(searchParams.get("days"));
   const rawFrom = searchParams.get("from");
   const rawTo = searchParams.get("to");
-  const rawProject = searchParams.get("project_id") ?? "";
+  const rawProject = searchParams.get("project") ?? "";
   const rawWorker = searchParams.get("worker") ?? "";
   const rawModel = searchParams.get("model") ?? "";
+  // Platform scope — viewer-selected user (platform:manage only). Either-or
+  // with the project filter: selecting one clears the other.
+  const rawUserId = searchParams.get("user_id") ?? "";
+  const userId = rawUserId.trim() || null;
   const rawPage = Number(searchParams.get("page"));
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
 
@@ -132,7 +138,8 @@ function UsageInner() {
       days: isCustom ? null : String(days),
       from,
       to,
-      project_id: rawProject || null,
+      project: rawProject || null,
+      user_id: rawUserId || null,
       worker: rawWorker || null,
       model: rawModel || null,
       page: page > 1 ? String(page) : null,
@@ -156,6 +163,16 @@ function UsageInner() {
     setParams({ days: "30", from: null, to: null, page: null });
   }
 
+  // Either-or scope: selecting a project clears the user selection and
+  // vice versa; clearing both returns to site-wide.
+  function setProjectFilter(id: string | null) {
+    setParams(id ? { project: id, user_id: null, page: null } : { project: null, page: null });
+  }
+
+  function setUserFilter(id: string | null) {
+    setParams(id ? { user_id: id, project: null, page: null } : { user_id: null, page: null });
+  }
+
   const offset = (page - 1) * PAGE_SIZE;
 
   // ── Projects dropdown (same convention as the overview page) ──────────────
@@ -174,9 +191,17 @@ function UsageInner() {
     return Array.isArray(d) ? d : (d.data ?? []);
   }, [projectsQuery.data]);
 
+  // ── Platform user scope (platform:manage only, fail-soft) ────────────────
+
+  const { can } = useUser();
+  const canManage = can("platform:manage");
+  const { users, usersError } = useScopeUsers(canManage);
+  // Dropdown fetch errors hide the filter — the page keeps its own data.
+  const showUserFilter = canManage && usersError === null;
+
   // ── Usage query ───────────────────────────────────────────────────────────
 
-  const refreshKey = `${days}-${from}-${to}-${rawProject}-${rawWorker}-${rawModel}-${offset}-${sortBy}-${sortDir}`;
+  const refreshKey = `${days}-${from}-${to}-${rawProject}-${userId}-${rawWorker}-${rawModel}-${offset}-${sortBy}-${sortDir}`;
 
   const usageQuery = useApiQuery<LlmUsageResponse>(() => {
     const params = withSort(
@@ -189,6 +214,7 @@ function UsageInner() {
       params.set("days", String(days));
     }
     if (rawProject) params.set("project_id", rawProject);
+    if (userId) params.set("user_id", userId);
     if (rawWorker) params.set("worker", rawWorker);
     if (rawModel) params.set("model", rawModel);
     // Route through the typed fetcher so the contract lives in one place.
@@ -197,6 +223,7 @@ function UsageInner() {
       from: isCustom && from ? from : undefined,
       to: isCustom && to ? to : undefined,
       project_id: rawProject || undefined,
+      user_id: userId ?? undefined,
       worker: rawWorker || undefined,
       model: rawModel || undefined,
       limit: PAGE_SIZE,
@@ -230,7 +257,7 @@ function UsageInner() {
   // Chart-only grouped fetch — decoupled from table pagination (full-window
   // day buckets; limit=365 covers the max backend window). Falls back to the
   // page-slice aggregation below until the backend supports group_by=day.
-  const chartRefreshKey = `chart-${days}-${from}-${to}-${rawProject}-${rawWorker}-${rawModel}`;
+  const chartRefreshKey = `chart-${days}-${from}-${to}-${rawProject}-${userId}-${rawWorker}-${rawModel}`;
 
   const chartQuery = useApiQuery<LlmUsageResponse>(() => {
     return getLlmUsage({
@@ -238,6 +265,7 @@ function UsageInner() {
       from: isCustom && from ? from : undefined,
       to: isCustom && to ? to : undefined,
       project_id: rawProject || undefined,
+      user_id: userId ?? undefined,
       worker: rawWorker || undefined,
       model: rawModel || undefined,
       group_by: "day",
@@ -300,7 +328,7 @@ function UsageInner() {
   const chartLoading = chartQuery.isLoading && rawGrouped.length === 0;
   const hasChartData = buckets.some((b) => b.total_tokens > 0);
 
-  const hasActiveFilters = !!rawProject || !!rawWorker || !!rawModel || isCustom;
+  const hasActiveFilters = !!rawProject || !!userId || !!rawWorker || !!rawModel || isCustom;
 
   const goToPrevious = () => setParams({ page: page > 2 ? String(page - 1) : null });
   const goToNext = () => {
@@ -360,15 +388,29 @@ function UsageInner() {
 
         {/* Filter bar */}
         <div className="card-base p-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className={`grid grid-cols-1 gap-3 ${showUserFilter ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
+            {showUserFilter && (
+              <label className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-medium text-surface-400 whitespace-nowrap">User</span>
+                <SimpleSelect
+                  value={userId ?? ""}
+                  onValueChange={(v) => setUserFilter(v || null)}
+                  options={[{ value: "", label: "All users" }, ...users.map((u) => ({ value: u.id, label: scopeUserLabel(u) }))]}
+                  className="h-8 text-xs flex-1 min-w-0"
+                  aria-label="Filter by user"
+                  disabled={!!rawProject}
+                />
+              </label>
+            )}
             <label className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Project</span>
               <SimpleSelect
                 value={rawProject}
-                onValueChange={(v) => setParams({ project_id: v || null, page: null })}
+                onValueChange={(v) => setProjectFilter(v || null)}
                 options={[{ value: "", label: "All projects" }, ...projects.map((p) => ({ value: p.id, label: p.name }))]}
                 className="h-8 text-xs flex-1 min-w-0"
                 aria-label="Filter by project"
+                disabled={!!userId}
               />
             </label>
             <label className="flex items-center gap-2 min-w-0">
@@ -455,7 +497,7 @@ function UsageInner() {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setParams({ project_id: null, worker: null, model: null, page: null })}
+                onClick={() => setParams({ project: null, user_id: null, worker: null, model: null, page: null })}
                 className="h-8 text-surface-400"
               >
                 <X size={14} />

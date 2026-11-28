@@ -69,16 +69,18 @@ describe("isVisible gating", () => {
     expect(isVisible(schemas, () => false, false)).toBe(false);
   });
 
-  it("adminOnly gating hides the Users entry from non-admins", () => {
-    // The Users entry is admin-only (mirrors the backend gate).
-    const gated = NAV_SECTIONS.flatMap((s) => s.entries).filter(
-      (e) => e.adminOnly,
-    );
-    expect(gated.map((e) => e.href)).toEqual(["/users"]);
-    const icon = NAV_SECTIONS[0].entries[0].icon;
-    const synthetic = { label: "X", href: "/x", icon, adminOnly: true as const };
-    expect(isVisible(synthetic, () => true, true)).toBe(true);
-    expect(isVisible(synthetic, () => true, false)).toBe(false);
+  it("Users entry follows the platform:manage permission (no adminOnly)", () => {
+    // The Users entry mirrors the backend gate (require_permission
+    // "platform:manage", admin wildcard) — permission-gated, not adminOnly.
+    const users = NAV_SECTIONS.find((s) => s.id === "admin")!.entries.find(
+      (e) => e.href === "/users",
+    )!;
+    expect(users.adminOnly).toBeUndefined();
+    expect(users.permission).toBe("platform:manage");
+    expect(isVisible(users, (p) => p === "platform:manage", false)).toBe(true);
+    expect(isVisible(users, () => false, false)).toBe(false);
+    // Admins hold every permission via wildcard, so can() is true for them.
+    expect(isVisible(users, () => true, true)).toBe(true);
   });
 });
 
