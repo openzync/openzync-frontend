@@ -35,7 +35,6 @@ type FormState = {
   llm_max_tokens: number;
   llm_api_key: string;
   llm_base_url: string;
-  azure_endpoint: string;
   azure_deployment: string;
   prompt_caching_enabled: boolean;
   prompt_caching_anthropic_min_tokens: number;
@@ -45,10 +44,8 @@ type FormState = {
 interface ProviderCaps {
   /** Unified `llm_api_key`: required / optional / unused by this backend. */
   apiKey: "required" | "optional" | "unused";
-  /** Unified `llm_base_url` (ollama + openai_like). */
-  baseUrl: boolean;
-  /** `azure_endpoint` (azure only). */
-  azureEndpoint: boolean;
+  /** Unified `llm_base_url` (ollama + openai_like + azure endpoint): required / unused. */
+  baseUrl: "required" | "unused";
   /**
    * `azure_deployment` (azure only). When true the shared `llm_model` row is
    * hidden — azure uses the deployment name instead.
@@ -65,7 +62,6 @@ const LLM_FIELDS: readonly (keyof FormState)[] = [
   "llm_max_tokens",
   "llm_api_key",
   "llm_base_url",
-  "azure_endpoint",
   "azure_deployment",
   "prompt_caching_enabled",
   "prompt_caching_anthropic_min_tokens",
@@ -98,7 +94,7 @@ function hasStoredPromptCaching(pc: unknown): boolean {
 /**
  * Backend select order (id + label only) and the per-provider capability map.
  * All provider rows live inside the single LLM Backend card below Max Tokens
- * in fixed order — API Key, Base URL, Endpoint URL, Deployment — each enabled
+ * in fixed order — API Key, Base URL / Endpoint URL, Deployment — each enabled
  * or disabled by the selected backend. Disabled rows keep their form value
  * (switching back re-enables intact) but are stripped from the save payload.
  */
@@ -111,18 +107,17 @@ const PROVIDERS: readonly { id: LlmBackend; label: string }[] = [
 ];
 
 const PROVIDER_CAPS: Record<LlmBackend, ProviderCaps> = {
-  openai: { apiKey: "required", baseUrl: false, azureEndpoint: false, deployment: false },
-  anthropic: { apiKey: "required", baseUrl: false, azureEndpoint: false, deployment: false },
-  azure: { apiKey: "required", baseUrl: false, azureEndpoint: true, deployment: true },
-  ollama: { apiKey: "unused", baseUrl: true, azureEndpoint: false, deployment: false },
-  openai_like: { apiKey: "optional", baseUrl: true, azureEndpoint: false, deployment: false },
+  openai: { apiKey: "required", baseUrl: "unused", deployment: false },
+  anthropic: { apiKey: "required", baseUrl: "unused", deployment: false },
+  azure: { apiKey: "required", baseUrl: "required", deployment: true },
+  ollama: { apiKey: "unused", baseUrl: "required", deployment: false },
+  openai_like: { apiKey: "optional", baseUrl: "required", deployment: false },
 };
 
 /** Form field → unified backend name for the server-shaped requires message. */
 const FORM_TO_UNIFIED: Record<string, string> = {
   llm_api_key: "api_key",
   llm_base_url: "base_url",
-  azure_endpoint: "endpoint",
   azure_deployment: "deployment",
 };
 
@@ -130,7 +125,6 @@ const FORM_TO_UNIFIED: Record<string, string> = {
 const REQUIRED_LABELS: Record<string, string> = {
   llm_api_key: "API key",
   llm_base_url: "base URL",
-  azure_endpoint: "endpoint URL",
   azure_deployment: "deployment",
 };
 
@@ -139,8 +133,7 @@ function requiredFormFields(backend: LlmBackend): (keyof FormState)[] {
   const caps = PROVIDER_CAPS[backend] ?? PROVIDER_CAPS.openai_like;
   const fields: (keyof FormState)[] = [];
   if (caps.apiKey === "required") fields.push("llm_api_key");
-  if (caps.baseUrl) fields.push("llm_base_url");
-  if (caps.azureEndpoint) fields.push("azure_endpoint");
+  if (caps.baseUrl === "required") fields.push("llm_base_url");
   if (caps.deployment) fields.push("azure_deployment");
   return fields;
 }
@@ -159,11 +152,8 @@ function stripDisabledProviderFields(
   if (caps.apiKey === "unused" && !pendingResets.has("llm_api_key")) {
     delete payload["llm_api_key"];
   }
-  if (!caps.baseUrl && !pendingResets.has("llm_base_url")) {
+  if (caps.baseUrl === "unused" && !pendingResets.has("llm_base_url")) {
     delete payload["llm_base_url"];
-  }
-  if (!caps.azureEndpoint && !pendingResets.has("azure_endpoint")) {
-    delete payload["azure_endpoint"];
   }
   if (!caps.deployment && !pendingResets.has("azure_deployment")) {
     delete payload["azure_deployment"];
@@ -183,7 +173,6 @@ export default function LlmConfigPage() {
     llm_max_tokens: 4096,
     llm_api_key: "",
     llm_base_url: "",
-    azure_endpoint: "",
     azure_deployment: "",
     prompt_caching_enabled: true,
     prompt_caching_anthropic_min_tokens: 1024,
@@ -258,7 +247,6 @@ export default function LlmConfigPage() {
       llm_max_tokens: val("llm_max_tokens", 4096) as number,
       llm_api_key: val("llm_api_key", "") as string,
       llm_base_url: val("llm_base_url", "") as string,
-      azure_endpoint: val("azure_endpoint", "") as string,
       azure_deployment: val("azure_deployment", "") as string,
       prompt_caching_enabled: pcVal("enabled", true) as boolean,
       prompt_caching_anthropic_min_tokens: pcVal("anthropic_min_tokens", 1024) as number,
@@ -428,7 +416,6 @@ export default function LlmConfigPage() {
       llm_model: form.llm_model,
       llm_api_key: form.llm_api_key,
       llm_base_url: form.llm_base_url,
-      azure_endpoint: form.azure_endpoint,
       azure_deployment: form.azure_deployment,
     };
     stripDisabledProviderFields(candidate, form.llm_backend, pendingResets);
@@ -503,7 +490,7 @@ export default function LlmConfigPage() {
                 {emptyRequiredFields.length > 0 && (
                   <p className="text-xs text-amber-400 mt-1">
                     Switching to {providerLabel} — enter its{" "}
-                    {emptyRequiredFields.map((f) => REQUIRED_LABELS[f]).join(", ")} before saving.
+                    {emptyRequiredFields.map((f) => f === "llm_base_url" && form.llm_backend === "azure" ? "endpoint URL" : REQUIRED_LABELS[f]).join(", ")} before saving.
                   </p>
                 )}
               </div>
@@ -639,20 +626,27 @@ export default function LlmConfigPage() {
                 )}
               </div>
 
-              {/* unified llm_base_url — ollama + openai_like only */}
-              <div className={caps.baseUrl ? undefined : "opacity-60"}>
+              {/* unified llm_base_url — required ollama/openai_like/azure, unused openai/anthropic.
+                  Label + placeholder adapt per backend; azure calls it "Endpoint URL". */}
+              <div className={caps.baseUrl === "required" ? undefined : "opacity-60"}>
                 <label htmlFor="llm_base_url" className="block text-sm font-medium text-surface-300 mb-1">
-                  Base URL
+                  {form.llm_backend === "azure" ? "Endpoint URL" : "Base URL"}
                 </label>
                 <div className="flex gap-2 items-start">
                   <input
                     id="llm_base_url"
                     className="input-base flex-1"
                     type="url"
-                    placeholder={form.llm_backend === "ollama" ? "http://localhost:11434" : "https://api.together.xyz/v1"}
+                    placeholder={
+                      form.llm_backend === "ollama"
+                        ? "http://localhost:11434"
+                        : form.llm_backend === "azure"
+                          ? "https://my-resource.openai.azure.com"
+                          : "https://api.together.xyz/v1"
+                    }
                     value={form.llm_base_url}
                     onChange={(e) => updateField("llm_base_url", e.target.value)}
-                    disabled={!caps.baseUrl}
+                    disabled={caps.baseUrl !== "required"}
                   />
                   {isFieldSet("llm_base_url") && (
                     <Button
@@ -668,41 +662,7 @@ export default function LlmConfigPage() {
                 {pendingResets.has("llm_base_url") && (
                   <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
                 )}
-                {!caps.baseUrl && (
-                  <p className="text-xs text-surface-500 mt-1">{unusedHint}</p>
-                )}
-              </div>
-
-              {/* azure_endpoint — azure only */}
-              <div className={caps.azureEndpoint ? undefined : "opacity-60"}>
-                <label htmlFor="azure_endpoint" className="block text-sm font-medium text-surface-300 mb-1">
-                  Endpoint URL
-                </label>
-                <div className="flex gap-2 items-start">
-                  <input
-                    id="azure_endpoint"
-                    className="input-base flex-1"
-                    type="url"
-                    placeholder="https://my-resource.openai.azure.com"
-                    value={form.azure_endpoint}
-                    onChange={(e) => updateField("azure_endpoint", e.target.value)}
-                    disabled={!caps.azureEndpoint}
-                  />
-                  {isFieldSet("azure_endpoint") && (
-                    <Button
-                      onClick={() => handleStageReset("azure_endpoint")}
-                      variant="ghost" size="sm"
-                      className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
-                      title="Remove stored value — default will apply on save"
-                    >
-                      <RotateCcw size={14} />
-                    </Button>
-                  )}
-                </div>
-                {pendingResets.has("azure_endpoint") && (
-                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                )}
-                {!caps.azureEndpoint && (
+                {caps.baseUrl !== "required" && (
                   <p className="text-xs text-surface-500 mt-1">{unusedHint}</p>
                 )}
               </div>
