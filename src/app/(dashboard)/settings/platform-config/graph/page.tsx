@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { RotateCcw } from "lucide-react";
-import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
+import { ApiError, API_BASE, getMyConfig, updateMyConfig } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ErrorState } from "@/components/shared/error-state";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,12 @@ interface FormState {
   graph_backend: GraphBackend;
   graph_search_type: GraphSearchType;
   graph_max_traversal_depth: number;
+}
+
+/** Per-backend presence/liveness from GET /ready (additive `graphs` field). */
+interface GraphBackendStatus {
+  configured?: boolean;
+  reachable?: boolean;
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -65,6 +71,9 @@ export default function GraphConfigPage() {
   // succeeds so a retry visibly resolves.
   const [actionError, setActionError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
+  // Graph backend presence/liveness from the public /ready probe (in-memory
+  // only). Null = unknown (older backend, fetch failure) → show everything.
+  const [graphs, setGraphs] = useState<Record<string, GraphBackendStatus> | null>(null);
 
   const {
     pendingResets,
@@ -77,6 +86,30 @@ export default function GraphConfigPage() {
     initialForm as unknown as Record<string, unknown>,
     setForm as unknown as React.Dispatch<React.SetStateAction<Record<string, unknown>>>,
   );
+
+  // Public readiness probe for graph backend presence/liveness. Plain fetch,
+  // no auth headers — /ready is public. Parse-first: 503 with a JSON body
+  // is a real answer, so parse regardless of status. Missing `graphs`
+  // field or any failure → null → show every backend option.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE}/ready`)
+      .then((res) => res.json().catch(() => null))
+      .then((body) => {
+        if (cancelled) return;
+        const g =
+          body && typeof body === "object"
+            ? (body as { graphs?: unknown }).graphs
+            : null;
+        setGraphs(g && typeof g === "object" ? (g as Record<string, GraphBackendStatus>) : null);
+      })
+      .catch(() => {
+        if (!cancelled) setGraphs(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ── Fetch config ──────────────────────────────────────────────────────────
 
@@ -112,6 +145,33 @@ export default function GraphConfigPage() {
   const isPostgresSelected = (form as unknown as { graph_backend: string }).graph_backend === "postgres";
   const isStoredPostgres = stored["graph_backend"] === "postgres";
   const showPostgresBanner = isPostgresSelected || isStoredPostgres;
+
+  // Hide backends the server reports as unconfigured. Only SurrealDB can be
+  // hidden — FalkorDB and "No graph backend" are always shown. Null graphs
+  // (unknown) falls back to showing everything so the tab never breaks.
+  const surrealHidden = graphs?.surrealdb?.configured === false;
+  const visibleBackendOptions = GRAPH_BACKEND_OPTIONS.filter(
+    (opt) => !(opt.value === "surrealdb" && surrealHidden),
+  );
+  // Stored-but-now-hidden value: keep the stored option visible while it is
+  // still selected so the trigger shows it; picking another clears it.
+  const backendOptions = visibleBackendOptions.some((opt) => opt.value === form.graph_backend)
+    ? visibleBackendOptions
+    : [
+        ...visibleBackendOptions,
+        ...GRAPH_BACKEND_OPTIONS.filter((opt) => opt.value === form.graph_backend),
+      ];
+  const showSurrealHiddenBanner = surrealHidden && form.graph_backend === "surrealdb";
+
+  // Hint, don't enforce: warn when the selected backend reports unreachable.
+  // Save always proceeds — the server 422 remains the only hard gate.
+  const selectedBackendKey = form.graph_backend as string;
+  const selectedBackendLabel =
+    GRAPH_BACKEND_OPTIONS.find((opt) => opt.value === selectedBackendKey)?.label ?? selectedBackendKey;
+  const unreachableHint =
+    graphs?.[selectedBackendKey]?.reachable === false
+      ? `${selectedBackendLabel} appears unreachable — graph features may not update; contact your admin.`
+      : null;
 
   const loading = configQuery.isLoading;
   const error = configQuery.error ?? actionError;
@@ -156,6 +216,7 @@ export default function GraphConfigPage() {
 
       await updateMyConfig(payload);
       toast.success("Graph configuration saved successfully");
+      if (unreachableHint) toast.warning(unreachableHint);
       setDirty(false);
       clearResets();
       configQuery.refetch();
@@ -213,7 +274,18 @@ export default function GraphConfigPage() {
                 </p>
               </div>
             )}
-            <div className={error || showPostgresBanner ? "space-y-4 max-w-md mt-4" : "space-y-4 max-w-md"}>
+            {showSurrealHiddenBanner && (
+              <div
+                role="alert"
+                data-testid="surrealdb-unconfigured-banner"
+                className="rounded-lg border border-amber-500/50 bg-amber-950/40 px-4 py-3"
+              >
+                <p className="text-sm font-semibold text-amber-300">
+                  SurrealDB is no longer configured on the server — contact your admin; choose another backend.
+                </p>
+              </div>
+            )}
+            <div className={error || showPostgresBanner || showSurrealHiddenBanner ? "space-y-4 max-w-md mt-4" : "space-y-4 max-w-md"}>
               {/* graph_backend */}
               <div>
                 <label htmlFor="graph-backend" className="block text-sm font-medium text-surface-300 mb-1">
@@ -223,7 +295,7 @@ export default function GraphConfigPage() {
                   <SimpleSelect
                     id="graph-backend"
                     className="flex-1"
-                    options={GRAPH_BACKEND_OPTIONS}
+                    options={backendOptions}
                     value={form.graph_backend}
                     onValueChange={(value) => updateField("graph_backend", value as GraphBackend)}
                   />
@@ -238,6 +310,9 @@ export default function GraphConfigPage() {
                       )}
                 </div>
               </div>
+              {unreachableHint && (
+                <p role="status" className="text-xs text-amber-400 mt-1">{unreachableHint}</p>
+              )}
               {pendingResets.has("graph_backend") && (
                 <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
               )}
