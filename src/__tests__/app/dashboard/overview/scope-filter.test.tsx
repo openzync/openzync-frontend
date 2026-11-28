@@ -229,22 +229,33 @@ describe("OverviewPage platform scope filter", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("scope badge: Site-wide for holder, Personal for member", async () => {
+  it("scope visibility: holder sees User and project dropdowns, member sees project dropdown only", async () => {
     mockUseUser.mockReturnValue(holderMock());
     const { unmount } = render(<OverviewPage />);
-    expect(await screen.findByText("Site-wide")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("combobox", { name: "Filter by user" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Filter by project" }),
+    ).toBeInTheDocument();
     unmount();
 
     mockUseUser.mockReturnValue(memberMock());
     render(<OverviewPage />);
-    expect(await screen.findByText("Personal")).toBeInTheDocument();
+    await screen.findByText("Overview");
+    expect(
+      screen.queryByRole("combobox", { name: "Filter by user" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Filter by project" }),
+    ).toBeInTheDocument();
   });
 
-  it("?user_id= and ?project= drive the badge and the API scope", async () => {
+  it("?user_id= drives the API scope", async () => {
     mockUseUser.mockReturnValue(holderMock());
     setSearchParams({ user_id: "u-9" });
     render(<OverviewPageHarness />);
-    expect(await screen.findByText("User: u-9")).toBeInTheDocument();
+    await screen.findByRole("combobox", { name: "Filter by user" });
     await vi.waitFor(() => {
       expect(statsCalls().some((q) => q.includes("user_id=u-9"))).toBe(true);
     });
@@ -254,8 +265,8 @@ describe("OverviewPage platform scope filter", () => {
     mockUseUser.mockReturnValue(holderMock());
     setSearchParams({ project: "p-1" });
     render(<OverviewPageHarness />);
-    // Label resolves through the projects list.
-    expect(await screen.findByText("Project: Customer Support Bot")).toBeInTheDocument();
+    // Project dropdown reflects the selection; scope assertion is on the fetches.
+    await screen.findByRole("combobox", { name: "Filter by project" });
     await vi.waitFor(() => {
       expect(statsCalls().some((q) => q.includes("project_id=p-1"))).toBe(true);
     });

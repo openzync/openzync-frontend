@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import UsagePage from "@/app/(dashboard)/usage/page";
 import MonitoringPage from "@/app/(dashboard)/monitoring/page";
 import { get, getLlmUsage } from "@/lib/api-client";
-import type { LlmUsageParams } from "@/lib/api-client";
+import type { LlmUsageParams, LlmUsageResponse } from "@/lib/api-client";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────────
 
@@ -79,7 +79,9 @@ vi.mock("@/lib/api-client", async (importOriginal) => ({
       if (v !== undefined) query.set(k, String(v));
     }
     const suffix = query.size ? `?${query}` : "";
-    return baseGetImpl(`/v1/admin/llm-usage${suffix}`);
+    return baseGetImpl(
+      `/v1/admin/llm-usage${suffix}`,
+    ) as unknown as Promise<LlmUsageResponse>;
   }),
 }));
 
@@ -145,7 +147,9 @@ beforeEach(() => {
       if (v !== undefined) query.set(k, String(v));
     }
     const suffix = query.size ? `?${query}` : "";
-    return baseGetImpl(`/v1/admin/llm-usage${suffix}`);
+    return baseGetImpl(
+      `/v1/admin/llm-usage${suffix}`,
+    ) as unknown as Promise<LlmUsageResponse>;
   });
 });
 
@@ -156,30 +160,34 @@ afterEach(() => {
 // ─── Tests ────────────────────────────────────────────────────────────────────────
 
 describe("Usage page platform scope filter", () => {
-  it("holder sees the User dropdown and Site-wide badge", async () => {
+  it("holder sees the User dropdown and the project dropdown", async () => {
     mockUseUser.mockReturnValue(holderMock());
     render(<UsagePage />);
     expect(
       await screen.findByRole("combobox", { name: "Filter by user" }),
     ).toBeInTheDocument();
-    expect(await screen.findByText("Site-wide")).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Filter by project" }),
+    ).toBeInTheDocument();
   });
 
-  it("plain member sees neither the dropdown nor the site badge", async () => {
+  it("plain member sees the project dropdown but not the user dropdown", async () => {
     mockUseUser.mockReturnValue(memberMock());
     render(<UsagePage />);
     await screen.findByText("Usage");
     expect(
       screen.queryByRole("combobox", { name: "Filter by user" }),
     ).not.toBeInTheDocument();
-    expect(await screen.findByText("Personal")).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Filter by project" }),
+    ).toBeInTheDocument();
   });
 
-  it("?user_id= narrows the badge and the fetch to that user", async () => {
+  it("?user_id= narrows the fetch to that user", async () => {
     mockUseUser.mockReturnValue(holderMock());
     setSearchParams({ user_id: "u-9" });
     render(<UsagePage />);
-    expect(await screen.findByText("User: u-9")).toBeInTheDocument();
+    await screen.findByRole("combobox", { name: "Filter by user" });
     await vi.waitFor(() => {
       expect(
         vi
@@ -193,30 +201,34 @@ describe("Usage page platform scope filter", () => {
 });
 
 describe("Monitoring page platform scope filter", () => {
-  it("holder sees the User dropdown and Site-wide badge", async () => {
+  it("holder sees the User dropdown and the project dropdown", async () => {
     mockUseUser.mockReturnValue(holderMock());
     render(<MonitoringPage />);
     expect(
       await screen.findByRole("combobox", { name: "Filter by user" }),
     ).toBeInTheDocument();
-    expect(await screen.findByText("Site-wide")).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Filter by project" }),
+    ).toBeInTheDocument();
   });
 
-  it("plain member sees neither the dropdown nor the site badge", async () => {
+  it("plain member sees the project dropdown but not the user dropdown", async () => {
     mockUseUser.mockReturnValue(memberMock());
     render(<MonitoringPage />);
     await screen.findByText("Monitoring");
     expect(
       screen.queryByRole("combobox", { name: "Filter by user" }),
     ).not.toBeInTheDocument();
-    expect(await screen.findByText("Personal")).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Filter by project" }),
+    ).toBeInTheDocument();
   });
 
   it("?project= maps to project_id on the batch fetch (pin)", async () => {
     mockUseUser.mockReturnValue(holderMock());
     setSearchParams({ project: "p-1" });
     render(<MonitoringPage />);
-    expect(await screen.findByText("Project: P1")).toBeInTheDocument();
+    await screen.findByRole("combobox", { name: "Filter by project" });
     await vi.waitFor(() => {
       expect(
         vi
