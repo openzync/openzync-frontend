@@ -973,6 +973,8 @@ export interface AdminStatsParams {
   from?: string;
   to?: string;
   project_id?: string;
+  /** Platform scope — viewer-selected user (platform:manage only). */
+  user_id?: string;
 }
 
 /** GET /v1/admin/stats — windowed aggregate counts, optional project scope. */
@@ -985,6 +987,7 @@ export function getAdminStats(params: AdminStatsParams = {}): Promise<AdminStats
     query.set("days", String(params.days));
   }
   if (params.project_id) query.set("project_id", params.project_id);
+  if (params.user_id) query.set("user_id", params.user_id);
   const suffix = query.size ? `?${query}` : "";
   return get<AdminStats>(`/v1/admin/stats${suffix}`);
 }
@@ -1033,6 +1036,8 @@ export interface LlmUsageParams extends OffsetPageParams {
   from?: string;
   to?: string;
   project_id?: string;
+  /** Platform scope — viewer-selected user (platform:manage only). */
+  user_id?: string;
   worker?: string;
   model?: string;
   group_by?: "day";
@@ -1045,6 +1050,7 @@ export function getLlmUsage(params: LlmUsageParams = {}): Promise<LlmUsageRespon
   if (params.from) query.set("from", params.from);
   if (params.to) query.set("to", params.to);
   if (params.project_id) query.set("project_id", params.project_id);
+  if (params.user_id) query.set("user_id", params.user_id);
   if (params.worker) query.set("worker", params.worker);
   if (params.model) query.set("model", params.model);
   if (params.group_by) query.set("group_by", params.group_by);

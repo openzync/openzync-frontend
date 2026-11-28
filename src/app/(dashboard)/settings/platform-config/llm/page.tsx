@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError, getMyConfig, updateMyConfig } from "@/lib/api-client";
@@ -33,35 +33,24 @@ type FormState = {
   llm_model: string;
   llm_temperature: number;
   llm_max_tokens: number;
-  openai_api_key: string;
-  anthropic_api_key: string;
-  openai_like_base_url: string;
-  ollama_base_url: string;
-  azure_openai_endpoint: string;
-  azure_openai_key: string;
+  llm_api_key: string;
+  llm_base_url: string;
+  azure_deployment: string;
   prompt_caching_enabled: boolean;
   prompt_caching_anthropic_min_tokens: number;
   prompt_caching_anthropic_cache_ttl: "5m" | "1h";
 };
 
-/** One provider-specific field (api key, endpoint, base url, …). */
-interface ProviderField {
-  /** Must match a personal-config (`PATCH /v1/me/config`) field name exactly. */
-  field: keyof FormState;
-  label: string;
-  placeholder: string;
-  kind: "secret" | "url";
-  /** When true, the secret field hides its Required badge when empty. */
-  optional?: boolean;
-}
-
-interface ProviderConfig {
-  /** Matches the backend `llm_backend` enum. */
-  id: LlmBackend;
-  label: string;
-  title: string;
-  description: string;
-  fields: readonly ProviderField[];
+interface ProviderCaps {
+  /** Unified `llm_api_key`: required / optional / unused by this backend. */
+  apiKey: "required" | "optional" | "unused";
+  /** Unified `llm_base_url` (ollama + openai_like + azure endpoint): required / unused. */
+  baseUrl: "required" | "unused";
+  /**
+   * `azure_deployment` (azure only). When true the shared `llm_model` row is
+   * hidden — azure uses the deployment name instead.
+   */
+  deployment: boolean;
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -71,12 +60,9 @@ const LLM_FIELDS: readonly (keyof FormState)[] = [
   "llm_model",
   "llm_temperature",
   "llm_max_tokens",
-  "openai_api_key",
-  "anthropic_api_key",
-  "openai_like_base_url",
-  "ollama_base_url",
-  "azure_openai_endpoint",
-  "azure_openai_key",
+  "llm_api_key",
+  "llm_base_url",
+  "azure_deployment",
   "prompt_caching_enabled",
   "prompt_caching_anthropic_min_tokens",
   "prompt_caching_anthropic_cache_ttl",
@@ -106,58 +92,76 @@ function hasStoredPromptCaching(pc: unknown): boolean {
 }
 
 /**
- * Single source of truth for provider selection (order = select order) and the
- * provider settings card. Secret fields render through `SecretInput`.
+ * Backend select order (id + label only) and the per-provider capability map.
+ * All provider rows live inside the single LLM Backend card below Max Tokens
+ * in fixed order — API Key, Base URL / Endpoint URL, Deployment — each enabled
+ * or disabled by the selected backend. Disabled rows keep their form value
+ * (switching back re-enables intact) but are stripped from the save payload.
  */
-const PROVIDERS: readonly ProviderConfig[] = [
-  {
-    id: "openai",
-    label: "OpenAI",
-    title: "OpenAI Settings",
-    description: "API key for OpenAI models",
-    fields: [
-      { field: "openai_api_key", label: "OpenAI API Key", placeholder: "sk-...", kind: "secret" },
-    ],
-  },
-  {
-    id: "anthropic",
-    label: "Anthropic",
-    title: "Anthropic Settings",
-    description: "API key for Anthropic models",
-    fields: [
-      { field: "anthropic_api_key", label: "Anthropic API Key", placeholder: "sk-ant-...", kind: "secret" },
-    ],
-  },
-  {
-    id: "azure",
-    label: "Azure OpenAI",
-    title: "Azure OpenAI Settings",
-    description: "Azure OpenAI endpoint and credentials",
-    fields: [
-      { field: "azure_openai_endpoint", label: "Endpoint URL", placeholder: "https://my-resource.openai.azure.com", kind: "url" },
-      { field: "azure_openai_key", label: "API Key", placeholder: "Azure API key", kind: "secret" },
-    ],
-  },
-  {
-    id: "ollama",
-    label: "Ollama",
-    title: "Ollama Settings",
-    description: "Local LLM provider configuration",
-    fields: [
-      { field: "ollama_base_url", label: "Base URL", placeholder: "http://localhost:11434", kind: "url" },
-    ],
-  },
-  {
-    id: "openai_like",
-    label: "OpenAI-compatible",
-    title: "Provider Settings",
-    description: "Any OpenAI-compatible endpoint — shared OpenAI API key (optional, same card)",
-    fields: [
-      { field: "openai_like_base_url", label: "Base URL", placeholder: "https://api.together.xyz/v1", kind: "url" },
-      { field: "openai_api_key", label: "API Key", placeholder: "sk-... (leave empty if endpoint needs no auth)", kind: "secret", optional: true },
-    ],
-  },
+const PROVIDERS: readonly { id: LlmBackend; label: string }[] = [
+  { id: "openai", label: "OpenAI" },
+  { id: "anthropic", label: "Anthropic" },
+  { id: "azure", label: "Azure OpenAI" },
+  { id: "ollama", label: "Ollama" },
+  { id: "openai_like", label: "OpenAI-compatible" },
 ];
+
+const PROVIDER_CAPS: Record<LlmBackend, ProviderCaps> = {
+  openai: { apiKey: "required", baseUrl: "unused", deployment: false },
+  anthropic: { apiKey: "required", baseUrl: "unused", deployment: false },
+  azure: { apiKey: "required", baseUrl: "required", deployment: true },
+  ollama: { apiKey: "unused", baseUrl: "required", deployment: false },
+  openai_like: { apiKey: "optional", baseUrl: "required", deployment: false },
+};
+
+/** Form field → unified backend name for the server-shaped requires message. */
+const FORM_TO_UNIFIED: Record<string, string> = {
+  llm_api_key: "api_key",
+  llm_base_url: "base_url",
+  azure_deployment: "deployment",
+};
+
+/** Human labels for the switch-provider hint. */
+const REQUIRED_LABELS: Record<string, string> = {
+  llm_api_key: "API key",
+  llm_base_url: "base URL",
+  azure_deployment: "deployment",
+};
+
+/** Required form fields for a backend, derived from PROVIDER_CAPS. */
+function requiredFormFields(backend: LlmBackend): (keyof FormState)[] {
+  const caps = PROVIDER_CAPS[backend] ?? PROVIDER_CAPS.openai_like;
+  const fields: (keyof FormState)[] = [];
+  if (caps.apiKey === "required") fields.push("llm_api_key");
+  if (caps.baseUrl === "required") fields.push("llm_base_url");
+  if (caps.deployment) fields.push("azure_deployment");
+  return fields;
+}
+
+/**
+ * Drop rows disabled by the selected backend (azure uses the deployment
+ * instead of the shared model). A staged reset is honored so a stale stored
+ * value can still be cleared. Shared by save and probe so they agree.
+ */
+function stripDisabledProviderFields(
+  payload: Record<string, unknown>,
+  backend: LlmBackend,
+  pendingResets: Set<keyof FormState>,
+): void {
+  const caps = PROVIDER_CAPS[backend] ?? PROVIDER_CAPS.openai_like;
+  if (caps.apiKey === "unused" && !pendingResets.has("llm_api_key")) {
+    delete payload["llm_api_key"];
+  }
+  if (caps.baseUrl === "unused" && !pendingResets.has("llm_base_url")) {
+    delete payload["llm_base_url"];
+  }
+  if (!caps.deployment && !pendingResets.has("azure_deployment")) {
+    delete payload["azure_deployment"];
+  }
+  if (caps.deployment && !pendingResets.has("llm_model")) {
+    delete payload["llm_model"];
+  }
+}
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -167,12 +171,9 @@ export default function LlmConfigPage() {
     llm_model: "",
     llm_temperature: 0.7,
     llm_max_tokens: 4096,
-    openai_api_key: "",
-    anthropic_api_key: "",
-    openai_like_base_url: "",
-    ollama_base_url: "",
-    azure_openai_endpoint: "",
-    azure_openai_key: "",
+    llm_api_key: "",
+    llm_base_url: "",
+    azure_deployment: "",
     prompt_caching_enabled: true,
     prompt_caching_anthropic_min_tokens: 1024,
     prompt_caching_anthropic_cache_ttl: "5m",
@@ -244,12 +245,9 @@ export default function LlmConfigPage() {
       llm_model: val("llm_model", "") as string,
       llm_temperature: val("llm_temperature", 0.7) as number,
       llm_max_tokens: val("llm_max_tokens", 4096) as number,
-      openai_api_key: val("openai_api_key", "") as string,
-      anthropic_api_key: val("anthropic_api_key", "") as string,
-      openai_like_base_url: val("openai_like_base_url", "") as string,
-      ollama_base_url: val("ollama_base_url", "") as string,
-      azure_openai_endpoint: val("azure_openai_endpoint", "") as string,
-      azure_openai_key: val("azure_openai_key", "") as string,
+      llm_api_key: val("llm_api_key", "") as string,
+      llm_base_url: val("llm_base_url", "") as string,
+      azure_deployment: val("azure_deployment", "") as string,
       prompt_caching_enabled: pcVal("enabled", true) as boolean,
       prompt_caching_anthropic_min_tokens: pcVal("anthropic_min_tokens", 1024) as number,
       prompt_caching_anthropic_cache_ttl: pcVal("anthropic_cache_ttl", "5m") as "5m" | "1h",
@@ -314,6 +312,43 @@ export default function LlmConfigPage() {
     const payload = getSavePayload(form);
     if (Object.keys(payload).length === 0) return;
 
+    // Rows disabled by the selected backend are never sent — the form value
+    // is kept so switching back re-enables intact. An explicitly staged
+    // reset is still honored so a stale stored value can be cleared.
+    stripDisabledProviderFields(payload, form.llm_backend, pendingResets);
+    if (Object.keys(payload).length === 0) return;
+
+    // Same-PATCH switch must stay self-contained: a required field the
+    // payload omits is resent from stored (switch-back without retyping);
+    // one empty in both form and stored blocks here with the same message
+    // the server validator would return.
+    const nextBackend = payload.llm_backend as string | null | undefined;
+    if ("llm_backend" in payload && nextBackend && nextBackend in PROVIDER_CAPS) {
+      const missing: string[] = [];
+      for (const field of requiredFormFields(form.llm_backend)) {
+        if (field in payload && payload[field] != null && String(payload[field]).trim() !== "") {
+          continue;
+        }
+        const formVal = form[field] as unknown;
+        const formEmpty = formVal == null || String(formVal).trim() === "";
+        const storedVal = stored[field];
+        if (!formEmpty && !(field in payload) && typeof storedVal === "string" && storedVal.trim() !== "") {
+          payload[field] = storedVal;
+        } else {
+          missing.push(FORM_TO_UNIFIED[field] ?? field);
+        }
+      }
+      if (missing.length > 0) {
+        const msg =
+          `${form.llm_backend} backend requires ${missing.join(", ")} in per-user ` +
+          "configuration.  Set it via PATCH /admin/platform-config.";
+        setActionError(msg);
+        toast.error(msg);
+        return;
+      }
+    }
+    if (Object.keys(payload).length === 0) return;
+
     // prompt_caching is a nested backend object — collapse the three flat form
     // fields into it. A staged reset (flat null from getSavePayload) becomes a
     // null inside the object so the backend falls back to that field's system
@@ -374,24 +409,35 @@ export default function LlmConfigPage() {
   // ── Test connection (unsaved form as candidate; never marks dirty) ─────────
 
   function handleTestConnection(): Promise<ConnectionTestResult | null> {
-    return conn.test("llm", {
+    // Same strip rules as save (shared helper) so the probe tests exactly
+    // what a save would send for the selected backend.
+    const candidate: Record<string, unknown> = {
       llm_backend: form.llm_backend,
       llm_model: form.llm_model,
-      openai_api_key: form.openai_api_key,
-      anthropic_api_key: form.anthropic_api_key,
-      openai_like_base_url: form.openai_like_base_url,
-      ollama_base_url: form.ollama_base_url,
-      azure_openai_endpoint: form.azure_openai_endpoint,
-      azure_openai_key: form.azure_openai_key,
-    });
+      llm_api_key: form.llm_api_key,
+      llm_base_url: form.llm_base_url,
+      azure_deployment: form.azure_deployment,
+    };
+    stripDisabledProviderFields(candidate, form.llm_backend, pendingResets);
+    return conn.test("llm", candidate);
   }
 
   // ── Provider meta ──────────────────────────────────────────────────────────
 
   // openai_like (last entry) is the no-fields fallback provider
-  const provider =
-    PROVIDERS.find((p) => p.id === form.llm_backend) ??
-    PROVIDERS[PROVIDERS.length - 1];
+  const providerLabel =
+    PROVIDERS.find((p) => p.id === form.llm_backend)?.label ?? "OpenAI-compatible";
+  const caps = PROVIDER_CAPS[form.llm_backend] ?? PROVIDER_CAPS.openai_like;
+  const unusedHint = `Not used by ${providerLabel} — value kept, not sent on save.`;
+
+  // Switch-provider nudge: the target backend changed and at least one of
+  // its required fields is still empty in the form.
+  const backendChanged = form.llm_backend !== initialForm.llm_backend;
+  const emptyRequiredFields = backendChanged
+    ? requiredFormFields(form.llm_backend).filter(
+        (f) => String(form[f] ?? "").trim() === "",
+      )
+    : [];
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -441,9 +487,16 @@ export default function LlmConfigPage() {
                 {pendingResets.has("llm_backend") && (
                   <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
                 )}
+                {emptyRequiredFields.length > 0 && (
+                  <p className="text-xs text-amber-400 mt-1">
+                    Switching to {providerLabel} — enter its{" "}
+                    {emptyRequiredFields.map((f) => f === "llm_base_url" && form.llm_backend === "azure" ? "endpoint URL" : REQUIRED_LABELS[f]).join(", ")} before saving.
+                  </p>
+                )}
               </div>
 
-              {/* llm_model */}
+              {/* llm_model — hidden for azure, which uses azure_deployment instead */}
+              {!caps.deployment && (
               <div>
                 <label htmlFor="llm-model" className="block text-sm font-medium text-surface-300 mb-1">
                   Model
@@ -470,6 +523,7 @@ export default function LlmConfigPage() {
                   <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
                 )}
               </div>
+              )}
 
               {/* llm_temperature */}
               <div>
@@ -530,73 +584,125 @@ export default function LlmConfigPage() {
                   <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
                 )}
               </div>
+
+              {/* ── Provider rows: always rendered in fixed order, enabled or
+                  disabled by the selected backend. Disabled rows keep their
+                  form value but are stripped from the save payload. ── */}
+
+              {/* unified llm_api_key — required openai/anthropic/azure, optional openai_like, unused ollama */}
+              <div className={caps.apiKey === "unused" ? "opacity-60" : undefined}>
+                <div className="flex gap-2 items-start">
+                  <div className="flex-1">
+                    <SecretInput
+                      id="llm_api_key"
+                      label="API Key"
+                      value={form.llm_api_key}
+                      onChange={(v) => updateField("llm_api_key", v)}
+                      placeholder={form.llm_backend === "openai_like" ? "sk-... (leave empty if endpoint needs no auth)" : "sk-..."}
+                      visible={Boolean(visibleFields.llm_api_key)}
+                      onToggleVisibility={() => toggleFieldVisibility("llm_api_key")}
+                      optional={caps.apiKey !== "required"}
+                      disabled={caps.apiKey === "unused"}
+                    />
+                  </div>
+                  {isFieldSet("llm_api_key") && (
+                    <Button
+                      onClick={() => handleStageReset("llm_api_key")}
+                      variant="ghost" size="sm"
+                      // SecretInput renders its own label above the
+                      // input, so push the reset button down to the input row
+                      className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-7"
+                      title="Remove stored value — default will apply on save"
+                    >
+                      <RotateCcw size={14} />
+                    </Button>
+                  )}
+                </div>
+                {pendingResets.has("llm_api_key") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
+                {caps.apiKey === "unused" && (
+                  <p className="text-xs text-surface-500 mt-1">{unusedHint}</p>
+                )}
+              </div>
+
+              {/* unified llm_base_url — required ollama/openai_like/azure, unused openai/anthropic.
+                  Label + placeholder adapt per backend; azure calls it "Endpoint URL". */}
+              <div className={caps.baseUrl === "required" ? undefined : "opacity-60"}>
+                <label htmlFor="llm_base_url" className="block text-sm font-medium text-surface-300 mb-1">
+                  {form.llm_backend === "azure" ? "Endpoint URL" : "Base URL"}
+                </label>
+                <div className="flex gap-2 items-start">
+                  <input
+                    id="llm_base_url"
+                    className="input-base flex-1"
+                    type="url"
+                    placeholder={
+                      form.llm_backend === "ollama"
+                        ? "http://localhost:11434"
+                        : form.llm_backend === "azure"
+                          ? "https://my-resource.openai.azure.com"
+                          : "https://api.together.xyz/v1"
+                    }
+                    value={form.llm_base_url}
+                    onChange={(e) => updateField("llm_base_url", e.target.value)}
+                    disabled={caps.baseUrl !== "required"}
+                  />
+                  {isFieldSet("llm_base_url") && (
+                    <Button
+                      onClick={() => handleStageReset("llm_base_url")}
+                      variant="ghost" size="sm"
+                      className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                      title="Remove stored value — default will apply on save"
+                    >
+                      <RotateCcw size={14} />
+                    </Button>
+                  )}
+                </div>
+                {pendingResets.has("llm_base_url") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
+                {caps.baseUrl !== "required" && (
+                  <p className="text-xs text-surface-500 mt-1">{unusedHint}</p>
+                )}
+              </div>
+
+              {/* azure_deployment — azure only (replaces Model row for azure) */}
+              <div className={caps.deployment ? undefined : "opacity-60"}>
+                <label htmlFor="azure-deployment" className="block text-sm font-medium text-surface-300 mb-1">
+                  Deployment
+                </label>
+                <div className="flex gap-2 items-start">
+                  <input
+                    id="azure-deployment"
+                    className="input-base flex-1"
+                    placeholder="my-deployment-name"
+                    value={form.azure_deployment}
+                    onChange={(e) => updateField("azure_deployment", e.target.value)}
+                    disabled={!caps.deployment}
+                  />
+                  {isFieldSet("azure_deployment") && (
+                    <Button
+                      onClick={() => handleStageReset("azure_deployment")}
+                      variant="ghost" size="sm"
+                      className="rounded-md text-surface-400 hover:text-brand-300 shrink-0 mt-0.5"
+                      title="Remove stored value — default will apply on save"
+                    >
+                      <RotateCcw size={14} />
+                    </Button>
+                  )}
+                </div>
+                {pendingResets.has("azure_deployment") && (
+                  <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
+                )}
+                {!caps.deployment && (
+                  <p className="text-xs text-surface-500 mt-1">{unusedHint}</p>
+                )}
+              </div>
             </div>
           </>
         )}
       </div>
-
-      {/* ── Provider Settings Card ────────────────────────────────────────────── */}
-      {!loading && (
-        <div className="card-base p-6">
-          <div className="mb-6">
-            <h2 className="font-display text-base font-medium">{provider.title}</h2>
-            <p className="text-xs text-surface-400">{provider.description}</p>
-          </div>
-
-          <div className="space-y-4 max-w-md">
-              {provider.fields.map((f) => (
-                <Fragment key={f.field}>
-                  {/* url fields keep the label above the input row, as before */}
-                  {f.kind === "url" && (
-                    <label htmlFor={f.field} className="block text-sm font-medium text-surface-300 mb-1">
-                      {f.label}
-                    </label>
-                  )}
-                  <div className="flex gap-2 items-start">
-                    {f.kind === "secret" ? (
-                      <div className="flex-1">
-                        <SecretInput
-                          id={f.field}
-                          label={f.label}
-                          value={String(form[f.field] ?? "")}
-                          onChange={(v) => updateField(f.field, v)}
-                          placeholder={f.placeholder}
-                          visible={Boolean(visibleFields[f.field])}
-                          onToggleVisibility={() => toggleFieldVisibility(f.field)}
-                          optional={f.optional ?? false}
-                        />
-                      </div>
-                    ) : (
-                      <input
-                        id={f.field}
-                        className="input-base flex-1"
-                        type="url"
-                        placeholder={f.placeholder}
-                        value={String(form[f.field] ?? "")}
-                        onChange={(e) => updateField(f.field, e.target.value)}
-                      />
-                    )}
-                    {isFieldSet(f.field) && (
-                      <Button
-                        onClick={() => handleStageReset(f.field)}
-                        variant="ghost" size="sm"
-                        // secret fields: SecretInput renders its own label above the
-                        // input, so push the reset button down to the input row
-                        className={`rounded-md text-surface-400 hover:text-brand-300 shrink-0 ${f.kind === "secret" ? "mt-7" : "mt-0.5"}`}
-                        title="Remove stored value — default will apply on save"
-                      >
-                        <RotateCcw size={14} />
-                      </Button>
-                    )}
-                  </div>
-                  {pendingResets.has(f.field) && (
-                    <p className="text-xs text-amber-400 mt-1">Will be reset on save</p>
-                  )}
-                </Fragment>
-              ))}
-          </div>
-        </div>
-      )}
 
       {/* ── Prompt Caching Card ──────────────────────────────────────────────── */}
       {!loading && (

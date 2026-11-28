@@ -62,7 +62,8 @@ function rootMock() {
 }
 
 function nonRootMock() {
-  return { isAdmin: false, loading: false, can: () => true };
+  // Plain member: no platform:manage grant (admin wildcard does not apply).
+  return { isAdmin: false, loading: false, can: () => false };
 }
 
 function renderLayout() {

@@ -302,7 +302,7 @@ function AuditLogInner() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <RequirePermission permission="members:read">
+    <RequirePermission permission="platform:manage">
       <div className="space-y-6">
       <PageHeader
         title="Audit Log"

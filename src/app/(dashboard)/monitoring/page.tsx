@@ -13,6 +13,8 @@ import { sortChronological } from "@/lib/chart-order";
 import { fillDateRange } from "@/lib/chart-range";
 import { get, ApiError } from "@/lib/api-client";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { useUser } from "@/contexts/user-context";
+import { useScopeUsers, scopeUserLabel } from "@/hooks/use-scope-users";
 import { PageGuide, GuideDashboard } from "@/components/guides";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
@@ -621,7 +623,11 @@ function MonitoringInner() {
   const rawDays = Number(searchParams.get("days"));
   const rawFrom = searchParams.get("from");
   const rawTo = searchParams.get("to");
-  const rawProject = searchParams.get("project_id") ?? "";
+  const rawProject = searchParams.get("project") ?? "";
+  // Platform scope — viewer-selected user (platform:manage only). Either-or
+  // with the project filter: selecting one clears the other.
+  const rawUserId = searchParams.get("user_id") ?? "";
+  const userId = rawUserId.trim() || null;
 
   const isCustom = !!rawFrom && !!rawTo;
   const days: DaysOption = isCustom
@@ -667,6 +673,16 @@ function MonitoringInner() {
     setParams({ days: "30", from: null, to: null });
   }
 
+  // Either-or scope: selecting a project clears the user selection and
+  // vice versa; clearing both returns to site-wide.
+  function setProjectFilter(id: string | null) {
+    setParams(id ? { project: id, user_id: null } : { project: null });
+  }
+
+  function setUserFilter(id: string | null) {
+    setParams(id ? { user_id: id, project: null } : { user_id: null });
+  }
+
   // ── Projects dropdown (same convention as the usage page) ─────────────────
 
   const projectsQuery = useApiQuery<ProjectOption[] | { data: ProjectOption[] }>(async () => {
@@ -685,6 +701,14 @@ function MonitoringInner() {
     return Array.isArray(d) ? d : (d.data ?? []);
   }, [projectsQuery.data]);
 
+  // ── Platform user scope (platform:manage only, fail-soft) ────────────────
+
+  const { can } = useUser();
+  const canManage = can("platform:manage");
+  const { users, usersError } = useScopeUsers(canManage);
+  // Dropdown fetch errors hide the filter — the page keeps its own data.
+  const showUserFilter = canManage && usersError === null;
+
   // ── Windowed batch query string — shared by every batch section ────────────
 
   const batchQs = new URLSearchParams({ limit: String(BATCH_LIMIT) });
@@ -695,8 +719,9 @@ function MonitoringInner() {
     batchQs.set("days", String(days));
   }
   if (projectId) batchQs.set("project_id", projectId);
+  if (userId) batchQs.set("user_id", userId);
   const batchQsString = batchQs.toString();
-  const windowKey = `${days}-${from}-${to}-${projectId}`;
+  const windowKey = `${days}-${from}-${to}-${projectId}-${userId}`;
 
   // Window params for /metrics/summary — mirrors batchQs minus limit and
   // minus project_id. Backend contract (openzync-core
@@ -862,17 +887,31 @@ function MonitoringInner() {
           </div>
         )}
 
-        {/* Filter bar — project + time range, URL is the source of truth */}
+        {/* Filter bar — project + user + time range, URL is the source of truth */}
         <div className="card-base p-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className={`grid grid-cols-1 gap-3 ${showUserFilter ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2"}`}>
+            {showUserFilter && (
+              <label className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-medium text-surface-400 whitespace-nowrap">User</span>
+                <SimpleSelect
+                  value={userId ?? ""}
+                  onValueChange={(v) => setUserFilter(v || null)}
+                  options={[{ value: "", label: "All users" }, ...users.map((u) => ({ value: u.id, label: scopeUserLabel(u) }))]}
+                  className="h-8 text-xs flex-1 min-w-0"
+                  aria-label="Filter by user"
+                  disabled={!!rawProject}
+                />
+              </label>
+            )}
             <label className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-medium text-surface-400 whitespace-nowrap">Project</span>
               <SimpleSelect
                 value={rawProject}
-                onValueChange={(v) => setParams({ project_id: v || null })}
+                onValueChange={(v) => setProjectFilter(v || null)}
                 options={[{ value: "", label: "All projects" }, ...projects.map((p) => ({ value: p.id, label: p.name }))]}
                 className="h-8 text-xs flex-1 min-w-0"
                 aria-label="Filter by project"
+                disabled={!!userId}
               />
             </label>
             <label className="flex items-center gap-2 min-w-0">
